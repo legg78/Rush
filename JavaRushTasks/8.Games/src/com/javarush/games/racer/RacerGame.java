@@ -31,6 +31,15 @@ public class RacerGame extends Game {
     }
 
     @Override
+    public void setCellColor(int x, int y, Color color) {
+        if (x < 0 || x > 64 || y < 0 || y > 64)
+            return;
+        try {super.setCellColor(x, y, color);}
+        catch (Exception e) {}
+
+    }
+
+    @Override
     public void initialize() {
         showGrid(false);
         setScreenSize(WIDTH, HEIGHT);
