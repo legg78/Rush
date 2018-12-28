@@ -25,10 +25,21 @@ public class RoadManager {
         int x = game.getRandomNumber(FIRST_LANE_POSITION, FOURTH_LANE_POSITION);
         int y = -1 * RoadObject.getHeight(type);
         RoadObject ro;
-
         ro = createRoadObject(type, x, y);
         if (ro != null) {
             items.add(ro);
+        }
+    }
+
+    public void draw(Game game) {
+        for (RoadObject ro : items) {
+            ro.draw(game);
+        }
+    }
+
+    public void move(int boost) {
+        for (RoadObject ro : items) {
+            ro.move(boost + ro.speed);
         }
     }
 }
