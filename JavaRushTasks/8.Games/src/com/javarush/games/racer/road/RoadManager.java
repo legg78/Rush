@@ -42,4 +42,24 @@ public class RoadManager {
             ro.move(boost + ro.speed);
         }
     }
+
+    private boolean isThornExists() {
+        for (RoadObject ro : items) {
+            if (ro.type.equals(RoadObjectType.THORN)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void generateThorn(Game game) {
+        int num = game.getRandomNumber(100);
+        if (num <10 && !isThornExists()) {
+            addRoadObject(RoadObjectType.THORN, game);
+        }
+    }
+
+    public void generateNewRoadObjects(Game game) {
+        generateThorn(game);
+    }
 }
