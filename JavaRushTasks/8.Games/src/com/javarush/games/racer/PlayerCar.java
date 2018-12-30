@@ -39,4 +39,8 @@ public class PlayerCar extends  GameObject {
     public PlayerCar() {
         super (RacerGame.WIDTH / 2 + 2, RacerGame.HEIGHT - playerCarHeight - 1, ShapeMatrix.PLAYER);
     }
+
+    public void stop () {
+        this.matrix = ShapeMatrix.PLAYER_DEAD;
+    }
 }

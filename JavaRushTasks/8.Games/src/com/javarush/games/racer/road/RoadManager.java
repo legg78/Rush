@@ -1,6 +1,7 @@
 package com.javarush.games.racer.road;
 
 import com.javarush.engine.cell.Game;
+import com.javarush.games.racer.PlayerCar;
 import com.javarush.games.racer.RacerGame;
 
 import java.util.ArrayList;
@@ -72,5 +73,14 @@ public class RoadManager {
 
     public void generateNewRoadObjects(Game game) {
         generateThorn(game);
+    }
+
+    public boolean checkCrush(PlayerCar playerCar) {
+        for (RoadObject ro : items) {
+            if (ro.isCollision(playerCar) )
+                return true;
+
+        }
+        return false;
     }
 }
