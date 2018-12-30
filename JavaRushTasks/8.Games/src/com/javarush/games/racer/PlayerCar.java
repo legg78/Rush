@@ -43,4 +43,8 @@ public class PlayerCar extends  GameObject {
     public void stop () {
         this.matrix = ShapeMatrix.PLAYER_DEAD;
     }
+
+    public void setSpeed(int speed) {
+        this.speed = speed;
+    }
 }

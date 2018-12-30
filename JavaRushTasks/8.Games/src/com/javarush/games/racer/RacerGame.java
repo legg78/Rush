@@ -84,16 +84,20 @@ public class RacerGame extends Game {
             player.setDirection(Direction.RIGHT);
         if (key.equals(Key.LEFT))
             player.setDirection(Direction.LEFT);
-    }
+        if (key.equals(Key.SPACE) && this.isGameStopped == true)
+            createGame();
+        if (key.equals(Key.UP))
+            player.setSpeed(2);
+        }
 
     @Override
     public void onKeyReleased(Key key) {
-        if (key.equals(Key.RIGHT) && player.getDirection().equals(Direction.RIGHT)) {
+        if ((key == Key.RIGHT) && player.getDirection() == Direction.RIGHT) {
             player.setDirection(Direction.NONE);
-        }
-
-        if (key.equals(Key.LEFT) && player.getDirection().equals(Direction.LEFT)) {
+        } else if (key == Key.LEFT && player.getDirection() == Direction.LEFT) {
             player.setDirection(Direction.NONE);
+        } else if (key == Key.UP) {
+            player.setSpeed ( 1 );
         }
     }
 
@@ -103,4 +107,6 @@ public class RacerGame extends Game {
         stopTurnTimer();
         player.stop();
     }
+
+
 }
