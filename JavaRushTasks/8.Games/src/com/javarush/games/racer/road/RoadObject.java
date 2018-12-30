@@ -21,6 +21,10 @@ public class RoadObject extends GameObject {
         this.y += boost;
     }
 
+    public void move (int speed,  List<RoadObject> roadObjects ) {
+
+    }
+
     public boolean isCollisionWithDistance(RoadObject roadObject, int distance) {
         if ((x - distance > roadObject.x + roadObject.width) || (x + width + distance < roadObject.x)) {
             return false;

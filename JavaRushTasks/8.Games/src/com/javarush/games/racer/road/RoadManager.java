@@ -21,9 +21,13 @@ public class RoadManager {
         if (type.equals(RoadObjectType.THORN)) {
             return new Thorn(x, y);
         }
+        else if (type == RoadObjectType.DRUNK_CAR) {
+            return new MovingCar(x, y);
+        }
         else {
             return new Car(type, x, y);
         }
+
     }
 
     private boolean isRoadSpaceFree(RoadObject object) {
@@ -51,7 +55,7 @@ public class RoadManager {
 
     public void move(int boost) {
         for (RoadObject ro : items) {
-            ro.move(boost + ro.speed);
+            ro.move(boost + ro.speed, items);
         }
 
         deletePassedItems();
@@ -84,6 +88,7 @@ public class RoadManager {
     public void generateNewRoadObjects(Game game) {
         generateThorn(game);
         generateRegularCar(game);
+        generateMovingCar(game);
     }
 
     public boolean checkCrush(PlayerCar playerCar) {
@@ -99,5 +104,20 @@ public class RoadManager {
         if (game.getRandomNumber(100) < 30 ) {
             addRoadObject(RoadObjectType.values()[carTypeNumber], game);
         }
-}
+    }
+
+    private boolean isMovingCarExists() {
+        for (RoadObject ro : items) {
+            if (ro instanceof MovingCar)
+                return true;
+
+        }
+        return false;
+    }
+
+    private void generateMovingCar(Game game) {
+        if (game.getRandomNumber(100) < 10 && !isMovingCarExists()) {
+            addRoadObject(RoadObjectType.DRUNK_CAR, game);
+        }
+    }
 }
