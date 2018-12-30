@@ -1,6 +1,7 @@
 package com.javarush.games.racer.road;
 
 import com.javarush.engine.cell.Game;
+import com.javarush.games.racer.GameObject;
 import com.javarush.games.racer.PlayerCar;
 import com.javarush.games.racer.RacerGame;
 
@@ -13,6 +14,7 @@ public class RoadManager {
     public final static int RIGHT_BORDER = RacerGame.WIDTH - LEFT_BORDER;
     private final static int FIRST_LANE_POSITION = 16;
     private final static int FOURTH_LANE_POSITION = 44;
+    private final static int PLAYER_CAR_DISTANCE = 12;
     private List<RoadObject> items = new ArrayList<>();
 
     private RoadObject createRoadObject(RoadObjectType type, int x, int y) {
@@ -24,12 +26,19 @@ public class RoadManager {
         }
     }
 
+    private boolean isRoadSpaceFree(RoadObject object) {
+        for (RoadObject ro : items) {
+            if (ro.isCollisionWithDistance(object, PLAYER_CAR_DISTANCE))
+                return false;
+        }
+        return true;
+    }
     private void addRoadObject(RoadObjectType type, Game game) {
         int x = game.getRandomNumber(FIRST_LANE_POSITION, FOURTH_LANE_POSITION);
         int y = -1 * RoadObject.getHeight(type);
         RoadObject ro;
         ro = createRoadObject(type, x, y);
-        if (ro != null) {
+        if (ro != null && isRoadSpaceFree(ro)) {
             items.add(ro);
         }
     }
