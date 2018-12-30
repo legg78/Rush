@@ -92,9 +92,9 @@ public class RacerGame extends Game {
 
     @Override
     public void onKeyReleased(Key key) {
-        if ((key == Key.RIGHT) && player.getDirection() == Direction.RIGHT) {
+        if ((key == Key.RIGHT) && player.getDirection()==Direction.RIGHT) {
             player.setDirection(Direction.NONE);
-        } else if (key == Key.LEFT && player.getDirection() == Direction.LEFT) {
+        } else if (key==Key.LEFT && player.getDirection()==Direction.LEFT) {
             player.setDirection(Direction.NONE);
         } else if (key == Key.UP) {
             player.setSpeed ( 1 );
