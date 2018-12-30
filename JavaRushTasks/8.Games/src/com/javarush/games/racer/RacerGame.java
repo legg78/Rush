@@ -66,6 +66,9 @@ public class RacerGame extends Game {
 
     @Override
     public void onTurn(int step) {
+        if (roadManager.getPassedCarsCount() >= RACE_GOAL_CARS_COUNT) {
+            finishLine.show();
+        }
         if (roadManager.checkCrush(player)) {
             gameOver();
 
