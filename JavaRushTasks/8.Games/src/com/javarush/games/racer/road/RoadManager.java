@@ -4,6 +4,7 @@ import com.javarush.engine.cell.Game;
 import com.javarush.games.racer.RacerGame;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class RoadManager {
@@ -41,6 +42,8 @@ public class RoadManager {
         for (RoadObject ro : items) {
             ro.move(boost + ro.speed);
         }
+
+        deletePassedItems();
     }
 
     private boolean isThornExists() {
@@ -57,6 +60,14 @@ public class RoadManager {
         if (num <10 && !isThornExists()) {
             addRoadObject(RoadObjectType.THORN, game);
         }
+    }
+
+    private void deletePassedItems() {
+         List<RoadObject> itemc = new ArrayList<>(items);
+          for (RoadObject ro : itemc) {
+              if (ro.y >= RacerGame.HEIGHT)
+                  items.remove(ro);
+          }
     }
 
     public void generateNewRoadObjects(Game game) {
