@@ -95,6 +95,7 @@ public class RoadManager {
     }
 
     public void generateNewRoadObjects(Game game) {
+
         generateThorn(game);
         generateRegularCar(game);
         generateMovingCar(game);

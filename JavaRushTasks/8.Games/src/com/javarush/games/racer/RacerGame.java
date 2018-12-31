@@ -77,8 +77,12 @@ public class RacerGame extends Game {
 
         }
         else {
+        if (finishLine.isCrossed(player)) {
+            win();
+
+        } else {
         moveAll();
-        roadManager.generateNewRoadObjects(this);}
+        roadManager.generateNewRoadObjects(this);}}
         drawScene();
 
     }
@@ -120,5 +124,10 @@ public class RacerGame extends Game {
         player.stop();
     }
 
+    private void win(){
+        isGameStopped = true;
+        showMessageDialog(Color.WHITE, "WIN!!!", Color.RED, 30);
+        stopTurnTimer();
+    }
 
 }
