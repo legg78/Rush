@@ -22,6 +22,7 @@ public class RoadObject extends GameObject {
     }
 
     public void move (int speed,  List<RoadObject> roadObjects ) {
+        move(speed);
 
     }
 
