@@ -15,6 +15,7 @@ public class RacerGame extends Game {
     private boolean isGameStopped;
     private FinishLine finishLine;
     private ProgressBar progressBar;
+    private int score;
 
     private void createGame() {
         roadMarking = new RoadMarking();
@@ -25,6 +26,7 @@ public class RacerGame extends Game {
         drawScene();
         this.setTurnTimer(40);
         this.isGameStopped = false;
+        this.score = 3500;
 
     }
 
@@ -69,6 +71,7 @@ public class RacerGame extends Game {
 
     @Override
     public void onTurn(int step) {
+        this.score-=5;
         if (roadManager.getPassedCarsCount() >= RACE_GOAL_CARS_COUNT) {
             finishLine.show();
         }
@@ -83,6 +86,7 @@ public class RacerGame extends Game {
         } else {
         moveAll();
         roadManager.generateNewRoadObjects(this);}}
+        setScore(this.score);
         drawScene();
 
     }
