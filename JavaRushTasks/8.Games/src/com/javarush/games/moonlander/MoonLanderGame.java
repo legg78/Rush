@@ -75,6 +75,10 @@ public class MoonLanderGame extends Game {
             this.isRightPressed = true;
         }
 
+        if (key==Key.SPACE && this.isGameStopped) {
+            this.createGame();
+        }
+
 }
 
     @Override
@@ -108,6 +112,9 @@ public class MoonLanderGame extends Game {
     }
 
     private void gameOver() {
-
+        this.rocket.crash();
+        this.isGameStopped = true;
+        this.showMessageDialog(Color.BLACK, "CRASH!!!", Color.RED, 12);
+        this.stopTurnTimer();
     }
 }
