@@ -45,6 +45,7 @@ public class MoonLanderGame extends Game {
     @Override
     public void onTurn(int step) {
         this.rocket.move(this.isUpPressed,this.isLeftPressed,this.isRightPressed);
+        this.check();
         this.drawScene();
     }
 
@@ -84,6 +85,18 @@ public class MoonLanderGame extends Game {
         if (key==Key.RIGHT) {
             this.isRightPressed = false;
         }
+
+    }
+
+    private void check() {
+
+    }
+
+    private void win() {
+
+    }
+
+    private void gameOver() {
 
     }
 }
