@@ -31,4 +31,12 @@ public class RocketFire extends GameObject {
         nextFrame();
         super.draw(game);
     }
+
+    public void show() {
+        this.isVisible = true;
+    }
+
+    public void hide() {
+        this.isVisible = false;
+    }
 }
