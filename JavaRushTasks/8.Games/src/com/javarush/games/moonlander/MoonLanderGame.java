@@ -10,15 +10,15 @@ public class MoonLanderGame extends Game {
 
     @Override
     public void initialize() {
-        setScreenSize(MoonLanderGame.WIDTH, MoonLanderGame.HEIGHT);
-        createGame();
-        showGrid(false);
+        this.setScreenSize(MoonLanderGame.WIDTH, MoonLanderGame.HEIGHT);
+        this.createGame();
+        this.showGrid(false);
     }
 
     private void drawScene() {
         for (int xx=0; xx<64; xx++) {
             for (int yy=0; yy<64; yy++) {
-                setCellColor(xx, yy, Color.BLACK);
+                this.setCellColor(xx, yy, Color.BLACK);
             }
         }
         rocket.draw(this);
@@ -26,12 +26,27 @@ public class MoonLanderGame extends Game {
     }
 
     private void createGame() {
-        createGameObjects();
-        drawScene();
+        this.setTurnTimer(50);
+        this.createGameObjects();
+        this.drawScene();
     }
 
     private void createGameObjects() {
-        rocket = new Rocket(MoonLanderGame.WIDTH/2, 0);
-        landscape = new GameObject(0, 25, ShapeMatrix.LANDSCAPE);
+        this.rocket = new Rocket(MoonLanderGame.WIDTH/2, 0);
+        this.landscape = new GameObject(0, 25, ShapeMatrix.LANDSCAPE);
+    }
+
+    @Override
+    public void onTurn(int step) {
+        this.rocket.move();
+        this.drawScene();
+    }
+
+    @Override
+    public void setCellColor(int x, int y, Color color) {
+        if (x>=MoonLanderGame.WIDTH||y>=MoonLanderGame.HEIGHT||x<0||y<0)
+            return;
+
+        super.setCellColor(x, y, color);
     }
 }
