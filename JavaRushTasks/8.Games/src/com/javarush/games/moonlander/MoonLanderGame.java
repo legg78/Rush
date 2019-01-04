@@ -7,6 +7,9 @@ public class MoonLanderGame extends Game {
     public static final int HEIGHT = 64;
     private GameObject landscape;
     private Rocket rocket;
+    private boolean isUpPressed;
+    private boolean isLeftPressed;
+    private boolean isRightPressed;
 
     @Override
     public void initialize() {
@@ -26,6 +29,9 @@ public class MoonLanderGame extends Game {
     }
 
     private void createGame() {
+        this.isLeftPressed = false;
+        this.isRightPressed = false;
+        this.isUpPressed = false;
         this.setTurnTimer(50);
         this.createGameObjects();
         this.drawScene();
