@@ -5,12 +5,14 @@ import com.javarush.engine.cell.*;
 public class MoonLanderGame extends Game {
     public static final int WIDTH = 64;
     public static final int HEIGHT = 64;
+    private GameObject landscape;
     private Rocket rocket;
 
     @Override
     public void initialize() {
         setScreenSize(MoonLanderGame.WIDTH, MoonLanderGame.HEIGHT);
         createGame();
+        showGrid(false);
     }
 
     private void drawScene() {
@@ -20,10 +22,16 @@ public class MoonLanderGame extends Game {
             }
         }
         rocket.draw(this);
+        landscape.draw(this);
     }
 
     private void createGame() {
-        rocket = new Rocket(MoonLanderGame.WIDTH/2, 0);
+        createGameObjects();
         drawScene();
+    }
+
+    private void createGameObjects() {
+        rocket = new Rocket(MoonLanderGame.WIDTH/2, 0);
+        landscape = new GameObject(0, 25, ShapeMatrix.LANDSCAPE);
     }
 }
