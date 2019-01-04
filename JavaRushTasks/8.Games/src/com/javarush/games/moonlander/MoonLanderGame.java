@@ -9,5 +9,18 @@ public class MoonLanderGame extends Game {
     @Override
     public void initialize() {
         setScreenSize(MoonLanderGame.WIDTH, MoonLanderGame.HEIGHT);
+        createGame();
+    }
+
+    private void drawScene() {
+        for (int xx=1; xx<=64; xx++) {
+            for (int yy=1; yy<=64; yy++) {
+                setCellColor(xx, yy, Color.BLACK);
+            }
+        }
+    }
+
+    private void createGame() {
+        drawScene();
     }
 }
