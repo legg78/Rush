@@ -24,5 +24,22 @@ public class Rocket extends GameObject {
             this.x+=this.speedX;
         }
 
+        checkBorders();
+
+    }
+    private void checkBorders() {
+        if (this.x<0) {
+            this.x = 0;
+            this.speedX = 0;
+        }
+        if (this.x+this.width>MoonLanderGame.WIDTH ) {
+            this.x = MoonLanderGame.WIDTH - this.width;
+            this.speedX = 0;
+        }
+        if (this.y<0) {
+            this.y = 0;
+            this.speedY = 0;
+        }
+
     }
 }
