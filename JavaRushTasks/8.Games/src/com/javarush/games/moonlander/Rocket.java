@@ -2,14 +2,33 @@ package com.javarush.games.moonlander;
 
 import com.javarush.engine.cell.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Rocket extends GameObject {
     private double speedY = 0;
     private double speedX = 0;
     private double boost = 0.05;
     private double slowdown = boost / 10;
+    private RocketFire downFire;
+    private RocketFire leftFire;
+    private RocketFire rightFire;
 
     public Rocket(double x, double y) {
+
         super(x, y, ShapeMatrix.ROCKET);
+        ArrayList<int[][]> fr = new ArrayList<>();
+        fr.add(ShapeMatrix.FIRE_DOWN_1);
+        fr.add(ShapeMatrix.FIRE_DOWN_2);
+        fr.add(ShapeMatrix.FIRE_DOWN_3);
+        this.downFire = new RocketFire(fr);
+        fr = new ArrayList<>();
+        fr.add(ShapeMatrix.FIRE_SIDE_1);
+        fr.add(ShapeMatrix.FIRE_SIDE_2);
+        this.leftFire = new RocketFire(fr);
+        this.rightFire = new RocketFire(fr);
+
+
     }
 
     public void move(boolean isUpPressed, boolean isLeftPressed, boolean isRightPressed) {
