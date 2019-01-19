@@ -126,7 +126,7 @@ public class RoadManager {
     }
 
     private void generateMovingCar(Game game) {
-        if (game.getRandomNumber(100) < 10 && !isMovingCarExists()) {
+        if (((RacerGame)game).isDrunk()&&game.getRandomNumber(100) < 10 && !isMovingCarExists()) {
             addRoadObject(RoadObjectType.DRUNK_CAR, game);
         }
     }

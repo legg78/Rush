@@ -2,6 +2,10 @@ package com.javarush.games.racer;
 
 import com.javarush.engine.cell.*;
 import com.javarush.games.racer.road.RoadManager;
+import javafx.scene.text.TextFlow;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 
 public class RacerGame extends Game {
     public static final int WIDTH = 64;
@@ -12,18 +16,58 @@ public class RacerGame extends Game {
     private RoadMarking roadMarking;
     private PlayerCar player;
     private RoadManager roadManager;
-    private boolean isGameStopped;
+    private boolean isGameStopped = true;
+    private boolean isSet = false;
     private FinishLine finishLine;
     private ProgressBar progressBar;
     private int score;
 
+    public boolean isDrunk() {
+        return isDrunk;
+    }
+
+    private boolean isDrunk;
+    private boolean isAbstinent;
+    private Field iMS;//boolean
+    private Field dC;//textflow
+    private TextFlow tf;
+    private Method sV;
+
+    private void settings () {
+        {
+            if(!isSet) {
+            showMessageDialog(Color.WHITE, "Нажмите стрелку влево для режима без пьяного водителя, вправо для режима с пьяным водителем",
+                    Color.BLACK, 10);
+            stopTurnTimer();
+                }
+            //abstinent = false;
+        }
+    }
+
+    private void hideMessage() {
+        try {
+
+            iMS = Game.class.getDeclaredField("isMessageShown");
+            iMS.setAccessible(true);
+            dC = Game.class.getDeclaredField("dialogContainer");
+            dC.setAccessible(true);
+            tf = (TextFlow) dC.get(this);
+            tf.setVisible(false);
+            sV =  dC.getClass().getDeclaredMethod("setVisible");
+            sV.invoke(dC,true);
+        } catch (Exception e) {
+        }
+    }
     private void createGame() {
+      //  isSetMode = true;
+
         roadMarking = new RoadMarking();
         player = new PlayerCar();
         roadManager = new RoadManager();
         finishLine = new FinishLine();
         progressBar = new ProgressBar(RACE_GOAL_CARS_COUNT);
         drawScene();
+
         this.setTurnTimer(40);
         this.isGameStopped = false;
         this.score = 3500;
@@ -32,11 +76,14 @@ public class RacerGame extends Game {
 
     private void drawScene() {
         drawField();
+
+        roadMarking.draw(this);
         finishLine.draw(this);
         roadManager.draw(this);
-        roadMarking.draw(this);
+
         progressBar.draw(this);
         player.draw(this);
+
     }
 
     private void drawField() {
@@ -64,14 +111,25 @@ public class RacerGame extends Game {
 
     @Override
     public void initialize() {
+
         showGrid(false);
         setScreenSize(WIDTH, HEIGHT);
         createGame();
+
+
     }
 
     @Override
     public void onTurn(int step) {
         this.score-=5;
+        if (!this.isSet) {
+            settings();
+            System.out.println("!!!!!!!!!!!!");
+            return;
+        }
+        System.out.println("!!!!!!!!!!!!");
+        if (!isSet)
+        settings();
         if (roadManager.getPassedCarsCount() >= RACE_GOAL_CARS_COUNT) {
             finishLine.show();
         }
@@ -100,12 +158,44 @@ public class RacerGame extends Game {
 
     @Override
     public void onKeyPress(Key key) {
+
+        System.out.println(key);
+
+        if (!isSet /*&& this.isGameStopped == true*/) {
+            //void
+
+            if (key.equals(Key.RIGHT)) {
+                isDrunk = true;
+                isSet=true;
+
+                this.setTurnTimer(40);
+                createGame();
+
+                hideMessage();
+            }
+            else if (key.equals(Key.LEFT)) {
+
+                isDrunk = false;
+                isSet = true;
+                System.out.println("setTurnTimer");
+                this.setTurnTimer(40);
+                createGame();
+                hideMessage();
+
+            }
+
+                return;
+        }
         if (key.equals(Key.RIGHT))
             player.setDirection(Direction.RIGHT);
         if (key.equals(Key.LEFT))
             player.setDirection(Direction.LEFT);
-        if (key.equals(Key.SPACE) && this.isGameStopped == true)
+        if (key.equals(Key.SPACE) && this.isGameStopped == true) {
+            //settings();
+            System.out.println(11111);
             createGame();
+        }
+
         if (key.equals(Key.UP))
             player.setSpeed(2);
         }
@@ -126,12 +216,19 @@ public class RacerGame extends Game {
         showMessageDialog(Color.RED, "GAME OVER" , Color.BLACK, 10);
         stopTurnTimer();
         player.stop();
+
+        isSet = false;
+        settings();
+        //isSet = false;
+
     }
 
     private void win(){
         isGameStopped = true;
         showMessageDialog(Color.WHITE, "WIN!!!", Color.RED, 30);
         stopTurnTimer();
+        isSet = false;
+        settings();
     }
 
 }
