@@ -1,0 +1,40 @@
+create or replace force view csm_case_vw as
+select id
+     , inst_id
+     , merchant_name
+     , customer_number
+     , dispute_reason
+     , oper_date
+     , oper_amount
+     , oper_currency
+     , dispute_id
+     , dispute_progress
+     , write_off_amount
+     , write_off_currency
+     , due_date
+     , reason_code
+     , disputed_amount
+     , disputed_currency
+     , created_date
+     , created_by_user_id
+     , arn
+     , claim_id
+     , auth_code
+     , case_progress
+     , acquirer_inst_bin
+     , transaction_code
+     , case_source
+     , sttl_amount
+     , sttl_currency
+     , base_amount
+     , base_currency
+     , hide_date
+     , unhide_date
+     , team_id
+     , original_id
+     , network_id
+     , ext_claim_id
+     , ext_clearing_trans_id
+     , ext_auth_trans_id
+  from csm_case
+/

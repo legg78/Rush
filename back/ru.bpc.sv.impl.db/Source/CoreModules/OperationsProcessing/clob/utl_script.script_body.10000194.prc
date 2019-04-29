@@ -1,0 +1,1 @@
+declare l_id com_api_type_pkg.t_tiny_id; begin for o in (select * from opr_reason o) loop select max(r.id) into l_id from opr_reason r where r.reason_dict = o.reason_dict and r.oper_type = o.oper_type; delete from opr_reason r where r.reason_dict = o.reason_dict and r.oper_type = o.oper_type and r.id != l_id; end loop; end;

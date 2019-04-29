@@ -1,0 +1,21 @@
+CREATE DATABASE SV
+   USER SYS IDENTIFIED BY SYS1
+   USER SYSTEM IDENTIFIED BY SYSTEM1
+   LOGFILE GROUP 1 ('c:\oracle\oradata\sv\redo01.log') SIZE 200M,
+           GROUP 2 ('c:\oracle\oradata\sv\redo02.log') SIZE 200M,
+           GROUP 3 ('c:\oracle\oradata\sv\redo03.log') SIZE 200M
+   MAXLOGFILES 5
+   MAXLOGMEMBERS 5
+   MAXLOGHISTORY 1
+   MAXDATAFILES 100
+   MAXINSTANCES 1
+   CHARACTER SET AL32UTF8
+   NATIONAL CHARACTER SET AL16UTF16
+   DATAFILE 'c:\oracle\oradata\sv\system01.dbf' SIZE 325M REUSE
+   EXTENT MANAGEMENT LOCAL
+   SYSAUX DATAFILE 'c:\oracle\oradata\sv\sysaux01.dbf' SIZE 325M REUSE
+   DEFAULT TEMPORARY TABLESPACE temp_tbs
+      TEMPFILE 'c:\oracle\oradata\sv\temp01.dbf' SIZE 200M REUSE
+   UNDO TABLESPACE undo_tbs 
+      DATAFILE 'c:\oracle\oradata\sv\undo01.dbf'
+      SIZE 200M REUSE AUTOEXTEND ON MAXSIZE UNLIMITED;

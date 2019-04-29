@@ -1,0 +1,30 @@
+create or replace force view opr_participant_vw as
+select oper_id
+     , participant_type
+     , inst_id
+     , network_id
+     , split_hash
+     , client_id_type
+     , client_id_value
+     , customer_id
+     , auth_code
+     , card_id
+     , card_instance_id
+     , card_type_id
+     , card_mask
+     , card_hash
+     , card_seq_number
+     , card_expir_date
+     , card_service_code
+     , card_country
+     , card_network_id
+     , card_inst_id
+     , account_id
+     , account_type
+     , account_number
+     , account_amount
+     , account_currency
+     , merchant_id
+     , terminal_id
+  from opr_participant
+/

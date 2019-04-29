@@ -1,0 +1,2 @@
+insert into acq_account_pattern (id, seqnum, scheme_id, oper_type, oper_reason, sttl_type, terminal_type, currency, oper_sign, merchant_type, account_type, account_currency, priority) values (1, 1, 1, '%', '%', NULL, NULL, NULL, NULL, 'MRCTCURR', '%', NULL, 10)
+/

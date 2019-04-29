@@ -1,0 +1,31 @@
+create or replace force view prd_customer_vw as
+select id
+     , seqnum
+     , entity_type
+     , object_id
+     , customer_number
+     , contract_id
+     , inst_id
+     , split_hash
+     , category
+     , relation
+     , resident
+     , nationality
+     , credit_rating
+     , money_laundry_risk
+     , money_laundry_reason
+     , last_modify_date
+     , last_modify_user
+     , status
+     , ext_entity_type
+     , ext_object_id
+     , reg_date
+     , employment_status
+     , employment_period
+     , residence_type
+     , marital_status
+     , marital_status_date
+     , income_range
+     , number_of_children
+  from prd_customer
+/

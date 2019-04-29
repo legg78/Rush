@@ -1,0 +1,467 @@
+#!/bin/bash
+
+#
+# Oracle Database startup script for SmartVista system
+# chkconfig: 35 70 24
+# description: sv_db
+# processname: sv_db
+
+# LSB compliant service control script
+#
+### BEGIN INIT INFO
+# Provides:                     smartvista_database
+# Required-Start:               cron
+# Should-Start:
+# Required-Stop:
+# Should-Stop:
+# Default-Start:                3 5
+# Default-Stop:                 0 1 6
+# Short-Description:            sv_db
+# Description:                  Starts and stops SmartVista database
+### END INIT INFO
+
+#Rev 9
+
+
+########### CONFIG ##################
+CHECK_BPCE_LISTENR=FALSE
+RESET_APPS=TRUE
+#####################################
+
+echo ""
+echo "--------------------------------------------"
+echo "Please check config section before using !!!"
+echo "--------------------------------------------"
+echo ""
+
+if [ "$CHECK_BPCE_LISTENR" == "TRUE" ]
+	then
+		
+		echo "BPCE LISTENER check is enabled !!!"
+fi
+
+if [ "$RESET_APPS" == "TRUE" ]
+        then
+               
+                echo "Resetting of the datasources on Weblogic server is enabled !!!"
+fi
+
+echo ""
+
+ORACLE_USER=oracle
+ORACLE_HOME_TO_USE=/u01/app/oracle/product/11.2.0.4/dbhome_1
+LSNR1=LISTENER
+LSNR2=BPCE
+SVFE_HOST=""
+WEB_APP_IP="web"
+WEB_APP_SCRIPT=/scripts/wls_reset.sh
+
+#####################################
+
+SIDS=`cat /etc/oratab | grep :Y  |awk '{print $1}' | cut -d: -f1 | sed -e 's/^/smon_/' | tr '\n' ' ' | sed -e 's/ $//'`
+SIDS_COUNT=`cat /etc/oratab | grep :Y  | awk '{print $1}'  | cut -d: -f1 | wc -l`
+SIDS_GREP=`echo $SIDS | sed -e 's/ /|/g'`
+HOME_FOLDER=`grep "^${ORACLE_USER}" /etc/passwd | cut -d ':' -f 6`
+STATUS_SELECT="set heading off\nselect 1 from dual;\n"
+
+if [ $SIDS_COUNT -eq 0 ]
+	then
+		echo "No enabled oracle SIDs found. Check /etc/oratab file"
+fi
+
+echo ""
+
+if [ -e ${HOME_FOLDER}/.profile ]
+	then
+		. ${HOME_FOLDER}/.profile
+		USER_PROFILE=${HOME_FOLDER}/.profile
+	else
+		. ${HOME_FOLDER}/.bash_profile
+		USER_PROFILE=${HOME_FOLDER}/.bash_profile
+fi
+
+grep "\$MAIL" $USER_PROFILE > /dev/null 2>&1
+
+if [ $? -eq 0 ]
+	then
+		echo "DISABLE MAIL CHECKING in $USER_PROFILE !!!"
+fi
+
+if [ ${ORACLE_HOME}x == "x" ]
+	then
+		echo "Cant determine ORACLE_HOME. Setting it manually"
+		ORACLE_HOME=$ORACLE_HOME_TO_USE
+	else
+		if [ ! -d "$ORACLE_HOME" ]
+			then
+			echo "ORACLE_HOME from profile does not exists. Setting it manually"
+			ORACLE_HOME=$ORACLE_HOME_TO_USE
+		fi
+fi
+
+UNAME=`uname`
+
+case "$UNAME" in
+	AIX)
+		PCMD="ps -ef | egrep -e '(${SIDS_GREP})' | grep -v grep | awk '{print \$2}' | wc -l"
+
+		case "$USER" in
+			root)
+				. $USER_PROFILE	
+				LSNR_STAT_CMD1="su oracle \"-c lsnrctl status $LSNR1\" | grep \"no listener\" | wc -l"
+				LSNR_STAT_CMD2="su oracle \"-c lsnrctl status $LSNR2\" | grep \"no listener\" | wc -l"
+        			START_LSNR1="su oracle \"-c lsnrctl start $LSNR1\""
+        			START_LSNR2="su oracle \"-c lsnrctl start $LSNR2\""
+        			START_ORACLE="su oracle \"-c $ORACLE_HOME/bin/dbstart $ORACLE_HOME\""
+        			STOP_ORACLE="su oracle \"-c $ORACLE_HOME/bin/dbshut $ORACLE_HOME\""
+        			STOP_LSNR1="su oracle \"-c lsnrctl stop $LSNR1\""
+        			STOP_LSNR2="su oracle \"-c lsnrctl stop $LSNR2\""
+        			STAT_CMD="su oracle \"-c . $USER_PROFILE;printf '${STATUS_SELECT}' | sqlplus -silent / as sysdba | grep -v -e '^$'\""
+        			PCMD_KILL="ps -f -u oracle | awk '{print \$2}' | tail +2 | xargs kill -9"
+      			;;
+
+      			oracle)
+                                LSNR_STAT_CMD1="lsnrctl status $LSNR1 | grep \"no listener\" | wc -l"
+                                LSNR_STAT_CMD2="lsnrctl status $LSNR2 | grep \"no listener\" | wc -l"
+                                START_LSNR1="lsnrctl start $LSNR1"
+                                START_LSNR2="lsnrctl start $LSNR2"
+                                START_ORACLE="$ORACLE_HOME/bin/dbstart $ORACLE_HOME"
+                                STOP_ORACLE="$ORACLE_HOME/bin/dbshut $ORACLE_HOME"
+                                STOP_LSNR1="lsnrctl stop $LSNR1"
+                                STOP_LSNR2="lsnrctl stop $LSNR2"
+                                STAT_CMD="export ORACLE_SID=$ORACLE_SID;printf '${STATUS_SELECT}' | sqlplus -silent / as sysdba | grep -v -e '^$'"
+                                PCMD_KILL="ps -f -u oracle | awk '{print \$2}' | tail +2 | xargs kill -9"
+
+      			;;
+
+			*)
+        			. $USER_PROFILE
+        			LSNR_STAT_CMD1="su oracle \"-c lsnrctl status $LSNR1\" | grep \"no listener\" | wc -l"
+        			LSNR_STAT_CMD2="su oracle \"-c lsnrctl status $LSNR2\" | grep \"no listener\" | wc -l"
+        			START_LSNR1="su oracle \"-c lsnrctl start $LSNR1\""
+        			START_LSNR2="su oracle \"-c lsnrctl start $LSNR2\""
+        			START_ORACLE="su oracle \"-c $ORACLE_HOME/bin/dbstart $ORACLE_HOME\""
+        			STOP_ORACLE="su oracle \"-c $ORACLE_HOME/bin/dbshut $ORACLE_HOME\""
+        			STOP_LSNR1="su oracle \"-c lsnrctl stop $LSNR1\""
+        			STOP_LSNR2="su oracle \"-c lsnrctl stop $LSNR2\""
+        			STAT_CMD="su oracle \"-c . $USER_PROFILE;printf '${STATUS_SELECT}' | sqlplus -silent / as sysdba | grep -v -e '^$'\""
+        			PCMD_KILL="ps -f -u oracle | awk '{print \$2}' | tail +2 | xargs kill -9"
+			;;
+		esac
+	;;
+
+	Linux)
+		PCMD="ps -ef | egrep -e '(${SIDS_GREP})' | grep -v grep | awk '{print \$2}' | wc -l"
+		case "$USER" in
+			root)
+				LSNR_STAT_CMD1="su - oracle -c \"lsnrctl status $LSNR1\" | grep \"no listener\" | wc -l"
+				LSNR_STAT_CMD2="su - oracle -c \"lsnrctl status $LSNR2\" | grep \"no listener\" | wc -l"
+				START_LSNR1="su - oracle -c \"lsnrctl start $LSNR1\""
+				START_LSNR2="su - oracle -c \"lsnrctl start $LSNR2\""
+				START_ORACLE="su - oracle -c \"dbstart $ORACLE_HOME\""
+				STOP_ORACLE="su - oracle -c \"dbshut $ORACLE_HOME\""
+				STOP_LSNR1="su - oracle -c \"lsnrctl stop $LSNR1\""
+				STOP_LSNR2="su - oracle -c \"lsnrctl stop $LSNR2\""
+				STAT_CMD="su - oracle -c \"echo -e '${STATUS_SELECT}' | sqlplus -silent / as sysdba | grep -v -e '^$' | grep -v Session\""
+				PCMD_KILL="pgrep -u oracle | xargs kill -9"
+			;;
+
+			oracle)
+				LSNR_STAT_CMD1="lsnrctl status $LSNR1 | grep \"no listener\" | wc -l"
+				LSNR_STAT_CMD2="lsnrctl status $LSNR2 | grep \"no listener\" | wc -l"
+				START_LSNR1="lsnrctl start $LSNR1"
+				START_LSNR2="lsnrctl start $LSNR2"
+				START_ORACLE="export ORACLE_SID=$SID; echo \"startup\" | sqlplus / as sysdba"
+				STOP_ORACLE="export ORACLE_SID=$SID; echo \"shutdown $METHOD\" | sqlplus / as sysdba"
+				STOP_LSNR1="lsnrctl stop $LSNR1"
+				STOP_LSNR2="lsnrctl stop $LSNR2"
+			;;
+
+			*)
+				LSNR_STAT_CMD1="su - oracle -c \"lsnrctl status $LSNR1\" | grep \"no listener\" | wc -l"
+				LSNR_STAT_CMD2="su - oracle -c \"lsnrctl status $LSNR2\" | grep \"no listener\" | wc -l"
+				START_LSNR1="su - oracle -c \"lsnrctl start $LSNR1\""
+				START_LSNR2="su - oracle -c \"lsnrctl start $LSNR2\""
+				START_ORACLE="su - oracle -c \"$ORACLE_HOME/bin/dbstart $ORACLE_HOME\""
+				STOP_ORACLE="su - oracle -c \"$ORACLE_HOME/bin/dbshut $ORACLE_HOME\""
+				STOP_LSNR1="su - oracle -c \"lsnrctl stop $LSNR1\""
+				STOP_LSNR2="su - oracle -c \"lsnrctl stop $LSNR2\""
+				STAT_CMD="su - oracle -c \"echo -e '${STATUS_SELECT}' | sqlplus -silent / as sysdba | grep -v -e '^$'\""
+				PCMD_KILL="pgrep -u oracle | xargs kill -9"
+			;;
+		esac
+	;;
+esac
+
+function current_status {
+  INSTANCE_RUN_COUNT=0
+  for SID in $SIDS; do
+      SID_SMON_STATUS_COUNT=`ps -ef | grep $SID | grep -v grep | awk '{print $2}' | wc -l`
+      ORACLE_SID=$SID
+
+      if [ $SID_SMON_STATUS_COUNT -eq 0 ]
+      	then
+        	SID_STATUS="Not running"
+      	else
+		SID_STATUS="Running"
+		INSTANCE_RUN_COUNT=`echo $INSTANCE_RUN_COUNT + 1 | bc`
+
+      fi
+      SID=`echo $SID | sed -e 's/smon_//' `
+      echo "Instance $SID : $SID_STATUS"
+  done
+
+	LSNR1_RUN=`eval $LSNR_STAT_CMD1`
+
+	if [ $LSNR1_RUN -eq 0 ]
+		then
+			LSNR1_STATUS="Running"
+		else
+			LSNR1_STATUS="Not running"
+	fi
+
+	echo "Listener $LSNR1 : $LSNR1_STATUS"
+
+	if [ "$CHECK_BPCE_LISTENR" == "TRUE" ]
+		then
+
+			LSNR2_RUN=`eval $LSNR_STAT_CMD2`
+
+			if [ $LSNR2_RUN -eq 0 ]
+				then
+					LSNR2_STATUS="Running"
+				else
+					LSNR2_STATUS="Not running"
+			fi
+			echo "Listener $LSNR2 : $LSNR2_STATUS"
+	fi
+}
+
+function check_run {
+
+	LSNR1_RUN=`eval $LSNR_STAT_CMD1`  # 1 - not running / 0 - running
+
+	if [ "$CHECK_BPCE_LISTENR" == "TRUE" ]
+		then
+
+			LSNR2_RUN=`eval $LSNR_STAT_CMD2`  # 1 - not running / 0 - running
+		else
+			LSNR2_RUN=0
+	fi
+
+	if [ $LSNR1_RUN -eq 0 ] && [ $LSNR2_RUN -eq 0 ]
+		then
+			LSNR_RUN=0   #Running
+		else
+			LSNR_RUN=1   #Not Running
+	fi
+
+	SMON_COUNT=`eval $PCMD`
+	if [  $SIDS_COUNT -eq $SMON_COUNT  ]
+		then
+			DB_RUN=0  #Running
+		else
+			DB_RUN=1  #Not Running
+	fi
+
+	if [  $DB_RUN -eq 0 ] && [ $LSNR_RUN -eq 0 ]
+		then
+			RUNNING=yes
+		else
+			if [ $DB_RUN -eq 1 ] && [ $LSNR_RUN -gt 0 ]
+				then
+					RUNNING=no
+				else
+					RUNNING=unknown
+			fi
+	fi
+	echo "Running status: $RUNNING"
+}
+
+function status {
+	current_status
+	check_run
+	if [ $RUNNING == "yes" ]
+		then
+			SELECT_RESULT=`eval $STAT_CMD`
+
+    			if [ $SELECT_RESULT -eq 1 ]
+				then
+					EXIT_CODE=0
+					echo "Status: OK"
+				else
+					EXIT_CODE=1
+					echo "Status: Fail"
+			fi
+		else
+			EXIT_CODE=1
+			echo "Status: Fail"
+	fi
+}
+
+function start {
+	echo "Status before running"
+	current_status
+	check_run
+
+	if [ $RUNNING = "no" ]
+		then
+			#echo -n "Starting listeners..."
+			#eval $START_LSNR1
+
+			if [ "$CHECK_BPCE_LISTENR" == "TRUE" ]
+				then
+					sleep 2
+					eval $START_LSNR2
+					if [ $? -eq 0 ]
+						then
+							echo "Success"
+							LSNR2_START_STATUS=0
+							sleep 2
+						else
+							echo "Failed"
+							LSNR2_START_STATUS=1
+					fi
+				else
+					LSNR2_START_STATUS=0
+			fi
+	printf "Starting Databese(s)...\n"
+ 	eval $START_ORACLE
+	if [ $? -eq 0 ] && [ $LSNR2_START_STATUS -eq 0 ]
+		then
+			EXIT_CODE=0
+			echo "Success"
+		else
+			EXIT_CODE=1
+			echo "Failed"
+	fi
+
+    if [ $RESET_APPS == "TRUE" ]
+    then
+    	echo "Resetting Applications"
+    	reset_apps
+    else
+      echo "Resetting Application has not been performed"
+      echo "Set RESET_APPS variable to TRUE"
+    fi
+  else
+    echo "Some services already running. Exiting..."
+    exit 0
+  fi
+}
+
+function start_force {
+	echo "starting listeners..."
+	#eval "$START_LSNR1 >/dev/null 2>&1 &"
+
+	if [ "$CHECK_BPCE_LISTENR" == "TRUE" ]
+		then
+
+  			eval "$START_LSNR2 >/dev/null 2>&1 &"
+	fi
+
+	echo "starting DB..."
+	eval "$START_ORACLE >/dev/null 2>&1 &"
+}
+
+function stop {
+	check_run
+	if [ $RUNNING = "yes" ]
+  		then
+    			echo -n "Stopping Database(s)..."
+    			eval $STOP_ORACLE
+			if [ $? -eq 0 ]
+				then
+					EXIT_CODE=0
+					echo "Success"
+    				else
+      					EXIT_CODE=1
+      					echo "Failed"
+			fi
+
+			if [ "$CHECK_BPCE_LISTENR" == "TRUE" ]
+				then
+
+    					sleep 2
+    					echo -n "Stopping listeners..."
+    					eval $STOP_LSNR2
+	
+			fi
+
+			check_run
+			if [ $RUNNING = "unknown" ]
+				then
+					eval $PCMD_KILL
+			fi
+		else
+			current_status
+			if [ $DB_RUN -eq 1 ] && [ $INSTANCE_RUN_COUNT -eq 0 ]
+				then
+		  			echo "SMON(s) is not running, trying kill other processes..."
+					eval $PCMD_KILL
+				else
+    					echo "SMON(s) seems to be running. Exiting..."
+    					exit 0
+			fi
+	fi
+}
+
+function stop_force {
+	eval "$STOP_ORACLE  >/dev/null 2>&1 &"
+	#eval "$STOP_LSNR1  >/dev/null 2>&1 &"
+
+	if [ "$CHECK_BPCE_LISTENR" == "TRUE" ]
+		then
+			eval "$STOP_LSNR2  >/dev/null 2>&1 &"
+	fi
+}
+
+function reset_apps {
+	reset_webapp
+}
+
+function reset_webapp {
+	ping -c 2 -i 1 $WEB_APP_IP > /dev/null 2>&1
+	if [ $? -ne 0 ]
+		then
+			echo "Fail to ping the WEB_APP_IP $WEB_APP_IP"
+		else
+			echo "Ping the WEB_APP_IP $WEB_APP_IP has been succeeded"
+			ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ConnectTimeout=2 $WEB_APP_IP "$WEB_APP_SCRIPT"
+			SSH_RESULT=$?
+			echo $SSH_RESULT
+			if [ $SSH_RESULT -eq 255 ]
+				then
+					#Start in progress wait for a while
+					sleep 30
+					ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ConnectTimeout=2 $WEB_APP_IP "$WEB_APP_SCRIPT"
+			fi
+	fi
+}
+
+case "$1" in
+	start)
+		start
+	;;
+	stop)
+		stop
+	;;
+	status)
+		status
+	;;
+	start_force)
+		start_force
+	;;
+	stop_force)
+		stop_force
+	;;
+	reset_apps)
+		reset_apps
+	;;
+	*)
+		echo "usage oracle start|stop|start_force|stop_force|reset_apps"
+	;;
+esac
+
+exit $EXIT_CODE
+

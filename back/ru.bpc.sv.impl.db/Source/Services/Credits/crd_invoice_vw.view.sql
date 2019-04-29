@@ -1,0 +1,40 @@
+create or replace force view crd_invoice_vw as
+select n.id
+     , n.account_id
+     , n.serial_number
+     , n.invoice_type
+     , n.exceed_limit
+     , n.total_amount_due
+     , n.own_funds
+     , n.min_amount_due
+     , n.start_date
+     , n.invoice_date
+     , n.grace_date
+     , n.due_date
+     , n.penalty_date
+     , n.aging_period
+     , n.is_tad_paid
+     , n.is_mad_paid
+     , n.inst_id
+     , n.agent_id
+     , n.split_hash
+     , n.overlimit_balance
+     , n.overdue_balance
+     , n.overdue_intr_balance
+     , n.overdraft_balance
+     , n.hold_balance
+     , n.available_balance
+     , n.postal_code
+     , n.agent_number
+     , n.overdue_date
+     , n.interest_balance
+     , n.interest_amount
+     , n.payment_amount
+     , n.expense_amount 
+     , n.fee_amount 
+     , n.last_entry_id
+     , n.irr
+     , n.apr
+     , n.waive_interest_amount
+  from crd_invoice n
+/

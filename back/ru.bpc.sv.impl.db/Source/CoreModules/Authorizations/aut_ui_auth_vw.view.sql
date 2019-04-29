@@ -1,0 +1,64 @@
+create or replace force view aut_ui_auth_vw as
+select
+    a.id
+    , a.resp_code
+    , a.proc_type
+    , a.proc_mode
+    , a.is_advice
+    , a.is_repeat
+    , a.is_completed
+    , a.bin_amount
+    , a.bin_currency
+    , a.bin_cnvt_rate
+    , a.network_amount
+    , a.network_currency
+    , a.network_cnvt_date
+    , a.network_cnvt_rate
+    , a.account_cnvt_rate
+    , a.parent_id
+    , a.addr_verif_result
+    , a.iss_network_device_id
+    , a.acq_device_id
+    , a.acq_resp_code
+    , a.acq_device_proc_result
+    , a.cat_level
+    , a.card_data_input_cap
+    , a.crdh_auth_cap
+    , a.card_capture_cap
+    , a.terminal_operating_env
+    , a.crdh_presence
+    , a.card_presence
+    , a.card_data_input_mode
+    , a.crdh_auth_method
+    , a.crdh_auth_entity
+    , a.card_data_output_cap
+    , a.terminal_output_cap
+    , a.pin_capture_cap
+    , a.pin_presence
+    , a.cvv2_presence
+    , a.cvc_indicator
+    , a.pos_entry_mode
+    , a.pos_cond_code
+    , a.emv_data
+    , a.atc
+    , a.tvr
+    , a.cvr
+    , a.addl_data
+    , a.service_code
+    , a.device_date
+    , a.cvv2_result
+    , a.certificate_method
+    , a.certificate_type
+    , a.merchant_certif
+    , a.cardholder_certif
+    , a.ucaf_indicator
+    , a.is_early_emv
+    , a.transaction_id
+    , a.system_trace_audit_number
+    , a.external_auth_id
+    , a.external_orig_id
+    , a.agent_unique_id
+    , a.auth_purpose_id
+from
+    aut_auth a
+/

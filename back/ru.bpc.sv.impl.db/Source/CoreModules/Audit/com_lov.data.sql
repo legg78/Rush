@@ -1,0 +1,2 @@
+insert into com_lov (id, dict, lov_query, module_code, sort_mode, appearance, data_type, is_parametrized) values (389, NULL, 'select entity_type code, get_article_text(entity_type, get_user_lang) name from adt_entity', 'ADT', 'LVSMNAME', 'LVAPNAME', 'DTTPCHAR', 0)
+/

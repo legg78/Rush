@@ -1,0 +1,42 @@
+create or replace force view acq_terminal_vw as
+select id
+     , seqnum
+     , is_template
+     , terminal_number
+     , terminal_type
+     , merchant_id
+     , mcc
+     , plastic_number
+     , card_data_input_cap
+     , crdh_auth_cap
+     , card_capture_cap
+     , term_operating_env
+     , crdh_data_present
+     , card_data_present
+     , card_data_input_mode
+     , crdh_auth_method
+     , crdh_auth_entity
+     , card_data_output_cap
+     , term_data_output_cap
+     , pin_capture_cap
+     , cat_level
+     , gmt_offset
+     , is_mac
+     , device_id
+     , status
+     , contract_id
+     , inst_id
+     , split_hash
+     , cash_dispenser_present
+     , payment_possibility
+     , use_card_possibility
+     , cash_in_present
+     , available_network
+     , available_operation
+     , available_currency  
+     , mcc_template_id
+     , terminal_profile
+     , pin_block_format
+     , pos_batch_support
+  from acq_terminal
+/

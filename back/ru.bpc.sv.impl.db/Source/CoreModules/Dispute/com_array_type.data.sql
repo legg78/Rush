@@ -1,0 +1,2 @@
+insert into com_array_type (id, seqnum, name, is_unique, lov_id, entity_type, data_type, inst_id, scale_type, class_name) values (1016, 1, 'DISPUT_SCALES', 0, NULL, 'ENTTSCAL', 'DTTPCHAR', 9999, NULL, NULL)
+/

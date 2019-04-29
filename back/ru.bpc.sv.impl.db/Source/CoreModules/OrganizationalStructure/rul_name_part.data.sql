@@ -1,0 +1,2 @@
+insert into rul_name_part (id, format_id, part_order, base_value_type, base_value, transformation_type, transformation_mask, part_length, pad_type, pad_string, check_part) values (10000038, 1294, 10, 'BVTPPRMT', 'AGENT_ID', 'TSFTOSQL', 'to_number(:AGENT_ID, ''FM000000000000000000.0000'')', NULL, NULL, NULL, NULL)
+/

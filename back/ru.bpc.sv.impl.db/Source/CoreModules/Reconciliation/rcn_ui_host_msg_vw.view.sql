@@ -1,0 +1,96 @@
+create or replace force view rcn_ui_host_msg_vw as
+select m.id
+     , m.recon_type
+     , m.msg_source
+     , m.msg_date
+     , m.oper_id
+     , m.recon_msg_id
+     , m.recon_status
+     , m.recon_date
+     , m.recon_inst_id
+     , m.oper_type
+     , m.msg_type
+     , m.host_date
+     , m.oper_date
+     , m.oper_amount
+     , m.oper_currency
+     , m.oper_surcharge_amount
+     , m.oper_surcharge_currency
+     , m.status
+     , m.is_reversal
+     , m.merchant_number
+     , m.mcc
+     , m.merchant_name
+     , m.merchant_street
+     , m.merchant_city
+     , m.merchant_region
+     , m.merchant_country
+     , m.merchant_postcode
+     , m.terminal_type
+     , m.terminal_number
+     , m.acq_inst_id
+     , iss_api_token_pkg.decode_card_number(
+           i_card_number => c.card_number
+       ) as card_number
+     , m.card_mask
+     , m.card_seq_number
+     , m.card_expir_date
+     , l.lang
+     , m.oper_cashback_amount
+     , m.oper_cashback_currency
+     , m.service_code
+     , m.approval_code
+     , m.rrn
+     , m.trn
+     , m.original_id
+     , m.emv_5f2a
+     , m.emv_5f34
+     , m.emv_71
+     , m.emv_72
+     , m.emv_82
+     , m.emv_84
+     , m.emv_8a
+     , m.emv_91
+     , m.emv_95
+     , m.emv_9a
+     , m.emv_9c
+     , m.emv_9f02
+     , m.emv_9f03
+     , m.emv_9f06
+     , m.emv_9f09
+     , m.emv_9f10
+     , m.emv_9f18
+     , m.emv_9f1a
+     , m.emv_9f1e
+     , m.emv_9f26
+     , m.emv_9f27
+     , m.emv_9f28
+     , m.emv_9f29
+     , m.emv_9f33
+     , m.emv_9f34
+     , m.emv_9f35
+     , m.emv_9f36
+     , m.emv_9f37
+     , m.emv_9f41
+     , m.emv_9f53
+     , m.pdc_1
+     , m.pdc_2
+     , m.pdc_3
+     , m.pdc_4
+     , m.pdc_5
+     , m.pdc_6
+     , m.pdc_7
+     , m.pdc_8
+     , m.pdc_9
+     , m.pdc_10
+     , m.pdc_11
+     , m.pdc_12
+     , m.forw_inst_code
+     , m.receiv_inst_code
+     , m.sttl_date
+     , m.oper_reason
+  from rcn_host_msg m
+     , rcn_card c 
+     , com_language_vw l
+ where m.id = c.id
+/

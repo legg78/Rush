@@ -1,0 +1,51 @@
+create or replace force view nps_fin_message_vw as
+select id
+     , f.mti
+     , f.trans_code
+     , f.service_code
+     , f.channel_code
+     , f.oper_amount
+     , f.real_amount
+     , f.oper_currency
+     , f.sttl_amount
+     , f.sttl_currency
+     , f.sttl_exchange_rate
+     , f.bill_amount
+     , f.bill_real_amount
+     , f.bill_currency
+     , f.bill_exchange_rate
+     , f.sys_trace_number
+     , f.trans_date
+     , f.sttl_date
+     , f.mcc
+     , f.pos_entry_mode
+     , f.pos_condition_code
+     , f.terminal_number
+     , f.acq_inst_bin
+     , f.iss_inst_bin
+     , f.merchant_number
+     , f.bnb_inst_bin
+     , f.src_account_number
+     , f.dst_account_number
+     , f.iss_fee_napas
+     , f.iss_fee_acq
+     , f.iss_fee_bnb
+     , f.acq_fee_napas
+     , f.acq_fee_iss
+     , f.acq_fee_bnb
+     , f.bnb_fee_napas
+     , f.bnb_fee_acq
+     , f.bnb_fee_iss
+     , f.rrn
+     , f.auth_code
+     , f.transaction_id
+     , f.resp_code
+     , f.is_dispute
+     , f.status
+     , f.file_id
+     , f.record_number
+     , f.dispute_id
+     , f.match_oper_id
+     , f.is_reversal
+  from nps_fin_message f
+/

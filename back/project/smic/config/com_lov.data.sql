@@ -1,0 +1,2 @@
+insert into com_lov (id, dict, lov_query, module_code, sort_mode, appearance, data_type, is_parametrized, is_depended, is_editable) values (-5025, NULL, 'select dict || code as code, get_article_text(i_article => dict || code, i_lang => com_ui_user_env_pkg.get_user_lang) as name from com_dictionary where dict = ''ACTP'' and code in (''GLFE'', ''GLIN'')', 'ACC', 'LVSMCODE', 'LVAPCDNM', 'DTTPCHAR', 0, NULL, NULL)
+/
