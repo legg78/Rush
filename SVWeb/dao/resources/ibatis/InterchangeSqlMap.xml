@@ -1,0 +1,473 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+		PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+		"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="interchange">
+
+	<sql id="limitationOpen">
+		SELECT *
+		FROM (
+	</sql>
+
+	<sql id="limitationOpenCount">
+		SELECT count(*)
+		FROM (
+	</sql>
+
+	<sql id="limitationClose">
+		) q
+		<isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+	</sql>
+	<sql id="paginatedOpen">
+		SELECT *
+		FROM(
+		SELECT a.*, rownum r
+		FROM(
+		<include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedClose">
+		<include refid="limitationClose"/>
+		) a
+		WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+		)
+		WHERE r >= (#range.start# + 1)
+	</sql>
+
+	<resultMap id="mapping_fee" class="ru.bpc.sv2.interchange.Fee">
+		<result property="id" column="id"/>
+		<result property="type" column="type"/>
+		<result property="percent" column="percent"/>
+		<result property="amount" column="amount"/>
+		<result property="currency" column="currency"/>
+		<result property="sourceAmount" column="source_amount"/>
+		<result property="destinationCurrency" column="destination_currency"/>
+	</resultMap>
+
+	<resultMap id="mapping_fee_criteria" class="ru.bpc.sv2.interchange.FeeCriteria">
+		<result property="id" column="id"/>
+		<result property="name" column="name"/>
+		<result property="feeId" column="fee_id"/>
+		<result property="modifier" column="modifier"/>
+		<result property="operType" column="oper_type"/>
+		<result property="issCountry" column="iss_country"/>
+		<result property="issRegion" column="iss_region"/>
+		<result property="acqCountry" column="acq_country"/>
+		<result property="acqRegion" column="acq_region"/>
+		<result property="startDate" column="start_date"/>
+		<result property="endDate" column="end_date"/>
+		<result property="priority" column="priority"/>
+		<result property="feeType" column="fee_type"/>
+		<result property="parentId" column="parent_id"/>
+		<result property="status" column="status"/>
+	</resultMap>
+
+	<resultMap id="mapping_calculated_fee" class="ru.bpc.sv2.interchange.CalculatedFee">
+		<result property="id" column="id"/>
+		<result property="criteriaId" column="criteria_id"/>
+		<result property="criteriaName" column="criteria_name"/>
+		<result property="feeAmount" column="fee_amount"/>
+		<result property="feeCurrency" column="fee_currency"/>
+		<result property="calcDate" column="calc_date"/>
+		<result property="feeType" column="fee_type"/>
+	</resultMap>
+
+	<resultMap id="mapping_operation" class="ru.bpc.sv2.interchange.CommonOperation">
+		<result property="id" column="id"/>
+		<result property="sessionId" column="session_id"/>
+		<result property="operType" column="oper_type"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="sttlType" column="sttl_type"/>
+		<result property="operDate" column="oper_date"/>
+		<result property="hostDate" column="host_date"/>
+		<result property="operRequestAmount" column="oper_request_amount"/>
+		<result property="networkRefnum" column="network_refnum"/>
+		<result property="acqInstBin" column="acq_inst_bin"/>
+		<result property="status" column="status"/>
+		<result property="isReversal" column="is_reversal"/>
+		<result property="merchantNumber" column="merchant_number"/>
+		<result property="mcc" column="mcc"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantStreet" column="merchant_street"/>
+		<result property="merchantCity" column="merchant_city"/>
+		<result property="merchantRegion" column="merchant_region"/>
+		<result property="merchantCountry" column="merchant_country"/>
+		<result property="merchantPostcode" column="merchant_postcode"/>
+		<result property="terminalType" column="terminal_type"/>
+		<result property="terminalNumber" column="terminal_number"/>
+		<result property="issNetworkId" column="iss_network_id"/>
+		<result property="issInstId" column="iss_inst_id"/>
+		<result property="issCardNumber" column="iss_card_number"/>
+		<result property="issCardCountry" column="iss_card_country"/>
+		<result property="acqNetworkId" column="acq_network_id"/>
+		<result property="acqInstId" column="acq_inst_id"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="sttlAmount" column="sttl_amount"/>
+		<result property="sttlCurrency" column="sttl_currency"/>
+		<result property="calcStatus" column="calc_status"/>
+		<result property="feesCnt" column="fees_cnt"/>
+	</resultMap>
+
+	<select id="get_fees" parameterClass="qparams" resultMap="mapping_fee">
+		<include refid="paginatedOpen"/>
+		SELECT id,
+		amount,
+		currency,
+		destination_currency,
+		percent,
+		source_amount,
+		type
+		FROM $module$_fee
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="destinationCurrency">destination_currency =
+				#filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="amount">amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="currency">currency $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="destinationCurrency">destination_currency
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="sourceAmount">source_amount $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="type">type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="percent">percent $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get_all_fees" parameterClass="java.lang.String" resultMap="mapping_fee">
+		SELECT id,
+		amount,
+		currency,
+		destination_currency,
+		percent,
+		source_amount,
+		type
+		FROM $module$_fee
+		ORDER BY percent
+	</select>
+
+	<select id="get_fee" parameterClass="map" resultMap="mapping_fee">
+		SELECT id, amount, currency, destination_currency, percent, source_amount, type	FROM $module$_fee WHERE id=#fee_id#
+	</select>
+
+	<select id="get_fees_count" parameterClass="qparams" resultClass="long">
+		SELECT COUNT(1) FROM $module$_fee
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="destinationCurrency">destination_currency =
+				#filters[].value#
+			</isEqual>
+		</iterate>
+	</select>
+
+	<delete id="delete_fee" parameterClass="map">
+		DELETE FROM $module$_fee WHERE id=#fee_id#
+	</delete>
+
+	<insert id="insert_fee" parameterClass="ru.bpc.sv2.interchange.Fee">
+		INSERT INTO $module$_fee(id, amount, currency, destination_currency, percent, source_amount, type)
+    	VALUES ((SELECT COALESCE(MAX(id), 0)+1 FROM $module$_fee), #amount#, #currency#, #destinationCurrency#, #percent#, #sourceAmount#, #type#)
+	</insert>
+
+	<update id="update_fee" parameterClass="ru.bpc.sv2.interchange.Fee">
+		UPDATE $module$_fee SET amount=#amount#, currency=#currency#, destination_currency=#destinationCurrency#, percent=#percent#,
+		source_amount=#sourceAmount#, type=#type# WHERE id=#id#
+	</update>
+
+	<select id="get_fee_criterias" parameterClass="map" resultMap="mapping_fee_criteria">
+		SELECT id,
+		name,
+		acq_country,
+		acq_region,
+		end_date,
+		iss_country,
+		iss_region,
+		modifier,
+		oper_type,
+		priority,
+		fee_id,
+		start_date,
+		fee_type,
+		parent_id,
+		status
+		FROM $module$_fee_criteria
+		WHERE fee_id=#fee_id#
+		ORDER BY priority DESC
+	</select>
+
+	<select id="get_calculated_fees" parameterClass="map" resultMap="mapping_calculated_fee">
+		SELECT
+			cf.id,
+			cf.calc_date,
+			cf.criteria_id,
+			cf.fee_amount,
+			cf.fee_currency,
+			fc.fee_type,
+			fc.name as criteria_name
+		FROM $module$_calculated_fee cf LEFT JOIN $module$_fee_criteria fc ON(cf.criteria_id=fc.id)
+		WHERE cf.oper_id=#oper_id#
+		ORDER BY fc.fee_type, cf.calc_date DESC
+	</select>
+
+	<select id="get_fee_criterias_array" parameterClass="qparams" resultMap="mapping_fee_criteria">
+		SELECT id,
+		name,
+		acq_country,
+		acq_region,
+		end_date,
+		iss_country,
+		iss_region,
+		modifier,
+		oper_type,
+		priority,
+		fee_id,
+		start_date,
+		fee_type,
+		parent_id,
+		status
+		FROM $module$_fee_criteria
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="fee_id">fee_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fee_type">fee_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modifier">modifier LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="start_date_from">start_date >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="start_date_to">start_date <![CDATA[<=]]> #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="end_date_from">end_date >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="end_date_to">end_date <![CDATA[<=]]> #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="iss_country">iss_country = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="iss_region">iss_region = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="acq_country">acq_country = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="acq_region">acq_region = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="oper_type">oper_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="feeType">fee_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="modifier">modifier $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="oper_type">oper_type $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="fee_id">fee_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="start_date">start_date $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="end_date">end_date $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get_fee_criterias_count" parameterClass="qparams" resultClass="long">
+		SELECT COUNT(1) FROM $module$_fee_criteria
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="fee_id">fee_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fee_type">fee_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modifier">modifier LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="start_date_from">start_date >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="start_date_to">start_date <![CDATA[<=]]> #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="end_date_from">end_date >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="end_date_to">end_date <![CDATA[<=]]> #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="iss_country">iss_country = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="iss_region">iss_region = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="acq_country">acq_country = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="acq_region">acq_region = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="oper_type">oper_type = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<delete id="delete_fee_criteria" parameterClass="map">
+		DELETE FROM $module$_fee_criteria WHERE id=#fee_criteria_id#
+	</delete>
+
+	<insert id="insert_fee_criteria" parameterClass="ru.bpc.sv2.interchange.FeeCriteria">
+		INSERT INTO $module$_fee_criteria(id, name, acq_country, acq_region, end_date, fee_id, iss_country, iss_region, modifier, oper_type, priority, start_date, fee_type, parent_id)
+    	VALUES ((SELECT COALESCE(MAX(id), 0)+1 FROM $module$_fee_criteria), #name#, #acqCountry#, #acqRegion#, #endDate#, #feeId#, #issCountry#, #issRegion#, #modifier#, #operType#, #priority#, #startDate#, #feeType#, #parentId#)
+	</insert>
+
+	<insert id="insert_fee_criteria_with_id" parameterClass="ru.bpc.sv2.interchange.FeeCriteria">
+		INSERT INTO $module$_fee_criteria(id, name, acq_country, acq_region, end_date, fee_id, iss_country, iss_region, modifier, oper_type, priority, start_date, fee_type, parent_id)
+		VALUES (#id#, #name#, #acqCountry#, #acqRegion#, #endDate#, #feeId#, #issCountry#, #issRegion#, #modifier#, #operType#, #priority#, #startDate#, #feeType#, #parentId#)
+	</insert>
+
+	<select id="new_fee_criteria_id" resultClass="java.lang.Long" parameterClass="string">
+		SELECT COALESCE(MAX(id), 0)+1 FROM $module$_fee_criteria
+	</select>
+
+	<update id="update_fee_criteria" parameterClass="ru.bpc.sv2.interchange.FeeCriteria">
+		UPDATE $module$_fee_criteria SET name=#name#, acq_country=#acqCountry#, acq_region=#acqRegion#, end_date=#endDate#, fee_id=#feeId#, iss_country=#issCountry#,
+		iss_region=#issRegion#, modifier=#modifier#, oper_type=#operType#, priority=#priority#, start_date=#startDate#, fee_type=#feeType#, parent_id=#parentId# WHERE id=#id#
+	</update>
+
+	<insert id="insert_oper_stage" parameterClass="java.lang.Long">
+		INSERT INTO opr_oper_stage(oper_id, proc_stage, exec_order, status, split_hash)
+		SELECT #value#, s.proc_stage, s.exec_order, s.status, com_api_hash_pkg.get_split_hash(i_value => #value#)
+		FROM opr_proc_stage s WHERE proc_stage='PSTGICHF' AND rownum<![CDATA[<=]]>1
+	</insert>
+
+	<sql id="getOperationsStart">
+		<include refid="paginatedOpen"/>
+		SELECT co.id,
+		session_id,
+		acq_inst_bin,
+		acq_inst_id,
+		acq_network_id,
+		calc_status,
+		host_date,
+		is_reversal,
+		iss_card_country,
+		iss_card_number,
+		iss_inst_id,
+		iss_network_id,
+		mcc,
+		merchant_city,
+		merchant_country,
+		merchant_name,
+		merchant_number,
+		merchant_postcode,
+		merchant_region,
+		merchant_street,
+		msg_type,
+		network_refnum,
+		oper_amount,
+		oper_currency,
+		oper_date,
+		oper_request_amount,
+		oper_type,
+		status,
+		sttl_type,
+		sttl_amount,
+		sttl_currency,
+		terminal_number,
+		terminal_type,
+	</sql>
+
+	<sql id="getOperationsEnd">
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">co.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="acqInstId">acq_inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="calcStatus">calc_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="issCardNumber">iss_card_number LIKE #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="issInstId">iss_inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDate">trunc(oper_date) >= trunc(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(oper_date) <![CDATA[<=]]> trunc(#filters[].value#)</isEqual>
+		</iterate>
+		GROUP BY
+		co.id,
+		session_id,
+		acq_inst_bin,
+		acq_inst_id,
+		acq_network_id,
+		calc_status,
+		host_date,
+		is_reversal,
+		iss_card_country,
+		iss_card_number,
+		iss_inst_id,
+		iss_network_id,
+		mcc,
+		merchant_city,
+		merchant_country,
+		merchant_name,
+		merchant_number,
+		merchant_postcode,
+		merchant_region,
+		merchant_street,
+		msg_type,
+		network_refnum,
+		oper_amount,
+		oper_currency,
+		oper_date,
+		oper_request_amount,
+		oper_type,
+		status,
+		sttl_type,
+		sttl_amount,
+		sttl_currency,
+		terminal_number,
+		terminal_type
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">co.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="acqInstId">acq_inst_id $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="acqNetworkId">acq_network_id
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="calcStatus">calc_status $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="feeAmount">fee_amount $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="feeCurrency">fee_currency $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="isReversal">is_reversal $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="issCardNumber">iss_card_number
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="issInstId">iss_inst_id $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="issNetworkId">iss_network_id
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="merchantName">merchant_name $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="networkRefnum">network_refnum
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="operAmount">oper_amount $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="operCurrency">oper_currency $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="operDate">oper_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operRequestAmount">oper_request_amount
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="feesCnt">fees_cnt $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</sql>
+
+
+	<select id="get_operations" parameterClass="qparams" resultMap="mapping_operation">
+		<include refid="getOperationsStart"/>
+		COUNT(cf.oper_id) as fees_cnt
+		FROM $module$_common_operation$tableSuffix$ co LEFT JOIN $module$_calculated_fee$tableSuffix$ cf ON(co.id=cf.oper_id)
+		<include refid="getOperationsEnd"/>
+	</select>
+
+	<select id="get_operations_nofee" parameterClass="qparams" resultMap="mapping_operation">
+		<include refid="getOperationsStart"/>
+		null as fees_cnt
+		FROM $module$_common_operation$tableSuffix$ co
+		<include refid="getOperationsEnd"/>
+	</select>
+
+	<select id="get_operations_count" parameterClass="qparams" resultClass="long">
+		SELECT COUNT(1) FROM $module$_common_operation$tableSuffix$
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="acqInstId">acq_inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="calcStatus">calc_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="issCardNumber">iss_card_number LIKE #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="issInstId">iss_inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDate">trunc(oper_date) >= trunc(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(oper_date) <![CDATA[<=]]> trunc(#filters[].value#)</isEqual>
+		</iterate>
+	</select>
+</sqlMap>

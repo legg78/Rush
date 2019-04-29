@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt" />
+
+    <!-- <ui:remove>
+         For files viewing
+    <h:panelGrid columns="2" style="width:100%;overflow-x:hidden" cellpadding="0" cellspacing="0"
+            columnClasses="top width70, top width30">
+
+	</ui:remove> -->
+
+	<h:form id="fileAttrsForm">
+		<h:panelGroup id="fileAttrTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+
+
+			<rich:extendedDataTable id="fileAttrTable" enableContextMenu="true"
+				tableState="#{MbFileAttributesSearch.tableState}"
+				styleClass="res-table" headerClass="res-table-header table-header-ext"
+				rowClasses=",odd" selectedClass="res-table-selected" var="item"
+				value="#{MbFileAttributesSearch.processFileAttributes}"
+				selection="#{MbFileAttributesSearch.itemSelection}"
+				selectionMode="single"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" requestDelay="500"
+					reRender="filesAttrButtons, processFilesListForm" />
+
+				<rich:column id="process" label="Process" title="Process" width="18%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblPrc.process}" title="#{lblPrc.process}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.processName}"
+						title="#{item.processName}" />
+				</rich:column>
+
+				<rich:column id="file" label="File" title="File" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrc.file}" title="#{lblPrc.file}" />
+					</f:facet>
+					<h:outputText value="#{item.fileName}" title="#{item.fileName}" />
+				</rich:column>
+
+                <rich:column id="purpose" label="Purpose" title="Purpose" width="15%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblPrc.purpose}" title="#{lblPrc.purpose}" />
+                    </f:facet>
+                    <h:outputText value="#{DictUtils.articles[item.purpose]}"
+                                  title="#{DictUtils.articles[item.purpose]}"
+                                  rendered="#{item.purpose != null}" />
+                    <h:outputText value="" title="" rendered="#{item.purpose == null}" />
+                </rich:column>
+
+                <rich:column id="name_mask" label="Name algorithm" title="Name algorithm" width="20%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblPrc.name_algorithm}/#{lblPrc.name_mask}"
+                                      title="#{lblPrc.name_algorithm}/#{lblPrc.name_mask}" />
+                    </f:facet>
+                    <h:outputText value="#{item.nameFormatLabel}"
+                                  title="#{item.nameFormatLabel}" rendered="#{item.outgoing}" />
+                    <h:outputText value="#{item.fileNameMask}"
+                                  title="#{item.fileNameMask}" rendered="#{item.incoming}" />
+                </rich:column>
+
+                <rich:column id="location" label="Location" title="Location" width="15%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblPrc.location}"
+                                      title="#{lblPrc.location}" />
+                    </f:facet>
+                    <h:outputText value="#{item.location}" title="#{item.location}" />
+                </rich:column>
+
+                <rich:column id="converter_class" label="Converter class" title="Converter class" width="15%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblPrc.converter_class}"
+                                      title="#{lblPrc.converter_class}" />
+                    </f:facet>
+                    <h:outputText value="#{item.converterClass}"
+                                  title="#{item.converterClass}" />
+                </rich:column>
+
+
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+        <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+            <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" style="padding-right:9px">
+                <h:panelGrid styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+                    <h:panelGroup>
+                        <bre:taggedCommandButton action="#{MbFileAttributesSearch.view}"
+                                                 value="#{lblForm.view}"
+                                                 oncomplete="#{rich:component('prc_file_attribute_view_modal_panel')}.show()"
+                                                 disabled="#{MbFileAttributesSearch.activeFileAttribute == null}"
+                                                 reRender="prc_file_attribute_view_modal_div" />
+                        <bre:taggedCommandButton action="#{MbFileAttributesSearch.edit}"
+                                                 value="#{lblPrc.set_value}"
+                                                 oncomplete="#{rich:component('prc_file_attribute_modal_panel')}.show()"
+                                                 disabled="#{MbFileAttributesSearch.activeFileAttribute == null}"
+                                                 rendered="#{usession.inRole['MODIFY_FILE_ATTRIBUTE']}"
+                                                 reRender="prc_file_attribute_modal_div, prc_file_attribute_modal_header"
+                                                 image="/images/edit.gif" />
+                    </h:panelGroup>
+                    <h:panelGroup>
+                        <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+                                        onclick="saveTableState();"/>
+                        <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+                                        onclick="deleteTableState();"/>
+                        <a4j:queue name="tablestatequeue"/>
+                        <a4j:jsFunction name="saveTableState" action="#{MbFileAttributesSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+                        <a4j:jsFunction name="deleteTableState" action="#{MbFileAttributesSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+                    </h:panelGroup>
+                </h:panelGrid>
+            </h:panelGroup>
+        </h:panelGroup>
+	</h:form>
+
+    <!--	<ui:remove>
+             For files viewing
+            <h:form id="processFilesListForm">
+                <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                     <h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable" id="detailsData" columnClasses="firstCol,secondCol">
+                         <h:outputLabel value="Apply mask: "/>
+                         <h:selectBooleanCheckbox
+                                 disabled="{MbFileAttributesSearch.activeFileAttribute == null}"
+                                 value="{MbFileAttributesSearch.applyMask}">
+                            <a4j:support event="onclick" reRender="processFilesListTable"
+                                    ajaxSingle="true" limitToList="true"/>
+                        </h:selectBooleanCheckbox>
+                     </h:panelGrid>
+                 </h:panelGroup>
+
+                <rich:extendedDataTable
+                        id="processFilesListTable" enableContextMenu="false"
+                        styleClass="res-table"
+                        headerClass="res-table-header"
+                        rowClasses=",odd"
+                        selectedClass="res-table-selected"
+                        var="item"
+                        value="{MbFileAttributesSearch.processFilesList}"
+                        rows="0"
+                        height="181px" width="100%"
+                        selectionMode="single"
+                        noDataLabel="{lblCommon['no_records_found']}">
+
+                    <rich:column width="100%">
+                        <f:facet name="header">
+                            <h:outputText value="Files" title="Files"/>
+                        </f:facet>
+                        <h:outputText value="{item}"/>
+                    </rich:column>
+                </rich:extendedDataTable>
+
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                        <h:panelGrid styleClass="buttons_block" columns="5">
+
+                        </h:panelGrid>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+        </h:panelGrid>
+
+        </ui:remove> -->
+
+	<ui:include src="/pages/processes/files/file_attribute_edit.jspx">
+		<ui:param name="rerenderList" value="fileAttrsForm" />
+	</ui:include>
+
+	<ui:include src="/pages/processes/files/file_attribute_details.jspx" />
+
+</ui:composition>
+</html>

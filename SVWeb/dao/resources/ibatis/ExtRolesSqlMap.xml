@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="extroles">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig 
+     -->
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+    </sql>
+    
+    <sql id="paginatedClose">
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+	
+	<sql id="agentJoin">
+        JOIN SEC_USERS _usrs
+        JOIN SEC_USER_AGENTS _usr_agnts
+        ON _usrs.id=_usr_agnts.user_id AND _usrs.name=#userName#
+        ON _usr_agnts.agent_id=
+	</sql>
+	
+	<sql id="instJoin">
+        JOIN SEC_USERS _usrs
+        JOIN SEC_USER_INSTITUTIONS _usr_insts
+        ON _usrs.id=_usr_insts.user_id AND _usrs.name=#userName#
+        ON _usr_insts.inst_id=
+    </sql>
+	
+    <select id="select-extroles"
+            parameterClass="qparams"
+            resultClass="ru.bpc.sv2.administrative.roles.ExternalRole">
+            <include refid="paginatedOpen"/>
+                    SELECT
+                        intgroup as id,
+                        name
+                    FROM
+                        web_extgroups
+                    <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                        <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                            <isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+                        </isNotEqual>
+                    </iterate>
+            <include refid="paginatedClose"/>
+    </select>
+    
+    <select id="select-extroles-count"
+            parameterClass="qparams"
+            resultClass="int">
+                    SELECT
+                        count(*)
+                    FROM
+                        web_extgroups
+    </select>
+    
+    <select id="select-extrole-roles"
+            parameterClass="ru.bpc.sv2.administrative.roles.ExternalRole"
+            resultClass="ru.bpc.sv2.administrative.roles.ComplexRole">
+		SELECT 
+		    roles.id,
+		    roles.name,
+		    roles.description
+		FROM
+		    sec_extgroup_roles eroles
+		    JOIN
+		    sec_roles roles
+		        ON eroles.role_id = roles.id
+		WHERE
+		    eroles.extgroup_id = #id#
+    </select>
+    
+    <insert id="add-new-extrole"
+            parameterClass="ru.bpc.sv2.administrative.roles.ExternalRole">
+        <selectKey keyProperty="id">
+            SELECT SEC_EXTROLES_SEQ.nextval FROM dual
+        </selectKey>   
+
+        INSERT INTO
+            web_extgroups ( extgroup_id, name )
+        VALUES
+            ( #id#, #name# )
+    </insert>
+
+    <insert id="update-extrole"
+            parameterClass="ru.bpc.sv2.administrative.roles.ExternalRole">
+        UPDATE web_extgroups
+        SET
+            name = #name#
+        WHERE
+            extgroup_id = #id#
+    </insert>
+    
+    <delete id="drop-role-bindings"
+            parameterClass="ru.bpc.sv2.administrative.roles.ExternalRole" >
+        DELETE FROM web_extgroup_roles
+        WHERE
+            extgroup_id = #id#
+    </delete>
+    
+    <insert id="add-role-binding"
+            parameterClass="ru.bpc.sv2.administrative.roles.ExtroleIdRoleIdBind" >
+        INSERT INTO web_extgroup_roles (intgroup, role_id)
+        VALUES (#extRoleId#, #roleId#)
+    </insert>
+</sqlMap>

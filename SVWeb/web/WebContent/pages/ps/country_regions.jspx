@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+        >
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+<ui:define name="navigatableContent">
+<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css"/>
+<script type="text/javascript" src="#{request.contextPath}/js/stretch.js"/>
+
+
+<f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+<f:loadBundle var="lblParam" basename="ru.bpc.sv2.ui.bundles.Param"/>
+<f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form"/>
+
+<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+<a4j:loadScript src="/js/stretch.js"/>
+<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+<h:form>
+    <a4j:jsFunction name="initBean" reRender="search_fields">
+        <a4j:actionparam name="param1" assignTo="#{MbModuleParam.module}"/>
+        <a4j:actionparam name="param2" assignTo="#{MbModuleParam.country}"/>
+        <a4j:actionparam name="param3" assignTo="#{MbModuleParam.regionsBundle}"/>
+    </a4j:jsFunction>
+</h:form>
+
+<script type="text/javascript">
+    window.onload = function () {
+        initBean('#{module}', #{country}, '#{regionsBundle}');
+    };
+    function handleEnter(event) {
+        if (event.keyCode == 13) {
+            document.getElementById('entitySearchForm:searchBtn').click();
+            return false;
+        }
+        return true;
+    }
+</script>
+
+<!-- navigation bar -->
+
+<bpct:navBar pageName="#{lblCrd.debts}"/>
+<!-- search panel -->
+<h:form id="entitySearchForm" onkeypress="handleEnter(event)">
+
+    <h:panelGroup layout="block" styleClass="search_block">
+        <h:panelGroup layout="block" styleClass="search_block_inner1">
+            <h:panelGroup layout="block" styleClass="search_block_inner2">
+                <h:panelGroup layout="block" styleClass="search_block_left">
+                    <h:panelGroup styleClass="search_block_inner search_block_inner-hidden-filter"
+                                  layout="block">
+                        <h:panelGrid styleClass="fw" columns="2"
+                                     columnClasses="top ,link-cont">
+                            <h:panelGrid id="search_fields" styleClass="filter-table field-cont twoColumnTable"
+                                         columns="4"
+                                         columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+                                <h:outputLabel for="name" title="#{lblParam.name}" value="#{lblParam.name}:"
+                                               rendered="#{MbModuleParam.country}"/>
+                                <h:selectOneMenu id="name" value="#{MbModuleParam.filter.numCode}"
+                                                 rendered="#{MbModuleParam.country}">
+                                    <f:selectItem itemValue=""/>
+                                    <f:selectItems value="#{CountryUtils.allCountries}"/>
+                                </h:selectOneMenu>
+
+                                <h:outputLabel for="region" title="#{lblParam.region}"
+                                               value="#{lblParam.region}:"/>
+                                <h:selectOneMenu id="region" value="#{MbModuleParam.filter.value}">
+                                    <f:selectItem itemValue=""/>
+                                    <f:selectItems value="#{MbModuleParam.regionsMapSel}"/>
+                                </h:selectOneMenu>
+
+                                <h:outputLabel for="numCode" title="#{lblParam.num_code}"
+                                               value="#{lblParam.num_code}:" rendered="#{MbModuleParam.country}"/>
+                                <h:selectOneMenu id="numCode" value="#{MbModuleParam.filter.numCode}"
+                                                 rendered="#{MbModuleParam.country}">
+                                    <f:selectItem itemValue=""/>
+                                    <f:selectItems value="#{CountryUtils.numCodes}"/>
+                                </h:selectOneMenu>
+
+                                <h:outputLabel for="institute" title="#{lblParam.institution}"
+                                               value="#{lblParam.institution}:"/>
+                                <h:selectOneMenu id="institute" value="#{MbModuleParam.filter.instId}">
+                                    <f:selectItem itemValue=""/>
+                                    <f:selectItems value="#{DictUtils.institutes}"/>
+                                </h:selectOneMenu>
+
+                                <h:outputLabel for="letterCode" title="#{lblParam.letter_code}"
+                                               value="#{lblParam.letter_code}:" rendered="#{MbModuleParam.country}"/>
+                                <h:selectOneMenu id="letterCode" value="#{MbModuleParam.filter.letterCode}"
+                                                 rendered="#{MbModuleParam.country}">
+                                    <f:selectItem itemValue=""/>
+                                    <f:selectItems value="#{CountryUtils.letterCodes}"/>
+                                </h:selectOneMenu>
+
+                                <h:outputLabel for="network" title="#{lblParam.network}" value="#{lblParam.network}:"/>
+                                <h:inputText id="network" value="#{MbModuleParam.filter.networkId}"/>
+                            </h:panelGrid>
+
+                            <h:panelGrid columns="1">
+                                <h:panelGroup styleClass="stdButton">
+                                    <bre:taggedCommandButton
+                                            action="#{MbModuleParam.search}"
+                                            reRender="entityTable, dsentity, pagesNum"
+                                            id="searchBtn"
+                                            image="/_img/icon_search.png" type="submit"
+                                            value="#{lblForm.search}"
+
+                                            oncomplete="enableModalPanelBtns(this);"
+                                            eventsQueue="queue"
+                                            style="width:85px;"/>
+
+                                </h:panelGroup>
+
+                                <h:panelGroup styleClass="link-clear" layout="block">
+                                    <h:graphicImage url="/_img/icon_clear.png"/>
+                                    <a4j:commandLink value="#{lblForm.clear_all}"
+                                                     action="#{MbModuleParam.clearFilter}"
+                                                     reRender="entitySearchForm, entityForm, entityBtnForm">
+                                    </a4j:commandLink>
+                                </h:panelGroup>
+                            </h:panelGrid>
+
+                        </h:panelGrid>
+                    </h:panelGroup>
+                    <a4j:outputPanel ajaxRendered="true">
+                        <h:panelGroup styleClass="show-more-vert" layout="block"/>
+                        <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                        <h:panelGroup styleClass="collapse-vert" layout="block"/>
+                    </a4j:outputPanel>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+<rich:modalPanel id="paramEditWindow" autosized="true" minWidth="300" minHeight="100">
+    <f:facet name="header">
+        <h:panelGroup id="editWindowHeader">
+            <h:outputText value="#{lblParam.addEditParam}"/>
+        </h:panelGroup>
+    </f:facet>
+    <f:facet name="controls">
+    </f:facet>
+    <h:panelGroup id="paramEditWindowDiv">
+        <h:form id="paramWindowForm">
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <h:panelGrid id="fields" columns="2" styleClass="cardholderdata"
+                             columnClasses="firstColModal nowrap top, width250">
+                    <h:outputLabel value="#{lblParam.region}:" title="#{lblParam.region}"/>
+                    <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                        <h:selectOneMenu id="valueField" value="#{MbModuleParam.activeItem.value}"
+                                         label="#{lblParam.region}">
+                            <f:selectItems value="#{MbModuleParam.regionsMapSel}"/>
+                        </h:selectOneMenu>
+                        <rich:message for="valueField" styleClass="errorMarker" id="valueError"/>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="#{lblParam.name}:" title="#{lblParam.name}"/>
+                    <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                        <h:selectOneMenu id="nameField" value="#{MbModuleParam.activeItem.numCode}"
+                                         disabled="#{MbModuleParam.update}"
+                                         label="#{lblParam.name}">
+                            <f:selectItems value="#{CountryUtils.allCountries}"/>
+                        </h:selectOneMenu>
+                        <rich:message for="nameField" styleClass="errorMarker" id="nameError"/>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="#{lblParam.institution}:" title="#{lblParam.institution}"/>
+                    <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                        <h:selectOneMenu id="currency" value="#{MbModuleParam.activeItem.instId}"
+                                         label="#{lblParam.institution}">
+                            <f:selectItem itemLabel="" itemValue=""/>
+                            <f:selectItems value="#{DictUtils.institutes}"/>
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="#{lblParam.network}:" title="#{lblParam.network}"/>
+                    <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                        <h:inputText id="networkField" value="#{MbModuleParam.activeItem.networkId}"
+                                     label="#{lblParam.network}"/>
+                    </h:panelGrid>
+                </h:panelGrid>
+            </h:panelGroup>
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                        <h:outputText/>
+                        <bre:taggedCommandButton value="#{lblForm.save}" id="saveBtn"
+                                                 action="#{MbModuleParam.saveParam}"
+                                                 reRender="entityTable"
+                                                 oncomplete="if(#{usession.noErrorResponse}) Richfaces.hideModalPanel('paramEditWindow')"
+                                />
+                        <bre:taggedCommandButton value="#{lblForm.cancel}" id="cancelBtn"
+                                                 onclick="Richfaces.hideModalPanel('paramEditWindow');return false;"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:modalPanel>
+
+<h:form id="entityForm" style="height: 375px">
+    <!-- result panel -->
+    <h:panelGroup styleClass="search_result_block" layout="block" style="height: 365px">
+        <h:panelGroup styleClass="search_result_block_left fix-ff"
+                      layout="block">
+            <h:panelGroup id="mainTableWrapper" layout="block"
+                          styleClass="search_result_block_inner">
+                <a4j:jsFunction name="updateTabs"
+                                reRender="buttonsPanel">
+                </a4j:jsFunction>
+                <rich:extendedDataTable id="entityTable" styleClass="res-table"
+                                        tableState="#{MbModuleParam.tableState}"
+                                        headerClass="res-table-header" rowClasses=",odd"
+                                        selectedClass="res-table-selected" var="item"
+                                        value="#{MbModuleParam.items}"
+                                        selection="#{MbModuleParam.itemSelection}"
+                                        rows="#{MbModuleParam.rowsNum}" selectionMode="single"
+                                        width="100%" height="365px" enableContextMenu="true"
+                                        onselectionchange="updateTabs()"
+                                        noDataLabel="#{MbModuleParam.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}">
+
+                    <rich:column label="#{lblParam.region}" title="#{lblParam.region}" width="15%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblParam.region}" title="#{lblParam.region}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{MbModuleParam.regionsMap[item.value]}"
+                                      title="#{MbModuleParam.regionsMap[item.value]}"/>
+                    </rich:column>
+
+                    <rich:column label="#{lblParam.flag}" title="#{lblParam.flag}" width="5%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblParam.flag}" title="#{lblParam.flag}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+
+                        <div style="margin-left: 20px" class="#{CountryUtils.flag[item.countryCode]}"/>
+                    </rich:column>
+
+                    <rich:column label="#{lblParam.num_code}" title="#{lblParam.num_code}" width="8%"
+                                 sortBy="#{'name'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblParam.num_code}" title="#{lblParam.num_code}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.countryCode}" title="#{item.countryCode}"/>
+                    </rich:column>
+
+                    <rich:column label="#{lblParam.letter_code}" title="#{lblParam.letter_code}" width="8%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblParam.letter_code}" title="#{lblParam.letter_code}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{CountryUtils.revCodeMap[item.countryCode]}"
+                                      title="#{CountryUtils.revCodeMap[item.countryCode]}"/>
+                    </rich:column>
+
+                    <rich:column label="#{lblParam.name}" title="#{lblParam.name}" width="15%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblParam.name}" title="#{lblParam.name}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{CountryUtils.countryNamesMap[item.countryCode]}"
+                                      title="#{CountryUtils.countryNamesMap[item.countryCode]}"/>
+                    </rich:column>
+
+                    <rich:column label="#{lblParam.value}" title="#{lblParam.value}" sortBy="#{'value'}" width="20%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblParam.value}" title="#{lblParam.value}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.value}" title="#{item.value}"/>
+                    </rich:column>
+                    <rich:column label="#{lblParam.institution}" title="#{lblParam.institution}" sortBy="#{'instId'}"
+                                 width="10%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblParam.institution}" title="#{lblParam.institution}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{DictUtils.institutesMap[item.instId]}"/>
+                    </rich:column>
+                    <rich:column label="#{lblParam.network}" title="#{lblParam.network}" sortBy="#{'networkId'}"
+                                 width="10%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblParam.network}" title="#{lblParam.network}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.networkId}" title="#{item.networkId}"/>
+                    </rich:column>
+                </rich:extendedDataTable>
+            </h:panelGroup>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+<ui:include src="/pages/utils/confirmPanel.jspx">
+    <ui:param name="backingBean" value="#{MbModuleParam}"/>
+    <ui:param name="yesAction" value="deleteParam"/>
+    <ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+    <ui:param name="rerenderList" value="entityTable"/>
+    <ui:param name="confirmQuestion" value=" "/>
+    <ui:param name="subviewId" value="paramDel"/>
+    <ui:param name="yes" value="#{lblForm.ok}"/>
+    <ui:param name="no" value="#{lblForm.cancel}"/>
+</ui:include>
+
+<!-- navigation footer-->
+<h:form id="entityBtnForm">
+    <h:panelGroup layout="block" styleClass="bottom_search_result_block" id="bottomSearchResultBlock">
+        <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+            <h:panelGroup layout="block" styleClass="table_tools" id="tableTools">
+                <h:panelGrid styleClass="fw field-cont" columns="5"
+                             columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+                    <h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}"
+                                   title="#{lblCommon.rows_per_page}"/>
+
+                    <h:selectOneMenu id="rows_num" value="#{MbModuleParam.rowsNum}"
+                                     style="width:50px">
+                        <a4j:support event="onchange" reRender="entityBtnForm, entityForm"/>
+                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                    </h:selectOneMenu>
+
+                    <rich:datascroller maxPages="10" fastControls="hide"
+                                       pagesVar="pages" styleClass="res-datascroller" id="dsentity"
+                                       for="entityTable"
+                                       reRender="pagesNum"
+                                       pageIndexVar="pageIndex">
+                        <f:facet name="first">
+                            <h:outputText value="&lt;&lt;" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="first_disabled">
+                            <h:outputText value="&lt;&lt;" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="last">
+                            <h:outputText value="&gt;&gt;" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="last_disabled">
+                            <h:outputText value="&gt;&gt;" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="previous">
+                            <h:outputText value="#{lblCommon.prev}" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="previous_disabled">
+                            <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="next">
+                            <h:outputText value="#{lblCommon.next}" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="next_disabled">
+                            <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="pages">
+                        </f:facet>
+                    </rich:datascroller>
+
+                    <h:panelGroup id="pagesNum">
+                        <h:outputText styleClass="strongClass" value="#{pages} "/>
+                        <h:outputText value=" #{lblCommon.pages}"/>
+                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                        <h:outputText styleClass="strongClass" value="#{MbModuleParam.items.rowCount}"/>
+                        <h:outputText value=" #{lblCommon.records}"/>
+                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                    </h:panelGroup>
+
+                    <h:panelGroup>
+                        <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}"
+                                        styleClass="action_icon"
+                                        onclick="saveTableState();"/>
+                        <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}"
+                                        styleClass="action_icon"
+                                        onclick="deleteTableState();"/>
+                        <a4j:queue name="tablestatequeue"/>
+                        <a4j:jsFunction name="saveTableState" action="#{MbModuleParam.saveTableStateDB}"
+                                        eventsQueue="tablestatequeue"/>
+                        <a4j:jsFunction name="deleteTableState"
+                                        action="#{MbModuleParam.deleteTableStateDB}"
+                                        eventsQueue="tablestatequeue"/>
+                    </h:panelGroup>
+                </h:panelGrid>
+            </h:panelGroup>
+            <h:panelGrid id="buttonsPanel" columns="3" styleClass="buttons_block">
+                <bre:taggedCommandButton id="addBtn"
+                                         value="#{lblForm.add}"
+                                         reRender="paramEditWindow"
+                                         oncomplete="Richfaces.showModalPanel('paramEditWindow')"
+                                         action="#{MbModuleParam.prepareAdd}"
+                                         image="/images/create_doc.gif"/>
+                <bre:taggedCommandButton id="editBtn"
+                                         value="#{lblForm.edit}"
+                                         action="#{MbModuleParam.prepareEdit}"
+                                         reRender="paramEditWindow"
+                                         oncomplete="Richfaces.showModalPanel('paramEditWindow')"
+                                         disabled="#{MbModuleParam.activeItem == null or MbModuleParam.activeItem.name==null}"
+                                         image="/images/edit.gif"/>
+                <bre:taggedCommandButton id="deleteBtn"
+                                         value="#{lblForm.delete}"
+                                         oncomplete="#{rich:component('paramDel:confirmPanel')}.show()"
+                                         disabled="#{MbModuleParam.activeItem == null or MbModuleParam.activeItem.name==null}"
+                                         image="/images/delete.gif"/>
+            </h:panelGrid>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+</ui:define>
+</ui:composition>
+
+</html>

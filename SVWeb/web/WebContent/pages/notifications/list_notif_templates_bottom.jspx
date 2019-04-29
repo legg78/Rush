@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition>
+	<f:loadBundle var="lblNtf" basename="ru.bpc.sv2.ui.bundles.Ntf"/>
+
+	<h:form id="notifTemplatesBtmForm">
+		<h:panelGroup id="templatesTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="templatesTable" var="item"
+				value="#{MbNotificationTemplates.templates}"
+				selection="#{MbNotificationTemplates.itemSelection}"
+				rows="#{MbNotificationTemplates.rowsNum}" selectionMode="single"
+				rowClasses=",odd" headerClass="res-table-header table-header-ext"
+				selectedClass="res-table-selected" styleClass="res-table"
+				enableContextMenu="true"
+				tableState="#{MbNotificationTemplates.tableState}"
+				noDataLabel="#{MbNotificationTemplates.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}">
+
+				<a4j:support event="onselectionchange" ignoreDupResponses="true"
+					reRender="notifTemplatesBtmForm:btnPanel" />
+
+				<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel>
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="channel" label="#{lblNtf.channel}" sortBy="#{'channelName'}" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNtf.channel}" title="#{lblNtf.channel}" />
+					</f:facet>
+					<h:outputText value="#{item.channelName}" />
+				</rich:column>
+
+				<rich:column id="language" label="#{lblCommon.language}" sortBy="#{'templateLang'}" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.language}"
+							title="#{lblCommon.language}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.lang]}" />
+				</rich:column>
+
+				<rich:column id="report_template" label="#{lblNtf.report_template}" sortBy="#{'reportName'}" width="40%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNtf.report_template}"
+							title="#{lblNtf.report_template}" />
+					</f:facet>
+					<h:outputText value="#{item.reportTemplateName}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						reRender="notifModalHeader, notifEditForm" value="#{lblForm.add}"
+						oncomplete="#{rich:component('notifModalPanel')}.show()"
+						action="#{MbNotificationTemplates.add}"
+						disabled="#{MbNotificationTemplates.filter.notificationId == null}"
+						rendered="#{usession.inRole['ADD_NOTIF_TEMPLATE']}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="notifModalHeader, notifEditForm" value="#{lblForm.edit}"
+						action="#{MbNotificationTemplates.edit}"
+						oncomplete="#{rich:component('notifModalPanel')}.show()"
+						disabled="#{MbNotificationTemplates.activeTemplate == null}"
+						rendered="#{usession.inRole['MODIFY_NOTIF_TEMPLATE']}"
+						image="/images/edit.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						disabled="#{MbNotificationTemplates.filter.notificationId == null || MbNotificationTemplates.activeTemplate == null}"
+						rendered="#{usession.inRole['REMOVE_NOTIF_TEMPLATE']}"
+						image="/images/delete.gif" 
+						oncomplete="#{rich:component('deleteTemplateView:confirmPanel')}.show()"/>
+					</h:panelGroup>
+					
+					<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveTemplateTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteTemplateTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveTemplateTableState" action="#{MbNotificationTemplates.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteTemplateTableState" action="#{MbNotificationTemplates.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<ui:include src="/pages/notifications/edit_notif_template.jspx">
+		<ui:param name="rerenderList" value="notifTemplatesBtmForm"/>
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbNotificationTemplates}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="notifTemplatesBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteTemplateView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>			
+	</ui:include>
+
+</ui:composition>
+</html>

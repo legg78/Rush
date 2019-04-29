@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<![CDATA[		
+		oldValue["modifierEditForm"] = "#{MbModifiers.newModifier.lang}";	                                          
+	                                          
+		function checkModifierFields() {
+			var checked = true;
+
+			if (document.getElementById('modifierEditForm:priority').value == "") {
+				document.getElementById('modifierEditForm:priorityError').style.display = "inline";
+				checked = false;
+			} else if (Number(document.getElementById('modifierEditForm:priority').value) < 1
+					|| Number(document.getElementById('modifierEditForm:priority').value) > 9999) {
+				document.getElementById('modifierEditForm:priorityRangeError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('modifierEditForm:modName').value == "") {
+				document.getElementById('modifierEditForm:modNameError').style.display = "inline";
+				checked = false;
+			} else if (document.getElementById('modifierEditForm:modName').value.length < 3) {
+				document.getElementById("modifierEditForm:modNameMinError").style.display = "inline";
+				checked = false;
+			}
+			
+			checked = checkField('modifierEditForm:condition') && checked;
+			
+			return checked;
+		}
+
+		function hideModifierErrorFields() {
+			document.getElementById("modifierEditForm:priorityRangeError").style.display = "none";
+			document.getElementById("modifierEditForm:modNameMinError").style.display = "none";
+		}
+		//]]>
+	</script>
+
+	<rich:modalPanel id="rul_modifier_modal_panel" autosized="true" minWidth="300" minHeight="200">
+	   <f:facet name="header">
+   	    	<h:panelGroup id="rul_modifier_modal_header">
+	        	<h:outputText value="#{lblRul.new_modifier}" rendered="#{MbModifiers.newMode}"/>
+	        	<h:outputText value="#{lblRul.edit_modifier}" rendered="#{MbModifiers.editMode}"/>
+        	</h:panelGroup>
+   		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+    	<h:form id="modifierEditForm">
+			<h:panelGroup id="rul_modifier_modal_div" layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal,width250">
+		
+					<h:outputLabel value="#{lblRul.mod_id}: " title="#{lblRul.mod_id}" rendered="#{!MbModifiers.newMode}"/>
+					<h:inputText value="#{MbModifiers.newModifier.id}" rendered="#{!MbModifiers.newMode}" readonly="true"
+						styleClass="grayInput" />
+					
+					<h:outputLabel value="#{lblRul.scale_id}: " title="#{lblRul.scale_id}"/>
+					<h:inputText value="#{MbModifiers.newModifier.scaleId}" readonly="true"
+						styleClass="grayInput" />
+		
+					<h:outputLabel value="* #{lblRul.priority}: " title="#{lblRul.priority}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0" >
+						<h:inputText id="priority" value="#{MbModifiers.newModifier.priority}"
+								label="#{lblRul.priority}" maxlength="4"
+								onkeypress="if (!numbersOnly(this, event)) return false;"
+								onblur="hideErrorField(this); hideModifierErrorFields()">
+						</h:inputText>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="priorityError" style="display:none;">
+							<f:param name="fieldName" value="#{lblRul.priority}"/>
+						</h:outputFormat>
+						<h:outputFormat value="#{lblMsg.value_mustbe_in_range}" styleClass="errorMarker"
+								id="priorityRangeError" style="display:none;">
+							<f:param name="min" value="1"/>
+							<f:param name="max" value="9999"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+					<h:selectOneMenu id="lang" 
+							value="#{MbModifiers.newModifier.lang}"
+							rendered="#{MbModifiers.newMode}">
+					    <f:selectItems value="#{MbModifiers.languages}"/>
+					</h:selectOneMenu>
+					<h:selectOneMenu id="editLang" value="#{MbModifiers.newModifier.lang}"
+							rendered="#{MbModifiers.editMode}"
+							onchange="document.getElementById('modifier:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('modifier:confirmPanel')}.show()">
+						<f:selectItems value="#{MbModifiers.languages}"/>
+					</h:selectOneMenu>
+					
+					<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0" >
+						<h:inputText id="modName" value="#{MbModifiers.newModifier.name}" 
+								maxlength="200"
+								onblur="hideErrorField(this);hideModifierErrorFields();">
+						</h:inputText>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="modNameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+						<h:outputFormat value="#{lblMsg.min_length_request}"
+								styleClass="errorMarker" id="modNameMinError" style="display:none;">
+							<f:param name="minLength" value="3"/>
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+						
+					<h:outputLabel for="full_desc" value="#{lblCommon.description}: " title="#{lblCommon.description}" />
+					<h:inputTextarea id="full_desc" value="#{MbModifiers.newModifier.description}"
+						rows="5" cols="150" 
+						onkeypress="if (!limitText(event,this,2000)) return false;" label="#{lblCommon.description}">
+		            	<f:validateLength maximum="2000" />
+			        </h:inputTextarea>
+			
+					<h:outputLabel value="* #{lblRul.condition}: " title="#{lblRul.condition}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:panelGrid columns="5" cellspacing="0" cellpadding="0">
+							<a4j:region>						
+								<h:selectOneMenu id="cond_param" style="width:100px;" 
+										value="#{MbModifiers.selectedParamId}"
+										valueChangeListener="#{MbModifiers.applyParamToFormatter}">
+									<a4j:support event="onchange" reRender="btn_add_cond, values"/>
+									<f:selectItems value="#{MbModifiers.paramsMap}"/>
+								</h:selectOneMenu>
+							</a4j:region>
+							
+							<h:selectOneMenu id="cond_param_condition" style="width:50px;" value="#{MbModifiers.conditionFormatter.condition}">
+								<f:selectItem itemLabel="=" itemValue="="/>
+								<f:selectItem itemLabel="!=" itemValue="!="/>
+								<f:selectItem itemLabel="&gt;" itemValue="&gt;"/>
+								<f:selectItem itemLabel="&gt;=" itemValue="&gt;="/>
+								<f:selectItem itemLabel="&lt;" itemValue="&lt;"/>						
+								<f:selectItem itemLabel="&lt;=" itemValue="&lt;="/>
+								<f:selectItem itemLabel="IN" itemValue="IN"/>							
+								<f:selectItem itemLabel="LIKE" itemValue="LIKE"/>							
+							</h:selectOneMenu>
+							
+							<a4j:outputPanel id="values">
+								<h:selectOneMenu id="paramLovValue" 
+										value="#{MbModifiers.conditionFormatter.value}"
+										rendered="#{MbModifiers.selectedParam.lovId != null}">
+									<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbModifiers.paramLovValues}"/>
+								</h:selectOneMenu>
+								<h:inputText id="paramValue" style="width:80px;" 
+										value="#{MbModifiers.conditionFormatter.value}" 
+										validator="#{MbModifiers.validateParamValue}"
+										rendered="#{MbModifiers.selectedParam.lovId == null}">
+									<rich:ajaxValidator event="onblur" />
+								</h:inputText>
+							</a4j:outputPanel>							
+		
+							<h:selectOneMenu id="cond_param_op" style="width:50px;" value="#{MbModifiers.conditionFormatter.operation}">
+								<f:selectItem itemLabel="AND" itemValue="AND"/>
+								<f:selectItem itemLabel="OR" itemValue="OR"/>														
+							</h:selectOneMenu>
+							
+							<bre:taggedCommandButton value="#{lblForm.add}" id="btn_add_cond" 
+									disabled="#{MbModifiers.selectedParam.id == null}" 
+									reRender="condition, values" 
+									onclick="hideErrorField(document.getElementById('modifierEditForm:condition'));"
+									action="#{MbModifiers.addToCondition}">
+							</bre:taggedCommandButton>
+							
+						</h:panelGrid>
+						
+						<h:inputTextarea id="condition" value="#{MbModifiers.newModifier.condition}" 
+								rows="3" cols="10" onchange="hideErrorField(this)"
+								style="width:98%;"/>
+						
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="conditionError" style="display:none;">
+							<f:param name="fieldName" value="#{lblRul.condition}"/>
+						</h:outputFormat>
+						<rich:message for="paramValue" styleClass="errorMarker" ajaxRendered="true"/>
+					</h:panelGrid>
+							
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbModifiers.save}"
+                       			onclick="if (!checkModifierFields()) return false; disableModalPanelBtns(this);"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('rul_modifier_modal_panel')}.hide()"
+                       			reRender="#{rerenderList}"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbModifiers.close}" immediate="true"
+                        		oncomplete="#{rich:component('rul_modifier_modal_panel')}.hide()"
+                        		/>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+    	<ui:param name="backingBean" value="#{MbModifiers}"/>
+    	<ui:param name="rerenderList" value="modifierEditForm:modName, modifierEditForm:full_desc"/>
+    	<ui:param name="editElem" value="modifierEditForm:editLang"/>
+    	<ui:param name="newValue" value="#{MbModifiers.newModifier.lang}"/>
+    	<ui:param name="subviewId" value="modifier"/>
+    	<ui:param name="formName" value="modifierEditForm:" />
+    </ui:include>
+</ui:composition>
+</html>

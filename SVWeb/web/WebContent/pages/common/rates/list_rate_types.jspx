@@ -1,0 +1,539 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:param name="pageHelp" value="currency_rates_type_set.htm" />
+	<ui:param name="pageHelpModalAdd" value="currency_rates_type_add.htm" />
+	<ui:param name="pageHelpModalEdit" value="currency_rates_edit.htm" />
+	<ui:param name="showHelpModal" value="true" />
+	
+	<ui:define name="navigatableContent">
+		<a4j:loadScript src="/js/stretch.js" />
+		<script type="text/javascript">
+//<!--			
+			function checkRateTypeFields() {
+				var checked = true;
+				
+				if (document.getElementById('com_rate_type_modal_div:newInst').value == "") {
+					document.getElementById('com_rate_type_modal_div:newInstError').style.display = "inline";
+					checked = false;
+				}
+				
+				if (document.getElementById('com_rate_type_modal_div:newRateType').value == "") {
+					document.getElementById('com_rate_type_modal_div:newRateTypeError').style.display = "inline";
+					checked = false;
+				}		
+				
+				if (document.getElementById('com_rate_type_modal_div:newBaseCurrency')
+						&& document.getElementById('com_rate_type_modal_div:newBaseCurrency').value == "") {
+					document.getElementById('com_rate_type_modal_div:newBaseCurrencyError').style.display = "inline";
+					checked = false;
+				}	
+				
+				return checked;
+			}
+			//-->
+		</script>
+    	<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblCommon.rate_types}"/>
+        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+        
+        <script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('rateTypesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			
+    	<h:form id="rateTypesSearchForm" onkeypress="handleEnter(event)">
+    	
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+		            			<h:outputLabel value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+		            			<h:selectOneMenu id="institution" 
+		            					value="#{MbRateTypes.filter.instId}">
+		            				<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbRateTypes.institutions}"/>
+								</h:selectOneMenu>
+
+		            			<h:outputLabel value="#{lblCommon.base_currency}: " title="#{lblCommon.base_currency}" />
+		            			<h:selectOneMenu id="baseCurrency" value="#{MbRateTypes.filter.baseCurrency}">
+		            				<f:selectItem itemValue=""/>
+		            				<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+		            			</h:selectOneMenu>
+
+		            			<h:outputLabel value="#{lblCommon.rate_type}: " title="#{lblCommon.rate_type}" />
+		            			<h:selectOneMenu id="rateType" value="#{MbRateTypes.filter.rateType}">
+		            				<f:selectItems value="#{MbRateTypes.filterRateTypes}"/>
+		            			</h:selectOneMenu>
+
+							</h:panelGrid>
+	                		<h:panelGrid columns="1">
+		                		<bre:taggedCommandButton
+			                			action="#{MbRateTypes.search}"
+	        							reRender="rateTypesTable, rateTypesDs, pagesNum, rateTypesBtnForm:btnPanel, detTab, pairsTab"
+	        							id="searchBtn"
+	                					image="/_img/icon_search.png" type="submit"
+	                					value="#{lblForm.search}" style="width:85px;"
+	                					onclick="disableModalPanelBtns(this);"
+	                					oncomplete="enableModalPanelBtns(this);"
+	                					eventsQueue="queue"/>
+	                			<h:panelGroup styleClass="link-clear" layout="block">
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+						        			action="#{MbRateTypes.clearFilter}"
+						        			reRender="rateTypesSearchForm, rateTypesForm, rateTypesBtnForm, details">
+						        	</a4j:commandLink>
+	            	    		</h:panelGroup>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+	               			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+	               			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+               			</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="rateTypesForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		    		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="rateTypesTable"
+							var="item"
+							tableState="#{MbRateTypes.tableState}"
+							value="#{MbRateTypes.rateTypes}"
+							selection="#{MbRateTypes.itemSelection}"
+							rows="#{MbRateTypes.rowsNum}"
+							height="255px"
+							selectionMode="single"
+							rowClasses=",odd"
+							headerClass="res-table-header"
+							selectedClass="res-table-selected"
+							styleClass="res-table"
+							enableContextMenu="true"
+							noDataLabel="#{MbRateTypes.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="detTab, pairsTab, rateTypesBtnForm:btnPanel">
+			
+						<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="detTab, pairsTab, rateTypesBtnForm:btnPanel"/>
+			
+					   	<rich:column id="rate_type" label="#{lblCommon.rate_type}" width="15%" sortBy="#{'rateType'}">
+							<f:facet name="header">
+			                    <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.rate_type}" title="#{lblCommon.rate_type}"/>
+								</a4j:outputPanel>
+			                </f:facet>
+			                <h:outputText value="#{DictUtils.articles[item.rateType]}"  title="#{DictUtils.articles[item.rateType]}"/>
+				        </rich:column>
+				        
+				        <rich:column id="institution" label="#{lblCommon.institution}" width="18%" sortBy="#{'instName'}">
+							<f:facet name="header">
+			                    <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}"/>
+			                </f:facet>
+			                <bm:entityDisplay  entityId="#{item.instId}"
+											value="#{item.instName}"/>
+				        </rich:column>
+	
+						<rich:column id="base_currency" label="#{lblCommon.base_currency}" sortBy="#{'baseCurrency'}" width="15%">
+							<f:facet name="header">
+			                   	<h:outputText value="#{lblCommon.base_currency}" title="#{lblCommon.base_currency}" />
+							</f:facet>							
+							<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.baseCurrency]}"/>
+			               	<h:outputText value="#{CurrencyUtils.currencyMap[item.baseCurrency]}"  title="#{CurrencyUtils.currencyMap[item.baseCurrency]}"/>
+						</rich:column>
+
+				        <rich:column id="use_cross_rate" label="#{lblCommon.use_cross_rate}" width="12%" sortBy="#{'useCrossRate'}">
+							<f:facet name="header">
+			                    <h:outputText value="#{lblCommon.use_cross_rate}" title="#{lblCommon.use_cross_rate}"/>
+			                </f:facet>
+			                <h:selectBooleanCheckbox value="#{item.useCrossRate}" disabled="true"/>
+				        </rich:column>
+
+				        <rich:column id="use_base_rate" label="#{lblCommon.use_base_rate}" width="12%" sortBy="#{'useBaseRate'}">
+							<f:facet name="header">
+			                    <h:outputText value="#{lblCommon.use_base_rate}" title="#{lblCommon.use_base_rate}"/>
+			                </f:facet>
+			                <h:selectBooleanCheckbox value="#{item.useBaseRate}" disabled="true"/>
+				        </rich:column>
+
+				        <rich:column id="is_reversible" label="#{lblCommon.is_reversible}" width="10%" sortBy="#{'reversible'}">
+							<f:facet name="header">
+			                    <h:outputText value="#{lblCommon.is_reversible}" title="#{lblCommon.is_reversible}"/>
+			                </f:facet>
+			                <h:selectBooleanCheckbox value="#{item.reversible}" disabled="true"/>
+				        </rich:column>
+
+				        <rich:column id="exp_period" label="#{lblCommon.exp_period}" width="15%" sortBy="#{'expPeriod'}">
+							<f:facet name="header">
+			                    <h:outputText value="#{lblCommon.exp_period}" title="#{lblCommon.exp_period}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.expPeriod}" title="#{item.expPeriod}"/>
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="show-more-vert table-collapse-vert" layout="block" rendered="false"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+        </h:form>
+
+        <h:form id="rateTypesBtnForm">
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+							<h:selectOneMenu id="rows_num" value="#{MbRateTypes.rowsNum}" styleClass="row_per_page" >
+								<a4j:support event="onchange" reRender="rateTypesTable, rateTypesDs, pagesNum, detTab, pairsTab, rateTypesBtnForm" />
+		                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+		                    		pagesVar="pages" styleClass="res-datascroller"
+				                    id="rateTypesDs" for="rateTypesTable"
+				                    reRender="detTab, pairsTab, rateTypesBtnForm:btnPanel">
+				            	<f:facet name="first">
+				                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+				                <f:facet name="first_disabled">
+				                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="last">
+				                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="last_disabled">
+				                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="previous_disabled">
+				                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="next">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="next_disabled">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="pages">
+				                </f:facet>
+							</rich:datascroller>
+
+		                    <h:panelGroup id="pagesNum">
+		                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+		                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbRateTypes.rateTypes.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+		                    </h:panelGroup>
+		                    
+		                    <h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbRateTypes.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbRateTypes.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+					
+		            <h:panelGrid id="btnPanel" columns="4" styleClass="itempanel">
+		            	<bre:taggedCommandButton id="addDeviceBtn"
+	                      		reRender="com_rate_type_modal_div, com_rate_type_modal_panel"
+	                      		value="#{lblForm.add}"
+                    			oncomplete="#{rich:component('com_rate_type_modal_panel')}.show()"
+	                      		action="#{MbRateTypes.add}"
+	                      		rendered="#{usession.inRole['ADD_RATE_TYPE']}"
+	                      		image="/images/create_doc.gif"
+	                      		/>
+						<bre:taggedCommandButton id="editDeviceBtn"
+				        		reRender="com_rate_type_modal_div, com_rate_type_modal_panel"
+				        		value="#{lblForm.edit}"
+			            		oncomplete="#{rich:component('com_rate_type_modal_panel')}.show()"
+				        		action="#{MbRateTypes.edit}"
+				        		disabled="#{MbRateTypes.activeRateType == null}"
+				        		rendered="#{usession.inRole['MODIFY_RATE_TYPE']}"
+				        		image="/images/edit.gif"
+				        		>
+				        </bre:taggedCommandButton>	                      		
+						<bre:taggedCommandButton id="deleteDeviceBtn"
+	                      		value="#{lblForm.delete}"
+	                      		disabled="#{MbRateTypes.activeRateType == null}"
+	                      		rendered="#{usession.inRole['REMOVE_RATE_TYPE']}"
+	                      		image="/images/delete.gif"
+	                      		oncomplete="#{rich:component('deleteRateTypeView:confirmPanel')}.show()"/>
+					</h:panelGrid>
+				</h:panelGroup>
+		    </h:panelGroup>
+    	</h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbRateTypes.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbRateTypes.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content">
+
+				<rich:tab label="#{lblCommon.details}" name="detTab">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="detTab" layout="block">
+						<ui:include src="/pages/common/rates/rate_type_details.jspx"></ui:include>
+						<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+			    </rich:tab>
+
+				<rich:tab ontabenter="storeTab('pairsTab')" label="#{lblCommon.rate_pairs}" name="pairsTab" rendered="#{usession.inRole['VIEW_RATE_PAIRS']}" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.rate_pairs}" title="#{lblCommon.rate_pairs}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup id="pairsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/common/rates/list_rate_pairs_bottom.jspx" />
+       				</h:panelGroup>
+			    </rich:tab>
+
+		    </rich:tabPanel>
+        </h:panelGroup>
+
+		<rich:modalPanel id="com_rate_type_modal_panel" autosized="true" minWidth="300" minHeight="100"
+			onshow="actualHelp.setModeHelp('#{MbRateTypes.newMode}')"
+			onhide="actualHelp.setHelp('#{pageHelp}')">
+	      	<f:facet name="header">
+	      		<h:panelGroup id="com_rate_type_modal_header">
+	           	    <h:outputText value="#{lblCommon.edit_rate_type}" rendered="#{MbRateTypes.editMode}"/>
+	           	    <h:outputText value="#{lblCommon.new_rate_type}" rendered="#{MbRateTypes.newMode}"/>
+				</h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+		  		<h:panelGroup id="com_rate_type_modal_control" rendered="#{showHelpModal}">
+		        	<h:graphicImage value="/_img/icon_modal_help.png" style="cursor:pointer" 
+		        		onclick="showHelp(actualHelp.getURL())" width="15px" />
+	   	        </h:panelGroup>
+		    </f:facet>	   	    
+		    	<h:form id="com_rate_type_modal_div">
+					<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+						<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+							
+							<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		            			<h:selectOneMenu id="newInst" 
+		            					value="#{MbRateTypes.newRateType.instId}" 
+		            					label="#{lblCommon.institution}"
+		            					disabled="#{!MbRateTypes.newMode}"
+		            					onblur="hideErrorField(this)">
+									<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbRateTypes.institutions}"/>
+									<a4j:support event="onchange" reRender="newRateType" limitToList="true" ajaxSingle="true"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newInstError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.institution}"/>
+								</h:outputFormat>
+	            			</h:panelGrid>
+	            			
+							<h:outputLabel value="* #{lblCommon.rate_type}: " title="#{lblCommon.rate_type}"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		            			<h:selectOneMenu id="newRateType" 
+		            					value="#{MbRateTypes.newRateType.rateType}" 
+		            					label="#{lblCommon.rate_type}"
+		            					disabled="#{!MbRateTypes.newMode}"
+		            					onblur="hideErrorField(this)">
+		            				<f:selectItems value="#{MbRateTypes.rateTypesArticles}"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newRateTypeError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.rate_type}"/>
+								</h:outputFormat>
+								
+								<a4j:commandLink value="#{lblCommon.add_rate_type}" immediate="true"
+										oncomplete="#{rich:component('articlesView:articleModalPanel')}.show()"
+										reRender="articlesView:articleModalHeader, articlesView:articleModalDiv"
+										rendered="#{usession.inRole['ADD_RATE_TYPE']}"
+										>
+									<f:setPropertyActionListener
+											value="#{MbRateTypes.rateTypeType}"
+											target="#{MbDictionary.newArticleExt}"/>
+									<f:setPropertyActionListener
+											value="true"
+											target="#{MbDictionary.managingNewArticle}"/>
+									<f:setPropertyActionListener
+											value="#{lblCommon.new_rate_type}"
+											target="#{MbDictionary.headerName}"/>
+									<f:setPropertyActionListener
+											value="9999"
+											target="#{MbDictionary.newArticle.instId}"/>
+							    </a4j:commandLink>
+	            			</h:panelGrid>
+	            			
+	            			<h:outputLabel value="#{lblCommon.use_cross_rate}: " title="#{lblCommon.use_cross_rate}"/>
+	            			<h:selectBooleanCheckbox value="#{MbRateTypes.newRateType.useCrossRate}"/>
+
+	            			<h:outputLabel value="#{lblCommon.use_base_rate}: " title="#{lblCommon.use_base_rate}"/>
+	            			<h:selectBooleanCheckbox value="#{MbRateTypes.newRateType.useBaseRate}">
+	            				<a4j:support event="onclick" reRender="baseCurrLabel, baseCurr"
+	            						ajaxSingle="true" limitToList="true"/>
+	            			</h:selectBooleanCheckbox>
+							
+							<a4j:outputPanel id="baseCurrLabel">
+		            			<h:outputLabel value="* #{lblCommon.base_currency}: " 
+		            					rendered="#{MbRateTypes.newRateType.useBaseRate}"
+		            					/>
+	            			</a4j:outputPanel>
+							<a4j:outputPanel id="baseCurr">
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+										rendered="#{MbRateTypes.newRateType.useBaseRate}">
+			            			<h:selectOneMenu id="newBaseCurrency"
+			            					value="#{MbRateTypes.newRateType.baseCurrency}"
+			            					label="#{lblCommon.base_currency}"
+			            					onblur="hideErrorField(this)">
+			            				<f:selectItem itemValue=""/>
+			            				<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+			            			</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="newBaseCurrencyError" style="display:none;">
+										<f:param name="fieldName" value="#{lblCommon.base_currency}"/>
+									</h:outputFormat>
+		            			</h:panelGrid>
+		            		</a4j:outputPanel>
+
+							<h:outputLabel value="#{lblCommon.exp_period} (#{lblCommon.days}): " title="#{lblCommon.exp_period} (#{lblCommon.days})"/>
+							<h:inputText id="newExpPeriod"
+									value="#{MbRateTypes.newRateType.expPeriod}"
+									onkeypress="if (!numbersOnly(this, event)) return false;"
+									maxlength="4" label="#{lblCommon.exp_period}"
+									/>
+
+							<h:outputLabel value="#{lblCommon.rounding_accuracy}: " title="#{lblCommon.rounding_accuracy}"/>
+							<h:inputText id="newAccuracy"
+									value="#{MbRateTypes.newRateType.roundingAccuracy}"
+									onkeypress="if (!numbersOnly(this, event)) return false;"
+									maxlength="4" label="#{lblCommon.rounding_accuracy}"/>
+
+							<h:outputLabel value="#{lblCommon.warning_level}: " title="#{lblCommon.warning_level}"/>
+							<h:inputText id="newWarningLevel"
+									value="#{MbRateTypes.newRateType.warningLevel}"
+									onkeypress="if (!numbersOnly(this, event, true)) return false;"
+									maxlength="16" label="#{lblCommon.warning_level}"
+									>
+								<bm:convertNumberNew minFractionDigits="0"/>
+							</h:inputText>
+
+	            			<h:outputLabel value="#{lblCommon.is_reversible}: " title="#{lblCommon.is_reversible}"/>
+	            			<h:selectBooleanCheckbox value="#{MbRateTypes.newRateType.reversible}"/>
+
+	            			<h:outputLabel value="#{lblCommon.adjust_exponent}: " title="#{lblCommon.adjust_exponent}"/>
+	            			<h:selectBooleanCheckbox value="#{MbRateTypes.newRateType.adjustExponent}"/>
+						</h:panelGrid>
+					</h:panelGroup>
+	
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton
+	                        			value="#{lblForm.save}" type="submit" action="#{MbRateTypes.save}"
+					                   	onclick="if (!checkRateTypeFields()) return false; disableModalPanelBtns(this)"
+										oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('com_rate_type_modal_panel')}.hide()"
+	                        			reRender="rateTypesTable, rateTypesDs, pagesNum, rateTypesBtnForm:btnPanel, detTab, pairsTab"
+		                        		/>
+	                        	<bre:taggedCommandButton
+		                        		value="#{lblForm.cancel}" 
+		                        		action="#{MbRateTypes.cancel}" 
+		                        		immediate="true"
+		                        		oncomplete="#{rich:component('com_rate_type_modal_panel')}.hide()"
+		                        		reRender="com_rate_type_modal_div">
+		                        		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+		                        </bre:taggedCommandButton>			
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+				</h:form>		
+		</rich:modalPanel>
+		
+		<ui:include src="/pages/common/dictionaries/editArticle.jspx">
+			<ui:param name="rerenderList" value="com_rate_type_modal_div:newRateType"/>
+		</ui:include>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbRateTypes}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="rateTypesTable, rateTypesDs, pagesNum, rateTypesBtnForm:btnPanel, detTab, pairsTab"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteRateTypeView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+
+		<script type="text/javascript">
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'rateTypesSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'rateTypesForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'rateTypesBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'rateTypeDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'rateTypeDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'ratePairsForm',
+                            TAB_FORM_WRAPPER_ID:    'ratePairsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>		
+	</ui:define>
+</ui:composition>
+</html>

@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition>
+	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+
+	<rich:modalPanel id="acqProdModalPanel" autosized="true" minWidth="200" minHeight="100">
+      	<f:facet name="header">
+      		<h:panelGroup>
+	        	<h:outputText value="#{lblAcq.edit_product}" rendered="#{MbProducts.editMode}"/>
+	        	<h:outputText value="#{lblAcq.new_product}" rendered="#{MbProducts.newMode}"/>
+	        </h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:panelGroup id="acqProdModalDiv">
+      		<h:form id="productEditForm">
+				<script type="text/javascript">
+				//<!--
+					oldValue["productEditForm"] = "#{MbProducts.newNode.lang}";
+					
+					function checkProductFields() {
+						var checked = true;
+						
+						if (document.getElementById('productEditForm:newInstId').value == "") {
+							document.getElementById('productEditForm:newInstIdError').style.display = "inline";
+							checked = false;
+						}
+						
+						if (document.getElementById('productEditForm:productName').value == "") {
+							document.getElementById('productEditForm:productNameError').style.display = "inline";
+							checked = false;
+						}
+						
+						if (document.getElementById('productEditForm:newContractType') && document.getElementById('productEditForm:newContractType').value == "") {
+							document.getElementById('productEditForm:newContractTypeError').style.display = "inline";
+							checked = false;
+						}
+						
+						if (document.getElementById('productEditForm:status').value == "") {
+							document.getElementById('productEditForm:statusError').style.display = "inline";
+							checked = false;
+						}
+						
+						return checked;
+					}
+				//-->
+				</script>
+
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+			        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+						<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						<a4j:region>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+								<h:selectOneMenu id="newInstId" 
+										value="#{MbProducts.newNode.instId}"
+										label="#{lblCommon.institution}"
+										disabled="#{MbProducts.editMode}"
+										onblur="hideErrorField(this)">
+									<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbProducts.institutions}"/>
+									<a4j:support event="onchange" reRender="parentId, newContractType" 
+											limitToList="true" ajaxSingle="true"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newInstIdError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.institution}"/>
+								</h:outputFormat>
+							</h:panelGrid>
+						</a4j:region>
+			
+						<h:outputLabel value="#{lblAcq.parent_product}: " title="#{lblAcq.parent_product}"/>
+						<a4j:region>
+							<h:selectOneMenu id="parentId" 
+									disabled="#{MbProducts.editMode}"
+									value="#{MbProducts.newNode.parentId}"
+									valueChangeListener="#{MbProducts.changeParentProduct}">
+								<a4j:support event="onchange" reRender="newContractType"
+										limitToList="true" ajaxSingle="true"/>
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbProducts.products}"/>
+							</h:selectOneMenu>
+						</a4j:region>
+			
+						<h:outputLabel value="* #{lblPrd.contract_type}: " title="#{lblPrd.contract_type}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="newContractType"  rendered="#{MbProducts.newMode}"
+									value="#{MbProducts.newNode.contractType}"
+									label="#{lblPrd.contract_type}"
+									disabled="#{MbProducts.newNode.parentId != null}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbProducts.contractTypes}"/>
+							</h:selectOneMenu>
+							<h:inputText rendered="#{MbProducts.editMode and MbProducts.newNode.contractType != null}" 
+									disabled="true"
+									value="#{DictUtils.articles[MbProducts.newNode.contractType]}"/>
+							<h:inputText  
+									disabled="true"
+									value="" rendered="#{MbProducts.editMode and MbProducts.newNode.contractType == null}"/>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newContractTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblPrd.contract_type}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+			
+						<h:outputLabel value="* #{lblCommon.status}: " title="#{lblCommon.status}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu 
+									id="status" label="#{lblCommon.status}"
+									value="#{MbProducts.newNode.status}"
+									onblur="hideErrorField(this)">
+							    <f:selectItems value="#{MbProducts.productStatuses}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="statusError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.status}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						
+						<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+						<h:selectOneMenu id="newLang" value="#{MbProducts.newNode.lang}"
+								rendered="#{MbProducts.newMode}">
+							<f:selectItems value="#{MbProducts.languages}"/>
+						</h:selectOneMenu>
+						<h:selectOneMenu id="editLang" value="#{MbProducts.newNode.lang}"
+								rendered="#{MbProducts.editMode}"
+								onchange="document.getElementById('confirmPanelView:confirmPanelForm:newValue').value = this.value;
+										#{rich:component('confirmPanel')}.show()">
+							<f:selectItems value="#{MbProducts.languages}"/>
+						</h:selectOneMenu>
+			
+						<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:inputText style="width: 250px;padding-left:0;padding-right:0" 
+									id="productName" maxlength="200"
+									value="#{MbProducts.newNode.name}"
+									label="#{lblCommon.name}"
+									onblur="hideErrorField(this)">
+								<f:validateLength minimum="3"/>
+								<a4j:support event="onchange" reRender="productNameErr" limitToList="true"/>
+							</h:inputText>
+							<rich:message id="productNameErr" for="productName" styleClass="errorMarker"/>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="productNameError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.name}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+                        <h:outputLabel for="productNumber" value="#{lblCommon.product_number}: " title="#{lblCommon.product_number}"/>
+                        <h:inputText id="productNumber" value="#{MbProducts.newNode.productNumber}"
+                                     onkeypress="if (!limitText(event,this,200)) return false;"
+                                     label="#{lblCommon.product_number}">
+                        </h:inputText>
+
+						<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+						<h:inputTextarea id="fullDesc" value="#{MbProducts.newNode.description}"
+							onkeypress="if (!limitText(event,this,2000)) return false;" 
+								label="#{lblCommon.description}">
+							<f:validateLength maximum="2000" />
+						</h:inputTextarea>
+			
+				    </h:panelGrid>
+			    </h:panelGroup>
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+							<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+									action="#{MbProducts.save}"
+									reRender="#{rerenderList}"
+									onclick="if (!checkProductFields()) return false; disableModalPanelBtns(this)"
+									oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('acqProdModalPanel')}.hide()"
+									/>
+		                	<bre:taggedCommandButton
+			                       	value="#{lblForm.cancel}" action="#{MbProducts.cancel}"
+			                       	immediate="true" limitToList="true"
+			                       	oncomplete="#{rich:component('acqProdModalPanel')}.hide()"
+			                       	/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+      	    </h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+
+    <ui:include src="/pages/utils/langConfirmPanel.jspx">
+    	<ui:param name="backingBean" value="#{MbProducts}"/>
+    	<ui:param name="rerenderList" value="productEditForm:productName, productEditForm:fullDesc"/>
+    	<ui:param name="editElem" value="productEditForm:editLang"/>
+    	<ui:param name="newValue" value="#{MbProducts.newNode.lang}"/>
+    	<ui:param name="formName" value="productEditForm"/>
+    </ui:include>
+
+</ui:composition>
+</html>

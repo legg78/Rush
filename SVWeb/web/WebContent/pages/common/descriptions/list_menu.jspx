@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+    	<f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost"/>
+    	
+    	<!-- navigation bar -->
+        <bpct:navBar pageName="Menu builder"/>
+            
+		<h:form id="instForm">			
+
+			<!-- search panel -->
+
+			<!-- menu tree -->
+			<ui:include src="/pages/common/descriptions/menuTree.jspx"/>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+		        	<h:panelGrid styleClass="buttons_block" columns="4" id="btnPanel">
+	                	<bre:taggedCommandButton id="addBranchBtn"
+	                    		value="#{lblForm.add}" reRender="newBranchDiv"
+	                    		action="#{MbConstructMenu.addBranch}"
+	                    		oncomplete="#{rich:component('newBranchPanel')}.show()"
+	                    		image="/images/create_doc.gif"
+								/>
+	                	<bre:taggedCommandButton id="editBranchBtn"
+		                   		value="#{lblForm.edit}" reRender="newBranchDiv"
+		                   		action="#{MbConstructMenu.editBranch}"
+		                   		oncomplete="#{rich:component('newBranchPanel')}.show()"
+		                   		image="/images/create_doc.gif"
+								/>
+	                	<bre:taggedCommandButton id="deleteBranchBtn"
+		                   		value="#{lblForm.delete}"
+								oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()"
+		                   		disabled="#{MbConstructMenu.node.id == null}"
+		                   		image="/images/delete.gif"
+								/>
+                	</h:panelGrid>
+               	</h:panelGroup>
+            </h:panelGroup>
+		</h:form>
+
+		<rich:modalPanel id="newBranchPanel" autosized="true" minWidth="300" minHeight="100">
+       	    <f:facet name="header">
+           	    <h:outputText value="Menu node" />
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+       	    <h:panelGroup id="newBranchDiv">
+       	    	<h:form id="menuEditForm">
+					<script type="text/javascript">
+//<!--
+						oldValue["menuEditForm"] = "#{MbConstructMenu.newNode.lang}";
+						
+						function checkMenuFields() {
+							var checked = true;
+							
+							if (document.getElementById('menuEditForm:newName').value == "") {
+								document.getElementById('menuEditForm:newNameError').style.display = "inline";
+								checked = false;
+							}
+							
+							if (document.getElementById('menuEditForm:newNodeType').value == "") {
+								document.getElementById('menuEditForm:newNodeTypeError').style.display = "inline";
+								checked = false;
+							}
+							
+							return checked;
+						}
+					//-->
+					</script>
+					<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal nowrap top, width250, noWrap">
+							<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+							<h:selectOneMenu id="newNodeLang" value="#{MbConstructMenu.newNode.lang}" rendered="#{MbConstructMenu.newMode}">
+								<f:selectItems value="#{MbConstructMenu.languages}"/>
+							</h:selectOneMenu>
+							<h:selectOneMenu id="editLang" value="#{MbConstructMenu.newNode.lang}"
+									rendered="#{MbConstructMenu.editMode}"
+									onchange="document.getElementById('menu:confirmPanelForm:newValue').value = this.value;
+											#{rich:component('menu:confirmPanel')}.show()">
+								<f:selectItems value="#{MbConstructMenu.languages}"/>
+							</h:selectOneMenu>
+
+							<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+							<h:panelGrid cellpadding="0" cellspacing="0" columns="1" width="250px">
+								<h:inputText id="newName" value="#{MbConstructMenu.newNode.name}"										
+										onblur="hideErrorField(this)"/>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newNameError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.name}"/>
+								</h:outputFormat>
+							</h:panelGrid>
+							
+							<h:outputLabel value="* #{lblCommon.node_type}: " title="#{lblCommon.node_type}"/>
+							<a4j:region>
+								<h:selectOneMenu id="newNodeType" value="#{MbConstructMenu.newNode.type}"
+										onblur="hideErrorField(this)">
+									<a4j:support event="onchange" reRender="newAction"/>
+									<f:selectItem itemValue=""/>
+									<f:selectItem itemValue="folder" itemLabel="folder"/>
+									<f:selectItem itemValue="page" itemLabel="page"/>
+									<f:selectItem itemValue="modal" itemLabel="modal panel"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newNodeTypeError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.node_type}"/>
+								</h:outputFormat>
+							</a4j:region>
+
+							<h:outputLabel value="Action: " title="Action"/>
+							<h:inputText id="newAction" value="#{MbConstructMenu.newNode.action}"
+									disabled="#{MbConstructMenu.newNode.type == 'folder'}"/>
+
+							<h:outputLabel value="Parent node: " title="Parent node"/>
+							<h:selectOneMenu id="parentNodes" value="#{MbConstructMenu.newNode.parentId}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbConstructMenu.menuNodes}"/>
+							</h:selectOneMenu>
+
+							<h:outputLabel value="Display order: " title="Display order"/>
+							<h:inputText id="displayOrder" 
+									value="#{MbConstructMenu.newNode.displayOrder}"
+									maxlength="4"
+									onkeypress="if (!numbersOnly(this, event)) return false;"/>
+
+							<h:outputLabel value="Visible:" title="Visible"/>
+							<h:selectBooleanCheckbox value="#{MbConstructMenu.newNode.visible}" />
+
+							<h:outputLabel value="Managed Bean name: " title="Managed Bean name"/>
+							<h:inputText id="managed_bean_name" 
+									value="#{MbConstructMenu.newNode.managedBeanName}"
+									maxlength="50"
+									/>
+						</h:panelGrid>
+
+					</h:panelGroup>
+
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+	    	                    	<bre:taggedCommandButton
+	        	                			value="#{lblForm.save}" type="submit" action="#{MbConstructMenu.save}"
+	        	                			onclick="if (!checkMenuFields()) return false; disableModalPanelBtns(this)"
+	        	                			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('newBranchPanel')}.hide()"
+	            	            			reRender="menuTreeTable, btnPanel"
+		            	            		/>
+	                        		<bre:taggedCommandButton
+		                        			value="#{lblForm.cancel}" action="#{MbConstructMenu.close}" immediate="true"
+		                        			oncomplete="#{rich:component('newBranchPanel')}.hide()"
+		                        			/>
+			    			</h:panelGrid>
+			    		</h:panelGroup>
+			    	</h:panelGroup>
+				</h:form>
+			</h:panelGroup>
+		</rich:modalPanel>
+
+		<ui:include src="/pages/utils/langConfirmPanel.jspx">
+	    	<ui:param name="backingBean" value="#{MbConstructMenu}"/>
+	    	<ui:param name="rerenderList" value="menuEditForm:newName"/>
+	    	<ui:param name="editElem" value="menuEditForm:editLang"/>
+	    	<ui:param name="newValue" value="#{MbConstructMenu.newNode.lang}"/>
+	    	<ui:param name="subviewId" value="menu"/>
+	    	<ui:param name="formName" value="menuEditForm" />
+	    </ui:include>
+	    
+	    <ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbConstructMenu}"/>
+			<ui:param name="yesAction" value="deleteBranch"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="menuTreeTable, details, btnPanel"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteViewId"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+    </ui:define>
+
+</ui:composition>
+</html>

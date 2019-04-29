@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<h:form id="limitRatesBtmForm">
+		<h:panelGroup id="limitRatesTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="limitRatesTable" var="item"
+				value="#{MbLimitRates.limitRates}"
+				selection="#{MbLimitRates.limitRateSelection}" rows="0"
+				selectionMode="single" rowClasses=",odd"
+				headerClass="res-table-header table-header-ext" selectedClass="res-table-selected"
+				styleClass="res-table" enableContextMenu="true"
+				tableState="#{MbLimitRates.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" ignoreDupResponses="true"
+					reRender="btn_delete_rate, btn_edit_rate" />
+
+				<rich:column id="id" label="#{lblCommon.id}" title="ID" styleClass="tab_res_first" width="15%"
+					sortBy="#{'id'}">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="rate_type" label="#{lblFcl.rate_type}" title="Rate type" width="25%" sortBy="#{'rateType'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblFcl.rate_type}"
+							title="#{lblFcl.rate_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.rateType]}" />
+				</rich:column>
+
+				<rich:column id="institution" label="#{lblCommon.institution}" title="Institution" width="60%" sortBy="#{'instName'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.institution}"
+							title="#{lblCommon.institution}" />
+					</f:facet>
+					<h:outputText value="#{item.instName}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+
+			     <h:panelGrid id="limitBtns" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+			     	<h:panelGroup>
+					<bre:taggedCommandButton image="/images/create_doc.gif"
+                       		value="#{lblForm.add}"
+                       		action="#{MbLimitRates.add}"
+                       		oncomplete="#{rich:component('editLimitRatePanel')}.show()"
+                       		reRender="editLimitRateHeader, editLimitRateDiv"
+                       		disabled="#{MbLimitRates.limitType == null}"
+                       		/>
+					<bre:taggedCommandButton id="btn_edit_rate"
+                       		image="/images/edit.gif"
+                       		value="#{lblForm.edit}"
+                       		action="#{MbLimitRates.edit}"
+                       		oncomplete="#{rich:component('editLimitRatePanel')}.show()"
+                       		reRender="editLimitRateHeader, editLimitRateDiv"
+                       		disabled="#{MbLimitRates.activeLimitRate == null}"/>
+					<bre:taggedCommandButton id="btn_delete_rate"
+                       		image="/images/delete.gif" 
+                       		value="#{lblForm.delete}"
+                       		disabled="#{MbLimitRates.activeLimitRate == null}"
+                       		oncomplete="#{rich:component('deleteLimitRateView:confirmPanel')}.show()"/>
+                    </h:panelGroup>
+                    
+                    <h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveLimitRateTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteLimitRateTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveLimitRateTableState" action="#{MbLimitRates.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteLimitRateTableState" action="#{MbLimitRates.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+               	</h:panelGrid>
+		    </h:panelGroup>
+	    </h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="editLimitRatePanel" autosized="true" minWidth="200" minHeight="50">
+      	<f:facet name="header">
+      		<h:panelGroup id="editLimitRateHeader">
+       			<h:outputText value="#{lblFcl.new_limit_rate }" rendered="#{MbLimitRates.managingNew}"/>
+       			<h:outputText value="#{lblFcl.edit_limit_rate }" rendered="#{!MbLimitRates.managingNew}"/>
+       		</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:panelGroup id="editLimitRateDiv">
+            <h:form id="limitRateEditForm">
+                <ui:include src="/pages/fee_cycle_limit/limits/edit_limit_rate.jspx"></ui:include>
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+       	    			<h:panelGrid columns="3" columnClasses="width99P,,">
+       	    				<h:outputText/>
+				           	<bre:taggedCommandButton id="saveRateBtn"
+				                   	value="#{lblForm.save}" type="submit" action="#{MbLimitRates.save}"
+				                   	onclick="if (!checkLimitRateFields()) return false; disableModalPanelBtns(this)"
+				                   	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('editLimitRatePanel')}.hide()"
+				                   	reRender="limitRatesBtmForm"
+				                   	/>
+		                	<bre:taggedCommandButton
+			                       	value="#{lblForm.cancel}" action="#{MbLimitRates.cancel}"
+			                       	immediate="true" limitToList="true"
+			                       	oncomplete="#{rich:component('editLimitRatePanel')}.hide()"
+			                       	/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+            </h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbLimitRates}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="limitRatesBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteLimitRateView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>			
+	</ui:include>
+
+	<rich:hotKey key="esc" handler="#{rich:component('editLimitRatePanel')}.hide();"/>
+
+</ui:composition>
+</html>

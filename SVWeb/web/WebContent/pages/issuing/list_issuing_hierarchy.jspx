@@ -1,0 +1,897 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:o="http://openfaces.org/"
+		xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+<ui:define name="navigatableContent">
+
+	<script type="text/javascript" src="#{request.contextPath}/js/stretch.js" />
+	
+	<ui:include src="/pages/products/customersChecks.jspx"></ui:include>
+
+	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+	<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+	<f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+	
+	<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"
+			buttonClass="hidden" inputClass="hidden" defaultTime="00:00"
+			onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"/>
+	
+	<script>
+		#{rich:component('calendar')}.customExpand=customExpand;
+	</script>   	
+
+	<!-- navigation bar -->
+	<bpct:navBar pageName="#{lblIss.hierarchy}"/>
+		
+	<h:form id="issHierarchySearchForm">
+		<a4j:region>
+			<a4j:status id="ajaxStatus1"/>			
+			<a4j:jsFunction name="setSearchTabName" reRender="err_ajax" limitToList="true" ajaxSingle="true" status="ajaxStatus1">
+				<a4j:actionparam name="tabName" assignTo="#{MbIssuingHierarchySearch.searchTabName}"/>
+			</a4j:jsFunction>
+		</a4j:region>
+		
+	</h:form>
+				
+	<script type="text/javascript">
+	//<![CDATA[
+		function handleEnter(event, tabname) {
+			if (event.keyCode == 13) {
+				document.getElementById(tabname + ':searchBtn').click();
+				return false;
+			}
+			return true;
+		}
+
+		function checkFieldsCard() {
+			//if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) return true;
+            var form = 'cardForm:';
+			var cardNumber = document.getElementById(form + 'numberFilter');
+			var cardUid = document.getElementById(form + 'uidFilter');
+
+			var fields = [cardNumber, cardUid];
+			cleanAll(fields);
+			var errorMsg = '';
+
+			if (!empty(cardNumber) && !empty(cardUid)) {
+				paintAll(fields);
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.card_number_uid_group}');
+			} else if (!empty(cardNumber)) {
+				if (checkCardNumberUid(cardNumber.value)){
+					cleanAll(fields);
+					return true;
+				} else {
+					paint(cardNumber);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.card_number_group}');
+				}
+			} else if (!empty(cardUid)) {
+				if (checkCardNumberUid(cardUid.value)){
+					cleanAll(fields);
+					return true;
+				} else {
+					paint(cardUid);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.card_uid_group}');
+				}
+			}
+
+			if (errorMsg == '') {
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.card_number_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.card_uid_group}');
+				paintAll(fields);
+			}
+			app.showWarning(errorMsg.replace(/\n/g, '<br>'));
+		}
+
+		function checkCardNumberUid(cardNumber){
+		    return app.checkMaskValue(cardNumber) == null;
+		}
+	//]]>
+	</script>
+	
+	<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+	<!-- search panel -->
+	<h:panelGroup styleClass="search_block_tabs" layout="block"  id="issHierarchySearchFormDiv">
+		<h:panelGroup layout="block" styleClass="search-block-tabs-head">
+			<h:panelGroup layout="block" styleClass="search-block-tabs-head-inner1"/>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="search_block_tabs_inner1">
+			<rich:tabPanel switchType="client" id="filterTabs" tabClass="tab-cell" style="overflow:visible;"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="search_block" 
+	    			selectedTab="#{MbIssuingHierarchySearch.searchTabName}">
+		    			
+		   		<rich:tab label="#{lblPrd.customer}" name="customerTab" onlabelclick="setSearchTabName('customerTab')"
+		   			 onkeypress="return handleEnter(event,'customerForm')">						
+			    	<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblPrd.customer}" title="#{lblPrd.customer}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup layout="block" styleClass="search_block_tab">
+						<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+				
+	       					<a4j:form id="customerForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel id="customerPanel">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" 
+					                			columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " 
+					                				title="#{lblCommon.institution}" />
+							      			<h:selectOneMenu id="instId"
+							      					value="#{MbIssuingHierarchySearch.customerFilter.instId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.institutions}"/>
+							      				<a4j:support event="onchange" actionListener="#{MbIssuingHierarchySearch.syncInst}" 
+								      					reRender="customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId"
+								      					oncomplete="document.getElementById('customerForm:instId').focus();"
+								      					limitToList="true" ajaxSingle="true"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+							      			<h:selectOneMenu id="agentId"
+							      					value="#{MbIssuingHierarchySearch.customerFilter.agentId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.customerAgents}"/>
+							      			</h:selectOneMenu>
+							      			
+					            			<h:outputLabel for="numberFilter" value="#{lblPrd.customer_number}: " 
+					            					title="#{lblPrd.customer_number}" />
+					            			<h:inputText id="numberFilter" 
+					            					value="#{MbIssuingHierarchySearch.customerFilter.customerNumber}"/>
+					            							                		
+					            			<h:outputLabel for="contractNumberFilter" value="#{lblPrd.contract_number}: " 
+					            					title="#{lblPrd.contract_number}" />
+					            			<h:inputText id="contractNumberFilter" 
+					            					value="#{MbIssuingHierarchySearch.customerFilter.contractNumber}"/>
+					            			
+							      			<h:outputLabel for="extEntityType" value="#{lblCommon.ext_entity_type}: " 
+							      					title="#{lblCommon.ext_entity_type}" />
+							      			<h:selectOneMenu id="extEntityType"
+							      					value="#{MbIssuingHierarchySearch.customerFilter.extEntityType}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.extEntityTypes}"/>
+							      			</h:selectOneMenu>
+			                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton eventsQueue="queue" id="searchBtn"
+					                			action="#{MbIssuingHierarchySearch.searchByCustomer}" 
+					                			onclick="if (!checkFieldsCustomer()) {return false;} disableModalPanelBtns(this);"
+			        							reRender="issPreSelectModalForm,issPreSelectModalHeader"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			        							oncomplete="if (#{usession.noErrorResponse}) #{rich:component('issPreSelectModalPanel')}.show(); enableModalPanelBtns(this)"
+	                							/>
+			                			<h:panelGroup styleClass="link-clear" layout="block">
+				                			<h:graphicImage url="/_img/icon_clear.png"/>
+				                			<a4j:commandLink value="#{lblForm.clear_all}"
+									        		action="#{MbIssuingHierarchySearch.clearFilter}"
+									        		reRender="customerForm, issMainForm, details">
+									        </a4j:commandLink>
+			            	    		</h:panelGroup>
+			                		</h:panelGrid>
+			               		</h:panelGrid>	
+			               		
+			               	</a4j:form>			               	
+						</h:panelGroup>													
+					</h:panelGroup>
+			    </rich:tab>
+	
+				<rich:tab label="#{lblCommon.person}" name="personTab" onlabelclick="setSearchTabName('personTab')"
+						onkeypress="return handleEnter(event,'personForm')" id="personTab"
+						rendered="#{usession.inRole['SEARCH_PERSON']}">
+						
+			    	<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.person}" title="#{lblCommon.person}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="search_block_tab">
+						<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+				
+	       					<a4j:form id="personForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel id="personPanel">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+							      			<h:selectOneMenu id="instId"
+							      						value="#{MbIssuingHierarchySearch.customerFilter.instId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.institutions}"/>
+							      				<a4j:support event="onchange" actionListener="#{MbIssuingHierarchySearch.syncInst}"
+							      							oncomplete="document.getElementById('personForm:instId').focus();" 
+								      						reRender="customerForm:instId, customerForm:agentId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId"
+								      						limitToList="true" ajaxSingle="true"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+							      			<h:selectOneMenu id="agentId"
+							      						value="#{MbIssuingHierarchySearch.customerFilter.agentId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.customerAgents}"/>
+							      			</h:selectOneMenu>
+							      			
+					                		<h:outputLabel for="nameFilter" value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+					            			<h:inputText id="nameFilter" value="#{MbIssuingHierarchySearch.customerFilter.person.firstName}"/>
+					            			
+					            			<h:outputLabel for="secondNameFilter" value="#{lblCommon.second_name}: " title="#{lblCommon.second_name}" />
+					            			<h:inputText id="secondNameFilter" value="#{MbIssuingHierarchySearch.customerFilter.person.secondName}"/>
+					            			
+					            			<h:outputLabel for="surnameFilter" value="#{lblCommon.surname}: " title="#{lblCommon.surname}" />
+					            			<h:inputText id="surnameFilter" value="#{MbIssuingHierarchySearch.customerFilter.person.surname}"/>
+					            			
+					            			<h:outputLabel for="gender" value="#{lblCommon.gender}: " title="#{lblCommon.gender}" />
+							      			<h:selectOneMenu id="gender"
+							      						value="#{MbIssuingHierarchySearch.customerFilter.person.gender}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.genders}"/>
+							      			</h:selectOneMenu>
+							      			
+					            			<h:outputText value="#{lblCommon.birthday}: " title="#{lblCommon.birthday}" />
+				            				<h:panelGroup>
+				                				<h:inputText id="birthday" style="max-width:225px"
+				                						value="#{MbIssuingHierarchySearch.customerFilter.person.birthday}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('birthday')}, #{rich:element('birthdayBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('birthday')}, #{rich:element('birthdayBtn')});"
+														id="birthdayBtn" />	
+				                			</h:panelGroup>
+			                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton eventsQueue="queue"
+				                				id="searchBtn"
+					                			action="#{MbIssuingHierarchySearch.searchByPerson}" 
+					                			onclick="if (!checkFieldsPerson()) {return false;} disableModalPanelBtns(this);"
+			        							reRender="issPreSelectModalForm,issPreSelectModalHeader"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			        							oncomplete="if (#{usession.noErrorResponse}) #{rich:component('issPreSelectModalPanel')}.show(); enableModalPanelBtns(this)"
+			        							/>
+			                			<h:panelGroup styleClass="link-clear" layout="block">
+				                			<h:graphicImage url="/_img/icon_clear.png"/>
+				                			<a4j:commandLink value="#{lblForm.clear_all}"
+									        		action="#{MbIssuingHierarchySearch.clearFilter}"
+									        		reRender="personForm, issMainForm, details"
+									        		>
+									        </a4j:commandLink>
+			            	    		</h:panelGroup>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               		
+			               	</a4j:form>
+						</h:panelGroup>
+					</h:panelGroup>
+			    </rich:tab>
+				    
+			    <rich:tab label="#{lblCommon.company}" name="companyTab" onlabelclick="setSearchTabName('companyTab')"
+			    		onkeypress="return handleEnter(event,'companyForm')" id="companyTab"
+			    		rendered="#{usession.inRole['SEARCH_COMPANY']}">
+				   	 	
+			    	<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.company}" title="#{lblCommon.company}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="search_block_tab">
+						<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					
+	       					<a4j:form id="companyForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel id="companyPanel">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+							      			<h:selectOneMenu id="instId" value="#{MbIssuingHierarchySearch.customerFilter.instId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.institutions}"/>
+							      				<a4j:support event="onchange" actionListener="#{MbIssuingHierarchySearch.syncInst}"
+							      						oncomplete="document.getElementById('companyForm:instId').focus();" 
+								      					reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId"
+								      					limitToList="true" ajaxSingle="true"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+							      			<h:selectOneMenu id="agentId" value="#{MbIssuingHierarchySearch.customerFilter.agentId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.customerAgents}"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="companyFilter" value="#{lblCommon.short_name}: " title="#{lblCommon.short_name}"/>
+					            			<h:inputText id="companyFilter" value="#{MbIssuingHierarchySearch.customerFilter.company.label}"/>
+			                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+					                			action="#{MbIssuingHierarchySearch.searchByCompany}" eventsQueue="queue"
+					                			id="searchBtn"
+					                			onclick="if (!checkFieldsCompany()) {return false;} disableModalPanelBtns(this);" 
+			        							reRender="issPreSelectModalForm,issPreSelectModalHeader"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			        							oncomplete="if (#{usession.noErrorResponse}) #{rich:component('issPreSelectModalPanel')}.show(); enableModalPanelBtns(this)"
+			        							/>
+			                			<h:panelGroup styleClass="link-clear" layout="block">
+				                			<h:graphicImage url="/_img/icon_clear.png"/>
+									        <a4j:commandLink value="#{lblForm.clear_all}"
+									        		action="#{MbIssuingHierarchySearch.clearFilter}"
+									        		reRender="companyForm, issMainForm, details">
+									        </a4j:commandLink>
+			            	    		</h:panelGroup>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               		
+			               	</a4j:form>
+		               	</h:panelGroup>													
+					</h:panelGroup>			               
+			    </rich:tab>
+				    
+			    <rich:tab label="#{lblPrd.contract}" name="contractTab" onlabelclick="setSearchTabName('contractTab')"
+			    		onkeypress="return handleEnter(event,'contractForm')" id="contractTab"
+			    		rendered="#{usession.inRole['SEARCH_CONTRACT']}">
+				    	
+			    	<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblPrd.contract}" title="#{lblPrd.contract}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="search_block_tab">
+						<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<h:form id="contractForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel id="contractPanel">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		
+					                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+							      			<h:selectOneMenu id="instId"
+							      					value="#{MbIssuingHierarchySearch.contractFilter.instId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.institutions}"/>
+							      				<a4j:support event="onchange" actionListener="#{MbIssuingHierarchySearch.syncInst}"
+							      						oncomplete="document.getElementById('contractForm:instId').focus();" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId"
+							      						limitToList="true" ajaxSingle="true"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}"/>
+							      			<h:selectOneMenu id="agentId"
+							      					value="#{MbIssuingHierarchySearch.contractFilter.agentId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.contractAgents}"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="contractNumberFilter" value="#{lblPrd.contract_number}: " title="#{lblPrd.contract_number}"/>
+					            			<h:inputText id="contractNumberFilter" value="#{MbIssuingHierarchySearch.contractFilter.contractNumber}"/>
+					            			
+							      			<h:outputText value="#{lblCommon.start_date}:"/>
+				                			<h:panelGroup>
+				                				<h:inputText id="startDate" style="max-width:225px"
+				                						value="#{MbIssuingHierarchySearch.contractFilter.startDate}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('startDate')}, #{rich:element('startDateBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('startDate')}, #{rich:element('startDateBtn')});"
+														id="startDateBtn" />	
+				                			</h:panelGroup>
+				                			
+				                			<h:outputText value="#{lblCommon.end_date}:"/>
+				                			<h:panelGroup>
+				                				<h:inputText id="endDate" style="max-width:225px"
+				                						value="#{MbIssuingHierarchySearch.contractFilter.endDate}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('endDate')}, #{rich:element('endDateBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('endDate')}, #{rich:element('endDateBtn')});"
+														id="endDateBtn" />	
+				                			</h:panelGroup>
+			                			</h:panelGrid>
+			                		</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+					                			action="#{MbIssuingHierarchySearch.searchByContract}" eventsQueue="queue"
+					                			id="searchBtn"
+					                			onclick="if (!checkFieldsContract()) {return false;} disableModalPanelBtns(this);"
+			        							reRender="issPreSelectModalForm,issPreSelectModalHeader"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			        							oncomplete="if (#{usession.noErrorResponse}) #{rich:component('issPreSelectModalPanel')}.show(); enableModalPanelBtns(this)"
+			        							/>
+			                			<h:panelGroup styleClass="link-clear" layout="block">
+				                			<h:graphicImage url="/_img/icon_clear.png"/>
+				                			<a4j:commandLink value="#{lblForm.clear_all}"
+									        		action="#{MbIssuingHierarchySearch.clearFilter}"
+									        		reRender="contractForm, issMainForm, details">
+									        </a4j:commandLink>
+			            	    		</h:panelGroup>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</h:form>
+		               	</h:panelGroup>													
+					</h:panelGroup>					               	
+			    </rich:tab>
+				    
+			    <rich:tab label="#{lblIss.card}" name="cardTab" onlabelclick="setSearchTabName('cardTab')"
+			    		onkeypress="return handleEnter(event,'cardForm')" id="cardTab"
+			    		rendered="#{usession.inRole['SEARCH_CARD']}">				    	
+			    	<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblIss.card}" title="#{lblIss.card}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="search_block_tab">
+						<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<h:form id="cardForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel id="cardsPanel">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+							      			<h:selectOneMenu id="instId"
+							      					value="#{MbIssuingHierarchySearch.cardFilter.instId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.institutions}"/>	
+							      				<a4j:support event="onchange" actionListener="#{MbIssuingHierarchySearch.syncInst}"
+							      						oncomplete="document.getElementById('cardForm:instId').focus();" 
+								      					reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:agentId, accountForm:instId, accountForm:agentId"
+								      					limitToList="true" ajaxSingle="true"/>					      				
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}"/>
+							      			<h:selectOneMenu id="agentId"
+							      					value="#{MbIssuingHierarchySearch.cardFilter.agentId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.cardAgents}"/>
+							      			</h:selectOneMenu>
+							      			
+					                		<h:outputLabel for="numberFilter" value="#{lblIss.card_number}: " title="#{lblIss.card_number}"/>
+					            			<h:inputText id="numberFilter" value="#{MbIssuingHierarchySearch.cardFilter.cardNumber}"/>
+					            			
+					            			<h:outputLabel for="cardTypeFilter" value="#{lblIss.card_type}: " title="#{lblIss.card_type}"/>
+							      			<h:selectOneMenu id="cardTypeFilter"
+							      					value="#{MbIssuingHierarchySearch.cardFilter.cardTypeId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.cardTypes}"/>
+							      			</h:selectOneMenu>
+
+											<h:outputLabel for="uidFilter" value="#{lblCrd.card_uid}: " title="#{lblCrd.card_uid}"/>
+											<h:inputText id="uidFilter" value="#{MbIssuingHierarchySearch.cardFilter.cardUid}"/>
+
+							      			<h:outputText value="#{lblCommon.exp_date}:"/>
+				                			<h:panelGroup>
+				                				<h:inputText id="expDate" style="max-width:225px"
+				                						value="#{MbIssuingHierarchySearch.cardFilter.expDate}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('expDate')}, #{rich:element('expDateBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('expDate')}, #{rich:element('expDateBtn')});"
+														id="expDateBtn" />	
+				                			</h:panelGroup>
+			                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+				                				id="searchBtn"
+					                			action="#{MbIssuingHierarchySearch.searchByCard}" eventsQueue="queue"
+					                			onclick="if (!checkFieldsCard()) {return false;} disableModalPanelBtns(this);"
+			        							reRender="issPreSelectModalForm,issPreSelectModalHeader"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			        							oncomplete="if (#{usession.noErrorResponse}) #{rich:component('issPreSelectModalPanel')}.show(); enableModalPanelBtns(this)"
+			        							/>
+			                			<h:panelGroup styleClass="link-clear" layout="block">
+				                			<h:graphicImage url="/_img/icon_clear.png"/>
+				                			<a4j:commandLink value="#{lblForm.clear_all}"
+									        		action="#{MbIssuingHierarchySearch.clearFilter}"
+									        		reRender="cardForm, issMainForm, details">
+									        </a4j:commandLink>
+			            	    		</h:panelGroup>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</h:form>
+		               	</h:panelGroup>													
+					</h:panelGroup>					               	
+			    </rich:tab>
+				    
+			    <rich:tab label="#{lblAcc.account}" name="accountTab" onlabelclick="setSearchTabName('accountTab')"
+			    		onkeypress="return handleEnter(event,'accountForm')" id="accountTab"
+			    		rendered="#{usession.inRole['SEARCH_ACCOUNT']}">				   	 	
+			    	<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcc.account}" title="#{lblAcc.account}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="search_block_tab">
+						<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<a4j:form id="accountForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel id="accountPanel">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+							      			<h:selectOneMenu id="instId"
+							      						value="#{MbIssuingHierarchySearch.accountFilter.instId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.institutions}"/>
+							      				<a4j:support event="onchange" actionListener="#{MbIssuingHierarchySearch.syncInst}"
+							      							oncomplete="document.getElementById('accountForm:instId').focus();" 
+								      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:agentId, accountForm:accType"
+								      						limitToList="true" ajaxSingle="true"/>	
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+							      			<h:selectOneMenu id="agentId" value="#{MbIssuingHierarchySearch.accountFilter.agentId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.accountAgents}"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="accStatus" value="#{lblCommon.status}: " title="#{lblCommon.status}"/>
+							      			<h:selectOneMenu id="accStatus"
+							      					value="#{MbIssuingHierarchySearch.accountFilter.status}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.accountStatuses}"/>
+							      			</h:selectOneMenu>
+
+							      			<h:outputLabel for="accType" value="#{lblAcc.account_type}: " title="#{lblAcc.account_type}"/>
+							      			<h:selectOneMenu id="accType"
+							      					value="#{MbIssuingHierarchySearch.accountFilter.accountType}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbIssuingHierarchySearch.accountTypes}"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="numberFilter" value="#{lblAcc.account_number}: " title="#{lblAcc.account_number}"/>
+					            			<h:inputText id="numberFilter" value="#{MbIssuingHierarchySearch.accountFilter.accountNumber}"/>
+
+					            			<h:inputText style="display:none" 
+					            					value="IE hack for 'Enter' hit when there's only one input field 
+					            							on form. Stick it to the bottom to not to break layout"/>
+			                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+					                			action="#{MbIssuingHierarchySearch.searchByAccount}" eventsQueue="queue"
+					                			id="searchBtn"
+					                			onclick="if (!checkFieldsAccount(null, 4)) {return false;} disableModalPanelBtns(this);"
+			        							reRender="issPreSelectModalForm,issPreSelectModalHeader"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			        							oncomplete="if (#{usession.noErrorResponse}) #{rich:component('issPreSelectModalPanel')}.show(); enableModalPanelBtns(this)"
+			        							/>
+			                			<h:panelGroup styleClass="link-clear" layout="block">
+				                			<h:graphicImage url="/_img/icon_clear.png"/>
+				                			<a4j:commandLink value="#{lblForm.clear_all}"
+									        		action="#{MbIssuingHierarchySearch.clearFilter}"
+									        		reRender="accountForm, issMainForm, details">
+									        </a4j:commandLink>
+			            	    		</h:panelGroup>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</a4j:form>
+		               	</h:panelGroup>													
+					</h:panelGroup>					               	
+			    </rich:tab>
+			</rich:tabPanel>
+		</h:panelGroup>
+		<a4j:outputPanel ajaxRendered="true">
+			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+			<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+		</a4j:outputPanel>
+	</h:panelGroup>
+	
+	<!-- main form -->
+	<h:form id="issMainForm">
+		<h:panelGroup styleClass="search_result_block" layout="block">
+			<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+	    		<h:panelGroup id="issTreeTableWrapper" layout="block"
+						styleClass="search_result_block_tree_inner">
+		
+	            <o:treeTable id="issTreeTable" var="issObject" 
+		               expansionState="allExpanded"
+		               headerHorizSeparator="1px solid #D7DAC2"
+		               headerVertSeparator="1px solid #D7DAC2"
+		               headerSectionClass="res-tree-table-header"
+		               commonHeaderRowClass="res-tree-table-header"
+		               sortableHeaderClass="res-tree-table-header"
+		               sortedColumnHeaderClass="res-tree-table-header"
+		               sortableHeaderRolloverClass="res-tree-table-header"
+		               styleClass="extdt-table-layout res-tree-table"
+		               bodyOddRowClass="res-tree-table-row odd-tree-table"
+		               bodyRowClass="res-tree-table-row" headerRowClass="res-tree-table-header"
+		               verticalGridLines="1px solid #D7DAC2"
+		               cellpadding="0" cellspacing="0"
+		               preloadedNodes="all" style="height: 100%"
+		        	   >
+					<o:scrolling/>
+					<f:facet name="noDataMessage">
+					  	<h:panelGroup>
+					       <h:outputText value="#{lblCommon['no_records_found']}" rendered="#{MbIssuingHierarchy.searching}"/>
+						   <h:outputText value="#{lblCommon['enter_search_criteria_above']}" rendered="#{!MbIssuingHierarchy.searching}"/>
+						</h:panelGroup>
+					</f:facet>
+					
+	       			<o:dynamicTreeStructure 
+	       					nodeChildren="#{MbIssuingHierarchy.nodeChildren}" 
+	       					nodeHasChildren="#{MbIssuingHierarchy.nodeHasChildren}" 
+	       					nodeKey="#{issObject.modelId}"/>
+	
+				    <o:singleNodeSelection
+				          	nodeData="#{MbIssuingHierarchy.node}"
+	          				keyboardSupport="false"
+	          				styleClass="treetable_selection"
+	          				>
+	          			<a4j:support event="onchange" eventsQueue="queue" 
+			                    reRender="details, issMainForm"
+			                    />
+	          		</o:singleNodeSelection>
+	
+				    <o:treeColumn id="nodeName" width="100%">
+				    	<f:facet name="header">
+				    		<h:panelGroup>
+				    			<script>updateHeight();</script>
+				    			<h:outputText value="#{lblCommonQ.name}"/>
+				    		</h:panelGroup>
+				      	</f:facet>
+				      	<h:outputText styleClass="treeTableText"
+				      			value="#{DictUtils.articles[issObject.entityType]}: #{issObject.name}"
+				      			title="#{DictUtils.articles[issObject.entityType]}: #{issObject.name}"
+				      			rendered="#{!issObject.errorNode}"/>
+				      	<h:panelGroup rendered="#{issObject.errorNode}">
+							<h:graphicImage value="/images/warning_16.png"/>
+					      	<h:outputText styleClass="treeTableText"
+					      			value="#{lblMsg.hier_tree_build_with_errors}"
+					      			title="#{lblMsg.hier_tree_build_with_errors}"
+					      			/>
+					      	<a4j:commandLink reRender="issHierarchyErrorPanelForm"
+					      			oncomplete="#{rich:component('issHierarchyErrorPanel')}.show()"
+					      			value=" #{lblCommon.details}">
+					      	</a4j:commandLink>
+				      	</h:panelGroup>
+				    </o:treeColumn>
+				</o:treeTable>
+				</h:panelGroup>
+				<a4j:outputPanel ajaxRendered="true">
+					<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tree-tab" layout="block"/>
+			        <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					<h:panelGroup styleClass="collapse-vert" layout="block"/>
+				</a4j:outputPanel>
+			</h:panelGroup>
+		</h:panelGroup>
+    </h:form>
+
+    <h:form id="issBtnForm">
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+				<h:panelGrid styleClass="buttons_block" columns="5" id="issBtnPanel">
+
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+    </h:form>
+
+	<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+		<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+    			contentClass="tab-content" >
+
+			<rich:tab label="Details" name="detailsTab">
+   				<f:facet name="label">
+   					<h:panelGroup styleClass="tab-label" layout="block">
+   						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+   					</h:panelGroup>
+   				</f:facet>
+
+       			<h:panelGroup id="det_det" layout="block" >
+					<a4j:outputPanel layout="none" rendered="#{MbIssuingHierarchy.instNode}">
+						<ui:include src="/pages/org_struct/instDetails.jspx"/>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+					</a4j:outputPanel>
+					<a4j:outputPanel layout="none" rendered="#{MbIssuingHierarchy.agentNode}">
+						<ui:include src="/pages/org_struct/agentDetails.jspx" />
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>				
+					</a4j:outputPanel>
+					<a4j:outputPanel layout="none" rendered="#{MbIssuingHierarchy.customerNode}">
+						<ui:include src="/pages/products/customerDetails.jspx">
+							<ui:param name="customersBean" value="#{MbCustomersDependent}"/>
+						</ui:include>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>			
+					</a4j:outputPanel>
+					<a4j:outputPanel layout="none" rendered="#{MbIssuingHierarchy.contractNode}">
+						<ui:include src="/pages/products/contractDetails.jspx"/>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>						
+					</a4j:outputPanel>
+					<a4j:outputPanel layout="none" rendered="#{MbIssuingHierarchy.cardholderNode}">
+						<ui:include src="/pages/issuing/cardholders/cardholder_details.jspx"/>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>						
+					</a4j:outputPanel>
+					<a4j:outputPanel layout="none" rendered="#{MbIssuingHierarchy.cardNode}">
+						<ui:include src="/pages/issuing/cards/card_details.jspx">
+							
+						</ui:include>				
+					</a4j:outputPanel>
+					<a4j:outputPanel layout="none" rendered="#{MbIssuingHierarchy.accountNode}">
+						<ui:include src="/pages/accounts/account_details.jspx">
+							
+						</ui:include>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>					
+					</a4j:outputPanel>
+                </h:panelGroup>
+		    </rich:tab>
+
+			<rich:tab label="Card instances" name="cardInstTab" rendered="#{MbIssuingHierarchy.cardNode}" style="height:100%;">
+   				<f:facet name="label">
+   					<h:panelGroup styleClass="tab-label" layout="block">
+   						<h:outputText value="#{lblIss.instances}" title="#{lblIss.instances}"/>
+   					</h:panelGroup>
+   				</f:facet>
+
+       			<h:panelGroup id="det_card_inst" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+					<ui:include src="/pages/issuing/cards/list_card_instances_bottom.jspx">
+					</ui:include>
+				</h:panelGroup>
+		    </rich:tab>
+
+		    <rich:tab label="Attributes" name="attributes" 
+		    		rendered="#{MbIssuingHierarchy.showAttributes}" style="height:100%;"
+		    		ontabenter="setTimeout('clearObjAttrsWidths()', 300);">
+       			<f:facet name="label">
+       				<h:panelGroup styleClass="tab-label" layout="block">
+       					<h:outputText value="#{lblPrd.service_terms}" title="#{lblPrd.service_terms}"/>
+       				</h:panelGroup>
+       			</f:facet>
+
+				<h:panelGroup id="attributesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+      				<ui:include src="/pages/products/attributes/list_object_attributes.jspx">
+      					<ui:param name="disableEditing" value="true" />
+      				</ui:include>
+      			</h:panelGroup>
+		    </rich:tab>
+
+		    <rich:tab label="Card holder" name="cardholderTab" rendered="#{MbIssuingHierarchy.cardNode}" style="height:100%;">
+       			<f:facet name="label" >
+       				<h:panelGroup styleClass="tab-label" layout="block">
+       					<h:outputText value="#{lblIss.cardholder}" title="#{lblIss.cardholder}"/>
+       				</h:panelGroup>
+       			</f:facet>
+       			
+				<h:panelGroup layout="block" id="holdersTab" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+					<h:form id="outerHolderForm-JSFsucks" style="height:100%;">
+						<ui:include src="/pages/issuing/cardholders/cardholder_details.jspx"/>
+												<h:panelGroup layout="none"
+							styleClass="bottom_search_result_block_buttons"
+							style="position:absolute;bottom:0;left:0;width:100%" />
+					</h:form>
+				</h:panelGroup>
+			</rich:tab>
+		</rich:tabPanel>
+	</h:panelGroup>
+	
+	<ui:include src="/pages/issuing/list_issuing_objects.jspx">
+		<ui:param name="rerenderList" value="issMainForm, details"/>
+	</ui:include>
+
+	<rich:modalPanel id="issHierarchyErrorPanel" autosized="true" minWidth="300" minHeight="50" >
+        <f:facet name="header">
+            <h:panelGroup>
+                <h:outputText value="#{lblMsg.warning_exc}"/>
+            </h:panelGroup>
+        </f:facet>
+        <f:facet name="controls">
+			<h:panelGroup>
+				<h:outputText value="X" styleClass="hidelink" id="hideIssErrorLink"/>
+				<rich:componentControl for="issHierarchyErrorPanel" attachTo="hideIssErrorLink" 
+						operation="hide" event="onclick"/>
+			</h:panelGroup>
+        </f:facet>
+        <h:form id="issHierarchyErrorPanelForm">
+	        <h:panelGrid columns="2">
+		        <h:graphicImage url="/images/icon_warning.png" height="32" width="32"/>
+		        <h:panelGroup>
+			        <h:outputText value="#{lblMsg.error_list_preamb}"/>
+			        <br/><br/>
+			        <c:forEach items="#{MbIssuingHierarchy.errorMessages}" var="errorMsg">
+			        	<h:outputText value="- #{errorMsg}"/><br/>
+			        </c:forEach>
+		        </h:panelGroup>
+	        </h:panelGrid>
+		    
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+		        		<bre:taggedCommandButton value="#{lblForm.close}" 
+		        				onclick="#{rich:component('issHierarchyErrorPanel')}.hide()"
+		        				/>
+			        </h:panelGrid>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+    </rich:modalPanel>
+
+	<script type="text/javascript">
+
+        function updateHeight() {
+            updateGridHeight();
+        }
+
+        layout =
+                {
+                    SEARCH_FORM_ID:                 'issHierarchySearchFormDiv',
+                    SEARCH_RESULT_FORM_ID:          'issMainForm',
+                    SEARCH_RESULT_FORM_WRAPPER_ID:  'issTreeTableWrapper',
+                    SEARCH_RESULT_FOOTER_FORM_ID:   'issBtnForm',
+                    TAB_PANEL_ID:                   'workplacePanel',
+
+                    TAB_DATA:      [{
+                        TAB_FORM_ID:            'instDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'instDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                    }, {
+                        TAB_FORM_ID:            'agentDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'agentDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                    }, {
+                        TAB_FORM_ID:            'customerDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'customerDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                    }, {
+                        TAB_FORM_ID:            'contractDetails',
+                        TAB_FORM_WRAPPER_ID:    'contractDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }, {
+                        TAB_FORM_ID:            'cardholderDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'cardholderDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                    }, {
+                        TAB_FORM_ID:            'cardDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'cardDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                    }, {
+                        TAB_FORM_ID:            'accountDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'accountDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                    }, {
+                        TAB_FORM_ID:            'attrsTreeForm',
+                        TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }, {
+                        TAB_FORM_ID:            'attrValuesForm',
+                        TAB_FORM_WRAPPER_ID:    'attrValuesTableWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }, {
+                        TAB_FORM_ID:            'cardInstancesBtmForm',
+                        TAB_FORM_WRAPPER_ID:    'cardInstancesBtmFormWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }, {
+                        TAB_FORM_ID:            'outerHolderForm-JSFsucks:cardholderDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'cardholderDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.LANG_SELECTOR
+                    }]
+                };
+		updateHeight();
+        jQuery(window).resize(updateHeight);
+	</script>
+
+</ui:define>
+</ui:composition>
+</html>

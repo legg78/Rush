@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:c="http://java.sun.com/jstl/core">
+	<ui:composition>
+		<f:subview id="#{empty subviewId ? 'contextPanelView' : subviewId}">
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+			<h:form id="contextForm">
+				<a4j:jsFunction name="refreshContextTab" eventsQueue="queue"
+					requestDelay="500" limitToList="true" ajaxSingle="true"
+					reRender="#{MbContractContext.tabName}, contextForm, err_ajax"
+					action="#{MbContractContext.loadCurrentTab}"
+					oncomplete="updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}'); ">
+					<a4j:actionparam name="tabName"
+						assignTo="#{MbContractContext.tabName}" />
+				</a4j:jsFunction>
+	
+				<a4j:jsFunction name="setContextTabName" reRender="contextForm, err_ajax"
+					limitToList="true" ajaxSingle="true"
+					oncomplete="updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}'); ">
+					<a4j:actionparam name="tabName"
+						assignTo="#{MbContractContext.tabName}" />
+				</a4j:jsFunction>
+			</h:form>
+			
+			<a4j:queue name="queue" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNext" requestDelay="500" />
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+		    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+		    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    			contentClass="tab-content">
+	
+					<rich:tab id="_detailsContextTab" label="Details" name="detailsContextTab" onlabelclick="selectContextTab('detailsContextTab')">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block" id="detailsContextTabLabel">
+	       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup id="detailsContextTab" layout="block">
+							<ui:include src="/pages/products/contractDetails.jspx">
+								<ui:param name="detailsBean" value="#{MbContractContext}"/>
+							</ui:include>
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+				    </rich:tab>
+				    
+					<rich:tab label="Customer" name="customerContextTab" onlabelclick="selectContextTab('customerContextTab')"
+							rendered="#{usession.inRole['VIEW_CUSTOMERS']}">
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.customer}" title="#{lblPrd.customer}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+						<h:panelGroup layout="block" id="customerContextTab">
+	      					<ui:include src="/pages/products/customerDetails.jspx">
+	      						<ui:param name="customersBean" value="#{MbCustomersDependentContext}"/>
+	      					</ui:include>
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons"/>	      					
+	       				</h:panelGroup>
+				    </rich:tab>
+
+				    <rich:tab id="_cardsContextTab" label="Cards" name="cardsContextTab" rendered="#{usession.inRole['VIEW_CARDS']}"
+				    		onlabelclick="selectContextTab('cardsContextTab')" style="height: 100%;">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblIss.cards}" title="#{lblIss.cards}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="cardsContextTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<ui:include src="/pages/issuing/cards/list_cards_bottom.jspx">
+	       						<ui:param name="cardsBean" value="#{MbCardsBottomContextSearch}"/>
+	       					</ui:include>
+	        			</h:panelGroup>
+	        		</rich:tab>
+
+	        		<rich:tab label="Accounts" name="accountsContextTab" rendered="#{usession.inRole['VIEW_ACCOUNT']}"
+	        				onlabelclick="selectContextTab('accountsContextTab')" style="height:100%;">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="first tab-label" layout="block">
+	        					<h:outputText value="#{lblCommon.accounts}" title="#{lblCommon.accounts}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="accountsContextTab" layout="block" styleClass="carddata-wrapper"
+								style="height: 100%;overflow:hidden;position:relative;">
+	       					<ui:include src="/pages/accounts/list_accounts_bottom.jspx">
+	       						<ui:param name="accountsBean" value="#{MbAccountsContextSearch}"/>
+	       					</ui:include>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+					<rich:tab id="_terminalsContextTab" label="Terminals" name="terminalsContextTab" onlabelclick="selectContextTab('terminalsContextTab')"
+							rendered="#{usession.inRole['VIEW_TERMINAL']}" style="height:100%;">
+						<f:facet name="label">
+							<h:panelGroup styleClass="tab-label" layout="block">
+								<h:outputText value="#{lblAcq.terminals}" title="#{lblAcq.terminals}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="terminalsContextTab" layout="block"
+								styleClass="carddata-wrapper"
+								style="height: 100%; overflow: hidden;position:relative;">
+							<ui:include src="/pages/acquiring/terminals/list_terminals_bottom.jspx">
+								<ui:param name="terminalsBean" value="#{MbTerminalBottomContext}"/>
+							</ui:include>
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab id="_merchantsContextTab" label="Merchants" name="merchantsContextTab" onlabelclick="selectContextTab('merchantsContextTab')"
+							rendered="#{usession.inRole['VIEW_MERCHANT']}" style="height:100%;">
+						<f:facet name="label">
+							<h:panelGroup styleClass="tab-label" layout="block">
+								<h:outputText value="#{lblAcq.merchants}" title="#{lblAcq.merchants}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="merchantsContextTab" layout="block"
+								styleClass="carddata-wrapper"
+								style="height: 100%; overflow: hidden;position:relative;">
+							<ui:include src="/pages/acquiring/list_merchants_bottom.jspx">
+								<ui:param name="merchantsBean" value="#{MbMerchantsBottomContext}"/>	
+							</ui:include>
+						</h:panelGroup>
+					</rich:tab>
+					
+					<rich:tab label="Services" name="servicesContextTab" onlabelclick="selectContextTab('servicesContextTab')"
+							rendered="#{usession.inRole['VIEW_SERVICES']}" style="height:100%;">
+						<f:facet name="label">
+							<h:panelGroup styleClass="tab-label" layout="block">
+								<h:outputText value="#{lblPrd.services}" title="#{servicesTab}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="servicesContextTab" layout="block"
+								styleClass="carddata-wrapper"
+								style="height: 100%; overflow: hidden;position:relative;">
+							<ui:include src="/pages/products/services/serviceObjectsListBottom.jspx">
+								<ui:param name="servicesBean" value="#{MbServiceObjectsContext}"/>
+							</ui:include>
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+					</rich:tab>
+
+				    <rich:tab label="Objects" name="objectsContextTab" rendered="false" style="height:100%;" onlabelclick="selectContextTab('objectsContextTab')">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblPrd.objects}" title="#{lblPrd.objects}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="objectsContextTab" layout="block" styleClass="carddata-wrapper" style="height: 250px; overflow-y: auto;">
+
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+					<rich:tab id="_corporationsContextTab"
+						onlabelclick="selectContextTab('corporationsContextTab')"
+						label="Corporations" name="corporationsContextTab" 
+						style="height:100%;">	        			
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblCrp.corporation}" title="#{lblCrp.corporation}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+						<h:panelGroup id="corporationsContextTab" layout="block"
+								styleClass="carddata-wrapper"
+								style="height: 100%; overflow: hidden;position:relative;">
+							<ui:include src="/pages/products/contractCorporationBottom.jspx">
+								<ui:param name="corporationsBean" value="#{MbCrpDepartmentContext}"/>
+							</ui:include>
+						</h:panelGroup>
+	        		</rich:tab>
+
+				    <rich:tab id="_attributesContextTab" label="Attributes" name="attributesContextTab"
+				    		onlabelclick="selectContextTab('attributesContextTab')" style="height:100%;">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblPrd.service_terms}" title="#{lblPrd.service_terms}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	
+						<h:panelGroup id="attributesContextTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<ui:include src="/pages/context/list_object_attributes_context.jspx"/>
+	       				</h:panelGroup>
+				    </rich:tab>
+
+	        		<rich:tab id="_limitCountersContextTab" label="Limit counters" name="limitCountersContextTab" 
+	        				onlabelclick="selectContextTab('limitCountersContextTab')" style="height:100%;">			    	
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblFcl.limit_counters}" title="#{lblFcl.limit_counters}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="limitCountersContextTab" layout="block" styleClass="carddata-wrapper" 
+	        					style="height: 100%; overflow: hidden;position:relative;">
+	       					<ui:include src="/pages/fee_cycle_limit/limits/listLimitCounters.jspx">
+	       						<ui:param name="limitCountersBean" value="#{MbLimitCountersContext}"/>
+	       					</ui:include>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_cycleCountersTab" label="Cycle counters" name="cycleCountersContextTab"
+	        				onlabelclick="selectContextTab('cycleCountersContextTab')" style="height:100%;">			    	
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblFcl.cycle_counters}" title="#{lblFcl.cycle_counters}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="cycleCountersContextTab" layout="block" styleClass="carddata-wrapper" 
+	        					style="height: 100%; overflow: hidden;position:relative;">
+	       					<ui:include src="/pages/fee_cycle_limit/cycles/listCycleCounters.jspx">
+	       						<ui:param name="cycleCountersBean" value="#{MbCycleCountersContext}"/>
+	       					</ui:include>
+	        			</h:panelGroup>
+	        		</rich:tab>
+			    </rich:tabPanel>
+	        </h:panelGroup>
+				
+			<script>
+			//<![CDATA[
+				
+				updateContextHeight("#{empty subviewId ? 'contextPanelView' : subviewId}");
+				makeScrollableTabs('contextMenuModalPanel\\:accountDetailsModalPanel\\:detailsContext');
+				toggleContextTabs();
+			//]]>
+			</script>
+		</f:subview>
+	</ui:composition>
+</html>

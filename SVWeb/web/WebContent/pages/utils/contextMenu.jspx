@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition>
+
+<h:form>
+<a4j:jsFunction name="beforePrepareDefaultAction" status="ajaxStatus"
+				action="#{viewScope[MbContextMenu.beanContext].setCtxItemEntityType}" oncomplete="setTimeout(function(){prepareDefaultAction();}, 100);">
+	<a4j:actionparam name="entityType" assignTo="#{MbContextMenu.entityType}"/>
+	<a4j:actionparam name="bean" assignTo="#{MbContextMenu.beanContext}" />
+</a4j:jsFunction>
+
+<a4j:jsFunction name="prepareDefaultAction" reRender="ctxPanel, defaultActionScript" status="ajaxStatus"
+				action="#{viewScope[MbContextMenu.beanContext].ctxType.prepareDefaultAction}" oncomplete="setTimeout(function(){defaultAction();}, 100);">
+</a4j:jsFunction>
+
+<a4j:jsFunction name="rerenderContextMenu" reRender="ctxMenu" action="#{viewScope[MbContextMenu.beanContext].setCtxItemEntityType}"
+	oncomplete="#{rich:component('ctxMenu')}.doShow((isIE) ? event : document.lkjasdf, {});" status="ajaxStatus">
+	<a4j:actionparam name="entityType" assignTo="#{MbContextMenu.entityType}"/>
+	<a4j:actionparam name="bean" assignTo="#{MbContextMenu.beanContext}"/>
+</a4j:jsFunction>
+<a4j:jsFunction name="rerenderContextMenuModal" reRender="ctxMenuOnMadalPanel" action="#{viewScope[MbContextMenu.beanContext].setCtxItemEntityType}"
+	oncomplete="#{rich:component('ctxMenuOnMadalPanel')}.doShow((isIE) ? event : document.lkjasdf, {});" status="ajaxStatus" >
+	<a4j:actionparam name="entityType" assignTo="#{MbContextMenu.entityType}"/>
+	<a4j:actionparam name="bean" assignTo="#{MbContextMenu.beanContext}"/>
+</a4j:jsFunction>
+
+<a4j:jsFunction action="#{viewScope[MbContextMenu.actionParams[MbContextMenu.selectedCtxItem.action]['panelInit']].initializeModalPanel}"
+	name="updateModalPanel" reRender="contextMenuModalPanel:contextWorkPlacePanel" oncomplete="updateContextHeight('#{empty MbContextMenu.actionParams[MbContextMenu.selectedCtxItem.action]['panelName'] ? 'contextPanelView' : MbContextMenu.actionParams[MbContextMenu.selectedCtxItem.action]['panelName']}');" 
+	limitToList="true" status="ajaxStatus">
+</a4j:jsFunction>
+
+<script>
+	function selectContextMenu(entityType, bean){
+		if (document.getElementById('contextMenuModalPanel:contextModalPanelContainer').style.display == 'none'){
+			rerenderContextMenu(entityType, bean);
+		}	else
+		{
+			rerenderContextMenuModal(entityType, bean);
+		}
+	}
+</script>
+
+<h:panelGroup id="ctxPanel" layout="block">
+		<h:panelGroup id="defaultActionScript">
+			<script>
+			//<![CDATA[
+			
+			
+			defaultAction = function(){
+				  if (#{viewScope[MbContextMenu.beanContext].ctxType.defaultAction != null}) {
+					if (#{viewScope[MbContextMenu.beanContext]!=null ? viewScope[MbContextMenu.beanContext].ctxType.defaultAction.modalItem : true}) {
+						setDisableContext(false);
+						defaultOpenModal();
+					} else {
+						showModalInfoWindow();
+						defaultOpenForm();
+						setTimeout(function(){
+							// As a fallback
+							hideModalInfoWindow();
+						}, 10000);
+					}
+				  } else {
+					  hideModalInfoWindow();
+					  setDisableContext(false);
+				  }
+				};
+			//]]>
+			</script>
+		</h:panelGroup>
+
+		<a4j:jsFunction name="defaultOpenModal" status="ajaxStatus"
+						action="#{viewScope[MbContextMenu.beanContext].ctxType.initCtxParams}"
+			reRender="contextMenuModalPanel"
+			oncomplete="Richfaces.showModalPanel('contextMenuModalPanel:#{MbContextMenu.actionParams[viewScope[MbContextMenu.beanContext].ctxType.defaultAction.action]['panelName']}');">
+		</a4j:jsFunction>
+
+		<a4j:jsFunction name="defaultOpenForm" status="ajaxStatus" action="#{viewScope[MbContextMenu.beanContext].ctxType.ctxPageForward}">
+		</a4j:jsFunction>
+		
+		<rich:contextMenu id="ctxMenu" attached="false"
+			submitMode="ajax" disableDefaultMenu="true"
+			selectItemClass="selected-menu-item" style="z-index:101">
+			<c:forEach items="#{viewScope[MbContextMenu.beanContext].ctxType.menuItems}"
+				var="ctxItem">
+				<rich:menuItem value="#{ctxItem.label}"
+					action="#{viewScope[MbContextMenu.beanContext].ctxType.ctxPageForward}"
+					rendered="#{ctxItem.actionItem and viewScope[MbContextMenu.beanContext].forward}">
+					<f:setPropertyActionListener value="#{ctxItem}"
+						target="#{viewScope[MbContextMenu.beanContext].ctxType.selectedCtxItem}" />
+				</rich:menuItem>
+				<rich:menuItem value="#{ctxItem.label}"
+					action="#{viewScope[MbContextMenu.beanContext].ctxType.initCtxParams}"
+					oncomplete="initializeDetailsPanel()"
+					rendered="#{ctxItem.modalItem}"
+					reRender="contextMenuModalPanel">
+					<f:setPropertyActionListener value="#{ctxItem}"
+						target="#{viewScope[MbContextMenu.beanContext].ctxType.selectedCtxItem}" />
+				</rich:menuItem>
+				<rich:menuGroup value="#{ctxItem.label}" rendered="#{ctxItem.group}">
+					<c:forEach items="#{ctxItem.children}" var="innerItem">
+						<rich:menuItem value="#{innerItem.label}"
+							action="#{viewScope[MbContextMenu.beanContext].ctxType.ctxPageForward}"
+							rendered="#{innerItem.actionItem}">
+							<f:setPropertyActionListener value="#{innerItem}"
+								target="#{viewScope[MbContextMenu.beanContext].ctxType.selectedCtxItem}" />
+						</rich:menuItem>
+						<rich:menuItem value="#{innerItem.label}"
+							action="#{viewScope[MbContextMenu.beanContext].ctxType.initCtxParams}"
+							oncomplete="initializeDetailsPanel()"
+							rendered="#{innerItem.modalItem}"
+							reRender="contextMenuModalPanel">
+							<f:setPropertyActionListener value="#{innerItem}"
+								target="#{viewScope[MbContextMenu.beanContext].ctxType.selectedCtxItem}" />
+						</rich:menuItem>
+					</c:forEach>
+				</rich:menuGroup>
+			</c:forEach>
+		</rich:contextMenu>
+		
+		<rich:contextMenu id="ctxMenuOnMadalPanel" attached="false"
+			submitMode="ajax" disableDefaultMenu="true"
+			selectItemClass="selected-menu-item" style="z-index:101">
+			<c:forEach items="#{viewScope[MbContextMenu.beanContext].ctxType.menuItems}"
+				var="ctxItem">
+				<rich:menuItem value="#{ctxItem.label}"
+					action="#{viewScope[MbContextMenu.beanContext].ctxType.ctxPageForward}"
+					rendered="#{ctxItem.actionItem}">
+					<f:setPropertyActionListener value="#{ctxItem}"
+						target="#{viewScope[MbContextMenu.beanContext].ctxType.selectedCtxItem}" />
+				</rich:menuItem>
+				<rich:menuItem value="#{ctxItem.label}"
+					action="#{viewScope[MbContextMenu.beanContext].ctxType.initCtxParams}"
+					rendered="#{ctxItem.modalItem}" oncomplete="updateModalPanel()">
+					<f:setPropertyActionListener value="#{ctxItem}"
+						target="#{viewScope[MbContextMenu.beanContext].ctxType.selectedCtxItem}" />
+				</rich:menuItem>
+				<rich:menuGroup value="#{ctxItem.label}" rendered="#{ctxItem.group}">
+					<c:forEach items="#{ctxItem.children}" var="innerItem">
+						<rich:menuItem value="#{innerItem.label}"
+							action="#{viewScope[MbContextMenu.beanContext].ctxType.ctxPageForward}"
+							rendered="#{innerItem.actionItem}">
+							<f:setPropertyActionListener value="#{innerItem}"
+								target="#{viewScope[MbContextMenu.beanContext].ctxType.selectedCtxItem}" />
+						</rich:menuItem>
+						<rich:menuItem value="#{innerItem.label}"
+							action="#{viewScope[MbContextMenu.beanContext].ctxType.initCtxParams}"
+							rendered="#{innerItem.modalItem}"
+							reRender="contextMenuModalPanel:contextWorkPlacePanel">
+							<f:setPropertyActionListener value="#{innerItem}"
+								target="#{viewScope[MbContextMenu.beanContext].ctxType.selectedCtxItem}" />
+						</rich:menuItem>
+					</c:forEach>
+				</rich:menuGroup>
+			</c:forEach>
+		</rich:contextMenu>
+		
+</h:panelGroup>
+</h:form>
+</ui:composition>
+</html>

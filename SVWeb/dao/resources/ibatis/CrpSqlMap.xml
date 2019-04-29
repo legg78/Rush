@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="crp">
+	<!-- Common sql configuration not included in SqlMapConfig -->
+	<sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+
+	<resultMap  id="mapping-department"
+	            class="ru.bpc.sv2.crp.CrpDepartment"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="parentId" column="parent_id" />
+	    <result property="corpCompanyId" column="corp_company_id" />
+	    <result property="corpCustomerId" column="corp_customer_id" />
+	    <result property="corpContractId" column="corp_contract_id" />
+	    <result property="instId" column="inst_id" />
+	    <result property="label" column="label" />
+	    <result property="lang" column="lang" />
+	    <result property="level" column="level" />
+	</resultMap>
+
+	<select id="get-departaments"
+			parameterClass="qparams" resultMap="mapping-department">
+		SELECT
+		    dv.id
+		    ,dv.seqnum
+		    ,dv.parent_id
+		    ,dv.corp_company_id
+		    ,dv.corp_customer_id
+		    ,dv.corp_contract_id
+		    ,dv.inst_id
+		    ,dv.label
+		    ,dv.lang
+		    ,level
+		FROM
+		    crp_ui_department_vw dv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="corpContractId">dv.corp_contract_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">dv.lang = #filters[].value#</isEqual>
+		</iterate>		    
+		CONNECT BY PRIOR dv.id = dv.parent_id
+		and prior lang = lang
+		START WITH dv.parent_id is null 
+		ORDER SIBLINGS BY dv.id
+	</select>
+	
+	<resultMap  id="mapping-employee"
+	            class="ru.bpc.sv2.crp.CrpEmployee"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="corpCompanyId" column="corp_company_id" />
+	    <result property="corpCustomerId" column="corp_customer_id" />
+	    <result property="corpContractId" column="corp_contract_id" />
+	    <result property="depId" column="dep_id" />
+	    <result property="entityType" column="entity_type" />
+	    <result property="objectId" column="object_id" />
+	    <result property="contractId" column="contract_id" />
+	    <result property="accountId" column="account_id" />
+	    <result property="instId" column="inst_id" />
+	    <result property="employeeName" column="employee_name" />
+	    <result property="accountNumber" column="account_number" />
+	    <result property="contractNumber" column="contract_number" />
+	</resultMap>
+	
+	<select id="get-employees"
+			parameterClass="qparams" resultMap="mapping-employee">
+		<include refid="limitationOpen"/>
+		SELECT
+			ev.id
+			,ev.seqnum
+			,ev.corp_company_id
+			,ev.corp_customer_id
+			,ev.corp_contract_id
+			,ev.dep_id
+			,ev.entity_type
+			,ev.object_id
+			,ev.contract_id
+			,ev.account_id
+			,ev.inst_id
+			,ev.employee_name
+			,ev.account_number
+			,ev.contract_number
+		FROM
+			crp_ui_employee_vw ev
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="depId">ev.dep_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="employeeName">upper(ev.employee_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">upper(ev.account_number) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractNumber">ev.contract_number like upper(#filters[].value#)</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="employeeName">ev.employee_name $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="accountNumber">ev.account_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="contractNumber">ev.contract_number $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>			
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-employees-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			ev.*
+		FROM
+			crp_ui_employee_vw ev
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="depId">ev.dep_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="employeeName">upper(ev.employee_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">upper(ev.account_number) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractNumber">ev.contract_number like upper(#filters[].value#)</isEqual>
+		</iterate>			
+		<include refid="limitationClose"/>
+	</select>	
+	
+</sqlMap>

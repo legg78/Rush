@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	xmlns:o="http://openfaces.org/"
+	xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+		<script type="text/javascript" src="#{request.contextPath}/js/stretch.js" />
+		
+		<h:inputHidden value="#{MbProducts.productTypeHidden}"/>
+		
+		<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq" />
+		<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb" />
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+		<a4j:outputPanel ajaxRendered="true">
+			<o:loadBundle var="lblPrdQ" basename="ru.bpc.sv2.ui.bundles.Prd" />
+		</a4j:outputPanel>
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblPrd.products}" />
+		<bpct:filterBarModalPanels id="filterPanels"
+								   rerenderList="filtersTable, productsForm:productsTreeTable, save_filter_panel_div, #{MbProducts.tabName}"
+								   selectedFilter="#{MbProducts.selectedSectionFilter}"
+								   sectionFilter="#{MbProducts.sectionFilter}"
+								   sectionFilterModeEdit="#{MbProducts.sectionFilterModeEdit}"
+								   searchAutomatically="#{MbProducts.searchAutomatically}"
+								   sectionId="1024"
+								   beanName="MbProducts"/>
+		
+		<script type="text/javascript">
+    	 //<![CDATA[
+	    	 function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('productsSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }
+		 //]]>
+		</script>
+
+		<h:form id="productsSearchForm" onkeypress="handleEnter(event)">
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+						<h:panelGroup styleClass="search_block_left" layout="block">
+							<h:panelGrid styleClass="fw" columns="4"
+								columnClasses="top ,link-cont">
+								<h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+									columns="4" id="filtersTable"
+									columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+									<h:outputLabel value="#{lblAcq.institution}:"
+										title="#{lblAcq.institution}" />
+									<h:selectOneMenu id="instSelector"
+										value="#{MbProducts.filter.instId}"
+										disabled="#{MbProducts.isInstitutionType()}">
+										<a4j:support event="onchange" limitToList="true" action="#{MbProducts.updateParentList}"
+											oncomplete="document.getElementById('productsSearchForm:instSelector').focus();"
+											reRender="parentId" />
+										<f:selectItem itemValue="" />
+										<f:selectItems value="#{MbProducts.institutions}" />
+									</h:selectOneMenu>
+
+									<h:outputLabel value="#{lblCommon.status}:"
+										title="#{lblCommon.status}" />
+									<h:selectOneMenu id="statusSelector"
+										value="#{MbProducts.filter.status}">
+										<f:selectItem itemValue="" />
+										<f:selectItems value="#{MbProducts.productStatuses}" />
+									</h:selectOneMenu>
+
+									<h:outputLabel value="#{lblCommon.name}:"
+										title="#{lblCommon.name}" />
+									<h:inputText value="#{MbProducts.filter.name }" />
+
+									<h:outputLabel value="#{lblPrd.contract_type}:"
+										title="#{lblPrd.contract_type}" />
+									<h:selectOneMenu id="contractTypeFilter"
+										value="#{MbProducts.filter.contractType}">
+										<f:selectItem itemValue="" />
+										<f:selectItems value="#{MbProducts.contractTypes}" />
+									</h:selectOneMenu>
+
+									<h:outputLabel value="#{lblAcq.parent_product}: " title="#{lblAcq.parent_product}"/>
+									<h:selectOneMenu id="parentId" 
+											value="#{MbProducts.parentId}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbProducts.productsFilter}"/>
+									</h:selectOneMenu>
+
+                                    <h:outputLabel value="#{lblCommon.product_number}:"
+                                                   title="#{lblCommon.product_number}" />
+                                    <h:inputText value="#{MbProducts.filter.productNumber }" />
+
+								</h:panelGrid>
+								<h:panelGrid columns="1">
+									<bre:taggedCommandButton image="/_img/icon_search.png"
+										type="submit" value="#{lblForm.search}" style="width:85px;"
+										action="#{MbProducts.search}"
+										id="searchBtn"
+										onclick="disableModalPanelBtns(this);"
+										oncomplete="enableModalPanelBtns(this);updateHeight();"
+										reRender="productsTreeTable, productsBtnForm:btnPanel, #{MbProducts.tabName}"
+										eventsQueue="queue">
+										<a4j:actionparam name="stateKeeper" value="false"
+											assignTo="#{menu.keepState}" />
+									</bre:taggedCommandButton>
+
+									<h:panelGroup styleClass="link-clear" layout="block">
+										<h:graphicImage url="/_img/icon_clear.png" />
+										<a4j:commandLink value="#{lblForm.clear_all}"
+											action="#{MbProducts.clearFilter}"
+											reRender="productsSearchForm, productsForm, productsBtnForm, details">
+										</a4j:commandLink>
+									</h:panelGroup>
+									<h:panelGroup>
+										<bpct:filterBar sectionId="1024"/>
+									</h:panelGroup>
+								</h:panelGrid>
+							</h:panelGrid>
+							<a4j:outputPanel ajaxRendered="true">
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</a4j:outputPanel>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<h:form id="productsForm">
+			<!-- main form -->
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff"
+					layout="block">
+					<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_tree_inner">
+					<o:treeTable id="productsTreeTable" var="prod"
+						expansionState="allExpanded" sortColumnId="nodeName"
+						headerHorizSeparator="1px solid #D7DAC2"
+						headerVertSeparator="1px solid #D7DAC2"
+						headerSectionClass="res-tree-table-header"
+						commonHeaderRowClass="res-tree-table-header"
+						sortableHeaderClass="res-tree-table-header"
+						sortedColumnHeaderClass="res-tree-table-header"
+						sortableHeaderRolloverClass="res-tree-table-header"
+						styleClass="res-tree-table"
+						bodyOddRowClass="res-tree-table-row odd-tree-table"
+						bodyRowClass="res-tree-table-row"
+						headerRowClass="res-tree-table-header"
+						verticalGridLines="1px solid #D7DAC2" cellpadding="0"
+						cellspacing="0" preloadedNodes="all" style="height:100%"
+						onmousedown="handleMouseClick(event)">
+						<o:scrolling />
+						<o:columnResizing minColWidth="70px" />
+						<f:facet name="noDataMessage">
+							<h:panelGroup>
+								<h:outputText value="#{lblCommon['no_records_found']}"
+									rendered="#{MbProducts.searching}" />
+								<h:outputText
+									value="#{lblCommon['enter_search_criteria_above']}"
+									rendered="#{!MbProducts.searching}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<o:dynamicTreeStructure nodeChildren="#{MbProducts.nodeChildren}"
+							nodeHasChildren="#{MbProducts.nodeHasChildren}"
+							nodeKey="#{prod.id}" />
+
+						<o:singleNodeSelection nodePath="#{MbProducts.nodePath}"
+							nodeData="#{MbProducts.node}" keyboardSupport="false"
+							styleClass="treetable_selection">
+							<a4j:support event="onchange" eventsQueue="queue"
+								reRender="productsBtnForm:btnPanel,#{MbProducts.tabName},btnsBlockAccount" />
+						</o:singleNodeSelection>
+
+						<o:treeColumn id="nodeName" sortingExpression="#{prod.name}"
+							width="30%" sortingComparator="#{MbProducts.nameComparator}">
+							<f:facet name="header">
+								<a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommonQ.name}" />
+								</a4j:outputPanel>
+							</f:facet>
+							<bm:entityDisplay contextType="ENTTPROD" bean="MbProducts" value="#{prod.name}"
+								styleClass="treeTableText" />
+						</o:treeColumn>
+
+						<o:column id="nodeId" sortingExpression="#{prod.id}" width="10%"
+											  sortingComparator="#{MbProducts.nameComparator}">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommonQ.id}" />
+							</f:facet>
+							<bm:entityDisplay contextType="ENTTPROD" bean="MbProducts" value="#{prod.id}"
+								styleClass="treeTableText" />
+						</o:column>
+
+                        <o:column id="productNumber" sortingExpression="#{prod.productNumber}" width="10%"
+                                  sortingComparator="#{MbProducts.nameComparator}">
+                            <f:facet name="header">
+                                <h:outputText value="#{lblCommonQ.product_number}" />
+                            </f:facet>
+                            <bm:entityDisplay contextType="ENTTPROD" bean="MbProducts" value="#{prod.productNumber}"
+                                              styleClass="treeTableText" />
+                        </o:column>
+
+						<o:column id="contractType"
+							sortingExpression="#{prod.contractType}" width="15%"
+							sortingComparator="#{MbProducts.nameComparator}">
+							<f:facet name="header">
+								<h:outputText value="#{lblPrdQ.contract_type}" />
+							</f:facet>
+							<bm:entityDisplay contextType="ENTTPROD" bean="MbProducts"
+								value="#{DictUtils.articles[prod.contractType]}"
+								styleClass="treeTableText"
+								rendered="#{prod.contractType != null }" />
+							<h:outputText value="" styleClass="treeTableText"
+								rendered="#{prod.contractType == null }" />
+						</o:column>
+
+						<o:column id="Status" styleClass="res-tree-table-cell" width="15%">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommonQ.status}" />
+							</f:facet>
+							<bm:entityDisplay contextType="ENTTPROD" bean="MbProducts"
+								value="#{DictUtils.articles[prod.status]}"
+								styleClass="treeTableText" rendered="#{prod.status != null }" />
+							<h:outputText value="" styleClass="treeTableText"
+								rendered="#{prod.status == null }" />
+						</o:column>
+
+						<o:column styleClass="res-tree-table-cell" width="20%" minResizingWidth="100px">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommonQ.institution}" />
+							</f:facet>
+	                		<bm:entityDisplay link = "true" contextType="ENTTINST" bean="MbProducts" entityId="#{prod.instId}" value="#{prod.instName != null ? prod.instName : '...'}"
+								styleClass="treeTableText" rendered="#{prod.instId != null }" />
+						</o:column>
+
+                        </o:treeTable>
+                        <a4j:outputPanel ajaxRendered="true">
+                            <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tree-tab" layout="block"/>
+                            <h:graphicImage url="/_img/hd_searchblock.gif"
+                                styleClass="hd-searchblock" />
+                            <h:panelGroup styleClass="collapse-vert" layout="block" />
+                        </a4j:outputPanel>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+
+            <script type="text/javascript">
+                // <!--
+                // select first row which for some reason doesn't want to do it automatically
+                var nodeKey = "#{MbProducts.node.id}";
+                if (document.getElementById("productsForm:productsTreeTable")
+                        .getSelectedNodeKey() == null
+                        && nodeKey != null && nodeKey != "") {
+                    document.getElementById("productsForm:productsTreeTable")
+                            .setSelectedNodeKey(nodeKey);
+                }
+                // -->
+            </script>
+        </h:form>
+
+        <h:form id="productsBtnForm">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block-tree">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left-tree">
+					<h:panelGrid styleClass="buttons_block" columns="4" id="btnPanel">
+						<bre:taggedCommandButton id="addProductBtn"
+												 value="#{lblForm.add}"
+												 reRender="acqProdModalPanel"
+												 action="#{MbProducts.addProduct}"
+												 oncomplete="#{rich:component('acqProdModalPanel')}.show()"
+												 rendered="#{(usession.inRole['ADD_ISSUING_PRODUCT'] and MbProducts.issuingType) or
+															 (usession.inRole['ADD_ACQUIRING_PRODUCT'] and MbProducts.acquiringType) or
+															 MbProducts.institutionType}"
+												 image="/images/create_doc.gif" />
+
+						<bre:taggedCommandButton id="editProductBtn"
+												 value="#{lblForm.edit}"
+												 immediate="true"
+												 limitToList="true"
+												 reRender="acqProdModalPanel"
+												 action="#{MbProducts.editProduct}"
+												 disabled="#{MbProducts.node.id == null}"
+												 rendered="#{(usession.inRole['MODIFY_ISSUING_PRODUCT'] and MbProducts.issuingType) or
+															 (usession.inRole['MODIFY_ACQUIRING_PRODUCT'] and MbProducts.acquiringType) or
+															 MbProducts.institutionType}"
+												 oncomplete="#{rich:component('acqProdModalPanel')}.show()"
+												 image="/images/edit.gif" />
+
+						<bre:taggedCommandButton id="deleteProductBtn"
+												 value="#{lblForm.delete}"
+												 disabled="#{MbProducts.node.id == null}"
+												 rendered="#{(usession.inRole['REMOVE_ISSUING_PRODUCT'] and MbProducts.issuingType) or
+															 (usession.inRole['REMOVE_ACQUIRING_PRODUCT'] and MbProducts.acquiringType) or
+															 MbProducts.institutionType}"
+												 image="/images/delete.gif"
+												 oncomplete="#{rich:component('deleteProductView:confirmPanel')}.show()"/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1"
+			sizeExceededBehavior="dropNext" requestDelay="500" />
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true"
+                            ignoreDupResponses="true" eventsQueue="queue" requestDelay="500" reRender="#{MbProducts.rerenderList}">
+                <a4j:actionparam name="tabName" assignTo="#{MbProducts.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content"
+				selectedTab="#{MbProducts.tabName}">
+
+				<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/products/products/productDetails.jspx" />
+      					<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>						
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab label="Additional" name="flexibleFieldsTab"
+				 	onlabelclick="storeTab('flexibleFieldsTab')" style="height:100%;">
+			    	
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="flexibleFieldsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+						<ui:include src="/pages/common/flexible/flexFieldsTableBottom.jspx">
+						</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+
+				<rich:tab ontabenter="storeTab('attributesTab')" label="Service terms" name="attributesTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblPrd.service_terms}"
+								title="#{lblPrd.service_terms}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="attributesTab" layout="block"
+						styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/products/attributes/list_object_attributes.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('servicesTab')"  label="Services" name="servicesTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblPrd.services}"
+								title="#{lblPrd.services}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="servicesTab" layout="block"
+						styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/products/services/list_product_services_bottom.jspx">
+							<ui:param name="showButtons" value="false"/>
+							<ui:param name="tableHeight" value="100%"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('prdFeesTab')"  label="Fees" name="prdFeesTab" rendered="false" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblCommon.fees}" title="#{lblCommon.fees}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="prdFeesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 251px; overflow-y: auto;">
+
+					</h:panelGroup>
+
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('cardTypesTab')" label="Card types"
+					rendered="#{MbProducts.issuingType and usession.inRole['VIEW_PRODUCT_CARD_TYPE']}"
+					name="cardTypesTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblIss.card_types}"
+								title="#{lblIss.card_types}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="cardTypesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/issuing/list_product_card_types_bottom.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('notesTab')" label="Notes" name="notesTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="notesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/notes/list_notes_bottom.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('schemesTab')" label="Schemes" name="schemesTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAup.schemes}" title="#{lblAup.schemes}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="schemesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/aup/list_scheme_object.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab ontabenter="storeTab('accountTypesTab')" label="Account Types" name="accountTypesTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcc.account_types}" 
+								title="#{lblAcc.account_types}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="accountTypesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/products/list_product_account_types_bottom.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+
+
+
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<ui:include src="/pages/products/products/editProduct.jspx">
+			<ui:param name="rerenderList" value="productsTreeTable, btnPanel, #{MbProducts.tabName}" />
+		</ui:include>
+
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbProducts}"/>
+			<ui:param name="yesAction" value="deleteProduct"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="productsForm:productsTreeTable, productsBtnForm:btnPanel, #{MbProducts.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteProductView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+
+		<script type="text/javascript">
+		
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'productsSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'productsForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'productsBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'prodDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'prodDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'flexDataForm',
+                            TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'attrsTreeForm',
+                            TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'attrValuesForm',
+                            TAB_FORM_WRAPPER_ID:    'attrValuesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'productServicesForm',
+                            TAB_FORM_WRAPPER_ID:    'productServicesTreeWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'prodCardTypesBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'mainTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'notesBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'schemesForm',
+                            TAB_FORM_WRAPPER_ID:    'schemesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'prodAccountTypesForm',
+                            TAB_FORM_WRAPPER_ID:    'accountTypeTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>
+
+		<ui:include src="/pages/common/wizard/commonWizard.jspx">
+			<ui:param name="bean" value="MbProducts"/>
+			<ui:param name="action" value="updateProducts"/>
+			<ui:param name="reRender" value="productsTreeTable, detailsTab"/>
+		</ui:include>
+
+		<ui:include src="/pages/acquiring/applications/applicationModal.jspx"/>
+	</ui:define>
+</ui:composition>
+</html>

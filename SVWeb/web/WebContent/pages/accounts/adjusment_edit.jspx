@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bpc="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<!--
+		function checkAdjustmentFields#{viewId}() {
+			var checked = true;
+			
+			if (document.getElementById("#{viewIdColon}adjustmentEditForm:operType").disabled == false
+					&& document.getElementById("#{viewIdColon}adjustmentEditForm:operType").value == "") {
+				document.getElementById("#{viewIdColon}adjustmentEditForm:operTypeError").style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById("#{viewIdColon}adjustmentEditForm:operReason").disabled == false 
+					&& document.getElementById("#{viewIdColon}adjustmentEditForm:operReason").value == "") {
+				document.getElementById("#{viewIdColon}adjustmentEditForm:operReasonError").style.display = "inline";
+				checked = false;	
+			}
+			checked = checkField("#{viewIdColon}adjustmentEditForm:currency") && checked;
+			checked = checkField("#{viewIdColon}adjustmentEditForm:newAmount") && checked;
+			
+			return checked;
+		}
+
+		var operAmount;
+		function saveOperAmount#{viewId}() {
+			operAmount = document.getElementById("#{viewIdColon}adjustmentEditForm:newAmount").value;
+		}
+
+		function restoreOperAmount#{viewId}() {
+			document.getElementById("#{viewIdColon}adjustmentEditForm:newAmount").value = operAmount;
+		}
+		//-->
+	</script>
+
+	<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+
+	<h:form>
+		<a4j:jsFunction action="#{MbOperationsBottom.initializeModalPanel}" name="initAdjustmentPanel#{viewId}"
+				reRender="#{viewIdColon}adjustmentEditForm">
+		</a4j:jsFunction>
+	</h:form>
+
+	<rich:modalPanel id="adjustmentModalPanel" autosized="true" minWidth="300" minHeight="100"
+			onbeforeshow="if (#{empty fromCtx or not fromCtx ? false : true}) initAdjustmentPanel#{viewId}()">
+	    <f:facet name="header">
+			<h:outputText value="#{lblOpr.new_manual_operation}"/>       	    	
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="adjustmentEditForm">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">        
+					
+					<h:outputLabel value="* #{lblOpr.account_number}: " title="#{lblOpr.account_number}"
+							rendered="#{MbOperationsBottom.newAdjustment.accountNumber != null}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+							rendered="#{MbOperationsBottom.newAdjustment.accountNumber != null}">
+						<h:inputText id="accountId"
+								value="#{MbOperationsBottom.newAdjustment.accountNumber}" 
+								label="#{lblOpr.account_number}" 
+								required="true" disabled="true"
+								>
+						</h:inputText>
+						<rich:message for="accountId" styleClass="errorMarker" id="accountIdError"/>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblIss.card_mask}: " title="#{lblIss.card_mask}"
+							rendered="#{MbOperationsBottom.newAdjustment.cardMask != null}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+							rendered="#{MbOperationsBottom.newAdjustment.cardMask != null}">
+						<h:inputText id="cardMask"
+								value="#{MbOperationsBottom.newAdjustment.cardMask}" 
+								label="#{lblIss.card_mask}" 
+								required="true" disabled="true"
+								>
+						</h:inputText>
+						<rich:message for="cardMask" styleClass="errorMarker" id="cardMaskError"/>
+					</h:panelGrid>
+							
+					<h:outputLabel value="* #{lblOpr.operation_type}: " title="#{lblOpr.operation_type}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="operType" 
+								value="#{MbOperationsBottom.newAdjustment.operType}"
+								label="#{lblOpr.operation_type}"
+								disabled="#{MbOperationsBottom.disableOperType}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/> 
+							<f:selectItems value="#{MbOperationsBottom.operationTypesAdjustment}"/>
+							<a4j:support event="onchange" 
+									reRender="#{viewIdColon}adjustmentEditForm:operReasonLabel, 
+											#{viewIdColon}adjustmentEditForm:operReason" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="operTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblOpr.operation_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<a4j:outputPanel id="operReasonLabel">
+						<h:outputLabel value="* #{lblOpr.oper_reason}: " title="#{lblOpr.oper_reason}" rendered="#{MbOperationsBottom.operReasonNeeded}"/>
+						<h:outputLabel value="#{lblOpr.oper_reason}: " title="#{lblOpr.oper_reason}" rendered="#{!MbOperationsBottom.operReasonNeeded}"/>
+					</a4j:outputPanel>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="operReason" 
+								value="#{MbOperationsBottom.newAdjustment.operReason}"
+								label="#{lblOpr.oper_reason}"
+								disabled="#{!MbOperationsBottom.operReasonNeeded}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue = ""/>
+							<f:selectItems value="#{MbOperationsBottom.operationReasons}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="operReasonError" style="display:none;">
+							<f:param name="fieldName" value="#{lblOpr.oper_reason}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+		
+					<h:outputLabel value="* #{lblCommon.currency}: " title="#{lblCommon.currency}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="currency"
+								value="#{MbOperationsBottom.newAdjustment.operationCurrency}"
+								label="#{lblCommon.currency}">
+							<f:selectItem itemValue = ""/>
+							<f:selectItems value="#{CurrencyUtils.allCurrencies}" />
+							<a4j:support event="onblur" onsubmit="hideErrorField(this); saveOperAmount#{viewId}();"
+									reRender="#{viewIdColon}adjustmentEditForm:amountPanel" 
+									limitToList="true" ajaxSingle="true" oncomplete="restoreOperAmount#{viewId}()"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="currencyError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.currency}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblOpr.operation_amount}: " title="#{lblOpr.operation_amount}"/>
+					<h:panelGrid id="amountPanel" columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="newAmount"
+							value="#{MbOperationsBottom.newAdjustment.operationAmount}"
+							label="#{lblOpr.operation_amount}"
+							onblur="hideErrorField(this);">
+							<bpc:numericMaskConverter numericType="bigdecimal" />
+							<f:attribute name="decDigits"
+								value="#{CurrencyUtils.currencyObjectsMap[MbOperationsBottom.newAdjustment.operationCurrency].exponent}" />
+							<f:validateDoubleRange minimum="1"></f:validateDoubleRange>
+							<a4j:support event="onblur" reRender="newAmountErr"
+								limitToList="true" />
+						</h:inputText>
+						<bpc:jsMask for="newAmount"
+							decDigits="#{CurrencyUtils.currencyObjectsMap[MbOperationsBottom.newAdjustment.operationCurrency].exponent}" />
+						<rich:message for="newAmount" id="newAmountErr"
+							styleClass="errorMarker" />
+						<h:outputFormat value="#{lblMsg.value_request}"
+							styleClass="errorMarker" id="newAmountError"
+							style="display:none;">
+							<f:param name="fieldName" value="#{lblOpr.operation_amount}" />
+						</h:outputFormat>
+					</h:panelGrid>
+
+				</h:panelGrid>		
+			</h:panelGroup>   
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbOperationsBottom.saveAdjustment}"
+                       			onclick="if (!checkAdjustmentFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) Richfaces.hideModalPanel('#{viewIdColon}adjustmentModalPanel')"
+                       			reRender="#{rerenderList}"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbOperationsBottom.cancelAdjustment}" immediate="true"
+                        		oncomplete="Richfaces.hideModalPanel('#{viewIdColon}adjustmentModalPanel')"
+                        		reRender="#{viewIdColon}adjustmentEditForm">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                        </bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:subview id="#{subviewId == null ? 'articlesView' : subviewId}">
+		<rich:modalPanel id="articleModalPanel" autosized="true" minWidth="200" minHeight="100"
+				rendered="#{usession.inRole['ADD_DICTIONARY_ARTICLE'] or usession.inRole['MODIFY_DICTIONARY_ARTICLE']}">
+		    <f:facet name="header">
+		    	<h:panelGroup id="articleModalHeader">
+		    		<h:outputText value="#{headerText}" rendered="#{headerText != null}"/>
+		    		<h:outputText value="#{MbDictionary.headerName}" rendered="#{headerText == null and MbDictionary.headerName != null}"/>
+		    		<h:outputText value="#{lblCommon.new_article}" 
+		    				rendered="#{headerText == null and MbDictionary.headerName == null
+		    						and MbDictionary.managingNewArticle}"/>
+		    		<h:outputText value="#{lblCommon.edit_article}" 
+		    				rendered="#{headerText == null and MbDictionary.headerName == null
+		    						and !MbDictionary.managingNewArticle}"/>
+		    	</h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+		    </f:facet>
+			<h:form id="articleModalDiv">
+				<a4j:queue size="3" sizeExceededBehavior="dropNext"/>
+				
+				<script type="text/javascript">
+//<!--
+					oldValue["articleModalDiv"] = "#{MbDictionary.newArticle.lang}";
+					
+					function checkArticleFields() {
+						var checked = true;
+						
+						if (document.getElementById("#{subviewId == null ? 'articlesView' : subviewId}:articleModalDiv:article_code").value == "") {
+							document.getElementById("#{subviewId == null ? 'articlesView' : subviewId}:articleModalDiv:article_codeError").style.display = "inline";
+							checked = false;
+						}
+						
+						if (document.getElementById("#{subviewId == null ? 'articlesView' : subviewId}:articleModalDiv:article_name").value == "") {
+							document.getElementById("#{subviewId == null ? 'articlesView' : subviewId}:articleModalDiv:article_nameError").style.display = "inline";
+							checked = false;
+						}
+						
+						return checked;
+					}
+				//-->
+				</script>
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+						
+						<h:outputLabel for="article_dict" value="#{lblCommon.dictionary}: " title="#{lblCommon.dictionary}"/>
+						<h:inputText id="article_dict" value="#{MbDictionary.newArticle.dict}" readonly="true"/>
+				
+						<h:outputLabel for="article_code" value="* #{lblCommon.article_code}: " title="#{lblCommon.article_code}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:inputText id="article_code" value="#{MbDictionary.newArticle.code}" 
+									maxlength="4" readonly="#{!MbDictionary.managingNewArticle}"
+									label="#{lblCommon.article_code}"
+									onblur="hideErrorField(this)">
+								<f:validator validatorId="bpc.RegExValidator"/>
+						      	<f:attribute name="pattern" value="[A-Za-z0-9]{3}([A-Za-z0-9])?"/>
+								<a4j:support event="onchange" reRender="article_code_error" limitToList="true"/>
+							</h:inputText>
+							<rich:message for="article_code" id="article_code_error" styleClass="errorMarker"/>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="article_codeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.article_code}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						
+						<h:outputLabel for="module_code" value="#{lblCommon.module_code}: " title="#{lblCommon.module_code}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="module_code" value="#{MbDictionary.newArticle.moduleCode}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbDictionary.moduleCodes}"/>
+							</h:selectOneMenu>
+						</h:panelGrid>
+						
+						
+						
+						<h:outputLabel for="lang" value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+						<h:selectOneMenu id="lang" value="#{MbDictionary.newArticle.lang}" rendered="#{MbDictionary.managingNewArticle}">
+							<f:selectItems value="#{MbDictionary.languages}"/>
+						</h:selectOneMenu>
+						<h:selectOneMenu id="editLang" value="#{MbDictionary.newArticle.lang}"
+								rendered="#{!MbDictionary.managingNewArticle}"
+								onchange="document.getElementById('#{empty subviewId ? 'articlesView' : subviewId}:article:confirmPanelForm:newValue').value = this.value;
+										#{rich:component('article:confirmPanel')}.show()">
+							<f:selectItems value="#{MbDictionary.languages}"/>
+						</h:selectOneMenu>
+				
+						<h:outputLabel for="article_name" value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:inputText id="article_name"
+									label="#{lblCommon.name}"						 
+									value="#{MbDictionary.newArticle.name}"
+									maxlength="200"
+									onblur="hideErrorField(this)">
+								<f:validateLength minimum="2"/>	
+								<a4j:support event="onchange" reRender="article_name_error" limitToList="true"/>
+							</h:inputText>
+							<rich:message for="article_name" id="article_name_error"  styleClass="errorMarker"/>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="article_nameError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.name}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						
+						<h:outputLabel for="article_desc" value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+						<h:inputTextarea id="article_desc" 
+								value="#{MbDictionary.newArticle.description}"
+								onkeypress="if (!limitText(event,this,2000)) return false;" 
+            					label="#{lblCommon.description}">
+			            	<f:validateLength maximum="2000" />
+				        </h:inputTextarea>
+						
+					</h:panelGrid>
+				</h:panelGroup>
+	
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+							<bre:taggedCommandButton value="#{lblForm.save}"
+									action="#{MbDictionary.saveArticle}"
+									onclick="if (!checkArticleFields()) return false; disableModalPanelBtns(this)"
+                       				oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) Richfaces.hideModalPanel('#{subviewId == null ? 'articlesView' : subviewId}:articleModalPanel')"
+									reRender="${rerenderList}"
+									type="submit"
+									/>
+							<bre:taggedCommandButton value="#{lblForm.cancel}" immediate="true"
+									action="#{MbDictionary.close}"
+									oncomplete="Richfaces.hideModalPanel('#{subviewId == null ? 'articlesView' : subviewId}:articleModalPanel')"
+									reRender="articleModalDiv">
+	                       		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                       	</bre:taggedCommandButton>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+
+		<ui:include src="/pages/utils/langConfirmPanel.jspx">
+	    	<ui:param name="backingBean" value="#{MbDictionary}"/>
+	    	<ui:param name="rerenderList" value="articleModalDiv:article_name, articleModalDiv:article_desc"/>
+	    	<ui:param name="editElem" value="#{empty subviewId ? 'articlesView' : subviewId}:articleModalDiv:editLang"/>
+	    	<ui:param name="newValue" value="#{MbDictionary.newArticle.lang}"/>
+	    	<ui:param name="subviewId" value="article"/>
+	    	<ui:param name="formName" value="articleModalDiv" />
+	    	<ui:param name="yesAction" value="confirmEditLanguageArticle"/>
+	    </ui:include>
+
+	</f:subview>
+</ui:composition>
+</html>

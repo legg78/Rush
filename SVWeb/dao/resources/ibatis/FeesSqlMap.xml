@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="fees">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig 
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+     
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>                
+    </sql>
+    
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+	
+	
+	<resultMap  id="mapping-fee"
+                class="ru.bpc.sv2.fcl.fees.Fee"  >
+        <result property="id" column="id" />
+        <result property="seqnum" column="seqnum" />
+        <result property="feeType" column="fee_type" />
+        <result property="currency" column="currency" />
+        <result property="feeRateCalc" column="fee_rate_calc" />
+        <result property="feeBaseCalc" column="fee_base_calc" />
+        <result property="limitId" column="limit_id" />
+        <result property="cycleId" column="cycle_id" />
+        <result property="instId" column="inst_id" />
+        <result property="description" column="description"/>
+        <result property="instName" column="inst_name"/>
+        <result property="limitType" column="limit_type"/>
+        <result property="cycleType" column="cycle_type"/>	
+	</resultMap>
+	
+	<resultMap  id="mapping-fee-tier"
+                class="ru.bpc.sv2.fcl.fees.FeeTier"  >
+        <result property="id" column="id" />
+        <result property="seqnum" column="seqnum" />
+        <result property="feeId" column="fee_id" />
+        <result property="fixedRate" column="fixed_rate" />
+        <result property="percentRate" column="percent_rate" />
+        <result property="minValue" column="min_value" />
+        <result property="maxValue" column="max_value" />
+        <result property="lengthType" column="length_type" />
+		<result property="lengthTypeAlgorithm" column="length_type_algorithm" />
+        <result property="sumThreshold" column="sum_threshold" />
+        <result property="countThreshold" column="count_threshold" />
+	</resultMap>
+	
+	<select id="get-fees"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-fee" >
+		<include refid="paginatedOpen"/>
+			SELECT	  f.id
+					, f.seqnum 
+					, f.fee_type 
+					, f.currency
+					, f.fee_rate_calc
+					, f.fee_base_calc
+					, f.limit_id
+					, f.cycle_id 
+					, f.inst_id
+					, f.description
+					, i.name as inst_name
+					, t.limit_type
+					, t.cycle_type
+			FROM 
+					  fcl_ui_fee_vw f
+					, fcl_ui_fee_type_vw t
+					, ost_ui_institution_sys_vw i
+			WHERE f.fee_type = t.fee_type
+				AND f.inst_id = i.id(+)
+				AND i.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang 
+			<iterate prepend="AND" conjunction="AND" property="filters">
+			    <isEqual property="filters[].element" compareValue="id">f.id = #filters[].value#</isEqual>
+			    <isEqual property="filters[].element" compareValue="feeType">f.fee_type = #filters[].value#</isEqual>
+			   	<isEqual property="filters[].element" compareValue="entityType">t.entity_type = #filters[].value#</isEqual> 
+			   	<isEqual property="filters[].element" compareValue="instId">f.inst_id = #filters[].value#</isEqual>
+			   	<isEqual property="filters[].element" compareValue="feeRateCalc">f.fee_rate_calc = #filters[].value#</isEqual>
+			   	<isEqual property="filters[].element" compareValue="feeBaseCalc">f.fee_base_calc = #filters[].value#</isEqual>
+			   	<isEqual property="filters[].element" compareValue="currency">f.currency = #filters[].value#</isEqual>
+			</iterate>	               
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">f.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="feeType">f.fee_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="feeRateCalc">f.fee_rate_calc $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="feeBaseCalc">f.fee_base_calc $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">f.currency $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-fees-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT * FROM fcl_ui_fee_vw f, fcl_ui_fee_type_vw t
+	    WHERE f.fee_type = t.fee_type 
+		<iterate prepend="AND" conjunction="AND" property="filters">
+		    <isEqual property="filters[].element" compareValue="id">f.id = #filters[].value#</isEqual>
+		    <isEqual property="filters[].element" compareValue="feeType">f.fee_type = #filters[].value#</isEqual>
+		   	<isEqual property="filters[].element" compareValue="entityType">t.entity_type = #filters[].value#</isEqual> 
+		   	<isEqual property="filters[].element" compareValue="instId">f.inst_id = #filters[].value#</isEqual>
+		   	<isEqual property="filters[].element" compareValue="feeRateCalc">f.fee_rate_calc = #filters[].value#</isEqual>
+		   	<isEqual property="filters[].element" compareValue="feeBaseCalc">f.fee_base_calc = #filters[].value#</isEqual>
+		   	<isEqual property="filters[].element" compareValue="currency">f.currency = #filters[].value#</isEqual>
+		</iterate>	
+		<include refid="limitationClose"/>               
+    </select>
+    
+	<parameterMap id="fee-param-map"
+			class="ru.bpc.sv2.fcl.fees.Fee">
+        <parameter property="feeType" mode="IN" jdbcType="VARCHAR"/>
+        <parameter property="currency" mode="IN" jdbcType="VARCHAR"/>
+        <parameter property="feeRateCalc" mode="IN"  jdbcType="VARCHAR"/>
+        <parameter property="feeBaseCalc" mode="IN"  jdbcType="VARCHAR"/>
+        <parameter property="limitId" mode="IN" jdbcType="NUMERIC"/>
+        <parameter property="cycleId" mode="IN" jdbcType="NUMERIC"/>
+        <parameter property="instId" mode="IN" jdbcType="NUMERIC"/>
+        <parameter property="id" mode="OUT" jdbcType="NUMERIC"/>
+        <parameter property="seqnum" mode="OUT" jdbcType="NUMERIC"/>
+	</parameterMap>
+
+    <procedure id="insert-new-fee" 
+    		parameterClass="ru.bpc.sv2.fcl.fees.Fee">
+    	{call FCL_UI_FEE_PKG.add_fee(
+				  i_fee_type		=> #feeType#
+				, i_currency		=> #currency#
+				, i_fee_rate_calc	=> #feeRateCalc#
+				, i_fee_base_calc	=> #feeBaseCalc#
+				, i_limit_id		=> #limitId#
+				, i_cycle_id		=> #cycleId#
+				, i_inst_id			=> #instId#
+				, o_fee_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=OUT#
+				)}
+    </procedure>
+    
+    <update id="modify-fee"
+            parameterClass="ru.bpc.sv2.fcl.fees.Fee">
+        {call FCL_UI_FEE_PKG.modify_fee(
+				  i_fee_id			=> #id#
+				, i_currency		=> #currency#
+				, i_fee_rate_calc	=> #feeRateCalc#
+				, i_fee_base_calc	=> #feeBaseCalc#
+				, i_limit_id		=> #limitId#
+				, i_cycle_id		=> #cycleId#
+				, io_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+    </update>
+    
+    <procedure id="remove-fee" 
+    		parameterClass="ru.bpc.sv2.fcl.fees.Fee">
+    	{call FCL_UI_FEE_PKG.remove_fee(
+				  i_fee_id			=> #id#
+				, i_seqnum			=> #seqnum#
+				)}
+    </procedure>
+    
+    <!-- Fee Types queries -->
+	<resultMap  id="mapping-fee-type" class="ru.bpc.sv2.fcl.fees.FeeType">
+		<result property="id" column="id"/>
+		<result property="seqnum" column="seqnum"/>
+		<result property="feeType" column="fee_type"/>
+		<result property="entityType" column="entity_type"/>
+		<result property="cycleType" column="cycle_type"/>
+		<result property="limitType" column="limit_type"/>
+		<result property="shortDesc" column="short_desc"/>
+		<result property="lang" column="lang"/>
+		<result property="needLengthType" column="need_length_type" javaType="boolean" nullValue="false"/>
+	</resultMap>
+
+	<select id="get-fee-types" parameterClass="qparams" resultMap="mapping-fee-type" >
+		<include refid="paginatedOpen"/>
+			SELECT	  ft.id
+					, ft.seqnum
+					, ft.fee_type
+					, ft.entity_type 
+					, ft.cycle_type 
+					, ft.limit_type
+					, ft.need_length_type
+					, d.name AS short_desc
+					, d.lang
+			FROM fcl_ui_fee_type_vw ft
+            LEFT JOIN com_ui_dictionary_vw d
+            ON d.dict = substr(ft.fee_type, 1, 4) AND d.code = substr(ft.fee_type, 5, 8)
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="feeType">ft.fee_type like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">ft.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityTypes">ft.entity_type IN $filters[].value$</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+			</iterate>	               
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">ft.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="feeType">ft.fee_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="shortDesc">upper(d.name) $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-fee-types-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT * FROM fcl_ui_fee_type_vw
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="feeType">fee_type like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityTypes">entity_type IN $filters[].value$</isEqual>
+			<!-- we can use $$ here because entityTypes filter field is constructed on server side from predefined values 
+				which user can not change -->
+		</iterate>
+		<include refid="limitationClose"/>	
+    </select>
+        	
+	<procedure id="add-fee-type" parameterClass="ru.bpc.sv2.fcl.fees.FeeType">
+		{call FCL_UI_FEE_PKG.add_fee_type(
+			  io_fee_type			=> #feeType#
+			, i_entity_type			=> #entityType#
+			, i_cycle_type			=> #cycleType#
+			, i_limit_type			=> #limitType#
+			, i_short_desc			=> #shortDesc#
+			, i_full_desc			=> #fullDesc#
+			, i_lang				=> #lang#
+			, i_need_length_type	=> #needLengthType#
+			, o_seqnum				=> #seqnum,jdbcType=NUMERIC,mode=OUT#
+		)}
+     </procedure>
+     
+	<procedure id="modify-fee-type" parameterClass="ru.bpc.sv2.fcl.fees.FeeType">
+		{call FCL_UI_FEE_PKG.modify_fee_type(
+			  i_fee_type			=> #feeType#
+			, i_entity_type			=> #entityType#
+			, i_cycle_type			=> #cycleType#
+			, i_limit_type			=> #limitType#
+			, i_need_length_type	=> #needLengthType#
+			, io_seqnum				=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+		)}
+     </procedure>
+    
+     <procedure id="remove-fee-type" 
+    		parameterClass="ru.bpc.sv2.fcl.fees.FeeType">
+    	{call FCL_UI_FEE_PKG.remove_fee_type(
+				  i_fee_type	=> #feeType#
+				, i_seqnum		=> #seqnum#
+				)}
+     </procedure>
+    
+    <!-- Fee tiers -->
+    <select id="get-fee-tiers"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-fee-tier" >
+		<include refid="paginatedOpen"/>
+			SELECT	  id
+					, seqnum 
+					, fee_id
+					, fixed_rate
+					, percent_rate
+					, min_value
+					, max_value
+					, length_type
+					, length_type_algorithm
+					, sum_threshold
+					, count_threshold
+			FROM fcl_ui_fee_tier_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="feeId">fee_id = #filters[].value#</isEqual>
+			</iterate>
+			ORDER BY count_threshold, sum_threshold	               
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-fee-tiers-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT * FROM fcl_ui_fee_tier_vw
+        <iterate prepend="WHERE " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="feeId">fee_id = #filters[].value#</isEqual>
+        </iterate>	   
+        <include refid="limitationClose"/>            
+    </select>
+    
+    <procedure id="insert-new-fee-tier" 
+    		parameterClass="ru.bpc.sv2.fcl.fees.FeeTier">
+    	{call FCL_UI_FEE_PKG.add_fee_tier(
+				  i_fee_id			=> #feeId#
+				, i_fixed_rate		=> #fixedRate#
+				, i_percent_rate	=> #percentRate#
+				, i_min_value		=> #minValue#
+				, i_max_value		=> #maxValue#
+				, i_length_type		=> #lengthType#
+				, i_length_type_algorithm	=> #lengthTypeAlgorithm#
+				, i_sum_threshold	=> #sumThreshold#
+				, i_count_threshold	=> #countThreshold#
+				, o_fee_tier_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=OUT#
+				)}
+    </procedure>
+    
+    <update id="modify-fee-tier"
+            parameterClass="ru.bpc.sv2.fcl.fees.FeeTier">
+        {call FCL_UI_FEE_PKG.modify_fee_tier(
+   				  i_fee_tier_id		=> #id#
+				, i_fixed_rate		=> #fixedRate#
+				, i_percent_rate	=> #percentRate#
+				, i_min_value		=> #minValue#
+				, i_max_value		=> #maxValue#
+				, i_length_type		=> #lengthType#
+				, i_length_type_algorithm	=> #lengthTypeAlgorithm#
+				, i_sum_threshold	=> #sumThreshold#
+				, i_count_threshold	=> #countThreshold#
+				, io_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+    </update>
+    
+    <procedure id="remove-fee-tier" 
+    		parameterClass="ru.bpc.sv2.fcl.fees.FeeTier">
+    	{call FCL_UI_FEE_PKG.remove_fee_tier(
+				  i_fee_tier_id		=> #id#
+				, i_seqnum			=> #seqnum#
+				)}
+    </procedure>
+    
+	<!-- Fee rates -->
+	<resultMap  id="mapping-fee-rate"
+                class="ru.bpc.sv2.fcl.fees.FeeRate">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="feeType" column="fee_type"/>
+        <result property="rateType" column="rate_type"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+
+    <select id="get-fee-rates"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-fee-rate" >
+		<include refid="paginatedOpen"/>
+			SELECT	  r.id
+					, r.seqnum 
+					, r.fee_type
+					, r.rate_type
+					, r.inst_id
+					, i.name as inst_name
+			FROM fcl_ui_fee_rate_vw r, ost_ui_institution_sys_vw i
+			WHERE r.inst_id = i.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="feeType">r.fee_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="rateType">r.rate_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+			</iterate>	               
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="feeType">r.fee_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="rateType">r.rate_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">inst_name $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-fee-rates-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT * FROM fcl_ui_fee_rate_vw
+        <iterate prepend="WHERE " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="feeType">fee_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="rateType">rate_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+        </iterate>	   
+        <include refid="limitationClose"/>            
+    </select>
+    
+    <procedure id="add-fee-rate" 
+    		parameterClass="ru.bpc.sv2.fcl.fees.FeeRate">
+    	{call FCL_UI_FEE_PKG.add_fee_rate(
+				  i_fee_type		=> #feeType#
+				, i_rate_type		=> #rateType#
+				, i_inst_id			=> #instId#
+				, o_fee_rate_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				)}
+    </procedure>
+    
+    <update id="modify-fee-rate"
+            parameterClass="ru.bpc.sv2.fcl.fees.FeeRate">
+        {call FCL_UI_FEE_PKG.modify_fee_rate(
+				  i_fee_rate_id		=> #id#
+				, i_rate_type		=> #rateType#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+    </update>
+    
+    <procedure id="remove-fee-rate" 
+    		parameterClass="ru.bpc.sv2.fcl.fees.FeeRate">
+    	{call FCL_UI_FEE_PKG.remove_fee_rate(
+				  i_fee_rate_id		=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+
+	<select id="is-fee-type-needs-length-type" parameterClass="java.lang.String" resultClass="java.lang.Boolean">
+		select need_length_type
+		  from fcl_ui_fee_type_vw
+		 where fee_type = #value#
+		   and rownum = 1
+	</select>
+</sqlMap>

@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+		PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+		"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="module">
+
+
+	<sql id="limitationOpen">
+		SELECT *
+		FROM (
+	</sql>
+
+	<sql id="limitationOpenCount">
+		SELECT count(*)
+		FROM (
+	</sql>
+
+	<sql id="limitationClose">
+		) q
+		<isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+	</sql>
+	<sql id="paginatedOpen">
+		SELECT *
+		FROM(
+		SELECT a.*, rownum r
+		FROM(
+		<include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedClose">
+		<include refid="limitationClose"/>
+		) a
+		WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+		)
+		WHERE r >= (#range.start# + 1)
+	</sql>
+
+	<resultMap id="mapping_session" class="ru.bpc.sv2.ps.ModuleSession">
+		<result property="id" column="id"/>
+		<result property="sessionId" column="session_id"/>
+		<result property="created" column="created"/>
+		<result property="fileName" column="filename"/>
+		<result property="result" column="result" javaType="boolean"/>
+		<result property="succeed" column="succeed"/>
+		<result property="total" column="total"/>
+		<result property="process" column="process"/>
+	</resultMap>
+
+	<select id="get_sessions" parameterClass="qparams" resultMap="mapping_session">
+		<include refid="paginatedOpen"/>
+		select
+			  id
+			, session_id
+			, created
+			, filename
+			, result
+			, succeed
+			, total
+			, process
+		from
+			  $module$_session$tableSuffix$
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="createdFrom">created >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="createdTo">created <![CDATA[<=]]>#filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fileName">filename LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="process">process LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="result">result = #filters[].value,javaType=boolean,jdbcType=NUMERIC#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="sessionID">session_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="created">created $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="fileName">filename $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="result">result $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="succeed">succeed $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="total">total $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get_sessions_count" parameterClass="qparams" resultClass="int">
+		select
+			count(1)
+		from
+			$module$_session$tableSuffix$
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="createdFrom">created >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="createdTo">created <![CDATA[<=]]>#filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fileName">filename LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="result">result = #filters[].value,javaType=boolean,jdbcType=NUMERIC#</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap id="mapping_session_log" class="ru.bpc.sv2.ps.ModuleSessionTrace">
+		<result property="id" column="id"/>
+		<result property="eventDate" column="event_date"/>
+		<result property="logLevel" column="log_level"/>
+		<result property="logger" column="logger"/>
+		<result property="message" column="message"/>
+	</resultMap>
+
+	<select id="get_session_traces" parameterClass="qparams" resultMap="mapping_session_log">
+		<include refid="paginatedOpen"/>
+		SELECT id, event_date, log_level, logger, message FROM $module$_session_log$tableSuffix$
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="session_id">session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="file_id">file_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="trace_level">
+                #filters[].value# >= decode(log_level, 'DEBUG', 6, 'INFO', 5, 'WARNING', 4, 'ERROR', 3, 'FATAL', 2)
+            </isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="eventDate">event_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="logLevel">log_level $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="logger">logger $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="message">message $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get_session_traces_count" parameterClass="qparams" resultClass="int">
+		SELECT
+		COUNT(1)
+		FROM
+		$module$_session_log$tableSuffix$
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="session_id">session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="file_id">file_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="trace_level">
+                #filters[].value# >= decode(log_level, 'DEBUG', 6, 'INFO', 5, 'WARNING', 4, 'ERROR', 3, 'FATAL', 2)
+            </isEqual>
+		</iterate>
+	</select>
+
+	<resultMap id="mapping_param" class="ru.bpc.sv2.ps.ModuleParam">
+		<result property="id" column="id"/>
+		<result property="name" column="key"/>
+		<result property="value" column="value"/>
+		<result property="instId" column="inst_id"/>
+		<result property="networkId" column="network_id"/>
+		<result property="startDate" column="start_date"/>
+	</resultMap>
+
+	<select id="get_params" parameterClass="qparams" resultMap="mapping_param">
+		<include refid="paginatedOpen"/>
+		SELECT
+		id,
+		key,
+		value,
+		inst_id,
+		network_id,
+		start_date
+		FROM
+		$module$_param
+		WHERE key NOT LIKE 'COUNTRY_%'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="name">key LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="networkId">network_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">key $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="value">value $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instId">inst_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="networkId">network_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="startDate">start_date $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get_params_count" parameterClass="qparams" resultClass="int">
+		SELECT
+		COUNT(1)
+		FROM
+		$module$_param
+		WHERE key NOT LIKE 'COUNTRY_%'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="name">key LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="networkId">network_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<select id="get_country_params" parameterClass="qparams" resultMap="mapping_param">
+		<include refid="paginatedOpen"/>
+		select
+			  id
+			, key
+			, value
+			, inst_id
+			, network_id
+			, start_date
+		from
+			  $module$_param
+		where key like 'COUNTRY_%'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="value">value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">key like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="networkId">network_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">key $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="value">value $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instId">inst_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="networkId">network_id $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get_country_params_count" parameterClass="qparams" resultClass="int">
+		select
+			count(1)
+		from
+			$module$_param
+		where key like 'COUNTRY_%'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="value">value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">key like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="networkId">network_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<delete id="delete_param" parameterClass="map">
+		DELETE FROM $module$_param WHERE id=#id#
+	</delete>
+
+	<update id="update_param" parameterClass="ru.bpc.sv2.ps.ModuleParam">
+		UPDATE $module$_param SET value=#value#, inst_id=#instId#, network_id=#networkId#, start_date=#startDate# WHERE id=#id#
+	</update>
+
+	<insert id="insert_param" parameterClass="ru.bpc.sv2.ps.ModuleParam">
+		INSERT INTO $module$_param(id, key, value, inst_id, network_id, start_date) VALUES((SELECT MAX(id)+1 FROM $module$_param), #name#, #value#, #instId#, #networkId#, #startDate#)
+	</insert>
+</sqlMap>

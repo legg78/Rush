@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:o="http://openfaces.org/">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+<ui:param name="pageHelp" value="attributes_configuration.htm" />
+<ui:param name="pageHelpModalAdd" value="attribute_create.htm" />
+<ui:param name="pageHelpModalEdit" value="attribute_edit.htm" />
+<ui:param name="showHelpModal" value="true" />
+<ui:define name="navigatableContent">
+    	
+   	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+   	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+   	<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+   	<a4j:outputPanel ajaxRendered="true" id="q_bundle_acq" >
+	   	<o:loadBundle var="lblPrdQ" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+   	</a4j:outputPanel>
+   	
+   	<script type="text/javascript">
+//<!--
+   	function checkCyclicLimit(elem) {
+   	   	elem.disabled = !elem.disabled;
+   	}
+   	
+   	//--></script>
+   	<a4j:loadScript src="/js/stretch.js" />
+
+	<h:panelGroup rendered="#{usession.inRole['VIEW_ATTRIBUTES']}">
+	
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblPrd.service_terms}"/>
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+		<bpct:filterBarModalPanels id="filterPanels"
+								   rerenderList="filtersTable, attrsForm:attrsTreeTable, save_filter_panel_div, details"
+								   selectedFilter="#{MbAttributes.selectedSectionFilter}"
+								   sectionFilter="#{MbAttributes.sectionFilter}"
+								   sectionFilterModeEdit="#{MbAttributes.sectionFilterModeEdit}"
+								   searchAutomatically="#{MbAttributes.searchAutomatically}"
+								   sectionId="1657"
+								   beanName="MbAttributes"/>
+		
+		<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('attrsSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+				
+	    <h:form id="attrsSearchForm" onkeypress="handleEnter(event)">
+	
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="4" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol" id="filtersTable">
+		                	
+	                			<h:outputLabel value="#{lblPrd.service_term_type}:" title="#{lblPrd.service_term_type}"  />
+				      			<h:selectOneMenu id="attrTypeFilter" 
+				      					value="#{MbAttributes.filter.entityType}">
+				      				<f:selectItem itemValue=""/>
+				      				<f:selectItems value="#{MbAttributes.attributeTypes}"/>
+				      			</h:selectOneMenu>
+	
+	                			<h:outputLabel value="#{lblPrd.def_level}:" title="#{lblPrd.def_level}" />
+				      			<h:selectOneMenu id="defLevelFilter" value="#{MbAttributes.filter.definitionLevel}">
+				      				<f:selectItem itemValue=""/>
+							    	<f:selectItems value="#{MbAttributes.defLevels}"/>
+				      			</h:selectOneMenu>
+				      			
+				      			<h:outputLabel value="#{lblPrd.service_type}:" title="#{lblPrd.service_type}"  />				      							      			
+								<h:selectOneMenu id="attrServiceTypeFilter"
+											value="#{MbAttributes.filter.serviceTypeId}">
+											<f:selectItem itemValue="" />
+											<f:selectItems value="#{MbAttributes.services}" />
+								</h:selectOneMenu>
+
+
+								<h:outputLabel value="#{lblCommonQ.id}: " title="#{lblCommonQ.id}" />
+								<h:inputText id="attrIdFilter"
+											 value="#{MbAttributes.filter.id}"
+											 maxlength="8"
+											 onkeypress="if (!numbersOnly(this, event)) return false;"/>
+
+							</h:panelGrid>
+		                	<h:panelGrid columns="1" >
+		                		<bre:taggedCommandButton image="/_img/icon_search.png" type="submit"
+		                				onclick="disableModalPanelBtns(this);"
+		                				oncomplete="enableModalPanelBtns(this);"
+		                				value="#{lblForm.search}" style="width:85px;"
+		                				id="searchBtn"
+		                				action="#{MbAttributes.search}"
+		                				reRender="attrsTreeTable, attrsBtnForm:btnPanel, details,attrsSearchForm"
+		                				eventsQueue="queue"/>
+		                		<h:panelGroup styleClass="link-clear" layout="block"  >
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+		                					action="#{MbAttributes.clearFilter}"
+		                					reRender="attrsSearchForm, attrsForm, details">
+		                			</a4j:commandLink>
+		                		</h:panelGroup>
+								<h:panelGroup>
+									<bpct:filterBar sectionId="1657"/>
+								</h:panelGroup>
+		                	</h:panelGrid>
+	                	</h:panelGrid>
+	                	<a4j:outputPanel ajaxRendered="true">
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>
+	                </h:panelGroup>
+	            </h:panelGroup>
+	            </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="attrsForm">
+			<!-- main form -->
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+    				<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_tree_inner">
+		            <o:treeTable id="attrsTreeTable" var="prodAttr"
+			               expansionState="allExpanded"
+			               headerHorizSeparator="1px solid #D7DAC2"
+			               headerVertSeparator="1px solid #D7DAC2"
+			               headerSectionClass="res-tree-table-header"
+			               commonHeaderRowClass="res-tree-table-header"
+			               sortableHeaderClass="res-tree-table-header"
+			               sortedColumnHeaderClass="res-tree-table-header"
+			               sortableHeaderRolloverClass="res-tree-table-header"
+			               styleClass="extdt-table-layout res-tree-table"
+			               bodyOddRowClass="res-tree-table-row odd-tree-table"
+			               bodyRowClass="res-tree-table-row" headerRowClass="res-tree-table-header"
+			               verticalGridLines="1px solid #D7DAC2"
+			               cellpadding="0" cellspacing="0"
+			               preloadedNodes="all" style="height:100%"
+			        	>
+			            <f:attribute name="forceUsingCellStyles" value="true"></f:attribute>
+						<o:scrolling/>
+						<f:facet name="noDataMessage">
+						  	<h:panelGroup>
+						       <h:outputText value="#{lblCommon['no_records_found']}" rendered="#{MbAttributes.searching}"/>
+							   <h:outputText value="#{lblCommon['enter_search_criteria_above']}" rendered="#{!MbAttributes.searching}"/>
+							</h:panelGroup>
+						</f:facet>
+						
+		       			<o:dynamicTreeStructure 
+		       					nodeChildren="#{MbAttributes.nodeChildren}" 
+		       					nodeHasChildren="#{MbAttributes.nodeHasChildren}" 
+		       					nodeKey="#{prodAttr.modelId}"/>
+		
+					    <o:singleNodeSelection nodePath="#{MbAttributes.nodePath}"
+					          	nodeData="#{MbAttributes.node}"
+		          				keyboardSupport="false"
+		          				styleClass="treetable_selection"
+		          				>
+		          			<a4j:support event="onchange" limitToList="true"
+		          					reRender="details, attrsBtnForm:btnPanel"
+				                    eventsQueue="queue"/>
+		          		</o:singleNodeSelection>
+
+						<o:column id="attrId" width="10%">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommonQ.id}" title="#{lblCommonQ.id}"/>
+							</f:facet>
+							<h:outputText value="#{prodAttr.id}" styleClass="res-tree-table-cell"/>
+						</o:column>
+
+					    <o:treeColumn id="nodeLabel" width="30%">
+					    	<f:facet name="header">
+					        	<a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommonQ.name}"/>
+								</a4j:outputPanel>
+					      	</f:facet>
+					      	<h:outputText value="#{prodAttr.label}" styleClass="treeTableText"
+					      			rendered="#{!prodAttr.serviceType}"/>
+					      	<h:outputText value="#{prodAttr.label}" styleClass="treeTableText"
+					      			rendered="#{prodAttr.serviceType}" style="font-weight: bold"/>
+					    </o:treeColumn>
+
+					    <o:column id="attrType" width="10%">
+					    	<f:facet name="header">
+					        	<h:outputText value="#{lblCommonQ.type}" title="#{lblCommonQ.type}"/>
+					      	</f:facet>
+					      	<h:outputText value="#{DictUtils.articles[prodAttr.attributeType]}" styleClass="res-tree-table-cell"/>
+					    </o:column>
+	
+					    <o:column id="lovName" width="20%">
+					    	<f:facet name="header">
+					        	<h:outputText value="#{lblCommonQ.lov}" title="#{lblCommonQ.lov}"/>
+					      	</f:facet>
+					      	<h:outputText value="#{prodAttr.lovId} - #{prodAttr.lovName}" 
+					      			styleClass="res-tree-table-cell"
+					      			rendered="#{prodAttr.lovId != null}"/>
+					      	<h:outputText value="" 
+					      			styleClass="res-tree-table-cell"
+					      			rendered="#{prodAttr.lovId == null}"/>
+					    </o:column>
+	
+					    <o:column id="defLevel" width="20%">
+					    	<f:facet name="header">
+					        	<h:outputText value="#{lblPrdQ.def_level}" title="#{lblPrdQ.def_level}"/>
+					      	</f:facet>
+					      	<h:outputText value="#{DictUtils.articles[prodAttr.definitionLevel]}" styleClass="res-tree-table-cell"/>
+					    </o:column>
+					    
+					    <o:column id="visible" width="10%">
+					    	<f:facet name="header">
+					        	<h:outputText value="#{lblPrd.visible}" title="#{lblPrd.visible}"/>
+					      	</f:facet>
+					      	<h:selectBooleanCheckbox value="#{prodAttr.visible}" disabled="true"/>
+					    </o:column>
+					</o:treeTable>
+					</h:panelGroup>
+					<a4j:outputPanel ajaxRendered="true">
+						<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tree-tab" layout="block"/>
+				        <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+						<h:panelGroup styleClass="collapse-vert" layout="block"/>
+					</a4j:outputPanel>
+				</h:panelGroup>
+			</h:panelGroup>
+        </h:form>
+
+        <h:form id="attrsBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+					<h:panelGrid styleClass="buttons_block" columns="5" id="btnPanel">
+			        	<bre:taggedCommandButton id="addBtn"
+			                	value="#{lblForm.add}" reRender="attrModalDiv, attrModalHeader, attrModalControl"
+								oncomplete="#{rich:component('attrModalPanel')}.show()"
+			                	action="#{MbAttributes.add}"
+			                	rendered="#{usession.inRole['ADD_ATTRIBUTE']}"
+			        			image="/images/create_doc.gif"/>
+						<bre:taggedCommandButton id="editBtn"
+								value="#{lblForm.edit}" immediate="true" limitToList="true"
+								reRender="attrModalDiv, attrModalHeader, attrModalControl"
+	   							action="#{MbAttributes.edit}"
+	                    		disabled="#{MbAttributes.node.id == null or MbAttributes.serviceType}"
+	                    		rendered="#{usession.inRole['MODIFY_ATTRIBUTE']}"
+								oncomplete="if (#{usession.noErrorResponse}) #{rich:component('attrModalPanel')}.show()"
+								image="/images/edit.gif"/>
+			        	<bre:taggedCommandButton id="deleteBtn"
+			                	value="#{lblForm.delete}"
+			                	disabled="#{MbAttributes.node == null or MbAttributes.serviceType}"
+			                	rendered="#{usession.inRole['REMOVE_ATTRIBUTE']}"
+			        			image="/images/delete.gif"
+			        			oncomplete="#{rich:component('deleteAttrView:confirmPanel')}.show()"/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+
+        	<script type="text/javascript">
+//<!--
+       			// select first row which for some reason doesn't want to do it automatically 
+       			var nodeKey = "#{MbAttributes.node.modelId}";
+       			if (document.getElementById("attrsForm:attrsTreeTable").getSelectedNodeKey() == null
+       					&& nodeKey != null && nodeKey != "") {
+       				document.getElementById("attrsForm:attrsTreeTable").setSelectedNodeKey(nodeKey);
+       			}
+       			// -->
+        	</script>
+
+	    </h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbAttributes.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbAttributes.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+			<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell" 
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content" selectedTab="#{MbAttributes.tabName}">
+	
+				<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+	   				<f:facet name="label">
+	   					<h:panelGroup styleClass="tab-label" layout="block">
+	   						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+	   					</h:panelGroup>
+	   				</f:facet>
+	
+	       			<h:panelGroup id="det_det" layout="block">
+	       				<ui:include src="/pages/products/attributes/attribute_details.jspx"/>
+						<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+	                </h:panelGroup>
+			    </rich:tab>
+	
+				<rich:tab ontabenter="storeTab('attrScalesTab')" label="Scales" name="attrScalesTab" style="height:100%;"
+						rendered="#{usession.inRole['VIEW_ATTRIBUTE_SCALES'] and MbAttributes.node != null and not MbAttributes.currentAttrGroup and not MbAttributes.serviceType}">
+	   				<f:facet name="label">
+	   					<h:panelGroup styleClass="tab-label" layout="block">
+	   						<h:outputText value="#{lblRul.scale}" title="#{lblRul.scale}"/>
+	   					</h:panelGroup>
+	   				</f:facet>
+	
+	       			<h:panelGroup id="det_scales" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       				<ui:include src="/pages/products/attributes/list_attr_scales_bottom.jspx"/>
+	                </h:panelGroup>
+			    </rich:tab>
+	
+				<rich:tab ontabenter="storeTab('feeRatesTab')" label="Fee rates" name="feeRatesTab" rendered="#{MbAttributes.currentFee}" style="height:100%;">
+	   				<f:facet name="label">
+	   					<h:panelGroup styleClass="tab-label" layout="block">
+	   						<h:outputText value="#{lblFcl.fee_rates}" title="#{lblFcl.fee_rates}"/>
+	   					</h:panelGroup>
+	   				</f:facet>
+	
+	       			<h:panelGroup id="det_fee_rates" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       				<ui:include src="/pages/fee_cycle_limit/fees/list_fee_rates.jspx"/>
+	                </h:panelGroup>
+			    </rich:tab>
+	
+				<rich:tab ontabenter="storeTab('limitRatesTab')" label="Limit rates" name="limitRatesTab" rendered="#{MbAttributes.currentLimit}" style="height:100%;">
+	   				<f:facet name="label">
+	   					<h:panelGroup styleClass="tab-label" layout="block">
+	   						<h:outputText value="#{lblFcl.limit_rates}" title="#{lblFcl.limit_rates}"/>
+	   					</h:panelGroup>
+	   				</f:facet>
+	
+	       			<h:panelGroup id="det_lim_rates" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       				<ui:include src="/pages/fee_cycle_limit/limits/list_limit_rates.jspx"/>
+	                </h:panelGroup>
+			    </rich:tab>
+	
+				<rich:tab ontabenter="storeTab('productsTab')" label="Products" name="productsTab"
+						rendered="false" style="height:100%;">
+	   				<f:facet name="label">
+	   					<h:panelGroup styleClass="tab-label" layout="block">
+	   						<h:outputText value="#{lblPrd.products}" title="#{lblPrd.products}"/>
+	   					</h:panelGroup>
+	   				</f:facet>
+	
+	       			<h:panelGroup id="productsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       			
+	                </h:panelGroup>
+			    </rich:tab>
+		    </rich:tabPanel>
+		</h:panelGroup>
+	
+		<ui:include src="/pages/products/attributes/attributeEdit.jspx">
+			<ui:param name="rerenderList" value="attrsTreeTable, btnPanel, details"/>
+		</ui:include>
+	
+	</h:panelGroup>
+
+	<h:panelGroup rendered="#{!usession.inRole['VIEW_ATTRIBUTES']}" style="text-align: center">
+		<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+	</h:panelGroup>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbAttributes}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="attrsTreeTable, btnPanel, details"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteAttrView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>			
+	</ui:include>
+
+    <script>
+        //<![CDATA[
+        var colorOk = "#FFFFFF";
+        var colorMandatory = "#FF5555";
+
+        function checkMandatory(el, needFocus, needMark, minLength, wildcardType, alfaChar) {
+            var result = true;
+            if (el.value == null || el.value == "") {
+                result = false;
+            } else if (minLength != null && el.value.replace(/%|\*|\?/g,"").length < minLength) {
+                result = false;
+            } else if (wildcardType != null) {
+                if (wildcardType == 0) {
+                    if (/%|\*|\?/g.test(el.value)) {
+                        result = false;
+                    }
+                } else {
+                    if (/.*(%|\*|\?)$/g.test(el.value)) {
+                        result = false;
+                    }
+                }
+            } else if (alfaChar) {
+                if (!/^[a-zA-Z].*$/g.test(el.value)) {
+                    result = false;
+                }
+            }
+            if (result) {
+                el.style.backgroundColor = colorOk;
+            } else {
+                if (needMark) {
+                    el.style.backgroundColor = colorMandatory;
+                }
+                if (needFocus) {
+                    el.focus();
+                }
+            }
+            return result;
+        }
+        function checkFields(field){
+            valid = true;
+            var attrIdEl = document.getElementById(field);
+            if (attrIdEl != null) {
+                valid = checkMandatory(attrIdEl, true, true, null, null);
+            }
+            return valid;
+        }
+        //]]>
+    </script>
+	
+    <script type="text/javascript">
+        function updateHeight(){
+            updateGridHeight();
+        }
+
+        layout =
+                {
+                    SEARCH_FORM_ID:                 'attrsSearchForm',
+                    SEARCH_RESULT_FORM_ID:          'attrsForm',
+                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                    SEARCH_RESULT_FOOTER_FORM_ID:   'attrsBtnForm',
+                    TAB_PANEL_ID:                   'workplacePanel',
+
+                    TAB_DATA:      [{
+                        TAB_FORM_ID:            'attrDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'attrDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                    }, {
+                        TAB_FORM_ID:            'attrScalesForm',
+                        TAB_FORM_WRAPPER_ID:    'attrScalesTableWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }, {
+                        TAB_FORM_ID:            'feeRatesBtmForm',
+                        TAB_FORM_WRAPPER_ID:    'feeRatesTableWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }, {
+                        TAB_FORM_ID:            'limitRatesBtmForm',
+                        TAB_FORM_WRAPPER_ID:    'limitRatesTableWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }]
+                };
+
+        updateHeight();
+        jQuery(window).resize(updateHeight);
+    </script>
+</ui:define>
+</ui:composition>
+</html>

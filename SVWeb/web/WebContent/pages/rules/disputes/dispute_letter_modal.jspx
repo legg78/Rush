@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:fmt="http://www.bpc.ru/el/formatter"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition>
+    <rich:modalPanel id="createLetterWindow" autosized="true" minWidth="200" minHeight="50">
+        <script type="text/javascript">
+        //<![CDATA[
+            function displayReport() {
+                reportUrl = "#{request.contextPath}/pages/reports/reportWindow.jsf";
+                newWin = window.open(reportUrl,"_svReportWindow", "location=0,resizable=1,status=1,scrollbars=1,menubar=1,toolbar=0");
+                newWin.focus();
+            }
+
+        var mandatories;
+
+        function findMandatories() {
+            mandatories = new Array();
+            var m = 0;
+            var div = document.getElementById("createLetterWindowForm");
+            var selects = div.getElementsByTagName("select");
+            var inputs = div.getElementsByTagName("input");
+
+            for (var i = 0; i < selects.length; i++) {
+                if (selects[i].className.indexOf("mandatory") >= 0) {
+                    mandatories[m++] = selects[i];
+                }
+            }
+            for (var i = 0; i < inputs.length; i++) {
+                if (inputs[i].className.indexOf("mandatory") >= 0) {
+                    mandatories[m++] = inputs[i];
+                }
+            }
+        }
+
+        function checkMandatories() {
+            var result = true;
+            for (var i = 0; i < mandatories.length; i++) {
+                if (mandatories[i].value == "" || mandatories[i].value == null) {
+                    if (document.getElementById(mandatories[i].id + "Error") != null){
+                        document.getElementById(mandatories[i].id + "Error").style.display = "inline";
+                        result = false;
+                    }
+                }
+            }
+            return result;
+        }
+        //]]>
+        </script>
+
+        <f:facet name="header">
+            <h:outputText value="#{lblApp.create_letter}"/>
+        </f:facet>
+        <f:facet name="controls"/>
+
+        <h:form id="createLetterWindowForm">
+            <h:panelGroup style="font-weight: bold;" layout="block">
+                <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                    <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstCol firstColModal, width250">
+                        <h:panelGroup>
+                            <h:outputText value="#{lblFrp.case_id}* :" title="#{lblFrp.case_id}"/>
+                        </h:panelGroup>
+                        <h:panelGroup>
+                            <h:inputText id="letterApplId"
+                                         value="#{MbDspLetter.applicationId}" title="#{MbDspLetter.applicationId}"
+                                         rendered="#{MbDspLetter.applicationId != null}"
+                                         readonly="true" />
+                            <h:inputText id="letterApplIds"
+                                         rendered="#{MbDspLetter.applicationId == null}"
+                                         value="#{lblApp.list_of_app_ids}" title="#{lblApp.list_of_app_ids}"
+                                         readonly="true" />
+                        </h:panelGroup>
+
+                        <h:outputText value="#{lblApp.letter_template}* :" title="#{lblApp.letter_template}"/>
+                        <h:selectOneMenu id="letterTemplate" value="#{MbDspLetter.templateId}" >
+                            <f:selectItem itemValue=""/>
+                            <f:selectItems value="#{MbDspLetter.templates}"/>
+                            <a4j:support event="onchange"
+                                         ajaxSingle="true" limitToList="true"
+                                         action="#{MbDspLetter.findTemplate()}"
+                                         reRender="createLetterWindowForm"/>
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+
+                    <h:panelGroup id="templateParamsGroup" rendered="#{MbDspLetter.showParameters}">
+                        <table id="templateParams">
+                            <a4j:repeat id="templateParamsRepeat"
+                                        value="#{MbDspLetter.parameters}"
+                                        var="dparam">
+                                <tr>
+                                    <td style="text-align: right; min-width: 100px;">
+                                        <h:outputLabel value="#{dparam.name}  :"
+                                                       title="#{dparam.name}"
+                                                       style="font-weight: bold; white-space: nowrap;"
+                                                       rendered="#{!dparam.mandatory and dparam.name != null and !'I_APPL_ID'.equals(dparam.systemName)}"/>
+                                        <h:outputLabel value="#{dparam.systemName}  :"
+                                                       title="#{dparam.systemName}"
+                                                       style="font-weight: bold; white-space: nowrap;"
+                                                       rendered="#{!dparam.mandatory and dparam.name == null and !'I_APPL_ID'.equals(dparam.systemName)}"/>
+
+                                        <h:outputLabel value="#{dparam.name}* :"
+                                                       title="#{dparam.name}"
+                                                       style="font-weight: bold; white-space: nowrap;"
+                                                       rendered="#{dparam.mandatory and dparam.name != null and !'I_APPL_ID'.equals(dparam.systemName)}"/>
+                                        <h:outputLabel value="#{dparam.systemName}* :"
+                                                       title="#{dparam.systemName}"
+                                                       style="font-weight: bold; white-space: nowrap;"
+                                                       rendered="#{dparam.mandatory and dparam.name == null and !'I_APPL_ID'.equals(dparam.systemName)}"/>
+                                    </td>
+                                    <td>
+                                        <h:inputText id="paramValueV"
+                                                     style="width: 255px; padding-left: 0; padding-right: 0;"
+                                                     value="#{dparam.valueV}"
+                                                     disabled="#{!dparam.editable and dparam.editable != null}"
+                                                     rendered="#{(dparam.lovId == null) and (dparam.char or dparam.raw)}"
+                                                     maxlength="#{(dparam.dataLength != null) ? dparam.dataLength : 200}"/>
+
+                                        <h:inputText id="paramValueN"
+                                                     style="width: 255px; padding-left: 0; padding-right: 0;"
+                                                     value="#{dparam.valueN}"
+                                                     disabled="#{!dparam.editable and dparam.editable != null}"
+                                                     rendered="#{(dparam.lovId == null) and (dparam.number) and (!'I_APPL_ID'.equals(dparam.systemName))}"
+                                                     maxlength="#{(dparam.dataLength != null) ? dparam.dataLength : 200}"/>
+
+                                        <rich:calendar id="paramValueD"
+                                                       buttonIcon="/images/calendar.gif"
+                                                       datePattern="#{usession.datePattern}"
+                                                       inputStyle="width: 255px; padding-left: 0; padding-right: 0;"
+                                                       value="#{dparam.valueD}"
+                                                       rendered="#{dparam.date}"
+                                                       disabled="#{!dparam.editable and dparam.editable != null}"
+                                                       zindex="1000"
+                                                       timeZone="#{CommonUtils.timeZone}"/>
+
+                                        <h:inputTextarea id="paramValueC"
+                                                         style="width: 255px; padding-left: 0; padding-right: 0;"
+                                                         rows="5" cols="150"
+                                                         value="#{dparam.valueV}"
+                                                         disabled="#{!dparam.editable and dparam.editable != null}"
+                                                         rendered="#{dparam.clob}"
+                                                         maxlength="#{(dparam.dataLength != null) ? dparam.dataLength : 4000}"/>
+
+                                        <h:selectOneMenu id="paramValueLovN"
+                                                         style="width: 255px; padding-left: 0; padding-right: 0;"
+                                                         value="#{dparam.valueN}"
+                                                         disabled="#{!dparam.editable and dparam.editable != null}"
+                                                         rendered="#{(dparam.lovId != null) and (dparam.number)}">
+                                            <f:selectItem itemValue=""/>
+                                            <f:selectItems value="#{MbDspLetter.lovs[dparam.lovId]}"/>
+                                        </h:selectOneMenu>
+
+                                        <h:selectOneMenu id="paramValueLovV"
+                                                         style="width: 255px; padding-left: 0; padding-right: 0;"
+                                                         value="#{dparam.valueV}"
+                                                         disabled="#{!dparam.editable and dparam.editable != null}"
+                                                         rendered="#{(dparam.lovId != null) and (dparam.char or dparam.raw)}">
+                                            <f:selectItem itemValue=""/>
+                                            <f:selectItems value="#{MbDspLetter.lovs[dparam.lovId]}"/>
+                                        </h:selectOneMenu>
+                                    </td>
+                                </tr>
+                            </a4j:repeat>
+                        </table>
+                    </h:panelGroup>
+
+                    <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstCol firstColModal, width250">
+                        <h:outputText value="#{lblProcess.file_format}* :" title="#{lblProcess.file_format}"
+                                      style="padding-left: 26px;"/>
+                        <h:selectOneMenu id="letterFileFormat" value="#{MbDspLetter.fileFormat}" >
+                            <f:selectItem itemValue=""/>
+                            <f:selectItems value="#{MbDspLetter.fileFormates}"/>
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true"
+                                         reRender="letterApplId, letterApplIds, letterTemplate,
+                                                   letterFileFormat, letterCreateBtn"/>
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+
+            <h:commandLink id="run" action="#{MbDspLetter.generateFile}" value="run" style="display:none"/>
+
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="2" columnClasses="width99P,">
+                        <bre:taggedCommandButton id="letterCreateBtn" value="#{lblForm.create}"
+                                                 disabled="#{MbDspLetter.disableCreation}"
+                                                 onclick="disableModalPanelBtns(this);"
+                                                 action="#{MbDspLetter.createLetter}"
+                                                 oncomplete="returnFormFields();
+                                                             if (#{usession.noErrorResponse}) {
+                                                                 if (#{MbDspLetter.htmlReport}) {
+                                                                    displayReport();
+                                                                 } else {
+                                                                    document.getElementById('createLetterWindowForm:run').click();
+                                                                 }
+                                                                 Richfaces.hideModalPanel('createLetterWindow');
+                                                             }"
+                                                 reRender="createLetterWindowForm, mainTable, ds, pagesNum, btns, workplacePanel, dspApplicationsTable"/>
+                        <bre:taggedCommandButton id="letterCancelBtn"
+                                                 value="#{lblForm.cancel}"
+                                                 immediate="true"
+                                                 disabled="false"
+                                                 action="#{MbDspLetter.clearFilter}"
+                                                 oncomplete="#{rich:component('createLetterWindow')}.hide()"
+                                                 reRender="mainTable, ds, pagesNum, btns, workplacePanel, dspApplicationsTable"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </rich:modalPanel>
+</ui:composition>
+</html>

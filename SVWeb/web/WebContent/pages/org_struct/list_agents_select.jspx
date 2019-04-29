@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:my="http://mycompany.org/inputDate"
+		xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<o:loadBundle var="lblCommonQ" basename="ru.bpc.sv2.ui.bundles.Common"/>
+	<script type="text/javascript">
+//<!--
+	function checkParentsChildren(e) {
+		if (e == null) {
+			e = window.event;
+		}
+	
+		var src = e.target;
+		if (src == null) {
+			src = e.srcElement;
+		}
+		
+		var classes = new Array();
+		classes = src.className.split(" ");
+		var mainClass = "";
+		for (var i = 0; i < classes.length; i++) {
+			// seek for class with name like: "grantedClass_<agentId>_[<parentAgentId>]"
+			if (classes[i].match("^grantedClass_\\d+_(\\d+)?$")) {
+				mainClass = classes[i];
+			}
+		}
+
+		// if we didn't found class with a given pattern then it means 
+		// that checkbox has been rendered incorrectly
+		if (mainClass == "") {
+			alert("Error!");
+			return;
+		}
+	
+		var startIndex = mainClass.indexOf("_") + 1;
+		var endIndex = mainClass.lastIndexOf("_");
+		var id = mainClass.substring(startIndex, endIndex);
+	
+		// if element has parent and if this element was unchecked
+		if (endIndex + 1 < mainClass.length && !src.checked) {
+			startIndex = mainClass.lastIndexOf("_") + 1;
+			endIndex = mainClass.length;
+			var parentId = mainClass.substring(startIndex, endIndex);
+	
+			// get all inputs (among which i want to find checkboxes :))
+			var inputs = document.getElementsByTagName("INPUT");
+	
+			var checks = new Array();
+			var k = 0;
+			for (var i = 0; i < inputs.length; i++) {
+				// find checkboxes
+				if (inputs[i].type.toLowerCase() == "checkbox") {
+					checks[k++] = inputs[i];
+				}
+			}
+	
+			uncheckParents(parentId, checks);
+		} else if (src.checked) {
+			// get all inputs (among which i want to find checkboxes :))
+			var inputs = document.getElementsByTagName("INPUT");
+	
+			var checks = new Array();
+			var k = 0;
+			for (var i = 0; i < inputs.length; i++) {
+				// find checkboxes
+				if (inputs[i].type.toLowerCase() == "checkbox") {
+					checks[k++] = inputs[i];
+				}
+			}
+	
+			checkChildren(id, checks);
+		}
+	}
+
+	/**
+	 * Seeks for parent nodes recursively and unchecks them
+	 */
+	function uncheckParents(id, checks) {
+		var finish = false;
+		for (var i = 0; i < checks.length; i++) {
+			// get checkbox's style classes
+			var classes = checks[i].className.split(" ");
+	
+			for (var j = 0; j < classes.length; j++) {
+				// define needed checkbox by class name which 
+				// includes its own id (which is parent for current)
+				// and can include its parent id
+				if (classes[j].match("^grantedClass_" + id + "_\\d+$")) {
+					checks[i].checked = false;
+	
+					var parentId = classes[j].substring(classes[j].lastIndexOf("_") + 1);
+					
+					uncheckParents(parentId, checks);
+					finish = true;
+					break;
+				} else if (classes[j].match("^grantedClass_" + id + "_$")) {
+					checks[i].checked = false;
+	
+					finish = true;
+					break;
+				}
+			}
+			if (finish) {
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Seeks for children recursively and checks them
+	 */
+	function checkChildren(parentId, checks) {
+		for (var i = 0; i < checks.length; i++) {
+			// get checkbox's style classes
+			var classes = checks[i].className.split(" ");
+	
+			for (var j = 0; j < classes.length; j++) {
+				// define needed checkbox by class name which 
+				// includes its own id and parent id
+				if (classes[j].match("^grantedClass_\\d+_" + parentId + "$")) {
+					checks[i].checked = true;
+					
+					var id = classes[j].substring(classes[j].indexOf("_") + 1, classes[j].lastIndexOf("_"));
+					checkChildren(id, checks);
+					
+					break;
+				}
+			}
+		}
+	
+	}
+
+	function checkOnlyOne(elem) {
+		var elems = document.getElementsByClassName("defAgentSelectorClass");
+		var assings = document.getElementsByClassName("assignedToUser");
+		for (var i = 0; i < elems.length; i++) {
+			if (elems[i].id != elem.id) {
+				elems[i].checked = false;
+				assings[i].disabled = false;
+			}
+		}
+	}
+
+	function checkAll(){
+		jQuery("input[class*='grantedClass_']").each(function (i, el) {
+			if(!el.checked && !el.disabled){
+				el.checked = true;
+			}
+		})
+	}
+
+	function uncheckAll(){
+		jQuery("input[class*='grantedClass_']").each(function (i, el) {
+			if(el.checked && !el.disabled){
+			   el.checked = false;
+			}
+		})
+	}
+	//-->
+	</script>
+
+	<f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost"/>
+	<a4j:queue name="qqueue" requestDelay="500" ignoreDupResponses="true" 
+		size="2" sizeExceededBehavior="dropNew"/>
+	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		<o:treeTable id="agentsTreeTable" var="agent" 
+	               expansionState="allExpanded"
+	               headerHorizSeparator="1px solid #D7DAC2"
+	               headerVertSeparator="1px solid #D7DAC2"
+	               headerSectionClass="res-tree-table-header"
+	               commonHeaderRowClass="res-tree-table-header"
+	               sortableHeaderClass="res-tree-table-header"
+	               sortedColumnHeaderClass="res-tree-table-header"
+	               sortableHeaderRolloverClass="res-tree-table-header"
+	               styleClass="res-tree-table"			               
+	               bodyOddRowClass="res-tree-table-row odd-tree-table"
+	               bodyRowClass="res-tree-table-row"
+	               verticalGridLines="1px solid #D7DAC2"		               
+	               cellpadding="0" cellspacing="0" 
+	               preloadedNodes="all"
+	               style="height: 200px">
+	        <o:scrolling/>
+	      	
+	      	<o:dynamicTreeStructure nodeChildren="#{MbUserAgents.nodeChildren}" nodeHasChildren="#{MbUserAgents.nodeHasChildren}" nodeKey="#{agent.id}"/>
+		    
+		    <o:singleNodeSelection 
+		    		nodePath="#{MbUserAgents.nodePath}" 
+		          	nodeData="#{MbUserAgents.node}"
+		          	keyboardSupport="false"
+		          	styleClass="treetable_selection"
+					>
+					<a4j:support event="onchange" eventsQueue="qqueue"/>
+			</o:singleNodeSelection>		
+	
+		    <o:treeColumn id="name" width="25%">
+		    	<f:facet name="header">
+		        	<h:outputText value="#{lblOst.agent_name}"/>
+		      	</f:facet>
+				<h:outputText value="#{agent.name}" 
+						 
+						title="#{agent.name}" 
+						styleClass="treeTableText"/>
+		    </o:treeColumn>
+	
+			<o:column id="agentId" width="25%">
+				<f:facet name="header">
+					<h:outputText value="#{lblCommonQ.id}" />
+				</f:facet>
+				<bm:entityDisplay  value="#{agent.id}"
+							description="#{agent.id}"/>
+			</o:column>
+
+			<o:column id="isGranted" width="25%">
+				<f:facet name="header">
+					<h:outputText value="#{lblAcm.access_granted}" />
+				</f:facet>
+				<h:selectBooleanCheckbox 
+						value="#{agent.assignedToUser}"
+						styleClass="treeTableText grantedClass_#{agent.id}_#{agent.parentId} assignedToUser"
+						onclick="checkParentsChildren(event)"
+						disabled="#{MbUserAgents.blockAgents || agent.grantFromRole || !(agent.assignedToUser and usession.inRole['REMOVE_AGENT_FROM_USER'] or !agent.assignedToUser and usession.inRole['ADD_AGENT_TO_USER']) || agent.defaultForUser}"
+						title="#{MbUserAgents.blockAgents ? lblAcm.privilege_from_inst : (agent.grantFromRole ? 'Granted from role' : '')}"
+						>
+				</h:selectBooleanCheckbox>
+				<h:outputText value="#{lblAcm.granted_from_inst_tt}"
+						title="#{lblAcm.granted_from_inst_tt}"
+						rendered="#{MbUserAgents.blockAgents}" style="color:gray"/>
+				<h:outputText value="#{lblAcm.granted_from_role_tt}" 
+						title="#{lblAcm.granted_from_role_tt}"
+						rendered="#{agent.grantFromRole}" style="color:gray"/>
+			</o:column>
+
+			<o:column id="isDefault" width="25%">
+				<f:facet name="header">
+					<h:outputText value="#{lblCommon.default_for_user}"/>
+				</f:facet>
+				<h:selectBooleanCheckbox id="agentDef"
+										 value="#{agent.defaultForUser}"
+										 disabled="#{MbUserAgents.defaultInst}"
+										 styleClass="treeTableText defAgentSelectorClass">
+					<a4j:support event="onchange"
+								 action="#{MbUserAgents.selectGranted}"
+								 oncomplete="checkOnlyOne(this);"
+								 eventsQueue="qqueue"
+								 reRender="agentsModalForm, agentsTreeTable"/>
+				</h:selectBooleanCheckbox>
+			</o:column>
+		</o:treeTable>
+	</h:panelGroup>
+
+	<rich:modalPanel id="warningPanel" showWhenRendered="false" zindex="99" 
+			rendered="#{MbUserAgents.blockAgents}" minWidth="400" minHeight="120" autosized="true">
+      	<f:facet name="header">
+       		<h:outputText value="#{lblMsg.warning_exc}"/>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+		<h:panelGrid columns="2">
+			<h:graphicImage url="/images/icon_warning.png"/>
+			<h:panelGroup style="float:right;padding: 10px; text-align: center; font-weight: bold">
+				<h:outputText value="#{lblMsg.agents_granted_from_insts}"/>
+			</h:panelGroup>
+		</h:panelGrid>
+	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons"
+					style="text-align:center">
+				<h:panelGroup styleClass="stdButton">
+					<bre:taggedCommandButton value="#{lblForm.ok}"
+							onclick="#{rich:component('warningPanel')}.hide()"
+							/>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:panelGroup>
+	</rich:modalPanel>
+
+	<f:verbatim rendered="#{MbUserAgents.blockAgents}">
+		<script type='text/javascript'><!--
+		//-->
+		</script>
+	</f:verbatim>
+
+	<h:panelGrid style="padding: 0 10px" id="warningGrid">
+		<h:outputText rendered="#{MbUserAgents.blockAgents}" 
+				value="#{lblMsg.agents_granted_from_insts}"
+				style="color: orange"/>
+	</h:panelGrid>
+
+</ui:composition>
+</html>

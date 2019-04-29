@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:fmt="http://www.bpc.ru/el/formatter"
+		>
+<ui:composition>
+	<style type="text/css">
+	.noBorder {
+		border-width: 0 !important;
+	}
+	.thinLine {
+		line-height: 10px !important;
+	}
+	</style>
+	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+
+	<h:form id="attrValuesForm">
+
+		<h:panelGroup id="attrValuesTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable
+					id="attrValuesTable"
+					styleClass="res-table" 
+					headerClass="res-table-header table-header-ext"
+					rowClasses=",odd"
+					selectedClass="res-table-selected"  
+					var="item"
+					value="#{MbAttributeValuesContext.attributeValues}"
+					selection="#{MbAttributeValuesContext.itemSelection}"
+
+					width="100%"
+					selectionMode="single"
+					enableContextMenu="true"
+					tableState="#{MbAttributeValuesContext.tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}"
+                    style="height: 100%;"
+                    >
+		           
+				<a4j:support event="onselectionchange" reRender="btnPanel" />
+	
+		       	<rich:column id="inherited_text" width="10%" style="padding:0;text-align: center">
+					<h:graphicImage value="/images/arrow-down-green.png" 
+							rendered="#{(not MbAttributeValuesContext.product and item.ownerProductId != null)
+									or (MbAttributeValuesContext.product and item.inherited)}"
+							title="#{MbAttributeValuesContext.inheritedText}">
+					</h:graphicImage>
+		       	</rich:column>
+		       	
+		        <rich:column id="mod_name" label="#{lblAcq.mod_name}" title="Mod" width="20%" sortBy="#{'modName'}">
+					<f:facet name="header">
+						<h:panelGroup>         
+							<script>if (#{(attrValuesBean==null)}) updateHeight(); else updateContextHeight('accountDetailsModalPanel');</script>
+							<h:outputText value="#{lblAcq.mod_name}" title="#{lblAcq.mod_name}"/>
+						</h:panelGroup>
+					</f:facet>
+	                <h:outputText value="#{item.modPriority} - #{item.modName}"
+	                		title="#{item.modPriority} - #{item.modName}"
+	                		rendered="#{item.modPriority != null}"/>
+	                <h:outputText value="#{item.modName}"
+	                		title="#{item.modName}"
+	                		rendered="#{item.modPriority == null}"/>
+		        </rich:column>
+		        
+		        <rich:column id="reg_date" label="#{lblRul.reg_date}" title="Register date" width="15%" sortBy="#{'regDate'}" rendered="false">
+					<f:facet name="header">
+						<h:outputText value="#{lblRul.reg_date}" title="#{lblRul.reg_date}"/>
+					</f:facet>
+					<h:outputText value="#{item.regDate}" title="#{item.regDate}">
+		            	<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+		            </h:outputText>
+		        </rich:column>
+	
+		        <rich:column id="eff_period" label="#{lblCommon.eff_period}" title="Effective period" width="30%" sortBy="#{'startDate'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.eff_period}" title="#{lblCommon.eff_period}"/>
+					</f:facet>
+					<f:facet name="filter">
+						<h:panelGroup>
+		                	<h:inputText value="#{MbAttributeValuesContext.effDate}" 
+		                			id="regDateFrom" style="width:80%" 
+									onclick="#{rich:component('dateCalendar')}.customExpand(event, #{rich:element('regDateFrom')}, #{rich:element('regDateFromBtn')});"
+									>
+								<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+								<a4j:support event="onchange" reRender="attrValuesTable"
+										action="#{MbAttributeValuesContext.filterByEffDate}"
+										ajaxSingle="true" limitToList="true"/>
+							</h:inputText>
+							<h:graphicImage
+									value="/images/calendar.gif"
+									onclick="#{rich:component('dateCalendar')}.customExpand(event, #{rich:element('regDateFrom')}, #{rich:element('regDateFromBtn')});"
+									id="regDateFromBtn" />	
+		                </h:panelGroup>
+						
+					</f:facet>
+					
+					<h:outputText 
+							value="#{fmt:formatDateRange(item.startDate, item.endDate, usession.datePattern, CommonUtils.timeZoneId)}"
+							title="#{lblPrd.registered}: #{fmt:formatDate(item.regDate, usession.datePattern, CommonUtils.timeZoneId)}; 
+									#{lblPrd.effective}: #{fmt:formatDateRange(item.startDate, item.endDate, usession.fullDatePattern, CommonUtils.timeZoneId)}"
+							/>
+		        </rich:column>
+		
+		        <rich:column id="value" label="#{lblAcq.value}" title="Value" width="20%" sortBy="#{'value'}">
+					<f:facet name="header">
+		            	<h:outputText value="#{lblAcq.value}" title="#{lblAcq.value}"/>
+					</f:facet>
+					
+					<h:outputText style="color: green;" value="*"
+	                		title="#{lblRul.attr_applie}"
+	                		rendered="#{item.actual}"/>
+		               
+					<h:outputText value="#{MbAttributeValuesContext.lovValue}" title="#{MbAttributeValuesContext.lovValue}" 
+							rendered="#{MbAttributeValuesContext.attribute.lovId != null}"/>
+					<ui:param name="fclModalPanel" value="#{fullViewIdColon}fclModalPanel" />
+
+					<h:outputText value="#{item.valueDesc}" title="#{item.valueDesc}" rendered="#{item.valueDesc != null}"/>
+					<h:outputText value="&#160;" rendered="#{item.valueDesc == null}"/>
+
+					<h:panelGroup rendered="#{MbAttributeValuesContext.attribute.attrEntityType == null and MbAttributeValuesContext.attribute.lovId == null}">
+			       		<h:outputText value="#{item.valueV}" title="#{item.valueV}"
+			       				rendered="#{MbAttributeValuesContext.charValue}" 
+			       				/>
+			       		<h:outputText value="#{item.valueN}" title="#{item.valueN}"
+			       				rendered="#{MbAttributeValuesContext.numberValue}" 
+			       				>
+			       			<bm:convertNumberNew minFractionDigits="0"/>
+			       		</h:outputText>
+			       		<h:outputText value="#{item.valueD}" title="#{item.valueD}"
+								rendered="#{MbAttributeValuesContext.dateValue}">
+							<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+						</h:outputText>
+					</h:panelGroup>
+		        </rich:column>
+		    </rich:extendedDataTable>
+		</h:panelGroup>
+	
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{fullViewIdColon==null and attrValuesBean==null}">
+	            <h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	            	<h:panelGroup />
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveAttrValueTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteAttrValueTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveAttrValueTableState" action="#{MbAttributeValuesContext.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteAttrValueTableState" action="#{MbAttributeValuesContext.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>		        			
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+	</h:form>
+</ui:composition>
+</html>

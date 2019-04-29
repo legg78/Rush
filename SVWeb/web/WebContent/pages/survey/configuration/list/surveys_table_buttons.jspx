@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:rich="http://richfaces.org/rich"
+>
+<ui:composition>
+	<h:form id="surveysTableButtonsForm">
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+				<ui:include src="/pages/utils/defaultDataScroller.jspx">
+					<ui:param name="dataScollerBean" value="#{MbSurveysSearch}"/>
+					<ui:param name="dataScollerTableId" value="surveysTable"/>
+					<ui:param name="dataScrollerRerender" value="surveysTableButtons, #{MbSurveysSearch.tabName}" />
+				</ui:include>
+
+				<h:panelGrid styleClass="buttons_block" columns="4" id="surveysTableButtons">
+					<bre:taggedCommandButton id="createItem"
+					                         action="#{MbSurveysSearch.createItem}"
+					                         value="#{lblForm.add}"
+					                         reRender="surveyEditModal"
+					                         oncomplete="#{rich:component('surveyEditModal')}.show()"
+					                         image="/images/create_doc.gif"
+					                         rendered="#{usession.inRole['ADD_SURVEYS']}"
+					/>
+					<bre:taggedCommandButton id="modifyItem"
+					                         styleClass="stdButton"
+					                         action="#{MbSurveysSearch.editItem}"
+					                         value="#{lblForm.edit}"
+					                         disabled="#{MbSurveysSearch.activeItem == null}"
+					                         oncomplete="#{rich:component('surveyEditModal')}.show()"
+					                         reRender="surveyEditModal" image="/images/edit.gif"
+					                         rendered="#{usession.inRole['MODIFY_SURVEYS']}"/>
+
+					<bre:taggedCommandButton id="removeItem"
+					                         styleClass="stdButton"
+					                         onclick="#{rich:component('deleteSurveyViewId:confirmPanel')}.show(); return false;"
+					                         value="#{lblForm.remove}"
+					                         disabled="#{MbSurveysSearch.activeItem == null}"
+					                         image="/images/delete.gif"
+					                         rendered="#{usession.inRole['REMOVE_SURVEYS']}"/>
+					<h:panelGroup styleClass="stdButton"/>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbSurveysSearch}"/>
+		<ui:param name="yesAction" value="removeItem"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+		<ui:param name="rerenderList" value="surveysTableForm, surveysTableButtonsForm, #{MbSurveysSearch.tabName}"/>
+		<ui:param name="confirmQuestion" value=" "/>
+		<ui:param name="subviewId" value="deleteSurveyViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+
+	<rich:modalPanel id="surveyEditModal" autosized="true" minWidth="100" minHeight="50">
+		<f:facet name="header">
+			<h:panelGroup>
+				<h:outputText value="#{lblSvy.new_survey}" rendered="#{MbSurveysSearch.newMode}"/>
+				<h:outputText value="#{lblSvy.edit_survey}" rendered="#{MbSurveysSearch.editMode}"/>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="surveyEditForm">
+			<h:panelGroup id="surveyFields">
+				<script type="text/javascript">
+                    //<!--
+                    function surveyGetSelectedDateFromNode(node) {
+                        if (!node.length) return null;
+                        var component = node[0].component;
+                        if (!component || !component.getSelectedDate()) return null;
+                        return component.getSelectedDate();
+                    }
+                    function checkSurveyFields() {
+                        var now = new Date();
+                        now.setHours(0, 0, 0, 0);
+
+                        var checked = true;
+
+                        checked = x$('#surveyEditForm .required').validate();
+
+                        var startDate = x$('#surveyEditForm:startDate');
+                        checked = startDate.validate({
+	                        check: function(value, node) {
+		                        var date = surveyGetSelectedDateFromNode(node);
+		                        if (!date) return true;
+		                        return date >= now;
+                            },
+                            errorLabelSuffix: 'InputDateError'
+                        }) && checked;
+
+                        checked = x$('#surveyEditForm:endDate').validate({
+                            check: function(value, node) {
+                                var startDateValue = surveyGetSelectedDateFromNode(startDate);
+                                if (!startDateValue) return true;
+                                var endDateValue = surveyGetSelectedDateFromNode(node);
+                                if (!endDateValue) return true;
+                                return endDateValue >= startDateValue;
+                            },
+                            errorLabelSuffix: 'InputDateError'
+                        }) && checked;
+
+                        return checked;
+                    }
+
+                    //-->
+				</script>
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" id="detailsData" width="100%"
+					             columnClasses="firstColModal, width250">
+						<h:outputLabel for="name"
+						               value="* #{lblCommon.name}: "
+						               title="#{lblCommon.name}"/>
+						<h:panelGroup layout="block">
+							<h:inputText id="name"
+							             maxlength="200"
+							             styleClass="required"
+							             value="#{MbSurveysSearch.newItem.name}"
+							             onblur="hideErrorField(this)">
+							</h:inputText>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							                id="nameError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.name}"/>
+							</h:outputFormat>
+						</h:panelGroup>
+
+						<h:outputLabel for="description"
+						               value="#{lblCommon.description}: "
+						               title="#{lblCommon.description}"/>
+						<h:panelGroup layout="block">
+							<h:inputTextarea id="description"
+							                 maxlength="200"
+							                 rows="3"
+							                 value="#{MbSurveysSearch.newItem.description}">
+							</h:inputTextarea>
+						</h:panelGroup>
+
+						<h:outputLabel for="instId"
+						               value="* #{lblCommon.institution}: "
+						               title="#{lblCommon.institution}"/>
+						<h:panelGroup layout="block">
+							<h:selectOneMenu id="instId"
+							                 styleClass="required"
+							                 value="#{MbSurveysSearch.newItem.instId}"
+							                 onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{DictUtils.institutes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							                id="instIdError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.institution}"/>
+							</h:outputFormat>
+						</h:panelGroup>
+
+						<h:outputLabel for="entityType"
+						               value="* #{lblCommon.entity_type}: "
+						               title="#{lblCommon.entity_type}"/>
+						<h:panelGroup layout="block">
+							<h:selectOneMenu id="entityType"
+							                 styleClass="required"
+							                 value="#{MbSurveysSearch.newItem.entityType}"
+							                 onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbSurveyParameterEntitiesSearch.entityTypes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							                id="entityTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.entity_type}"/>
+							</h:outputFormat>
+						</h:panelGroup>
+
+						<h:outputLabel for="surveyNumber"
+						               value="#{lblSvy.survey_number}: "
+						               title="#{lblSvy.survey_number}"/>
+						<h:panelGroup layout="block">
+							<h:inputText id="surveyNumber"
+							             maxlength="200"
+							             value="#{MbSurveysSearch.newItem.surveyNumber}">
+							</h:inputText>
+						</h:panelGroup>
+
+						<h:outputLabel for="status"
+						               value="#{lblCommon.status}: "
+						               title="#{lblCommon.status}"/>
+						<h:panelGroup layout="block">
+							<h:selectOneMenu id="status"
+							                 value="#{MbSurveysSearch.newItem.status}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbSurveysSearch.statuses}"/>
+							</h:selectOneMenu>
+						</h:panelGroup>
+
+						<h:outputLabel for="startDate"
+						               value="#{lblCommon.start_date}: "
+						               title="#{lblCommon.start_date}"/>
+						<h:panelGroup layout="block">
+							<rich:calendar buttonIcon="/images/calendar.gif"
+							               datePattern="#{usession.datePattern}"
+							               inputStyle="width:225px;"
+							               value="#{MbSurveysSearch.newItem.startDate}"
+							               id="startDate"
+							               zindex="1000"
+							               timeZone="#{CommonUtils.timeZone}"
+							               showApplyButton="true"
+							               oninputblur="hideErrorField(this)"
+							               onchanged="hideErrorField(this)">
+							</rich:calendar>
+							<h:outputFormat value="#{lblMsg.start_date_passed}" styleClass="errorMarker"
+							                id="startDateInputDateError" style="display:none;">
+							</h:outputFormat>
+						</h:panelGroup>
+
+						<h:outputLabel for="endDate"
+						               value="#{lblCommon.end_date}: "
+						               title="#{lblCommon.end_date}"/>
+						<h:panelGroup layout="block">
+							<rich:calendar buttonIcon="/images/calendar.gif"
+							               datePattern="#{usession.datePattern}"
+							               value="#{MbSurveysSearch.newItem.endDate}"
+							               id="endDate"
+							               inputStyle="width:225px;"
+							               zindex="1000"
+							               timeZone="#{CommonUtils.timeZone}"
+							               showApplyButton="true"
+							               oninputblur="hideErrorField(this)"
+							               onchanged="hideErrorField(this)">
+							</rich:calendar>
+							<h:outputFormat value="#{lblMsg.start_date_after_end_date}" styleClass="errorMarker"
+							                id="endDateInputDateError" style="display:none;">
+							</h:outputFormat>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton
+								value="#{lblForm.save}" type="submit"
+								reRender="surveysTableForm, surveysTableButtonsForm, #{MbSurveysSearch.tabName}"
+								action="#{MbSurveysSearch.saveItem}"
+								onclick="if (!checkSurveyFields()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); if(#{usession.noErrorResponse})#{rich:component('surveyEditModal')}.hide()"
+						/>
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}"
+								oncomplete="#{rich:component('surveyEditModal')}.hide();"
+								action="#{MbSurveysSearch.cancel}"
+								reRender="surveyEditForm"
+								limitToList="true"
+								immediate="true">
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

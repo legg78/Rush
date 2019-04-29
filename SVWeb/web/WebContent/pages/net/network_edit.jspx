@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<rich:modalPanel id="net_network_modal_panel" autosized="true" minWidth="200" minHeight="100">
+      	<f:facet name="header">
+      		<h:panelGroup id="net_network_modal_header">
+      			<h:outputText value="#{lblNet.new_network}" rendered="#{MbNetworks.newMode}"/>
+      			<h:outputText value="#{lblNet.edit_network}" rendered="#{MbNetworks.editMode}"/>
+      		</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+		<h:form id="networkEditForm">
+			<script type="text/javascript">
+//<!--
+				oldValue["networkEditForm"] = "#{MbNetworks.newNetwork.lang}";
+				
+				function checkNetworkFields() {
+					var checked = true;
+					
+					if (document.getElementById('networkEditForm:name').value == "") {
+						document.getElementById('networkEditForm:nameError').style.display = "inline";
+						checked = false;
+					}
+					
+					if (document.getElementById('networkEditForm:newNetInst').value == "") {
+						document.getElementById('networkEditForm:newNetInstError').style.display = "inline";
+						checked = false;
+					}								
+					
+					return checked;
+				}
+				//-->
+			</script>
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250 o_checkbox_column">
+		
+					<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="netLang" rendered="#{MbNetworks.newMode}" value="#{MbNetworks.newNetwork.lang}">
+							<f:selectItems value="#{MbNetworks.languages}"/>
+						</h:selectOneMenu>			
+						<h:selectOneMenu id="editLang" value="#{MbNetworks.newNetwork.lang}"
+								rendered="#{MbNetworks.editMode}"
+								onchange="document.getElementById('network:confirmPanelForm:newValue').value = this.value;
+										#{rich:component('network:confirmPanel')}.show()">
+							<f:selectItems value="#{MbNetworks.languages}"/>
+						</h:selectOneMenu>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0" style="text-align: left !important;">
+						<h:inputText id="name" value="#{MbNetworks.newNetwork.name}" 
+								label="#{lblCommon.name}" 
+								maxlength="200"
+								onblur="hideErrorField(this)">
+							<f:validateLength minimum="3"/>
+							<a4j:support event="onchange" reRender="nameErr" limitToList="true" />	
+						</h:inputText>
+						<rich:message for="name" id="nameErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="nameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+		
+					<h:outputLabel value="* #{lblCommon.default_inst}: " title="#{lblCommon.default_inst}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0" style="text-align:left">
+						<h:selectOneMenu id="newNetInst"
+								value="#{MbNetworks.newNetwork.instId}"
+								label="#{lblCommon.default_inst}"
+								disabled="#{MbNetworks.editMode}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbNetworks.institutions}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newNetInstError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.default_inst}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+		
+					<h:outputLabel value="#{lblNet.bin_table_scan_priority}: " title="#{lblNet.bin_table_scan_priority}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0" style="text-align: left !important;">
+						<h:inputText id="scanPriority" 
+								value="#{MbNetworks.newNetwork.binTableScanPriority}" 
+								label="#{lblNet.bin_table_scan_priority}" maxlength="4"
+								onkeypress="if (!numbersOnly(this, event)) return false;"/>
+						<rich:message for="scanPriority" id="scanPriorityErr" styleClass="errorMarker"
+								showDetail="false" showSummary="true"/>
+					</h:panelGrid>
+		
+					<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:inputTextarea id="newNetDesc" value="#{MbNetworks.newNetwork.description}"
+								rows="3" 
+								onkeypress="if (!limitText(event,this,2000)) return false;" 
+								label="#{lblCommon.description}">
+							<f:validateLength maximum="2000" />
+						</h:inputTextarea>
+						<rich:message for="newNetDesc" id="newNetDescErr" styleClass="errorMarker"/>
+					</h:panelGrid>
+					
+				</h:panelGrid>
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	      	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	      	    		<h:outputText/>
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+								action="#{MbNetworks.save}"
+								reRender="#{rerenderList}"
+								onclick="if (!checkNetworkFields()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this);if (#{usession.noErrorResponse}) #{rich:component('net_network_modal_panel')}.hide()"
+								/>
+		               	<bre:taggedCommandButton
+		                       	value="#{lblForm.cancel}" action="#{MbNetworks.close}"
+		                       	immediate="true" limitToList="true"
+		                       	oncomplete="#{rich:component('net_network_modal_panel')}.hide()"
+		                       	reRender="networkEditForm">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+		
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+	   	<ui:param name="backingBean" value="#{MbNetworks}"/>
+	   	<ui:param name="rerenderList" value="networkEditForm:name, networkEditForm:newNetDesc"/>
+	   	<ui:param name="editElem" value="networkEditForm:editLang"/>
+	   	<ui:param name="newValue" value="#{MbNetworks.newNetwork.lang}"/>
+	   	<ui:param name="subviewId" value="network"/>
+	   	<ui:param name="formName" value="networkEditForm" />
+	</ui:include>
+</ui:composition>
+</html>
+					

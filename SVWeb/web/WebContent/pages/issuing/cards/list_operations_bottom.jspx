@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:fmt="http://www.bpc.ru/el/formatter"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+	
+	<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+		
+		<rich:calendar buttonIcon="/images/calendar.gif" id="calendarOps" datePattern="#{usession.fullDatePattern}"  timeZone="#{CommonUtils.timeZone}"
+		onchanged="#{rich:component('calendarOps')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"
+		inputClass="hidden" buttonClass="hidden" showApplyButton="true" defaultTime="00:00"/>
+		
+		<script>
+			#{rich:component('calendarOps')}.customExpand=customExpand;
+		</script>
+		
+	<a4j:form id="operationSearchForm" rendered="#{operationsBean == null and !hideSearchFields}">
+	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		<a4j:outputPanel id="personPanel">
+              	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+          			<h:outputLabel for="dateFrom" value="#{lblOpr.host_date_from}: " title="#{lblOpr.host_date_from}" />
+          			<h:panelGroup>
+             				<h:inputText id="dateFrom" style="max-width:225px"
+             						value="#{MbOperationsBottom.hostDateFrom}"
+							onclick="#{rich:component('calendarOps')}.customExpand(event, #{rich:element('operationSearchForm:dateFrom')}, #{rich:element('operationSearchForm:dateFromBtn')});">
+						<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+					</h:inputText>
+					<h:graphicImage
+							value="/images/calendar.gif"
+							onclick="#{rich:component('calendarOps')}.customExpand(event, #{rich:element('operationSearchForm:dateFrom')}, #{rich:element('operationSearchForm:dateFromBtn')});"
+							id="dateFromBtn" />	
+             			</h:panelGroup>
+
+          			<h:outputLabel for="dateTo" value="#{lblOpr.host_date_to}: " title="#{lblOpr.host_date_to}" />
+          			<h:panelGroup>
+             				<h:inputText id="dateTo" style="max-width:225px"
+             						value="#{MbOperationsBottom.hostDateTo}"
+							onclick="#{rich:component('calendarOps')}.customExpand(event, #{rich:element('operationSearchForm:dateTo')}, #{rich:element('operationSearchForm:dateToBtn')});">
+						<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+					</h:inputText>
+					<h:graphicImage
+							value="/images/calendar.gif"
+							onclick="#{rich:component('calendarOps')}.customExpand(event, #{rich:element('operationSearchForm:dateTo')}, #{rich:element('operationSearchForm:dateToBtn')});"
+							id="dateToBtn" />	
+             			</h:panelGroup>
+           		</h:panelGrid>
+   		</a4j:outputPanel>
+   		<h:panelGrid columns="1">
+   			<bre:taggedCommandButton eventsQueue="queue"
+    				action="#{MbOperationsBottom.search}" oncomplete="enableModalPanelBtns(this)"
+    				disabled="#{!MbOperationsBottom.searching}"
+    				onclick="disableModalPanelBtns(this);"
+					reRender="operationsBtmForm:operationsTable, operationsBtmForm:viewBtn"
+  						image="/_img/icon_search.png" type="submit"
+   					value="#{lblForm.refresh}" style="width:85px;"/>
+   		</h:panelGrid>
+	</h:panelGrid>
+	</a4j:form>	
+	
+	<h:form id="operationsBtmForm">
+		<h:panelGroup id="operationsFormWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable
+					headerClass="res-table-header table-header-ext" 
+		           	selectedClass="res-table-selected" styleClass="res-table"           
+		           	rowClasses=",odd"
+		           	id="operationsTable"
+		           	var="item"
+		          	value="#{(operationsBean==null ? MbOperationsBottom : operationsBean).operations}"
+					selection="#{(operationsBean==null ? MbOperationsBottom : operationsBean).itemSelection}"
+					rows="0"
+		           	height="220px" 
+		           	selectionMode="single" enableContextMenu="true"
+		           	tableState="#{(operationsBean == null ? MbOperationsBottom : operationsBean).tableState}"
+		           	noDataLabel="#{lblCommon['no_records_found']}"
+		           	onRowMouseDown="handleMouseClick(event)">
+				           
+				<a4j:support event="onselectionchange" reRender="btnOperations, viewBtn" eventsQueue="operationsTable" ignoreDupResponses="true"/>
+				 
+				<rich:column id="operation_id" label="#{lblOpr.operation_id}" width="13%" sortBy="#{'id'}" sortOrder="ASCENDING">
+					<f:facet name="header">
+						<h:panelGroup>         
+							<script>updateHeight();</script>
+	                   		<h:outputText value="#{lblOpr.operation_id}" title="#{lblOpr.operation_id}" />
+	                   	</h:panelGroup>
+	                </f:facet>
+	                <bm:entityDisplay contextType="ENTTOPER" bean="#{(operationsBean==null ? MbOperationsBottom : operationsBean).class.name}" value="#{item.id}" link="true"/>
+		        </rich:column>
+	
+				<rich:column id="host_date_n_time" label="#{lblOpr.host_date_n_time}" width="12%" sortBy="#{'host_date'}" sortOrder="DESCENDING">
+					<f:facet name="header">
+						<h:outputText value="#{lblOpr.host_date_n_time}" title="#{lblOpr.host_date_n_time}"/>
+					</f:facet>
+					<h:outputText value="#{item.hostDate}">
+						<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss" timeZone="#{CommonUtils.timeZone}"/>
+					</h:outputText>
+				</rich:column>
+		
+		        <rich:column id="operation_amount" label="#{lblOpr.operation_amount}" width="13%" style="text-align: right" sortBy="#{'oper_amount'}">
+					<f:facet name="header">
+	                    <h:outputText value="#{lblOpr.operation_amount}" title="#{lblOpr.operation_amount}" />
+	                </f:facet>
+	                <div class="#{EntityIcons.objectsMapS['ENTT0046'][item.operCurrency]}" style="float:right; margin: 0 0 0 10px;"/>
+	                <h:outputText 
+	                		value="#{fmt:formatMoney(item.operAmount, CurrencyUtils.currencyObjectsMap[item.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.operCurrency]}" 
+	                		title="#{fmt:formatMoney(item.operAmount, CurrencyUtils.currencyObjectsMap[item.operCurrency].exponent)} #{CurrencyUtils.currencyMap[item.operCurrency]}"
+	                		/>
+		        </rich:column>
+	
+		        <rich:column id="operation_type" label="#{lblOpr.operation_type}" width="18%">
+					<f:facet name="header">
+	                    <h:outputText value="#{lblOpr.operation_type}" title="#{lblOpr.operation_type}"/>
+	                </f:facet>
+					<bm:entityDisplay contextType="ENTTOPER" bean="#{(operationsBean==null ? MbOperationsBottom : operationsBean).class.name}" value="#{DictUtils.articles[item.operType]}"/>					
+		        </rich:column>
+		        
+		        <rich:column id="reversal" label="#{lblOpr.reversal}" width="4%" style="text-align:center">
+		           	<f:facet name="header">
+	                    <h:outputText value="R" title="#{lblOpr.reversal}" />
+	                </f:facet>
+	                <h:selectBooleanCheckbox value="#{item.isReversal}" disabled="true"/>
+		        </rich:column>
+		        
+		        <rich:column id="msgType" label="#{lblOpr.msg_type}" width="10%"
+		        		style="overflow-x:hidden">
+		           <f:facet name="header">
+	                    <h:outputText value="#{lblOpr.msg_type}" title="#{lblOpr.msg_type}"/>
+	                </f:facet>
+	                <bm:entityDisplay contextType="ENTTOPER" bean="#{(operationsBean==null ? MbOperationsBottom : operationsBean).class.name}" value="#{DictUtils.articles[item.msgType]}"/>				                
+		        </rich:column>
+		        
+		        <rich:column id="sttlType" label="#{lblOpr.sttl_type}" width="10%"
+		        		style="overflow-x:hidden">
+		           <f:facet name="header">
+	                    <h:outputText value="#{lblOpr.sttl_type}" title="#{lblOpr.sttl_type}"/>
+	                </f:facet>
+	                <h:outputText value="#{DictUtils.articles[item.sttlType]}"
+		                	title="#{DictUtils.articles[item.sttlType]}"/>					            
+		        </rich:column>
+	
+		        <rich:column id="status" label="#{lblCommon.status}" width="10%" style="overflow-x:hidden">
+					<f:facet name="header">
+	                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+	                </f:facet>
+					<bm:entityDisplay contextType="ENTTOPER" bean="#{(operationsBean==null ? MbOperationsBottom : operationsBean).class.name}" value="#{DictUtils.articles[item.status]}"/>				
+		        </rich:column>
+		        
+		        <rich:column id="status_reason" label="#{lblOpr.status_reason}" width="10%"  style="overflow-x:hidden">
+					<f:facet name="header">
+	                    <h:outputText value="#{lblOpr.status_reason}" title="#{lblOpr.status_reason}"/>
+	                </f:facet>
+					<bm:entityDisplay contextType="ENTTOPER" bean="#{(operationsBean==null ? MbOperationsBottom : operationsBean).class.name}" value="#{DictUtils.articles[item.statusReason]}"/>		
+		        </rich:column>
+				<f:facet name="footer">                      
+	            </f:facet>
+		    </rich:extendedDataTable>
+		</h:panelGroup>
+		
+		<h:panelGroup layout="block"
+			styleClass="nocorner_search_result_block">
+			<h:panelGroup layout="block" styleClass="table_tools">
+				<h:panelGrid id="btnOperations" styleClass="fw buttons_block" columns="5" columnClasses=", table_tools_state">
+					<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+					<h:selectOneMenu id="rows_num"
+						value="#{(operationsBean==null ? MbOperationsBottom : operationsBean).rowsNum}" style="width:40px">
+						<a4j:support event="onchange"
+							reRender="operationsTable, dsopers, pagesNum, btnPanel, togglePanel" />
+						<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+					</h:selectOneMenu>
+
+					<rich:datascroller maxPages="10" fastControls="hide"
+						pagesVar="pages" styleClass="res-datascroller" id="dsopers"
+						for="operationsTable" reRender="btnPanel, togglePanel">
+						<f:facet name="first">
+							<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+						</f:facet>
+						<f:facet name="first_disabled">
+							<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+						</f:facet>
+						<f:facet name="last">
+							<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+						</f:facet>
+						<f:facet name="last_disabled">
+							<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+						</f:facet>
+						<f:facet name="previous">
+							<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+						</f:facet>
+						<f:facet name="previous_disabled">
+							<h:outputText value="#{lblCommon.prev}"
+								styleClass="prev-next-dis" />
+						</f:facet>
+						<f:facet name="next">
+							<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+						</f:facet>
+						<f:facet name="next_disabled">
+							<h:outputText value="#{lblCommon.next}"
+								styleClass="prev-next-dis" />
+						</f:facet>
+						<f:facet name="pages">
+						</f:facet>
+					</rich:datascroller>
+
+					<h:panelGroup id="pagesNum">
+						<h:outputText styleClass="strongClass" value="#{pages} " />
+						<h:outputText value=" #{lblCommon.pages}" />
+                              <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                              <h:outputText styleClass="strongClass" value="#{(operationsBean==null ? MbOperationsBottom : operationsBean).operations.rowCount}"/>
+                              <h:outputText value=" #{lblCommon.records}"/>
+                              <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveOperationTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteOperationTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveOperationTableState" action="#{(operationsBean==null ? MbOperationsBottom : operationsBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteOperationTableState" action="#{(operationsBean==null ? MbOperationsBottom : operationsBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+			<h:panelGrid id="btnPanelOpersBottom" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+				<bre:taggedCommandButton id="viewBtn"
+						reRender="opr_operation_view_modal_div" value="#{lblForm.view}"
+						oncomplete="#{rich:component('opr_operation_view_modal_panel')}.show()"
+						action="#{(operationsBean==null ? MbOperationsBottom : operationsBean).view}"
+						disabled="#{(operationsBean==null ? MbOperationsBottom : operationsBean).activeOperation == null}"
+						image="/images/create_doc.gif" />
+			</h:panelGrid>
+		</h:panelGroup>
+	</h:form>
+	
+	<ui:include src="/pages/operations/operationModal.jspx"></ui:include>
+</ui:composition>
+</html>

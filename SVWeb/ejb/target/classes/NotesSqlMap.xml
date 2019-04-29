@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="notes">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+
+    <resultMap  id="mapping-note"
+                class="ru.bpc.sv2.notes.ObjectNote">
+        <result property="id" column="id"/>
+        <result property="noteType" column="note_type"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="header" column="header"/>
+       	<result property="text" column="text"/>
+       	<result property="lang" column="lang"/>
+       	<result property="userId" column="user_id"/>
+       	<result property="userName" column="user_name"/>
+		<result property="regDate" column="reg_date" javaType="java.util.Date"/>
+		<result property="startDate" column="start_date" javaType="java.util.Date"/>
+		<result property="endDate" column="end_date" javaType="java.util.Date"/>
+	</resultMap>
+	
+	<select id="get-notes"
+			parameterClass="qparams"
+			resultMap="mapping-note">
+		<include refid="paginatedOpen"/>
+			SELECT 	 
+					  n.id
+					, n.entity_type
+					, n.object_id
+					, n.note_type
+					, n.reg_date
+					, n.start_date
+					, n.end_date
+					, n.lang
+					, n.header
+					, n.text
+					, n.user_id
+					, u.user_name
+			FROM 
+					ntb_ui_note_vw n, acm_ui_user_vw u
+			WHERE n.user_id = u.user_id(+)
+					AND n.lang = u.lang(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="text">upper(n.text) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="header">upper(n.header) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="userId">n.user_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">n.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="noteType">n.note_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">n.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">n.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">n.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="userName">upper(u.user_name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="showAll">
+					<isEqual property="filters[].value" compareValue="false">
+						((n.start_date is null OR n.start_date &lt; sysdate) and (n.end_date is null OR n.end_date &gt; sysdate))
+					</isEqual>
+				</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+	            	<isEqual property="sorting[].property" compareValue="header">n.header $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="text">n.text $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="entityType">n.entity_type $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="noteType">n.note_type $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="id">n.id $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="regDate">n.reg_date $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="userName">u.user_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="startDate">n.start_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="endDate">n.end_date $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-notes-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	 
+			n.*
+		FROM 
+			ntb_ui_note_vw n, acm_ui_user_vw u
+		WHERE n.user_id = u.user_id(+)
+			AND n.lang = u.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="text">upper(n.text) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="header">upper(n.header) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userId">n.user_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">n.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="noteType">n.note_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">n.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">n.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">n.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userName">upper(u.user_name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="showAll">
+				<isEqual property="filters[].value" compareValue="false">
+					((n.start_date is null OR n.start_date &lt; sysdate) and (n.end_date is null OR n.end_date &gt; sysdate))
+				</isEqual>
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-note"
+    		parameterClass="ru.bpc.sv2.notes.ObjectNote">
+    	{call NTB_UI_NOTE_PKG.add(
+				  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#           
+				, i_entity_type 	=> #entityType#
+				, i_object_id   	=> #objectId#
+				, i_note_type   	=> #noteType#
+				, i_lang        	=> #lang#
+				, i_header      	=> #header#
+				, i_text        	=> #text#
+				, i_start_date      => #startDate#
+				, i_end_date        => #endDate#
+				)}
+    </procedure>
+</sqlMap>

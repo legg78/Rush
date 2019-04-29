@@ -1,0 +1,206 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:o="http://openfaces.org/"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:ui="http://java.sun.com/jsf/facelets">
+<head>
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block"/>
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self';
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval';
+                   connect-src 'self';
+                   img-src 'self';
+                   style-src 'self' 'unsafe-inline';"/>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0, s-maxage=0"/>
+    <meta http-equiv="Pragma" content="no-cache"/>
+    <meta http-equiv="Expires" content="-1"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta http-equiv="referrer" content="no-referrer"/>
+    <link href="#{request.contextPath}/css/main.css" rel="stylesheet" type="text/css"/>
+    <link href="#{request.contextPath}/css/button.css" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/msdropdown/flags.css" />
+    <link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/msdropdown/currencies.css" />
+    <title>SmartVista - #{MbSystemInfo.instance}</title>
+
+    <script type="text/javascript" src="#{request.contextPath}/JavaScriptServlet"></script>
+
+</head>
+
+<body onload="#{!MbLogin.passwordExpired ? 'setTimeout(function(){doLogout();}, 1000)' : ''}">
+
+<h:panelGroup>
+    <f:event type="postAddToView" listener="#{MbLogin.init}" />
+</h:panelGroup>
+
+<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common" />
+<div class="sv_logo"></div>
+<div class="header">
+    <div id="logo">
+        <o:dynamicImage data="#{MbLogo.logo}"/>
+    </div>
+    <h:panelGroup id="userblock" layout="block">
+        <h:outputText value="SmartVista Suite "/>
+        <h:outputText value="#{MbSystemInfo.release}" />
+        <h:outputText value="Instance: " style="padding-left:15px;"/>
+        <h:outputText value="#{MbSystemInfo.instance} [#{MbSystemInfo.lastVersion}]" style="font-weight: bold" />
+    </h:panelGroup>
+</div>
+<div class="content">
+    <h:form>
+        <a4j:jsFunction name="setLocale" limitToList="true" ajaxSingle="true" reRender="loginLabel, passLabel, loginButton">
+            <a4j:actionparam name="lang" assignTo="#{MbSystemInfo.locale}"/>
+        </a4j:jsFunction>
+        <a4j:jsFunction name="doLogin" action="#{MbLogin.login}" oncomplete="document.getElementById('loginForm').submit()">
+            <a4j:actionparam name="j_username" assignTo="#{MbLogin.userName}"/>
+            <a4j:actionparam name="j_password" assignTo="#{MbLogin.password}"/>
+        </a4j:jsFunction>
+    </h:form>
+
+    <h:panelGroup style="display: #{!MbLogin.passwordExpired ? 'block' : 'none'}">
+        <form id="loginForm" action="#{request.contextPath}/j_security_check" method="post" style="display: #{MbLogin.canLogin ? 'block' : 'none'}" autocomplete="off">
+            <div class="search_block login_block" style="width:300px;margin-top:20px;">
+                <div class="search_block_left">
+                    <table style="width: 100%">
+                        <tr>
+                            <td>
+                                <table class="oneColumnTable">
+                                    <tr>
+                                        <td class="firstCol"><label>#{lblCommon.login}: </label></td>
+                                        <td class="secondCol"><input style="width:200px" type="text" name="j_username" id="j_username"
+                                                                     onselect="document.getElementById('submitBtn').disabled=''"
+                                                                     autocomplete="off"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="firstCol"><label>#{lblCommon.password}: </label></td>
+                                        <td>
+                                            <input id="j_password" type="hidden" name="j_password" value="" autocomplete="off"/>
+                                            <input style="width:200px" type="text" name="visible_pass" id="visible_pass"
+                                                       onselect="document.getElementById('submitBtn').disabled=''"
+                                                       autocomplete="off"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="bottom_search_result_block-tree" style="width:300px; margin-top:-10px;">
+                <div class="bottom_search_result_left-tree">
+                    <table width="100%">
+                        <tr>
+                            <td align="right">
+                                <button id="submitBtn" type="button" class="pzKpfwBtn" onclick="doLogin(document.getElementById('j_username').value, document.getElementById('j_password').value);">
+                                    <h:panelGroup id="loginButton">#{lblCommon.login }</h:panelGroup>
+                                </button>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </form>
+        <div style="color:red;font-weight:bold;margin-top:5px;">#{usession.loginFailedDesc}</div>
+        <script type="text/javascript">
+            document.getElementsByName("j_username")[0].focus();
+        </script>
+    </h:panelGroup>
+
+    <h:panelGroup rendered="#{MbLogin.passwordExpired}">
+        <div style="color:red;font-weight:bold;margin-top:5px; margin-bottom: 10px;">#{lblAcm.your_password_expired}</div>
+        <h:form id="newPasswordForm">
+            <h:panelGroup rendered="#{!usession.noErrorResponse and usession.unrenderedMessagesExist}">
+                <bre:messages style="color:red;padding-right:10px"/>
+            </h:panelGroup>
+            <div class="search_block login_block" style="width:350px;margin-top:20px;">
+                <div class="search_block_left">
+                    <h:panelGrid styleClass="oneColumnTable" columns="2" columnClasses="noWrap,secondCol">
+                        <h:outputLabel value="#{lblAcm.old_password}*: "/>
+                        <h:panelGroup>
+                            <h:inputSecret id="oldPassword" value="#{MbLogin.oldPassword}" redisplay="true"/>
+                            <h:message for="oldPassword" styleClass="errorMarkerBlock" style=""/>
+                        </h:panelGroup>
+
+                        <h:outputLabel value="#{lblAcm.new_password}*: "/>
+                        <h:panelGroup>
+                            <h:inputSecret id="newPassword" value="#{MbLogin.newPassword}" redisplay="true"/>
+                            <h:message for="newPassword" styleClass="errorMarkerBlock"/>
+                        </h:panelGroup>
+
+                        <h:outputLabel value="#{lblAcm.password_confirmation}*: "/>
+                        <h:panelGroup>
+                            <h:inputSecret id="newPasswordConfirm" value="#{MbLogin.newPasswordConfirm}" redisplay="true"/>
+                            <h:message for="newPasswordConfirm" styleClass="errorMarkerBlock"/>
+                        </h:panelGroup>
+                    </h:panelGrid>
+                </div>
+            </div>
+            <div class="bottom_search_result_block-tree" style="width:350px; margin-top:-10px;">
+                <div class="bottom_search_result_left-tree">
+                    <table width="100%">
+                        <tr>
+                            <td align="right">
+                                <bre:taggedCommandButton id="changePasswrodBtn" action="#{MbLogin.changePassword}" value="#{lblAcm.change_password}"
+                                                         disabled="#{MbLogin.passwordChanged}"
+                                                         type="submit" styleClass="pzKpfwBtn"
+                                                         reRender="newPasswordForm"
+                                />
+                                <bre:taggedCommandButton id="cancelBtn" action="#{usession.logout}" value="#{lblForm.cancel}"
+                                                         oncomplete="document.location.href='#{MbSystemInfo.websphere ? 'ibm_security_logout?logoutExitPage=' : ''}#{request.contextPath}/';"
+                                                         type="submit" styleClass="pzKpfwBtn"
+                                        />
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <h:panelGroup>
+                <script type="text/javascript">
+                    if ("#{MbLogin.passwordChanged}" == "true") {
+                        document.getElementById("j_username").value = "#{MbLogin.userName}";
+                        document.getElementById("j_password").value = "#{MbLogin.newPassword}";
+                        document.getElementById("loginForm").submit();
+                    }
+                </script>
+            </h:panelGroup>
+        </h:form>
+        <script type="text/javascript">
+            document.getElementById("newPasswordForm:oldPassword").focus();
+        </script>
+    </h:panelGroup>
+
+	<!-- Logout for websphere -->
+
+	<!-- Logout for non-websphere -->
+	<a4j:jsFunction name="doLogout" action="#{usession.logoutOnErrorPage}" ajaxSingle="true"/>
+</div>
+
+    <script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/patch.js"/>
+
+    <script type="text/javascript">
+        function MaskPassword() {
+            var offset = jQuery('#visible_pass').val().length - jQuery('#j_password').val().length;
+            if (offset &gt; 0) jQuery('#j_password').val(jQuery('#j_password').val() + jQuery('#visible_pass').val().substring(jQuery('#j_password').val().length, jQuery('#j_password').val().length + offset));
+            else if (offset &lt; 0) jQuery('#j_password').val(jQuery('#j_password').val().substring(0, jQuery('#j_password').val().length + offset));
+
+            jQuery('#visible_pass').val(jQuery('#visible_pass').val().substring(0, jQuery('#visible_pass').val().length).replace(/./g, "&#9679;"));
+        }
+        jQuery(document).ready(function() {
+          var input_pass = document.getElementById("visible_pass");
+          if (input_pass.attachEvent) {
+             input_pass.attachEvent("onpropertychange", function() {MaskPassword();});
+          }
+          else {
+             jQuery('#visible_pass').live('input', function() {MaskPassword();});
+          }
+        });
+    </script>
+
+    <rich:jQuery selector=".pzKpfwBtn" query="mousedown(function() {jQuery(this).addClass('pzKpfwBtnActive');})" />
+    <rich:jQuery selector=".pzKpfwBtn" query="mouseup(function() {jQuery(this).removeClass('pzKpfwBtnActive');})" />
+
+</body>
+</html>

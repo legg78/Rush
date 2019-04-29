@@ -1,0 +1,722 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="aup">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+     
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>               
+    </sql>
+
+    <sql id="paginatedClose">
+		<include refid="limitationClose"/>    
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-tag" class="ru.bpc.sv2.aup.Tag">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="tag" column="tag"/>
+        <result property="tagType" column="tag_type"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="reference" column="reference"/>
+        <result property="dbStored" column="db_stored" javaType="boolean" jdbcType="NUMBER"/>
+	</resultMap>
+	
+	<select id="get-tags"
+		    parameterClass="qparams"
+		    resultMap="mapping-tag">
+		<include refid="paginatedOpen"/>
+			SELECT 	
+					  t.id
+					, t.seqnum
+					, t.tag
+					, t.tag_type
+		            , t.name
+					, t.description
+					, t.reference
+		            , t.lang
+		            , t.db_stored
+		    FROM 
+		    		aup_ui_tag_vw t
+		    <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="tagType">t.tag_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(t.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dbStored">t.db_stored = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">upper(t.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="tagType">t.tag_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="tag">t.tag $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="dbStored">t.db_stored $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend="ORDER BY ">upper(t.name) ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-tags-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT t.id
+	    FROM aup_ui_tag_vw t	    	
+	    <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tagType">t.tag_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(t.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dbStored">t.db_stored = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-tag"
+			parameterClass="ru.bpc.sv2.aup.Tag">
+    	{call AUP_UI_TAG_PKG.add_tag(
+    			  o_id         	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum     	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_tag			=> #tag#
+				, i_tag_type	=> #tagType#
+				, i_lang    	=> #lang#
+				, i_name		=> #name#
+				, i_description	=> #description#
+				, i_reference 	=> #reference#
+				, i_db_stored   => #dbStored#
+				)}
+	</procedure>
+	
+	<procedure id="modify-tag"
+			parameterClass="ru.bpc.sv2.aup.Tag">
+    	{call AUP_UI_TAG_PKG.modify_tag(
+    			  i_id         	=> #id#
+				, io_seqnum     => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_tag			=> #tag#
+				, i_tag_type	=> #tagType#
+				, i_lang    	=> #lang#
+				, i_name		=> #name#
+				, i_description	=> #description#
+				, i_reference	=> #reference#
+				, i_db_stored   => #dbStored#
+				)}
+	</procedure>
+
+	<procedure id="remove-tag"
+			parameterClass="ru.bpc.sv2.aup.Tag">
+    	{call AUP_UI_TAG_PKG.remove_tag(
+    			  i_id			=> #id#
+				, i_seqnum		=> #seqNum#
+				)}
+	</procedure>
+
+
+	<resultMap id="mapping-template" class="ru.bpc.sv2.aup.AuthTemplate">
+		<result property="id" column="id" />
+		<result property="seqNum" column="seqnum" />
+		<result property="templType" column="templ_type" />
+		<result property="respCode" column="resp_code" />
+		<result property="modId" column="mod_id" />
+		<result property="scaleId" column="scale_id" />
+		<result property="condition" column="condition" />
+		<result property="name" column="name" />
+		<result property="description" column="description" />
+		<result property="lang" column="lang" />
+	</resultMap>
+
+	<select id="get-templates" parameterClass="qparams" resultMap="mapping-template">
+		<include refid="paginatedOpen" />
+		SELECT t.id
+			, t.seqnum
+			, t.templ_type
+			, t.resp_code
+			, t.mod_id
+			, t.scale_id
+			, t.condition
+			, t.name
+			, t.description
+			, t.lang
+		FROM
+		aup_ui_auth_template_vw t
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="templType">t.templ_type	= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respCode">t.resp_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(t.name)	like #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">t.id
+					$sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">upper(t.name)
+					$sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="templType">t.templ_type
+					$sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">upper(t.name) ASC
+		</isEmpty>
+		<include refid="paginatedClose" />
+	</select>
+
+	<select id="get-templates-count" parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT t.id
+		FROM aup_ui_auth_template_vw t
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">t.lang =	#filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="templType">t.templ_type	= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respCode">t.resp_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(t.name)	like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-template" parameterClass="ru.bpc.sv2.aup.AuthTemplate">
+		{call AUP_UI_SCHEME_PKG.add_template(
+			  o_templ_id    => #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum      => #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_templ_type  => #templType#
+			, i_resp_code   => #respCode#
+			, i_condition   => #condition#
+			, i_lang        => #lang#
+			, i_name        => #name#
+			, i_description => #description#
+		)}
+	</procedure>
+
+	<procedure id="modify-template" parameterClass="ru.bpc.sv2.aup.AuthTemplate">
+		{call AUP_UI_SCHEME_PKG.modify_template(
+			  i_templ_id    => #id#
+			, io_seqnum     => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_templ_type  => #templType#
+			, i_resp_code   => #respCode#
+			, i_condition   => #condition#
+			, i_lang        => #lang#
+			, i_name        => #name#
+			, i_description => #description#
+		)}
+	</procedure>
+
+	<procedure id="remove-template" parameterClass="ru.bpc.sv2.aup.AuthTemplate">
+		{call AUP_UI_SCHEME_PKG.remove_template(
+			  i_templ_id    => #id#
+			, i_seqnum      => #seqNum#
+		)}
+	</procedure>
+
+
+	<resultMap id="mapping-scheme" class="ru.bpc.sv2.aup.AuthScheme">
+		<result property="id" column="id" />
+		<result property="seqNum" column="seqnum" />
+		<result property="instId" column="inst_id" />
+		<result property="instName" column="inst_name"/>
+		<result property="schemeType" column="scheme_type" />
+		<result property="scaleId" column="scale_id" />
+		<result property="respCode" column="resp_code" />
+		<result property="lang" column="lang" />
+		<result property="label" column="label" />
+		<result property="description" column="description" />
+		<result property="systemName" column="system_name" />
+	</resultMap>
+
+	<select id="get-schemes" parameterClass="qparams" resultMap="mapping-scheme">
+		<include refid="paginatedOpen" />
+		SELECT s.id
+			, s.seqnum
+			, s.inst_id
+			, i.name as inst_name
+			, s.scheme_type
+			, s.scale_id
+			, s.resp_code
+			, s.label
+			, s.description
+			, s.lang
+			, s.system_name
+		FROM
+			aup_ui_scheme_vw s,
+			ost_ui_institution_sys_vw i
+		WHERE
+		    s.inst_id = i.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeType">s.scheme_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(s.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				s.lang(+) = #filters[].value#
+				AND i.lang(+) = #filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">s.id
+					$sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="label">upper(s.label)
+					$sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="schemeType">s.scheme_type
+					$sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="instName">upper(i.name)
+                    $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="respCode">upper(s.resp_code)
+                    $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY upper(s.label)
+	    </isEmpty>
+		<include refid="paginatedClose" />
+	</select>
+
+	<select id="get-schemes-count" parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM aup_ui_scheme_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeType">scheme_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-scheme" parameterClass="ru.bpc.sv2.aup.AuthScheme">
+		{call AUP_UI_SCHEME_PKG.add_scheme(
+			o_scheme_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum 		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_scheme_type => #schemeType#
+			, i_inst_id 	=> #instId#
+			, i_resp_code 	=> #respCode#
+			, i_label 		=> #label#
+			, i_description => #description#
+			, i_lang 		=> #lang#
+			, i_system_name	=> #systemName#
+		)}
+	</procedure>
+
+	<procedure id="edit-scheme" parameterClass="ru.bpc.sv2.aup.AuthScheme">
+		{call AUP_UI_SCHEME_PKG.modify_scheme(
+			i_scheme_id 	=> #id#
+			, io_seqnum 	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_scheme_type => #schemeType#
+			, i_resp_code 	=> #respCode#
+			, i_label 		=> #label#
+			, i_description => #description#
+			, i_lang 		=> #lang#
+			, i_system_name	=> #systemName#
+		)}
+	</procedure>
+
+	<procedure id="delete-scheme" parameterClass="ru.bpc.sv2.aup.AuthScheme">
+		{call AUP_UI_SCHEME_PKG.remove_scheme(
+			i_scheme_id 	=> #id#
+			, i_seqnum 		=> #seqNum#)}
+	</procedure>
+
+	<select id="get-templates-for-scheme" parameterClass="qparams"
+		resultMap="mapping-template">
+		<include refid="paginatedOpen" />
+		SELECT t.id
+			, t.seqnum
+			, t.templ_type
+			, t.resp_code
+			, t.mod_id
+			, t.scale_id
+			, t.condition
+			, t.name
+			, t.description
+			, t.lang
+		FROM
+			aup_ui_scheme_template_vw t
+		WHERE
+			t.lang = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="schemeId">t.scheme_id
+				= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="templateId">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(t.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(t.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="condition">upper(t.condition) like #filters[].value#</isEqual>			
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">t.id
+					$sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">upper(t.name)
+					$sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="templType">t.templ_type
+					$sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="respCode">t.resp_code
+					$sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">upper(t.name) ASC
+		</isEmpty>
+		<include refid="paginatedClose" />
+	</select>
+
+	<select id="get-templates-for-scheme-count" parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT t.id
+		FROM aup_ui_scheme_template_vw t
+		WHERE
+			t.lang = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="schemeId">t.scheme_id
+				= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="templateId">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(t.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(t.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="condition">upper(t.condition) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<parameterMap class="java.util.Map" id="scheme-template-mapping">
+		<parameter property="schemeId" jdbcType="NUMBER" mode="IN" />
+		<parameter property="templateId" jdbcType="NUMBER" mode="IN" />
+	</parameterMap>
+
+	<procedure id="add_scheme_template" parameterMap="scheme-template-mapping">
+		{call AUP_UI_SCHEME_PKG.add_scheme_template(
+			i_scheme_id => ?
+			, i_templ_id => ?
+		)}
+	</procedure>
+
+	<procedure id="remove_scheme_template" parameterMap="scheme-template-mapping">
+		{call AUP_UI_SCHEME_PKG.remove_scheme_template(
+			i_scheme_id => ?
+			, i_templ_id => ?
+		)}
+	</procedure>
+
+	<resultMap id="mapping-scheme_object" class="ru.bpc.sv2.aup.AuthSchemeObject">
+		<result property="id" column="id" />
+		<result property="seqNum" column="seqnum" />
+		<result property="schemeId" column="scheme_id" />
+		<result property="entityType" column="entity_type" />
+		<result property="objectId" column="object_id" />
+		<result property="objectName" column="object_name" />
+		<result property="startDate" column="start_date" />
+		<result property="endDate" column="end_date" />
+		<result property="schemeName" column="scheme_name" />
+	</resultMap>
+
+	<select id="get-objects-for-scheme" parameterClass="qparams"
+		resultMap="mapping-scheme_object">
+		<include refid="paginatedOpen" />
+		SELECT t.id
+			, t.seqnum
+			, t.scheme_id
+			, t.entity_type
+			, t.object_id
+			, get_object_desc(i_object_id => object_id, i_entity_type => entity_type) object_name
+			, t.start_date
+			, t.end_date
+			, get_text ('aup_scheme', 'label', t.scheme_id) scheme_name			
+		FROM
+			aup_ui_scheme_object_vw t			
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeId">t.scheme_id
+				= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">t.object_id
+				= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">t.entity_type
+				= #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="scheme">t.scheme_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="startDate">t.start_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="endDate">t.end_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">t.entity_type $sorting[].direction$</isEqual>				
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">t.id ASC</isEmpty>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-objects-for-scheme-count" parameterClass="qparams"
+		resultClass="int">
+		SELECT count(t.id)
+		FROM aup_ui_scheme_object_vw t
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeId">t.scheme_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">t.object_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<procedure id="add-scheme-object" parameterClass="ru.bpc.sv2.aup.AuthSchemeObject">
+		{call AUP_UI_SCHEME_PKG.add_scheme_object(
+			o_scheme_object_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum 			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_scheme_id 		=> #schemeId#
+			, i_entity_type 	=> #entityType#
+			, i_object_id 		=> #objectId#
+			, i_start_date 		=> #startDate#
+			, i_end_date 		=> #endDate#
+		)}
+	</procedure>
+
+	<procedure id="edit-scheme-object" parameterClass="ru.bpc.sv2.aup.AuthSchemeObject">
+		{call AUP_UI_SCHEME_PKG.modify_scheme_object(
+			i_scheme_object_id 	=> #id#
+			, io_seqnum 		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_end_date 		=> #endDate#
+		)}
+	</procedure>
+	
+	<procedure id="remove-scheme-object" parameterClass="ru.bpc.sv2.aup.AuthSchemeObject">
+		{call AUP_UI_SCHEME_PKG.remove_scheme_object(
+			i_scheme_object_id 	=> #id#
+			, i_seqnum 		=> #seqNum#			
+		)}
+	</procedure>
+
+	<resultMap id="mapping-card-stat-resps" class="ru.bpc.sv2.aup.CardStatResp" >
+		<result property="id" column="id" />
+		<result property="seqnum" column="seqnum" />
+		<result property="instId" column="inst_id" />
+		<result property="operType" column="oper_type" />
+		<result property="cardState" column="card_state" />
+		<result property="cardStatus" column="card_status" />
+		<result property="pinPresence" column="pin_presence" />
+		<result property="respCode" column="resp_code" />
+		<result property="priority" column="priority" />
+		<result property="instName" column="inst_name" />
+		<result property="msgType" column="msg_type" />
+		<result property="participantType" column="participant_type" />		
+	</resultMap>
+
+	<select
+		id="get-card-stat-resps"
+		resultMap="mapping-card-stat-resps"
+		parameterClass="qparams">
+		<include refid="paginatedOpen" />
+		SELECT DISTINCT csr.id
+            , csr.seqnum
+            , csr.inst_id
+            , csr.oper_type
+            , csr.card_state
+            , csr.card_status
+            , csr.pin_presence
+            , csr.resp_code
+            , csr.priority
+            , csr.msg_type
+            , csr.participant_type
+            , inst.name inst_name
+         FROM   
+             aup_ui_card_status_resp_vw csr
+             , ost_ui_institution_any_vw inst
+         WHERE 
+            csr.inst_id = inst.id(+) 
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">inst.lang(+) = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">csr.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">csr.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">csr.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardState">csr.card_state = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardStatus">csr.card_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinPresence">csr.pin_presence = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respCode">csr.resp_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">csr.priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">csr.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">csr.participant_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">csr.id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="instName">inst_name $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operType">csr.oper_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardState">csr.card_state $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardStatus">csr.card_status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="pinPresence">csr.pin_presence $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="respCode">csr.resp_code $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="priority">csr.priority $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="msgType">csr.msg_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="participantType">csr.participant_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>		
+		<include refid="paginatedClose" />
+	</select>
+
+	<select
+		id="get-card-stat-resps-count"
+		parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT   
+			csr.id
+		FROM   
+     		aup_ui_card_status_resp_vw csr
+     	<iterate prepend="WHERE" conjunction="AND" property="filters">
+     		<isEqual property="filters[].element" compareValue="instId">csr.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">csr.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardState">csr.card_state = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardStatus">csr.card_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinPresence">csr.pin_presence = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respCode">csr.resp_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">csr.priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">csr.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">csr.participant_type = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-card-stat-resp"
+			parameterClass="ru.bpc.sv2.aup.CardStatResp">
+    	{call AUP_UI_CARD_STATUS_RESP_PKG.add_card_status_resp(
+    			o_id				=> #id,jdbcType=NUMERIC,mode=OUT#                 
+				, o_seqnum          => #seqnum,jdbcType=NUMERIC,mode=OUT# 
+				, i_inst_id			=> #instId#          
+				, i_oper_type       => #operType# 
+				, i_card_state      => #cardState# 
+				, i_card_status     => #cardStatus# 
+				, i_pin_presence    => #pinPresence# 
+				, i_resp_code       => #respCode# 
+				, i_priority        => #priority# 
+				, i_msg_type		=> #msgType#
+				, i_participant_type=> #participantType#
+				)}
+	</procedure>
+	
+	<procedure id="modify-card-stat-resp"
+			parameterClass="ru.bpc.sv2.aup.CardStatResp">
+    	{call AUP_UI_CARD_STATUS_RESP_PKG.modify_card_status_resp(
+    			i_id        		=> #id#      
+				, io_seqnum       	=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+				, i_inst_id       	=> #instId#
+				, i_oper_type     	=> #operType#
+				, i_card_state    	=> #cardState#
+				, i_card_status   	=> #cardStatus#
+				, i_pin_presence  	=> #pinPresence#
+				, i_resp_code     	=> #respCode#
+				, i_priority        => #priority#
+				, i_msg_type		=> #msgType#
+				, i_participant_type=> #participantType#
+				)}
+	</procedure>
+
+	<procedure id="remove-card-stat-resp"
+			parameterClass="ru.bpc.sv2.aup.CardStatResp">
+    	{call AUP_UI_CARD_STATUS_RESP_PKG.remove_card_status_resp(
+		    	i_id         		=> #id#       
+				, i_seqnum     		=> #seqnum#
+				)}
+	</procedure>
+
+	<resultMap  id="tag-value-map"
+            class="ru.bpc.sv2.aup.TagValue">
+	    <result property="authId" column="auth_id"/>
+	    <result property="tag" column="tag_id"/>
+	    <result property="tagValue" column="tag_value"/>
+	    <result property="tagName" column="name"/>
+	    <result property="lang" column="lang"/>
+        <result property="seqNumber" column="seq_number"/>
+	</resultMap>
+	
+	<select id="get-tag-values" parameterClass="qparams" resultMap="tag-value-map">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  tv.auth_id
+					, tv.tag_id
+					, tv.tag_value
+					, tv.name
+					, tv.lang
+					, tv.seq_number
+			FROM aup_ui_tag_value_vw tv
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="authId">tv.auth_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="tag">tv.tag_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">tv.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="authId">tv.auth_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="tag">tv.tag_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="tagValue">tv.tag_value $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="tagName">tv.name $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lang">tv.lang $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-tag-values-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+			SELECT tv.auth_id
+			FROM aup_ui_tag_value_vw tv
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="authId">tv.auth_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="tag">tv.tag_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">tv.lang = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+    <resultMap class="ru.bpc.sv2.aup.Amount" id="list-amount-map">
+		<result property="operId" column="oper_id" />
+    	<result property="amountType" column="amount_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="amountTypeDesc" column="amount_type_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="currency" column="currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="amountValue" column="amount" javaType="java.math.BigDecimal" jdbcType="NUMBER"/>
+    </resultMap>
+
+	<select id="get-amounts" parameterClass="qparams" resultMap="list-amount-map">
+		<include refid="paginatedOpen"/>
+		select oper_id
+		, amount_type
+		, amount_type_desc
+		, currency
+		, amount
+		from opr_ui_additional_amount_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+</sqlMap>

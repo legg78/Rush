@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblEvt" basename="ru.bpc.sv2.ui.bundles.Evt"/>
+
+	<h:form id="userCustomEventsForm">
+		<rich:extendedDataTable
+				id="customEventsTable"
+				var="item"
+				value="#{MbCustomEvents.customEvents}"
+				selection="#{MbCustomEvents.itemSelection}"
+				rows="#{MbCustomEvents.rowsNum}"
+				height="200px"
+				selectionMode="single"
+				rowClasses=",odd"
+				headerClass="res-table-header"
+				selectedClass="res-table-selected"
+				styleClass="res-table"
+				enableContextMenu="false"
+				noDataLabel="#{MbCustomEvents.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+				>
+
+			<a4j:support event="onselectionchange" ignoreDupResponses="true"
+					reRender="detailsTab, objectsTab, btnPanel"/>
+
+			<rich:column sortBy="#{'id'}" width="10%">
+				<f:facet name="header">
+					<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+				</f:facet>
+				<h:outputText value="#{item.id}" />
+			</rich:column>
+
+			<rich:column sortBy="#{'eventType'}" width="20%">
+				 <f:facet name="header">
+					 <h:outputText value="#{lblCommon.event_type}" title="#{lblCommon.event_type}" />
+				 </f:facet>
+				 <h:outputText value="#{DictUtils.articles[item.eventType]}"/>
+			</rich:column>
+
+			<rich:column sortBy="#{'deliveryAddress'}" width="30%">
+				 <f:facet name="header">
+					 <h:outputText value="#{lblNtf.delivery_address}" title="#{lblNtf.delivery_address}" />
+				 </f:facet>
+				 <h:outputText value="#{item.deliveryAddress}"/>
+			</rich:column>
+
+			<rich:column sortBy="#{'deliveryTime'}" width="30%">
+				 <f:facet name="header">
+					 <h:outputText value="#{lblNtf.delivery_time}" title="#{lblNtf.delivery_time}" />
+				 </f:facet>
+				 <h:outputText value="#{item.deliveryTime}"/>
+			</rich:column>
+
+			<rich:column sortBy="#{'status'}" width="10%">
+				<f:facet name="header">
+					<h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+				</f:facet>
+				<h:outputText value="#{DictUtils.articles[item.status]}" title="#{DictUtils.articles[item.status]}"/>
+			</rich:column>
+		</rich:extendedDataTable>
+
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+
+				<h:panelGrid id="btnPanel" columns="4" styleClass="itempanel">
+		    		<bre:taggedCommandButton id="setBtn"
+		                	value="#{lblForm.set}" reRender="customEventModalPanel"
+                   			oncomplete="#{rich:component('customEventModalPanel')}.show()"
+		                	action="#{MbCustomEvents.set}"
+		                	disabled="#{MbCustomEvents.activeCustomEvent == null || !MbCustomEvents.activeCustomEvent.customizable}"
+		        			image="/images/edit.gif"/>
+		    		<bre:taggedCommandButton id="deleteBtn"
+		                	value="#{lblForm.delete}" reRender="userCustomEventsForm, detailsTab"
+                   			onclick="if (!confirm('#{lblMsg.confirm_delete}')) return false;"
+		                	action="#{MbCustomEvents.delete}"
+		                	disabled="#{MbCustomEvents.activeCustomEvent == null || !MbCustomEvents.activeCustomEvent.customizable}"
+		        			image="/images/delete.gif"/>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+    <h:form>
+        <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbCustomEvents.tabName}">
+            <a4j:actionparam name="tabName" assignTo="#{MbCustomEvents.tabName}" />
+        </a4j:jsFunction>
+    </h:form>
+
+	<h:panelGroup styleClass="workplace">
+		<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+				contentClass="tab-content" selectedTab="#{MbCustomEvents.tabName}">
+
+			<rich:tab ontabenter="storeTab('detailsTab')" label="#{lblCommon.details}" name="detailsTab">
+				<f:facet name="label">
+					 <h:panelGroup styleClass="first tab-label" layout="block">
+						 <h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+					 </h:panelGroup>
+				</f:facet>
+
+				<h:panelGroup layout="block" id="detailsTab" styleClass="carddata-wrapper" style="height: 250px; overflow-y: hidden;">
+					<h:panelGroup layout="block" style="height: 221px">
+						<ui:include src="/pages/notifications/custom_event_details.jspx"></ui:include>
+					</h:panelGroup>
+					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+							<h:form>
+								<h:panelGrid columns="2" cellpadding="0" cellspacing="0" width="auto">
+
+								</h:panelGrid>
+							</h:form>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</rich:tab>
+
+			<rich:tab ontabenter="storeTab('objectsTab')" label="#{lblCommon.objects}" name="objectsTab" rendered="#{usession.inRole['VIEW_CUSTOM_OBJECTS']}">
+				 <f:facet name="label">
+					 <h:panelGroup styleClass="first tab-label" layout="block">
+						 <h:outputText value="#{lblCommon.objects}" title="#{lblCommon.objects}"/>
+					 </h:panelGroup>
+				 </f:facet>
+
+				<h:panelGroup layout="block" id="objectsTab" styleClass="carddata-wrapper" style="height: 250px; overflow-y: hidden;">
+					<h:panelGroup layout="block" style="height: 221px">
+						<ui:include src="/pages/notifications/list_custom_objects_bottom.jspx"></ui:include>
+					</h:panelGroup>
+				</h:panelGroup>
+			</rich:tab>
+		</rich:tabPanel>
+	</h:panelGroup>
+
+	<ui:include src="/pages/notifications/customEventEdit.jspx">
+		<ui:param name="rerenderList" value="userCustomEventsForm, detailsTab, objectsTab"/>
+		<ui:param name="disableChannel" value="true"/>
+	</ui:include>
+
+</ui:composition>
+</html>

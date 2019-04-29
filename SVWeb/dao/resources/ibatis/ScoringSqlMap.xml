@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+                        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="scr">
+    <!-- Common -->
+    <sql id="limitationOpen">
+        select * from (
+    </sql>
+
+    <sql id="limitationOpenCount">
+        select count(*) from (
+    </sql>
+
+    <sql id="limitationClose">
+        ) q
+        <isNotNull property="limitation" prepend=" where ">$limitation$</isNotNull>
+    </sql>
+
+    <sql id="paginatedOpen">
+        <include refid="limitationOpen"/>
+            select a.*, rownum r from (
+        <include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+        <include refid="limitationClose"/>
+        ) a
+        where rownum <![CDATA[<]]>= (#range.end# + 1)
+        )
+        where r >= (#range.start# + 1)
+    </sql>
+
+    <!-- Evaluation schemes -->
+    <resultMap id="map-get-schemes" class="ru.bpc.sv2.scoring.ScoringScheme">
+        <result column="id"        property="id"/>
+        <result column="seqnum"    property="seqNum"/>
+        <result column="inst_id"   property="instId"/>
+        <result column="inst_name" property="instName"/>
+        <result column="eval_name" property="name"/>
+        <result column="lang"      property="lang"/>
+    </resultMap>
+
+    <select id="get-schemes" parameterClass="qparams" resultMap="map-get-schemes">
+        <include refid="paginatedOpen"/>
+            select id
+                 , seqnum
+                 , inst_id
+                 , inst_name
+                 , eval_name
+                 , lang
+              from scr_ui_evaluation_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(eval_name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend=" order by " conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="auto">
+                <isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="instId">inst_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="name">upper(eval_name) $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" order by ">id asc</isEmpty>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-schemes-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select id
+              from scr_ui_evaluation_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(eval_name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <parameterMap id="map-add-scheme" class="ru.bpc.sv2.scoring.ScoringScheme">
+        <parameter property="id"     javaType="java.lang.Long"    jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="seqNum" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="name"   javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="lang"   javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="add-scheme" parameterMap="map-add-scheme">
+        {call scr_api_scheme_pkg.add_evaluation (
+              o_id       => ?
+            , o_seqnum   => ?
+            , i_inst_id  => ?
+            , i_name     => ?
+            , i_lang     => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-modify-scheme" class="ru.bpc.sv2.scoring.ScoringScheme">
+        <parameter property="id"     javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="seqNum" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="INOUT"/>
+        <parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="name"   javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="lang"   javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="modify-scheme" parameterMap="map-modify-scheme">
+        {call scr_api_scheme_pkg.modify_evaluation (
+              i_id       => ?
+            , io_seqnum  => ?
+            , i_inst_id  => ?
+            , i_name     => ?
+            , i_lang     => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-remove-scheme" class="java.util.Map">
+        <parameter property="id"    javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="force" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="remove-scheme" parameterMap="map-remove-scheme">
+        {call scr_api_scheme_pkg.remove_evaluation (
+              i_id     => ?
+            , i_force  => ?
+        )}
+    </procedure>
+
+    <!-- Scheme criterias -->
+    <resultMap id="map-get-criterias" class="ru.bpc.sv2.scoring.ScoringCriteria">
+        <result column="id"            property="id"/>
+        <result column="seqnum"        property="seqNum"/>
+        <result column="evaluation_id" property="evaluationId"/>
+        <result column="order_num"     property="order"/>
+        <result column="criteria_name" property="name"/>
+        <result column="lang"          property="lang"/>
+    </resultMap>
+
+    <select id="get-criterias" parameterClass="qparams" resultMap="map-get-criterias">
+        <include refid="paginatedOpen"/>
+            select id
+                 , seqnum
+                 , evaluation_id
+                 , order_num
+                 , criteria_name
+                 , lang
+              from scr_ui_criteria_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="schemeId">evaluation_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(criteria_name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend=" order by " conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="auto">
+                <isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="order">order_num $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" order by ">order_num asc</isEmpty>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-criterias-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select id
+              from scr_ui_criteria_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="schemeId">evaluation_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(criteria_name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <parameterMap id="map-add-criteria" class="ru.bpc.sv2.scoring.ScoringCriteria">
+        <parameter property="id"           javaType="java.lang.Long"    jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="seqNum"       javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="evaluationId" javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="order"        javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="name"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="lang"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="add-criteria" parameterMap="map-add-criteria">
+        {call scr_api_scheme_pkg.add_criteria (
+              o_id         => ?
+            , o_seqnum     => ?
+            , i_eval       => ?
+            , i_order_num  => ?
+            , i_name       => ?
+            , i_lang       => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-modify-criteria" class="ru.bpc.sv2.scoring.ScoringCriteria">
+        <parameter property="id"           javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="seqNum"       javaType="java.lang.Integer" jdbcType="NUMERIC" mode="INOUT"/>
+        <parameter property="evaluationId" javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="order"        javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="name"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="lang"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="modify-criteria" parameterMap="map-modify-criteria">
+        {call scr_api_scheme_pkg.modify_criteria (
+              i_id         => ?
+            , io_seqnum    => ?
+            , i_eval       => ?
+            , i_order_num  => ?
+            , i_name       => ?
+            , i_lang       => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-remove-criteria" class="java.util.Map">
+        <parameter property="id"    javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="force" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="remove-criteria" parameterMap="map-remove-criteria">
+        {call scr_api_scheme_pkg.remove_criteria (
+              i_id     => ?
+            , i_force  => ?
+        )}
+    </procedure>
+
+    <!-- Criteria values -->
+    <resultMap id="map-get-values" class="ru.bpc.sv2.scoring.ScoringValue">
+        <result column="id"          property="id"/>
+        <result column="seqnum"      property="seqNum"/>
+        <result column="criteria_id" property="criteriaId"/>
+        <result column="score"       property="score"/>
+        <result column="max_score"   property="maxScore"/>
+        <result column="value_name"  property="name"/>
+        <result column="lang"        property="lang"/>
+    </resultMap>
+
+    <select id="get-values" parameterClass="qparams" resultMap="map-get-values">
+        <include refid="paginatedOpen"/>
+            select s.id
+                 , s.seqnum
+                 , s.criteria_id
+                 , nvl(s.score, 0) as score
+                 , (select max(score)
+                      from scr_ui_value_vw
+                     where lang = s.lang
+                       and criteria_id = s.criteria_id
+                   ) as max_score
+                 , s.value_name
+                 , s.lang
+              from scr_ui_value_vw s
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="criteriaId">s.criteria_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(s.value_name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend=" order by " conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="auto">
+                <isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="score">s.score $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" order by ">s.id asc</isEmpty>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-values-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select id
+              from scr_ui_value_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="criteriaId">criteria_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(value_name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <parameterMap id="map-add-criteria-value" class="ru.bpc.sv2.scoring.ScoringValue">
+        <parameter property="id"         javaType="java.lang.Long"    jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="seqNum"     javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="criteriaId" javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="score"      javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="name"       javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="lang"       javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="add-criteria-value" parameterMap="map-add-criteria-value">
+        {call scr_api_scheme_pkg.add_value (
+              o_id      => ?
+            , o_seqnum  => ?
+            , i_crit    => ?
+            , i_score   => ?
+            , i_name    => ?
+            , i_lang    => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-modify-criteria-value" class="ru.bpc.sv2.scoring.ScoringValue">
+        <parameter property="id"         javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="seqNum"     javaType="java.lang.Integer" jdbcType="NUMERIC" mode="INOUT"/>
+        <parameter property="criteriaId" javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="score"      javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="name"       javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="lang"       javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="modify-criteria-value" parameterMap="map-modify-criteria-value">
+        {call scr_api_scheme_pkg.modify_value (
+              i_id       => ?
+            , io_seqnum  => ?
+            , i_crit     => ?
+            , i_score    => ?
+            , i_name     => ?
+            , i_lang     => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-remove-criteria-value" class="ru.bpc.sv2.scoring.ScoringValue">
+        <parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="remove-criteria-value" parameterMap="map-remove-criteria-value">
+        {call scr_api_scheme_pkg.remove_value (
+            i_id  => ?
+        )}
+    </procedure>
+
+    <!-- Grades -->
+    <resultMap id="map-get-grades" class="ru.bpc.sv2.scoring.ScoringGrade">
+        <result column="id"            property="id"/>
+        <result column="seqnum"        property="seqNum"/>
+        <result column="evaluation_id" property="evaluationId"/>
+        <result column="total_score"   property="totalScore"/>
+        <result column="grade"         property="grade"/>
+        <result column="value_name"    property="name"/>
+        <result column="lang"          property="lang"/>
+    </resultMap>
+
+    <select id="get-grades" parameterClass="qparams" resultMap="map-get-grades">
+        <include refid="paginatedOpen"/>
+            select id
+                 , seqnum
+                 , evaluation_id
+                 , total_score
+                 , grade
+                 , value_name
+                 , lang
+              from scr_ui_grade_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="schemeId">evaluation_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(value_name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend=" order by " conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="auto">
+                <isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="score">total_score $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" order by ">id asc</isEmpty>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-grades-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select id
+              from scr_ui_grade_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="schemeId">evaluation_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(value_name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <parameterMap id="map-add-grade" class="ru.bpc.sv2.scoring.ScoringGrade">
+        <parameter property="id"           javaType="java.lang.Long"    jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="seqNum"       javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="evaluationId" javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="totalScore"   javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="grade"        javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="name"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="lang"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="add-grade" parameterMap="map-add-grade">
+        {call scr_api_scheme_pkg.add_grade (
+              o_id           => ?
+            , o_seqnum       => ?
+            , i_eval         => ?
+            , i_total_score  => ?
+            , i_grade        => ?
+            , i_name         => ?
+            , i_lang         => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-modify-grade" class="ru.bpc.sv2.scoring.ScoringGrade">
+        <parameter property="id"           javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="seqNum"       javaType="java.lang.Integer" jdbcType="NUMERIC" mode="INOUT"/>
+        <parameter property="evaluationId" javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="totalScore"   javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="grade"        javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="name"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="lang"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="modify-grade" parameterMap="map-modify-grade">
+        {call scr_api_scheme_pkg.modify_grade (
+              i_id           => ?
+            , io_seqnum      => ?
+            , i_eval         => ?
+            , i_total_score  => ?
+            , i_grade        => ?
+            , i_name         => ?
+            , i_lang         => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-remove-grade" class="ru.bpc.sv2.scoring.ScoringGrade">
+        <parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="remove-grade" parameterMap="map-remove-grade">
+        {call scr_api_scheme_pkg.remove_grade (
+            i_id  => ?
+        )}
+    </procedure>
+</sqlMap>

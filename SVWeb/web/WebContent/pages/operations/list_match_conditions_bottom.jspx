@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net"/>
+	
+	<script type="text/javascript">//<![CDATA[			
+		function checkMatchConditionFields() {
+			var checked = true;
+			
+			if (document.getElementById('mlcModalDiv:newCondition').value == "") {
+				document.getElementById('mlcModalDiv:newConditionError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//]]>
+	</script>
+
+	<h:form id="mlcForm">
+		<h:panelGroup layout="block" style="margin:0px;padding:0px;"
+			id="mlcTableWrapper">
+			<rich:extendedDataTable id="mlcTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbMatchLevelConditions.matchLevelConditions}"
+				selection="#{MbMatchLevelConditions.itemSelection}"
+				rows="0" enableContextMenu="true"
+				tableState="#{MbMatchLevelConditions.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" reRender="mlcBtnPanel" />
+
+				<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="name" label="#{lblCommon.name}" sortBy="#{'name'}" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+					</f:facet>
+					<h:outputText value="#{item.conditionName}"
+						title="#{item.conditionName}" />
+				</rich:column>
+
+				<rich:column id="condition" label="#{lblOpr.condition}" sortBy="#{'condition'}" width="60%">
+					<f:facet name="header">
+						<h:outputText value="#{lblOpr.condition}"
+							title="#{lblOpr.condition}" />
+					</f:facet>
+					<h:outputText value="#{item.conditionCondition}"
+						title="#{item.conditionCondition}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+
+				<h:panelGrid id="mlcBtnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						reRender="mlcModalDiv, mlcModalHeader" value="#{lblForm.add}"
+						oncomplete="#{rich:component('mlcModalPanel')}.show()"
+						action="#{MbMatchLevelConditions.add}"
+						disabled="#{MbMatchLevelConditions.levelId == null}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						oncomplete="#{rich:component('deleteConditionViewId:confirmPanel')}.show()"
+						disabled="#{MbMatchLevelConditions.levelId == null || MbMatchLevelConditions.activeMatchLevelCondition == null}"
+						image="/images/delete.gif" />
+					</h:panelGroup>
+					
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveConditionTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteConditionTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveConditionTableState" action="#{MbMatchLevelConditions.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteConditionTableState" action="#{MbMatchLevelConditions.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="mlcModalPanel" autosized="true" minWidth="300" minHeight="50">
+ 	    <f:facet name="header">
+		    <h:outputText value="#{lblOpr.add_condition}"/>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+		<h:form id="mlcModalDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					
+					<h:outputLabel value="* #{lblOpr.condition}" title="#{lblOpr.condition}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="newCondition"
+								value="#{MbMatchLevelConditions.newMatchLevelCondition.conditionId}"
+								label="#{lblOpr.condition}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbMatchLevelConditions.conditions}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newConditionError" style="display:none;">
+							<f:param name="fieldName" value="#{lblOpr.condition}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbMatchLevelConditions.save}"
+                       			onclick="if (!checkMatchConditionFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('mlcModalPanel')}.hide()"
+                       			reRender="mlcForm"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" 
+                        		action="#{MbMatchLevelConditions.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('mlcModalPanel')}.hide()"
+                        		reRender="mlcModalDiv">
+	                       	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>		
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbMatchLevelConditions}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="mlcForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteConditionViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

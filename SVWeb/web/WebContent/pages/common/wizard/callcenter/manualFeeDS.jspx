@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html" xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles" xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:rich="http://richfaces.org/rich" xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:bpc="http://www.bpc.ru/jsf/misc">
+	<ui:composition template="./cardDetailsTemplate.jspx">
+		<ui:define name="stepContent">
+            <!--@elvariable id="stepBean" type="ru.bpc.sv2.ui.common.wizard.callcenter.MbManualFeeDS"-->
+			<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common" />
+			<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl" />
+
+			<h:form id="cardManualFeeDS" style="padding:10px;">
+				<ui:include src="/pages/common/wizard/commonWizardActions.jspx">
+					<ui:param name="bean" value="#{bean}" />
+					<ui:param name="action" value="#{action}" />
+				</ui:include>
+
+				<h:outputLabel value="#{lblCommon.select_card_instance}:" style="font-weight:bold;" />
+
+				<rich:extendedDataTable id="cardInstances"
+					var="item" value="#{stepBean.cardInstances}" selection="#{stepBean.cardInstancesSelection}"
+					rows="0" selectionMode="single" rowClasses=",odd" headerClass="res-table-header"
+					selectedClass="res-table-selected" styleClass="res-table" height="200px"
+					enableContextMenu="false" noDataLabel="#{lblCommon['no_records_found']}">
+
+					<a4j:support event="onselectionchange" ajaxSingle="true"
+						reRender="newStatus, invalidCardInstance" limitToList="true" />
+
+					<rich:column id="seq_number" label="#{lblIss.seq_number}"
+						title="Seq number" sortBy="#{'seqNumber'}" width="30%" sortOrder="DESCENDING">
+						<f:facet name="header">
+							<h:outputText value="#{lblIss.seq_number}" title="#{lblIss.seq_number}" />
+						</f:facet>
+						<h:outputText value="#{item.seqNumber}" />
+					</rich:column>
+
+					<rich:column id="status" label="#{lblCommon.status}"
+						title="Status" sortBy="#{'status'}" width="40%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}" />
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[item.status]}"
+							title="#{DictUtils.articles[item.status]}" />
+					</rich:column>
+
+					<rich:column id="expir_date" label="#{lblIss.expir_date}"
+						title="Expiration date" sortBy="#{'expirDate'}" width="30%">
+						<f:facet name="header">
+							<h:outputText value="#{lblIss.expir_date}" title="#{lblIss.expir_date}" />
+						</f:facet>
+						<h:outputText value="#{item.expirDate}">
+							<f:convertDateTime pattern="MM.yyyy"
+								timeZone="#{CommonUtils.timeZone}" />
+						</h:outputText>
+					</rich:column>
+				</rich:extendedDataTable>
+
+				<h:outputLabel id="invalidCardInstance" value="Please, select a card instance!"
+					styleClass="errorMarker" rendered="#{stepBean.invalidCardInstance}" />
+
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata"
+						columnClasses="width-150, width250">
+
+						<h:outputLabel for="feeType" title="#{lblFcl.fee_type}"
+							value="* #{lblFcl.fee_type}:" />
+
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="feeType" onblur="hideErrorField(this)"
+								value="#{stepBean.feeType}" label="#{lblFcl.fee_type}">
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{stepBean.feeTypes}" />
+							</h:selectOneMenu>
+
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="feeTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblFcl.fee_type}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel value="* #{lblCommon.currency}: "
+							title="#{lblCommon.currency}" />
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="currency" onblur="hideErrorField(this)"
+								value="#{stepBean.currency}" label="#{lblCommon.currency}">
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{stepBean.currencies}" />
+								<a4j:support event="onchange" ajaxSingle="true"
+									reRender="feeAmountGroup" limitToList="true" />
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="currencyError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.currency}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel for="feeAmount" title="#{lblFcl.fee_amount}"
+							value="* #{lblFcl.fee_amount}:" />
+
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0"
+							id="feeAmountGroup">
+							<h:inputText id="feeAmount" value="#{stepBean.feeAmount}"
+								label="#{lblFcl.fee_amount}" onblur="hideErrorField(this)">
+								<bpc:numericMaskConverter numericType="double" />
+								<f:attribute name="decDigits"
+									value="#{CurrencyUtils.currencyObjectsMap[stepBean.currency].exponent}" />
+							</h:inputText>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="feeAmountError" style="display:none;">
+									<f:param name="fieldName" value="#{lblFcl.fee_amount}"/>
+							</h:outputFormat>
+							<bpc:jsMask for="feeAmount" promtText="#{lblFcl.unlimited}"
+								decDigits="#{CurrencyUtils.currencyObjectsMap[stepBean.currency].exponent}" />
+						</h:panelGrid>
+
+						<h:outputLabel value="" />
+					</h:panelGrid>
+				</h:panelGroup>
+
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="width-150, width250">
+						<h:outputLabel for="skipProcess" title="#{lblFcl.skip_processing}" value="#{lblFcl.skip_processing}:"/>
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:selectBooleanCheckbox id="skipProcess" value="#{stepBean.skipProcessing}">
+								<a4j:support event="onchange" ajaxSingle="true" limitToList="true" reRender="skipProcess"/>
+							</h:selectBooleanCheckbox>
+						</h:panelGrid>
+
+						<h:outputLabel for="operStatus" title="#{lblFcl.operation_status}" value="#{lblFcl.operation_status}:"/>
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="operStatus"
+											 label="#{lblFcl.operation_status}"
+											 value="#{stepBean.operationStatus}">
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{stepBean.operationStatuses}" />
+								<a4j:support event="onchange" ajaxSingle="true" limitToList="true" reRender="operStatus"/>
+							</h:selectOneMenu>
+						</h:panelGrid>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:form>
+
+		</ui:define>
+	</ui:composition>
+</html>

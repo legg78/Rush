@@ -1,0 +1,430 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+      xmlns:fmt="http://www.bpc.ru/el/formatter"
+>
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+
+        <link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css"/>
+        <script type="text/javascript" src="#{request.contextPath}/js/stretch.js"/>
+
+        <f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+        <f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+        <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+        <f:loadBundle var="lblPrc" basename="ru.bpc.sv2.ui.bundles.Process"/>
+        <f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form" />
+        <f:loadBundle var="lblVis" basename="ru.bpc.sv2.ui.bundles.Cst"/>
+
+        <a4j:loadScript src="/js/stretch.js"/>
+        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+        <script type="text/javascript">
+            //<![CDATA[
+            function handleEnter(event) {
+                if (event.keyCode == 13) {
+                    document.getElementById('entitySearchForm:searchBtn').click();
+                    return false;
+                }
+                return true;
+            }
+            //]]>
+        </script>
+        <script type="text/javascript">
+            function updateHeight(){
+                updateGridHeight();
+            }
+            //<![CDATA[
+            layout =
+            {
+                SEARCH_FORM_ID: 'entitySearchForm',
+                SEARCH_RESULT_FORM_ID: 'entityForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID: 'mainTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID: 'entityBtnForm',
+                TAB_PANEL_ID: 'detailsTabPanel',
+
+                TAB_DATA: [
+                    {
+                        TAB_FORM_ID: 'jcbDetailsForm',
+                        TAB_FORM_WRAPPER_ID: 'jcbDetailsWrapper',
+                        CORRECTING_HEIGHT: Stretch.TABS - Stretch.BUTTONS
+                    }, {
+                        TAB_FORM_ID: 'jcbAddendumDetailsForm',
+                        TAB_FORM_WRAPPER_ID: 'jcbAddendumDetailsWrapper',
+                        CORRECTING_HEIGHT: Stretch.TABS - Stretch.BUTTONS
+                    }
+                ]
+            };
+            updateHeight();
+            jQuery(window).resize(updateHeight);
+            //]]>
+        </script>
+
+        <!-- navigation bar -->
+        <bpct:navBar pageName="#{lblCrd.debts}"/>
+
+        <!-- search panel -->
+        <h:form id="entitySearchForm" onkeypress="handleEnter(event)">
+            <h:panelGroup layout="block" styleClass="search_block">
+                <h:panelGroup layout="block" styleClass="search_block_inner1">
+                    <h:panelGroup layout="block" styleClass="search_block_inner2">
+                        <h:panelGroup layout="block" styleClass="search_block_left">
+                            <h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden-filter">
+                                <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                    <h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+                                                 columnClasses="firstCol,secondCol,firstCol,secondCol">
+                                        <h:outputLabel for="operationId"
+                                                       title="Operation ID " value="Operation ID:"/>
+                                        <h:inputText id="operationId"
+                                                     value="#{MbJcbFinMessagesSearch.filter.id}"
+                                                     onkeypress="if (!numbersOnly(this, event)) return false; "/>
+
+                                        <h:outputLabel for="cardNumber"
+                                                       title="#{lblCrd.card_number}"
+                                                       value="#{lblCrd.card_number}:"/>
+                                        <h:inputText id="cardNumber"
+                                                     value="#{MbJcbFinMessagesSearch.filter.de002Mask}"/>
+
+                                        <h:outputLabel for="networkRN"
+                                                       title="#{lblOpr.network_refnum}"
+                                                       value="#{lblOpr.network_refnum}:"/>
+                                        <h:inputText id="networkRN"
+                                                     value="#{MbJcbFinMessagesSearch.filter.de037}"/>
+
+                                        <h:outputLabel for="hostDate"
+                                                       value="#{lblAcq.oper_date}: "
+                                                       title="#{lblAcq.oper_date}" />
+                                        <bm:calendarField id="hostDate"
+                                                          value="#{MbJcbFinMessagesSearch.filter.de012}"/>
+
+                                        <h:outputLabel for="fileName"
+                                                       title="#{lblPrc.file_name}"
+                                                       value="#{lblPrc.file_name}:"/>
+                                        <h:inputText id="fileName"
+                                                     value="#{MbJcbFinMessagesSearch.filter.fileName}"/>
+                                    </h:panelGrid>
+                                    <h:panelGrid columns="1">
+                                        <h:panelGroup styleClass="stdButton">
+                                            <bre:taggedCommandButton action="#{MbJcbFinMessagesSearch.search}"
+                                                                     id="searchBtn"
+                                                                     image="/_img/icon_search.png"
+                                                                     type="submit"
+                                                                     value="#{lblForm.search}"
+                                                                     style="width:85px;"
+                                                                     reRender="entityTable, pagesNum, #{MbJcbFinMessagesSearch.tabName}"
+                                                                     oncomplete="enableModalPanelBtns(this);"
+                                                                     eventsQueue="queue"/>
+                                        </h:panelGroup>
+
+                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                            <h:graphicImage url="/_img/icon_clear.png"/>
+                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                             action="#{MbJcbFinMessagesSearch.clearFilter}"
+                                                             reRender="entitySearchForm, entityForm, entityBtnForm, detailsTabPanel"/>
+                                        </h:panelGroup>
+                                    </h:panelGrid>
+                                </h:panelGrid>
+                            </h:panelGroup>
+                            <a4j:outputPanel ajaxRendered="true">
+                                <h:panelGroup styleClass="show-more-vert" layout="block"/>
+                                <h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+                                <h:panelGroup styleClass="collapse-vert" layout="block"/>
+                            </a4j:outputPanel>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <!-- result panel -->
+        <h:form id="entityForm">
+            <h:panelGroup layout="block" styleClass="search_result_block">
+                <h:panelGroup layout="block" styleClass="search_result_block_left fix-ff">
+                    <h:panelGroup id="mainTableWrapper" layout="block" styleClass="search_result_block_inner">
+                        <rich:extendedDataTable id="entityTable"
+                                                styleClass="res-table"
+                                                tableState="#{MbJcbFinMessagesSearch.tableState}"
+                                                headerClass="res-table-header"
+                                                rowClasses=",odd"
+                                                selectedClass="res-table-selected"
+                                                var="item"
+                                                value="#{MbJcbFinMessagesSearch.items}"
+                                                selection="#{MbJcbFinMessagesSearch.itemSelection}"
+                                                rows="#{MbJcbFinMessagesSearch.rowsNum}"
+                                                selectionMode="single"
+                                                width="100%"
+                                                height="255px"
+                                                enableContextMenu="true"
+                                                noDataLabel="#{MbJcbFinMessagesSearch.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+                                                reRender="#{MbJcbFinMessagesSearch.tabName}">
+                            <a4j:support event="onselectionchange"
+                                         eventsQueue="queue"
+                                         limitToList="true"
+                                         reRender="#{MbJcbFinMessagesSearch.tabName}"/>
+
+                            <rich:column id="id" title="#{lblOpr.operation_id}"
+                                         label="#{lblOpr.operation_id}" sortBy="#{'id'}"
+                                         width="13%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.operation_id}"
+                                                  title="#{lblOpr.operation_id}"/>
+                                </f:facet>
+                                <h:outputText value="#{item.id}"
+                                              title="#{item.id}"/>
+                            </rich:column>
+
+                            <rich:column id="status" title="#{'Status'}"
+                                         label="#{lblCommon.status}" sortBy="#{'status'}"
+                                         width="8%">
+                                <f:facet name="header">
+                                    <a4j:outputPanel layout="none">
+                                        <h:outputText value="#{lblCommon.status}"
+                                                      title="#{lblCommon.status}"/>
+                                    </a4j:outputPanel>
+                                </f:facet>
+                                <h:outputText value="#{DictUtils.articles[item.status]}"
+                                              title="#{DictUtils.articles[item.status]}"/>
+                            </rich:column>
+
+                            <rich:column id="incoming" title="#{'Direction'}"
+                                         label="#{'D'}" sortBy="#{'incoming'}"
+                                         width="5%">
+                                <f:facet name="header">
+                                    <a4j:outputPanel layout="none">
+                                        <h:outputText value="#{'D'}"
+                                                      title="#{'Direction'}"/>
+                                    </a4j:outputPanel>
+                                </f:facet>
+
+                                <div title="#{item.isIncoming ? 'incoming' : 'outgoing'}"
+                                     class="default_icon #{item.isIncoming ? 'incoming' : 'outgoing'}"
+                                     style="float:right; margin: 0 0 0 10px;"/>
+                            </rich:column>
+
+                            <rich:column id="reversal" title="#{lblOpr.reversal}"
+                                         label="#{'R'}" sortBy="#{'reversal'}"
+                                         width="3%">
+                                <f:facet name="header">
+                                    <a4j:outputPanel layout="none">
+                                        <h:outputText value="#{'R'}"
+                                                      title="#{'Reversal'}" />
+                                    </a4j:outputPanel>
+                                </f:facet>
+                                <h:outputText value="#{item.isReversal ? '+' : '-'}"
+                                              title="#{'Reversal'}"/>
+                            </rich:column>
+
+                            <rich:column id="cardMask" title="#{lblCrd.card}"
+                                         label="#{lblCrd.card}" sortBy="#{'cardMask'}"
+                                         width="13%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCrd.card}"
+                                                  title="#{lblCrd.card}"/>
+                                </f:facet>
+                                <h:outputText value="#{item.de002Mask}"
+                                              title="#{item.de002Mask}"/>
+                            </rich:column>
+
+                            <rich:column id="refnum" title="#{lblOpr.network_refnum}"
+                                         label="#{lblOpr.network_refnum}" sortBy="#{'refnum'}"
+                                         width="13%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.network_refnum}"
+                                                  title="#{lblOpr.network_refnum}"/>
+                                </f:facet>
+                                <h:outputText value="#{item.de037}"
+                                              title="#{item.de037}"/>
+                            </rich:column>
+
+                            <rich:column id="operAmount" title="#{'Amount'}"
+                                         label="#{'Amount'}" sortBy="#{'operAmount'}"
+                                         width="10%" style="text-align: right">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.operation_amount}"
+                                                  title="#{lblOpr.operation_amount}"/>
+                                </f:facet>
+                                <div class="#{EntityIcons.objectsMapS['ENTT0046'][item.de049]}"
+                                     style="float:right; margin: 0 0 0 10px;"/>
+                                <h:outputText value="#{fmt:formatMoney(item.de004, CurrencyUtils.currencyObjectsMap[item.de049].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.de049]}" />
+                            </rich:column>
+
+                            <rich:column id="sttlAmount" title="#{lblOpr.sttl_amount}"
+                                         label="#{lblOpr.sttl_amount}" sortBy="#{'sttlAmount'}"
+                                         style="text-align: right" width="10%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.sttl_amount}"
+                                                  title="#{lblOpr.sttl_amount}"/>
+                                </f:facet>
+                                <div class="#{EntityIcons.objectsMapS['ENTT0046'][item.de050]}"
+                                     style="float:right; margin: 0 0 0 10px;"/>
+                                <h:outputText value="#{fmt:formatMoney(item.de005, CurrencyUtils.currencyObjectsMap[item.de050].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.de050]}" />
+                            </rich:column>
+
+                            <rich:column  id="fileName" title="#{'File name'}"
+                                          label="File name" sortBy="#{'file_name'}"
+                                          width="10%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblPrc.file_name}"
+                                                  title="#{lblPrc.file_name}"/>
+                                </f:facet>
+                                <h:outputText value="#{item.fileName}"
+                                              title="#{item.fileName}"/>
+                            </rich:column>
+                        </rich:extendedDataTable>
+                    </h:panelGroup>
+                    <a4j:outputPanel ajaxRendered="true">
+                        <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+                        <h:graphicImage url="/_img/hd_searchblock.gif"
+                                        styleClass="hd-searchblock"/>
+                        <h:panelGroup styleClass="collapse-vert table-collapse-vert"
+                                      layout="block"/>
+                    </a4j:outputPanel>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <!-- navigation footer-->
+        <h:form id="entityBtnForm">
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block" id="bottomSearchResultBlock">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+                    <h:panelGroup layout="block" styleClass="table_tools" id="tableTools">
+                        <h:panelGrid styleClass="fw field-cont" columns="5"
+                                     columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+                            <h:outputLabel title="#{lblCommon.rows_per_page}"
+                                           for="rows_num"
+                                           value="#{lblCommon.rows_per_page}"/>
+
+                            <h:selectOneMenu id="rows_num"
+                                             value="#{MbJcbFinMessagesSearch.rowsNum}"
+                                             styleClass="row_per_page">
+                                <a4j:support event="onchange"
+                                             reRender="entityBtnForm, entityTable, pagesNum, #{MbJcbFinMessagesSearch.tabName}"/>
+                                <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                            </h:selectOneMenu>
+
+                            <rich:datascroller id="dsentity"
+                                               maxPages="10"
+                                               fastControls="hide"
+                                               pagesVar="pages"
+                                               styleClass="res-datascroller"
+                                               for="entityTable"
+                                               reRender="#{MbJcbFinMessagesSearch.tabName}, pagesNum"
+                                               pageIndexVar="pageIndex">
+                                <f:facet name="first">
+                                    <h:outputText value="&lt;&lt;" styleClass="prev-next"/>
+                                </f:facet>
+                                <f:facet name="first_disabled">
+                                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis"/>
+                                </f:facet>
+                                <f:facet name="last">
+                                    <h:outputText value="&gt;&gt;" styleClass="prev-next"/>
+                                </f:facet>
+                                <f:facet name="last_disabled">
+                                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis"/>
+                                </f:facet>
+                                <f:facet name="previous">
+                                    <h:outputText value="#{lblCommon.prev}" styleClass="prev-next"/>
+                                </f:facet>
+                                <f:facet name="previous_disabled">
+                                    <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis"/>
+                                </f:facet>
+                                <f:facet name="next">
+                                    <h:outputText value="#{lblCommon.next}" styleClass="prev-next"/>
+                                </f:facet>
+                                <f:facet name="next_disabled">
+                                    <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis"/>
+                                </f:facet>
+                                <f:facet name="pages"/>
+                            </rich:datascroller>
+
+                            <h:panelGroup id="pagesNum">
+                                <h:outputText styleClass="strongClass" value="#{pages} "/>
+                                <h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                                <h:outputText styleClass="strongClass" value="#{MbJcbFinMessagesSearch.items.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                            </h:panelGroup>
+
+                            <h:panelGroup>
+                                <h:graphicImage url="/images/green-tick.png"
+                                                title="#{lblCommon.save_table_state}"
+                                                styleClass="action_icon"
+                                                onclick="saveTableState();"/>
+                                <h:graphicImage url="/images/red-cross.png"
+                                                title="#{lblCommon.delete_table_state}"
+                                                styleClass="action_icon"
+                                                onclick="deleteTableState();"/>
+                                <a4j:queue name="tablestatequeue"/>
+                                <a4j:jsFunction name="saveTableState"
+                                                action="#{MbJcbFinMessagesSearch.saveTableStateDB}"
+                                                eventsQueue="tablestatequeue"/>
+                                <a4j:jsFunction name="deleteTableState"
+                                                action="#{MbJcbFinMessagesSearch.deleteTableStateDB}"
+                                                eventsQueue="tablestatequeue"/>
+                            </h:panelGroup>
+                        </h:panelGrid>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true"
+                            reRender="#{MbJcbFinMessagesSearch.rerenderList}">
+                <a4j:actionparam name="tabName" assignTo="#{MbJcbFinMessagesSearch.tabName}"/>
+            </a4j:jsFunction>
+        </h:form>
+
+        <!-- workspace -->
+        <h:panelGroup layout="block" id="workplacePanel" styleClass="workplace">
+            <rich:tabPanel id="detailsTabPanel"
+                           switchType="client"
+                           tabClass="tab-cell"
+                           activeTabClass="active-tab-cell"
+                           headerClass="tabs"
+                           headerSpacing="0px"
+                           contentClass="tab-content"
+                           selectedTab="#{MbJcbFinMessagesSearch.tabName}">
+                <rich:tab name="jcbDetailTab"
+                          label="#{lblCommon.details}"
+                          ontabenter="storeTab('jcbDetailTab')">
+                    <f:facet name="label">
+                        <h:panelGroup layout="block" styleClass="first tab-label">
+                            <h:outputText value="#{lblCommon.details}"
+                                          title="#{lblCommon.details}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="jcbDetailsTab" layout="block" >
+                        <ui:include src="/pages/ps/jcb/messages/messageDetails.jspx"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab name="jcbAddendumTab"
+                          label="Addendum"
+                          ontabenter="storeTab('jcbAddendumTab')"
+                          style="height:100%;">
+                    <f:facet name="label">
+                        <h:panelGroup layout="block" styleClass="first tab-label">
+                            <h:outputText value="#{'Addendum'}" title="#{'Addendum'}" />
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="jcbAddendumsTab" layout="block" >
+                        <ui:include src="/pages/ps/jcb/messages/jcbAddendumBottom.jspx"/>
+                    </h:panelGroup>
+                </rich:tab>
+            </rich:tabPanel>
+        </h:panelGroup>
+    </ui:define>
+</ui:composition>
+</html>

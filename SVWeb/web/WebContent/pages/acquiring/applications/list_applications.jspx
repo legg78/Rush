@@ -1,0 +1,915 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent" >
+
+
+		<link rel="stylesheet" type="text/css" href="#{facesContext.externalContext.requestContextPath}/css/stretch.css" />
+		<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/stretch.js" />
+    
+    	<h:inputHidden value="#{MbApplicationsSearch.appTypeHidden}"/>
+    	
+    	<ui:include src="/pages/acquiring/applications/list_applicationsChecks.jspx"></ui:include>
+    	
+    	<script type="text/javascript">
+    	 //<![CDATA[
+		var selectedId;
+		function clear(el){
+			el.value ="";
+	   }
+
+		function clearContract() {
+			document.getElementById('appCreateForm:contractNumber').value ="";
+			document.getElementById('appCreateForm:contractNumberHidden').value ="";
+		}
+
+		function clearCustomer() {
+			document.getElementById('appCreateForm:customerNumber').value ="";
+			document.getElementById('appCreateForm:customerNumberHidden').value ="";
+			clearContract();			
+		}
+
+		function setCustomerNumberFilter() {
+			var value = document.getElementById('appCreateForm:customerNumber').value;
+			if (value != null && value != "") { 
+				document.getElementById('appsContractsForm:customerNumber').value = value;
+				document.getElementById('appsContractsForm:customerNumber').disabled = true;
+			} else {
+				document.getElementById('appsContractsForm:customerNumber').value = "";
+				document.getElementById('appsContractsForm:customerNumber').disabled = false;
+			}
+		}
+
+		function setContractNumber() {
+			var value = document.getElementById('appCreateForm:contractNumberHidden').value;
+			document.getElementById('appCreateForm:contractNumber').value = value;
+			setCustomerNumber();			
+		}
+
+		function setCustomerNumber() {
+			var value = document.getElementById('appCreateForm:customerNumberHidden').value;
+			document.getElementById('appCreateForm:customerNumber').value = value;
+		}
+		
+		function paintCells(){
+			jQuery('.status_succesfully').each(function(index, value){value.parentNode.parentNode.style.background = '#B2FFB2';});
+			jQuery('.status_failed').each(function(index, value){value.parentNode.parentNode.style.background = '#FFB2B2';});
+		}
+		
+		function handleEnter(event) {
+			 if (event.keyCode == 13) {
+				 document.getElementById('appsSearchForm:searchBtn').click(); 
+				 return false; 
+			} 
+			return true;
+		 }
+		 //]]>
+	</script>
+    	<f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+    	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+    	<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+    	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+    	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+		<f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost"/>
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+		<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+		<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+		<f:loadBundle var="lblAdt" basename="ru.bpc.sv2.ui.bundles.Adt"/>
+		<f:loadBundle var="lblInt" basename="ru.bpc.sv2.ui.bundles.Interchange"/>
+
+		<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+		
+		<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"  timeZone="#{CommonUtils.timeZone}"
+		onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"
+		inputClass="hidden" buttonClass="hidden"/>
+		
+		<script>
+			#{rich:component('calendar')}.customExpand=customExpand;
+		</script>
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{MbApplicationsSearch.pageName}"/>
+		<bpct:filterBarModalPanels id="filterPanels"
+			rerenderList="filtersTable, mainTable, ds, pagesNum, save_filter_panel_div"
+			selectedFilter="#{MbApplicationsSearch.selectedSectionFilter}"
+			sectionFilter="#{MbApplicationsSearch.sectionFilter}"
+			sectionFilterModeEdit="#{MbApplicationsSearch.sectionFilterModeEdit}"
+			searchAutomatically="#{MbApplicationsSearch.searchAutomatically}"
+			sectionId="#{MbApplicationsSearch.sectionId}"
+			beanName="MbApplicationsSearch"/>
+			
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+			   	
+    	<h:form id="appsSearchForm" onkeypress="handleEnter(event)">
+			<h:inputHidden value="#{MbApplicationsSearch.tabName}"
+						   id="tabNameInput" />
+			<script type="text/javascript">
+			 	load("appsSearchForm:tabNameInput");
+			</script>		
+			
+			<a4j:jsFunction name="refreshTab" eventsQueue="queue" limitToList="true" ajaxSingle="true"
+				reRender="#{MbApplicationsSearch.tabName}, err_ajax" action="#{MbApplicationsSearch.loadCurrentTab}"
+				oncomplete="setTabLoaded(submittingTab)">
+				<a4j:actionparam name="tabName" assignTo="#{MbApplicationsSearch.tabName}"/>
+			</a4j:jsFunction>
+			
+			<a4j:jsFunction name="setTabName" reRender="err_ajax" limitToList="true" ajaxSingle="true"
+				oncomplete="setTabLoaded(submittingTab)">
+				<a4j:actionparam name="tabName" assignTo="#{MbApplicationsSearch.tabName}"/>
+			</a4j:jsFunction>
+			
+			
+			<!-- search panel -->
+            <h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGroup styleClass="search_block_inner search_block_inner-hidden-filter" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol" id="filtersTable">
+                			
+	                			<h:outputLabel value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+					   			<h:selectOneMenu id="instId"
+												 disabled="#{MbApplicationsSearch.isInstitutionType()}"
+					      						 value="#{MbApplicationsSearch.filter.instId}">
+					   				<f:selectItem itemValue=""/>
+					   				<f:selectItems value="#{MbApplicationsSearch.institutions}"/>
+					   			</h:selectOneMenu>
+					   			
+                				<h:outputLabel value="#{lblCommon.id}:" title="#{lblCommon.id}" />
+	                			<h:inputText id="applicationId" value="#{MbApplicationsSearch.filter.id}" />
+	                			
+                				<h:outputLabel value="#{lblCommon.status}:" title="#{lblCommon.status}" />
+	                			<h:selectOneMenu  id="filter_status"
+	                							value="#{MbApplicationsSearch.filter.status}">
+	                				<f:selectItems value="#{MbApplicationsSearch.availableAppStatuses}"/>
+	                			</h:selectOneMenu>
+
+					   			<h:outputLabel value="#{lblAcq.terminal_number}: " title="#{lblAcq.terminal_number}"
+					   				rendered="#{MbApplicationsSearch.acquiringType}"/>
+					   			<h:inputText id="terminalNumber" value="#{MbApplicationsSearch.filter.terminalNumber}" 
+					   				rendered="#{MbApplicationsSearch.acquiringType}" disabled="#{MbApplicationsSearch.disabledTerminalNumber}"/>
+					   			
+					   			<h:outputLabel value="#{lblIss.card_number}: " title="#{lblIss.card_number}"
+					   				rendered="#{MbApplicationsSearch.issuingType}"/>
+					   			<h:inputText id="cardNumber" value="#{MbApplicationsSearch.filter.cardNumber}"
+					   				rendered="#{MbApplicationsSearch.issuingType}" disabled="#{MbApplicationsSearch.disabledCardNumber}"/>
+	                			
+					   			<h:outputLabel value="#{lblAcq.merchant_number}: " title="#{lblAcq.merchant_number}"
+					   				rendered="#{MbApplicationsSearch.acquiringType}"/>
+					   			<h:inputText id="merchantNumber" value="#{MbApplicationsSearch.filter.merchantNumber}"
+					   				rendered="#{MbApplicationsSearch.acquiringType}" disabled="#{MbApplicationsSearch.disabledMerchantNumber}"/>
+
+								<h:outputLabel value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}"
+											   rendered="#{!MbApplicationsSearch.ACMType and !MbApplicationsSearch.institutionType}"/>
+								<h:inputText id="customerNumber" value="#{MbApplicationsSearch.filter.customerNumber}"
+											 rendered="#{!MbApplicationsSearch.ACMType and !MbApplicationsSearch.institutionType}"/>
+					   			
+					   			<h:outputLabel value="#{lblAcc.account_number}: " title="#{lblAcc.account_number}"
+											   rendered="#{!MbApplicationsSearch.ACMType and !MbApplicationsSearch.institutionType}"/>
+								<h:inputText id="accountNumber" value="#{MbApplicationsSearch.filter.accountNumber}"
+											 rendered="#{!MbApplicationsSearch.ACMType and !MbApplicationsSearch.institutionType}"
+											 disabled="#{MbApplicationsSearch.disabledAccountNumber}"/>
+
+								<h:outputText value="#{lblCommon.date_from}:" title="#{lblCommon.date_from}" />
+								<rich:calendar id="dateFrom"
+											   buttonIcon="/images/calendar.gif"
+											   datePattern="#{usession.datePattern}"
+											   inputStyle="max-width:225px"
+											   value="#{MbApplicationsSearch.filter.appDateFrom}"/>
+
+	                			<h:outputLabel value="#{lblApp.appl_number}: " title="#{lblApp.appl_number}"/>
+					   			<h:inputText id="applicationNumber" value="#{MbApplicationsSearch.filter.applNumber}"/>
+
+								<h:outputText value="#{lblCommon.date_to}:" title="#{lblCommon.date_to}" />
+								<rich:calendar id="dateTo"
+											   buttonIcon="/images/calendar.gif"
+											   datePattern="#{usession.datePattern}"
+											   inputStyle="max-width:225px"
+											   value="#{MbApplicationsSearch.filter.appDateTo}"/>
+
+								<h:outputLabel value="#{lblApp.flow}:" title="#{lblApp.flow}"/>
+								<h:selectOneMenu id="appFlow" value="#{MbApplicationsSearch.filter.flowId}">
+									<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbApplicationsSearch.allApplicationFlows}"/>
+								</h:selectOneMenu>
+
+								<h:outputLabel value="#{lblPrd.contract_number}: " title="#{lblPrd.contract_number}" rendered="#{!MbApplicationsSearch.ACMType}"/>
+								<h:inputText id="contractNumber" value="#{MbApplicationsSearch.filter.contractNumber}" rendered="#{!MbApplicationsSearch.ACMType}"/>
+
+								<h:outputLabel value="#{lblAdt.user_id}: " title="#{lblAdt.user_id}" rendered="#{MbApplicationsSearch.ACMType}" />
+								<h:panelGroup rendered="#{MbApplicationsSearch.ACMType}">
+									<bm:custModalPanel
+											valueField = "#{MbApplicationsSearch.userId}"
+											beanName="MbApplicationsSearch"
+											modalBean="#{MbUserSearchModal}"
+											modalPage = "modalAppPage"
+											viewIdColon="custAppUser"
+											rerenderList = "userNameSearch" />
+								</h:panelGroup>
+
+								<h:outputLabel value="#{lblCommon.user_name}: " title="#{lblCommon.user_name}" rendered="#{MbApplicationsSearch.ACMType}"/>
+								<h:inputText value="#{MbApplicationsSearch.userName}" id="userNameSearch" rendered="#{MbApplicationsSearch.ACMType}"/>
+
+								<h:outputLabel value="#{lblCommon.role_id}: " title="#{lblCommon.role_id}" rendered="#{MbApplicationsSearch.ACMType}" />
+								<h:inputText value="#{MbApplicationsSearch.roleId}" rendered="#{MbApplicationsSearch.ACMType}"/>
+
+								<h:outputLabel value="#{lblCommon.role_name}: " title="#{lblCommon.role_name}" rendered="#{MbApplicationsSearch.ACMType}"/>
+								<h:inputText value="#{MbApplicationsSearch.roleName}" rendered="#{MbApplicationsSearch.ACMType}"/>
+
+								<h:outputLabel value="#{lblApp.priority_app}: " title="#{lblApp.priority_app}" rendered="#{MbApplicationsSearch.issuingType}"/>
+								<h:selectOneMenu id="priorityApp"
+												 value="#{MbApplicationsSearch.filter.prioritized}"
+												 rendered="#{MbApplicationsSearch.issuingType}" converter="BooleanConverter">
+									<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbApplicationsSearch.priorityList}"/>
+								</h:selectOneMenu>
+							</h:panelGrid>
+		                	<h:panelGrid columns="1" >
+		                		<bre:taggedCommandButton id="searchBtn"
+														 image="/_img/icon_search.png"
+														 type="submit"
+														 value="#{lblForm.search}"
+														 style="width:85px;"
+														 onclick="if (!checkApplicationFilters(#{MbApplicationsSearch.issuingType})){return false;} disableModalPanelBtns(this);"
+														 action="#{MbApplicationsSearch.search}"
+														 oncomplete="updateHeight(); enableModalPanelBtns(this)"
+														 reRender="mainTable, ds, pagesNum, btns, #{MbApplicationsSearch.tabName}"
+														 eventsQueue="queue"/>
+
+		                		<h:panelGrid columns="1" >
+			                		<h:panelGroup styleClass="link-clear" layout="block"  >
+			                			<h:graphicImage url="/_img/icon_clear.png"/>
+			                			<a4j:commandLink value="#{lblForm.clear_all}" oncomplete="updateHeight();"
+			                					action="#{MbApplicationsSearch.clearFilter}"
+			                					reRender="appsSearchForm, appsForm, appsBtnForm, #{MbApplicationsSearch.tabName}">
+			                			</a4j:commandLink>
+			                		</h:panelGroup>
+			                		
+			                		<h:panelGroup>
+										<bpct:filterBar sectionId="#{MbApplicationsSearch.sectionId}" />
+									</h:panelGroup>
+								</h:panelGrid>
+		                	</h:panelGrid>
+	                	</h:panelGrid>
+	                	</h:panelGroup>
+	                	<a4j:outputPanel ajaxRendered="true">
+		                	<h:panelGroup styleClass="show-more-vert" layout="block"/>
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>
+	                </h:panelGroup>
+				</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="appsForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+            	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+            		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+					    <rich:extendedDataTable
+								id="mainTable"
+					           	rowClasses=",odd"
+					           	var="item"
+					           	tableState="#{MbApplicationsSearch.tableState}"
+					           	value="#{MbApplicationsSearch.applications}"
+					           	selection="#{MbApplicationsSearch.itemSelection}"
+					           	rows="#{MbApplicationsSearch.rowsNum}"
+					           	selectionMode="single"
+					           	enableContextMenu="true" reRender="btns, err_ajax,  #{MbApplicationsSearch.tabName}"
+					           	noDataLabel="#{MbApplicationsSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+					           	onRowMouseDown="handleMouseClick(event)" binding="#{MbApplicationsSearch.table}">
+							<a4j:support event="onselectionchange"  
+								oncomplete="updateHeight();" 
+		                    	reRender="btns, #{MbApplicationsSearch.tabName}"
+		                    	ajaxSingle="true" eventsQueue="queue"/>
+                            <f:event type="preRenderComponent" listener="#{MbApplicationsSearch.onSortablePreRenderTable()}"></f:event>
+			                <rich:column title="Id" id="col_id" label="#{lblCommon.id}" 
+			                		width="#{MbApplicationsSearch.anyType ? '10%' : '13%'}" 
+			                 		sortBy="#{'id'}">
+								<f:facet name="header">	   
+		                        	<h:panelGroup>         
+		                        		<script>
+		                        			updateHeight();
+		                        			paintCells();
+		                        		</script>
+		                            	<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+		                            </h:panelGroup>
+		                        </f:facet>
+		                        <bm:entityDisplay  value="#{item.id}" bean="MbApplicationsSearch" contextType="ENTTAPPL" />	                        
+		                    </rich:column>
+
+							<rich:column title="Flow name" width="15%" sortBy="#{'flow_name'}"
+								id="col_flow" label="#{lblApp.flow}">
+								<f:facet name="header">
+									<h:outputText value="#{lblApp.flow}" title="#{lblApp.flow}" />
+								</f:facet>
+								<bm:entityDisplay value="#{item.flowName}" bean="MbApplicationsSearch" contextType="ENTTAPPL" />
+							</rich:column>
+
+							<rich:column title="Description" width="13%" sortBy="#{'appl_description'}"
+					        	id="description"
+					        	label="#{lblCommon.description}">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblCommon.description}" title="#{lblCommon.description}" />
+				                </f:facet>
+				                <bm:entityDisplay value="#{item.description}" bean="MbApplicationsSearch" contextType="ENTTAPPL" />
+					        </rich:column>
+
+					        <rich:column title="Status" width="12%" sortBy="#{'appl_status'}"
+					        	id="col_status"
+					        	label="#{lblCommon.status}">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}" />
+				                </f:facet>
+				                <bm:entityDisplay value="#{DictUtils.articles[item.status]}" bean="MbApplicationsSearch" contextType="ENTTAPPL"
+				                	 styleClass="#{(item.status == 'APST0007') ? 'status_succesfully' : (item.status == 'APST0008' ? 'status_failed' : '') }"/>
+					        </rich:column>
+
+					        <rich:column title="Created" id="created" 
+						        	width="#{MbApplicationsSearch.anyType ? '10%' : '11%'}" 
+						        	sortBy="#{'created'}" label="#{lblApp.created}">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblApp.created}" title="#{lblApp.created}" />
+				                </f:facet>
+				                <h:outputText value="#{item.created}" title="#{item.created}">
+					                <f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+										timeZone="#{CommonUtils.timeZone}" />
+								</h:outputText>
+					        </rich:column>
+
+					        <rich:column title="Last updated" id="lastUpdated" 
+						        	width="#{MbApplicationsSearch.anyType ? '10%' : '13%'}" 
+						        	sortBy="#{'last_updated'}" label="#{lblApp.last_updated}">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblApp.last_updated}" title="#{lblApp.last_updated}" />
+				                </f:facet>
+				                <h:outputText value="#{item.lastUpdated}" title="#{item.lastUpdated}">
+					                <f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+										timeZone="#{CommonUtils.timeZone}" />
+								</h:outputText>
+					        </rich:column>
+					        
+					        <rich:column title="Application Number" width="13%" sortBy="#{'appl_number'}"
+					        	label="#{lblApp.appl_number}">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblApp.appl_number}" title="#{lblApp.appl_number}" />
+				                </f:facet>
+				                <bm:entityDisplay value="#{item.applNumber}" bean="MbApplicationsSearch" contextType="ENTTAPPL" />
+					        </rich:column>
+	
+					        <rich:column title="Inst Id" width="10%" sortBy="#{'inst_name'}"
+					        	id="col_inst"
+					        	label="#{lblCommon.institution}">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}" />
+				                </f:facet>
+				                <bm:entityDisplay  entityId="#{item.instId}"
+									value="#{item.instName}" bean="MbApplicationsSearch" contextType="ENTTAPPL" />
+					        </rich:column>
+					        
+					        <rich:column title="Type" width="7%" sortBy="#{'appl_type'}" id="appType"
+					        		label="Type" rendered="#{MbApplicationsSearch.anyType}">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblCommon.type}" title="#{lblCommon.type}"/>
+				                </f:facet>
+				                <bm:entityDisplay value="#{DictUtils.allArticlesDesc[item.appType]}" bean="MbApplicationsSearch" contextType="ENTTAPPL" />
+					        </rich:column>
+
+							<rich:column id="selectApp" label="#{lblApp.action}" title="#{lblApp.action}" sortable="false"
+										 width="12%" rendered="#{usession.inRole['APPROVE_ISSUING_APPLICATION'] and MbApplicationsSearch.issuingType}">
+								<f:facet name="header">
+									<h:outputText value="#{lblApp.action}" title="#{lblApp.action}"/>
+								</f:facet>
+								<h:selectBooleanCheckbox id="select"
+														 value="#{MbApplicationsSearch.checkMap[item.id]}">
+									<a4j:support status="ajaxStatusTemp" event="onchange" limitToList="true" ajaxSingle="true"
+												 action="#{MbApplicationsSearch.onChangeAppSelect(item)}" reRender="btn_approve"/>
+								</h:selectBooleanCheckbox>
+							</rich:column>
+
+					        <f:facet name="footer">
+	
+				            </f:facet>
+					    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				   	 	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+				    	<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>				    
+				    	<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+            </h:form>
+
+            <h:form id="appsBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+	                        <h:selectOneMenu id="rows_num" value="#{MbApplicationsSearch.rowsNum}" styleClass="row_per_page">
+	                        	<a4j:support event="onchange" reRender="appsForm:mainTable, ds, pagesNum, btns, #{MbApplicationsSearch.tabName}"/>
+                        		<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+				                    pagesVar="pages" styleClass="res-datascroller"
+				                    reRender="appsBtnForm:btns, #{MbApplicationsSearch.tabName}"
+				                    id="ds" for="appsForm:mainTable" page="#{MbApplicationsSearch.pageNumber}">
+			                    <f:facet name="first">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="first_disabled">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="last">
+			                        <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="last_disabled">
+			                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="previous">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="previous_disabled">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="next">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="next_disabled">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="pages">
+			                    </f:facet>
+			                </rich:datascroller>
+
+                        	<h:panelGroup id="pagesNum">
+	                        	<h:outputText styleClass="strongClass" value="#{pages} "/>
+	                        	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbApplicationsSearch.applications.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                        	</h:panelGroup>
+                        	
+                        	<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbApplicationsSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbApplicationsSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+		            <h:panelGrid styleClass="buttons_block" columns="9" id="btns">
+						<bre:taggedCommandButton id="backBtn" value="#{lblForm.back}"
+								action="#{MbApplicationsSearch.back}" rendered="#{MbApplicationsSearch.showBackBtn}"/>
+		
+						<rich:spacer width="20px" rendered="#{MbApplicationsSearch.showBackBtn}"/>
+
+						<bre:taggedCommandButton id="btn_add"
+												 value="#{lblForm.add}"
+												 action="#{MbApplicationsSearch.action('btn_add')}"
+												 oncomplete="#{MbApplicationsSearch.oncomplete()}"
+												 image="/images/create_doc.gif"
+												 rendered="#{MbApplicationsSearch.isRendered('btn_add')}"
+												 reRender="appCreateForm, appSelectFlowForm, appCampaignForm"/>
+
+						<bre:taggedCommandButton id="btn_edit"
+												 value="#{lblForm.edit}"
+												 action="#{MbApplicationsSearch.action('btn_edit')}"
+												 disabled="#{(MbApplicationsSearch.activeApp == null) or
+												             (MbApplicationsSearch.activeApp.status == 'APST0007') or
+												             (MbApplicationsSearch.activeApp.status == 'APST0006')}"
+												 rendered="#{MbApplicationsSearch.isRendered('btn_edit')}"
+												 image="/images/edit.gif"/>
+
+						<bre:taggedCommandButton id="btn_view"
+												 value="#{lblForm.view}"
+												 reRender="mainTable, btn_edit"
+												 action="#{MbApplicationsSearch.action('btn_view')}"
+												 disabled="#{(MbApplicationsSearch.activeApp == null) or
+												            !((MbApplicationsSearch.activeApp.status != 'APST0001') and
+												              (MbApplicationsSearch.activeApp.status != 'APST0008') and
+												              (MbApplicationsSearch.activeApp.status != 'APST0003'))}"
+												 rendered="#{MbApplicationsSearch.isRendered('btn_view')}"/>
+
+						<bre:taggedCommandButton id="btn_delete"
+												 image="/images/delete.gif"
+												 value="#{lblForm.delete}"
+												 action="#{MbApplicationsSearch.action('btn_delete')}"
+												 disabled="#{(MbApplicationsSearch.activeApp == null) or (MbApplicationsSearch.activeApp.status == 'APST0007')}"
+												 rendered="#{MbApplicationsSearch.isRendered('btn_delete')}"
+												 oncomplete="#{rich:component('deleteAppView:confirmPanel')}.show()"/>
+
+						<bre:taggedCommandButton id="btn_wizard"
+												 value="#{lblForm.wizard}"
+												 reRender="mainTable, btn_edit"
+												 action="#{MbApplicationsSearch.action('btn_wizard')}"
+												 rendered="#{MbApplicationsSearch.isRendered('btn_wizard')}"/>
+
+						<bre:taggedCommandButton id="btn_process"
+												 value="#{lblApp.process}"
+												 action="#{MbApplicationsSearch.action('btn_process')}"
+												 reRender="#{!usession.inRole['PROCESS_APPLICATION_FORCE'] ? 'mainTable, ds, pagesNum, btns, '.concat(MbApplicationsSearch.tabName) : null}"
+												 oncomplete="if (#{usession.inRole['PROCESS_APPLICATION_FORCE']}) Richfaces.showModalPanel('processAppForceRequest');"
+												 disabled="#{MbApplicationsSearch.activeApp == null or MbApplicationsSearch.activeApp.status != 'APST0006'}"
+												 rendered="#{MbApplicationsSearch.isRendered('btn_process')}"/>
+
+						<bre:taggedCommandButton id="btn_approve"
+												 value="#{lblApp.approve}"
+												 action="#{MbApplicationsSearch.action('btn_approve')}"
+												 reRender="#{'mainTable, ds, pagesNum, btns, '.concat(MbApplicationsSearch.tabName)}"
+												 disabled="#{!MbApplicationsSearch.isAnyApplicationSelected()}"
+												 rendered="#{MbApplicationsSearch.isRendered('btn_approve')}"/>
+
+
+						<rich:spacer width="20px" rendered="#{MbApplicationsSearch.activeApp != null}"/>
+                        
+						<h:selectOneMenu id="newStatus"
+										 value="#{MbApplicationsSearch.activeApp.newStatusRejectCode}"
+										 rendered="#{MbApplicationsSearch.activeApp != null}"
+										 disabled="#{MbApplicationsSearch.activeApp.status == 'APST0007' or
+										             MbApplicationsSearch.activeApp.status == 'APST0001'}"
+										 style="width:200px !important;">
+							<a4j:support event="onchange"
+										 reRender="appStatusWarningPanel, appStatusWindowPanel"
+										 ajaxSingle="true"
+										 limitToList="true"
+										 oncomplete="#{MbApplicationsSearch.showWarning ? rich:component('appWarningWindow')
+										                                                : rich:component('appStatusWindow')}.show()"/>
+							<f:selectItems value="#{MbApplicationsSearch.applicationStatuses}"/>
+						</h:selectOneMenu>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+
+	    </h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbApplicationsSearch.tabName}" action="#{MbApplicationsSearch.loadCurrentTab}">
+                <a4j:actionparam name="tabName" assignTo="#{MbApplicationsSearch.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+			<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+			    		activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+			    		contentClass="tab-content" selectedTab="#{MbApplicationsSearch.tabName}">
+
+            	<rich:tab ontabenter="storeTab('detailsTab')" label="#{lblCommon.details}" name="detailsTab">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+                	<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/acquiring/applications/application_details.jspx"></ui:include>	
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+       				</h:panelGroup>
+            	</rich:tab>
+
+                <rich:tab id="_additionalTab" label="Additional" name="additionalTab" style="height:100%;"
+                          ontabenter="storeTab('additionalTab')" rendered="#{(MbApplicationsSearch.issuingType or MbApplicationsSearch.acquiringType) and usession.inRole['VIEW_FLEXIBLE_DATA']}">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="additionalTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <h:panelGroup id="additionalTabContents">
+                            <ui:include src="#{MbApplicationsSearch.tabName=='additionalTab' ? '/pages/common/flexible/flexFieldsTableBottom.jspx' : null}">
+                                <ui:param name="hideButtons" value="false"></ui:param>
+
+                            </ui:include>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </rich:tab>
+            	
+            	<rich:tab ontabenter="storeTab('errorsTab')" label="#{lblApp.errors}" name="errorsTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblApp.errors}" title="#{lblApp.errors}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+                	<h:panelGroup id="errorsTab" layout="block" styleClass="carddata-wrapper" 
+                			style="height:100%;overflow: hidden;position:relative;">
+						<ui:include src="#{MbApplicationsSearch.tabName=='errorsTab' ? '/pages/acquiring/applications/list_app_errors_bottom.jspx' : null}"></ui:include>
+       				</h:panelGroup>      							
+            	</rich:tab>
+            	
+            	<rich:tab ontabenter="storeTab('notesTab')" label="Notes" name="notesTab" style="height: 100%; overflow: hidden;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper" style="height:100%;overflow: hidden;position:relative;">
+       						<ui:include src="#{MbApplicationsSearch.tabName=='notesTab' ? '/pages/notes/list_notes_bottom.jspx' : null}"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+       			
+            	<rich:tab ontabenter="storeTab('historyTab')"  label="History" name="historyTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblApp.history}" title="#{lblApp.history}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="historyTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; ">
+       						<ui:include src="#{MbApplicationsSearch.tabName=='historyTab' ? '/pages/acquiring/applications/applicationHistoryListBottom.jspx' : null}">
+								<ui:param name="historyShowApplicationStatusColumn" value="true" />
+							</ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+       			
+			    <rich:tab ontabenter="storeTab('traceTab')"  label="Trace" name="traceTab" style="height:100%;" >
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblProcess.trace}" title="#{lblProcess.trace}"/>
+       					</h:panelGroup>
+       				</f:facet>
+	                
+	                <h:panelGroup id="traceTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="#{MbApplicationsSearch.tabName=='traceTab' ? '/pages/processes/monitoring/list_process_trace.jspx' : null}">
+							<ui:param name="show_user_id" value="false"></ui:param>
+						</ui:include>
+					</h:panelGroup>
+			    </rich:tab>
+
+                <rich:tab ontabenter="storeTab('linkedObjectsTab')"  label="Linked Objects" name="linkedObjectsTab" style="height:100%;">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblApp.linked_objects}" title="#{lblApp.linked_objects}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="linkedObjectsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; ">
+                        <ui:include src="#{MbApplicationsSearch.tabName=='linkedObjectsTab' ? '/pages/acquiring/applications/applicationLinkedObjectsListBottom.jspx' : null}"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+				<rich:tab ontabenter="storeTab('criteriaTab')"  label="#{lblInt.criteria}" name="criteriaTab" style="height:100%;"
+						  rendered="#{usession.inRole['VIEW_EVALUATION_CRITERIA'] and MbApplicationsSearch.issuingType}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblInt.criteria}" title="#{lblInt.criteria}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="criteriaTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; ">
+						<ui:include src="#{MbApplicationsSearch.tabName=='criteriaTab' ? '/pages/acquiring/applications/priorityCriteria.jspx' : null}"/>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('priorityProductsTab')"  label="#{lblPrd.priority_products}" name="priorityProductsTab" style="height:100%;"
+						  rendered="#{usession.inRole['VIEW_PRIORITY_PRODUCTS'] and MbApplicationsSearch.issuingType}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblPrd.priority_products}" title="#{lblPrd.priority_products}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="priorityProductsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; ">
+						<ui:include src="#{MbApplicationsSearch.tabName=='priorityProductsTab' ? '/pages/acquiring/applications/applicationPriorityProducts.jspx' : null}"/>
+					</h:panelGroup>
+				</rich:tab>
+
+    		</rich:tabPanel>
+		</h:panelGroup>
+
+		<ui:include src="/pages/acquiring/applications/applicationModal.jspx"/>
+		<ui:include src="#{MbApplicationsSearch.ACMType ? '/pages/acquiring/applications/applicationAcmModal.jspx' : ''}"/>
+		<ui:include src="#{MbApplicationsSearch.campaignType ? '/pages/campaigns/app_campaign_init_modal_panel.jspx' : ''}"/>
+
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbApplicationsSearch}"/>
+			<ui:param name="yesAction" value="deleteApp"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="mainTable, ds, pagesNum, btns, #{MbApplicationsSearch.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteAppView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+
+		<rich:modalPanel id="processAppForceRequest" autosized="true" minWidth="300" minHeight="50">
+			<f:facet name="header">
+				<h:panelGroup>
+					<h:outputText value="#{lblApp.process}"></h:outputText>
+				</h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+
+			</f:facet>
+			<h:form id="processAppForceRequestForm">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:outputText value="#{lblApp.application_process_force_request}"/>
+				</h:panelGroup>
+
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="4" columnClasses="width99P,,,">
+							<h:outputText />
+							<h:panelGroup styleClass="stdButton">
+								<bre:taggedCommandButton value="#{lblApp.application_process_force_normal}"
+														 action="#{MbApplicationsSearch.doProcessApp(false)}"
+														 reRender="mainTable, ds, pagesNum, btns, #{MbApplicationsSearch.tabName}" type="submit"
+														 oncomplete="Richfaces.hideModalPanel('processAppForceRequest');">
+								</bre:taggedCommandButton>
+							</h:panelGroup>
+							<h:panelGroup styleClass="stdButton">
+								<bre:taggedCommandButton value="#{lblApp.application_process_force_force}"
+														 action="#{MbApplicationsSearch.doProcessApp(true)}"
+														 reRender="mainTable, ds, pagesNum, btns, #{MbApplicationsSearch.tabName}" type="submit"
+														 oncomplete="Richfaces.hideModalPanel('processAppForceRequest');">
+								</bre:taggedCommandButton>
+							</h:panelGroup>
+							<h:panelGroup styleClass="stdButton">
+								<bre:taggedCommandButton value="#{lblForm.cancel}"
+														 ajaxSingle="true" immediate="true"
+														 oncomplete="Richfaces.hideModalPanel('processAppForceRequest');">
+								</bre:taggedCommandButton>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+
+		<h:panelGroup id="modalAppPage" >
+			<f:subview id="modalAppPageSubView" >
+				<ui:include src="/pages/administrative/users_management/user_search_modal.jspx" />
+			</f:subview>
+		</h:panelGroup>
+
+        <script>
+            //<![CDATA[
+
+            function updateHeight(){
+                updateGridHeight();
+            }
+
+            layout =
+            {
+                SEARCH_FORM_ID:                 'appsSearchForm',
+                SEARCH_RESULT_FORM_ID:          'appsForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID:   'appsBtnForm',
+                TAB_PANEL_ID:                   'workplacePanel',
+
+                TAB_DATA:
+                        [
+                            {
+                                TAB_FORM_ID:            'appsDetailsForm',
+                                TAB_FORM_WRAPPER_ID:    'applicationDetailsWrapper',
+                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                            }
+                            , {
+                            TAB_FORM_ID:            'errorsForm',
+                            TAB_FORM_WRAPPER_ID:    'errorsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }
+                            , {
+                            TAB_FORM_ID:            'notesBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }
+                            , {
+                            TAB_FORM_ID:            'historyBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'historyTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }
+                            , {
+                            TAB_FORM_ID:            'traceForm',
+                            TAB_FORM_WRAPPER_ID:    'statTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.PAGINATED_AND_BUTTONS
+                        }
+                            , {
+                            TAB_FORM_ID:            'linkedObjectsBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'linkedObjectsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }
+                            , {
+                            TAB_FORM_ID:            'priorityCriteriaForm',
+                            TAB_FORM_WRAPPER_ID:    'priorityCriteriaWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }
+                            , {
+                            TAB_FORM_ID:            'applicationPriorityProductsForm',
+                            TAB_FORM_WRAPPER_ID:    'applicationPriorityProductsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }
+                            , {
+                            TAB_FORM_ID:            'flexDataForm',
+                            TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }
+
+                        ]
+            };
+            updateHeight();
+            jQuery(window).resize(updateHeight);
+
+            paintCells();
+            //]]>
+        </script>
+
+		<rich:modalPanel id="appWarningWindow" autosized="true" minWidth="200" minHeight="50">
+			<f:facet name="header">
+				<h:outputText value="#{lblCommon.warning_label}"/>
+			</f:facet>
+			<f:facet name="controls"/>
+			<h:form id="appStatusWarningForm">
+				<h:panelGroup id="appStatusWarningPanel" style="padding:0px;" layout="block">
+					<h:panelGroup style="padding:10px 10px;" layout="block">
+						<h:outputText value="#{lblApp.app_status_change_confirm}" style="padding:10px 10px;" />
+					</h:panelGroup>
+
+					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+							<h:panelGrid columns="2" columnClasses="width99P,">
+								<bre:taggedCommandButton value="#{lblForm.yes}"
+														 disabled="#{!usession.noErrorResponse}]"
+														 onclick="disableModalPanelBtns(this);"
+														 oncomplete="#{rich:component('appWarningWindow')}.hide();
+														             #{rich:component('appStatusWindow')}.show()">
+								</bre:taggedCommandButton>
+								<bre:taggedCommandButton value="#{lblForm.no}"
+														 immediate="true"
+														 reRender="mainTable, ds, pagesNum, btns, workplacePanel"
+														 action="#{MbApplicationsSearch.cancelStatusChange}"
+														 oncomplete="#{rich:component('appWarningWindow')}.hide()">
+								</bre:taggedCommandButton>
+							</h:panelGrid>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+
+		<rich:modalPanel id="appStatusWindow" autosized="true" minWidth="200" minHeight="50">
+			<f:facet name="header">
+				<h:outputText value="#{lblCommon.warning_label}"/>
+			</f:facet>
+			<f:facet name="controls"/>
+			<h:form id="appStatusWindowForm">
+				<h:panelGroup id="appStatusWindowPanel" style="padding-top:10px" layout="block">
+					<h:outputText value="#{lblApp.app_status_change_comment}" style="padding: 0 10px" />
+					<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+						<h:panelGrid columns="2"
+									 styleClass="cardholderdata"
+									 columnClasses="firstCol firstColModal, width250">
+							<h:outputLabel value="#{lblApp.comments}:" id="commentLabel"/>
+							<h:inputTextarea value="#{MbApplicationsSearch.activeApp.comment}" id="comment" rows="3" />
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+							<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+								<h:outputText />
+								<bre:taggedCommandButton value="#{lblForm.save}"
+														 type="submit"
+														 disabled="#{!usession.noErrorResponse}]"
+														 action="#{MbApplicationsSearch.changeStatus}"
+														 reRender="mainTable, ds, pagesNum, btns, workplacePanel"
+														 onclick="disableModalPanelBtns(this);"
+														 oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse})
+									 			                                                     #{rich:component('appStatusWindow')}.hide()">
+								</bre:taggedCommandButton>
+								<bre:taggedCommandButton value="#{lblForm.cancel}"
+														 immediate="true"
+														 action="#{MbApplicationsSearch.cancelStatusChange}"
+														 reRender="mainTable, ds, pagesNum, btns, workplacePanel"
+														 oncomplete="#{rich:component('appStatusWindow')}.hide()">
+								</bre:taggedCommandButton>
+							</h:panelGrid>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+    </ui:define>
+</ui:composition>
+</html>

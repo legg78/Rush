@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="survey">
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+
+    <sql id="limitationOpen">
+        SELECT *
+        FROM (
+    </sql>
+
+    <sql id="limitationOpenCount">
+        SELECT count(*)
+        FROM (
+    </sql>
+
+    <sql id="limitationClose">
+        ) q
+        <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+
+    <sql id="paginatedOpen">
+        SELECT *
+        FROM(
+        SELECT a.*, rownum r
+        FROM(
+        <include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+        <include refid="limitationClose"/>
+        ) a
+        WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+        )
+        WHERE r >= (#range.start# + 1)
+    </sql>
+
+
+
+
+    <resultMap id="mapping-survey" class="ru.bpc.sv2.survey.configuration.Survey">
+        <result property="id" column="id"/>
+        <result property="seqnum" column="seqnum"/>
+        <result property="instId" column="inst_id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="entityTypeName" column="entity_type_name"/>
+        <result property="surveyNumber" column="survey_number"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="status" column="status"/>
+        <result property="statusName" column="status_name"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="lang" column="lang"/>
+    </resultMap>
+
+    <select id="get-surveys" parameterClass="qparams" resultMap="mapping-survey">
+        <include refid="paginatedOpen"/>
+        SELECT
+        s.id
+        , s.seqnum
+        , s.inst_id
+        , s.entity_type
+        , s.entity_type_name
+        , s.survey_number
+        , s.status
+        , s.status_name
+        , s.name
+        , s.description
+        , s.start_date
+        , s.end_date
+        , s.lang
+        FROM
+        svy_ui_survey_vw s
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(s.name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="surveyNumber">upper(s.survey_number) like #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="surveyNumber">s.survey_number $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="name">s.name $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="instId">s.inst_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="entityType">s.entity_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="status">s.status $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="period">s.start_date $sorting[].direction$, s.end_date $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+
+    <select id="get-surveys-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+        *
+        FROM
+        svy_ui_survey_vw s
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(s.name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="surveyNumber">upper(s.survey_number) like #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="add-survey" parameterClass="ru.bpc.sv2.survey.configuration.Survey">
+        {call svy_ui_survey_pkg.add(
+        o_id                    => #id,jdbcType=NUMERIC,mode=OUT#
+        , o_seqnum              => #seqnum,jdbcType=NUMERIC,mode=OUT#
+        , i_inst_id             => #instId#
+        , i_entity_type         => #entityType#
+        , i_survey_number       => #surveyNumber#
+        , i_status              => #status#
+        , i_start_date          => #startDate#
+        , i_end_date            => #endDate#
+        , i_name                => #name#
+        , i_description         => #description#
+        , i_lang                => #lang#
+        )}
+    </procedure>
+
+    <procedure id="modify-survey" parameterClass="ru.bpc.sv2.survey.configuration.Survey">
+        {call svy_ui_survey_pkg.modify(
+        i_id                    => #id#
+        , io_seqnum             => #seqnum,jdbcType=NUMERIC,mode=INOUT#
+        , i_inst_id             => #instId#
+        , i_entity_type         => #entityType#
+        , i_survey_number       => #surveyNumber#
+        , i_status              => #status#
+        , i_start_date          => #startDate#
+        , i_end_date            => #endDate#
+        , i_name                => #name#
+        , i_description         => #description#
+        , i_lang                => #lang#
+        )}
+    </procedure>
+
+    <procedure id="remove-survey" parameterClass="ru.bpc.sv2.survey.configuration.Survey">
+        {call svy_ui_survey_pkg.remove(
+        i_id                    => #id#
+        )}
+    </procedure>
+
+    <resultMap id="mapping-survey-parameter-base" class="ru.bpc.sv2.survey.configuration.SurveyParameter">
+        <result property="id" column="id"/>
+        <result property="paramName" column="param_name"/>
+        <result property="name" column="name"/>
+        <result property="dataType" column="data_type"/>
+        <result property="dataTypeName" column="data_type_name"/>
+        <result property="systemParam" column="is_system_param"/>
+        <result property="lang" column="lang"/>
+    </resultMap>
+
+    <resultMap id="mapping-survey-parameter-relation" class="ru.bpc.sv2.survey.configuration.SurveyParameterRelation" extends="mapping-survey-parameter-base">
+        <result property="surveyId" column="survey_id"/>
+        <result property="paramId" column="param_id"/>
+    </resultMap>
+
+    <select id="get-survey-parameter-relations" parameterClass="qparams" resultMap="mapping-survey-parameter-relation">
+        <include refid="paginatedOpen"/>
+        SELECT
+        ssp.id
+        , ssp.param_name
+        , ssp.name
+        , ssp.data_type
+        , ssp.data_type_name
+        , ssp.is_system_param
+        , ssp.lang
+        , ssp.survey_id
+        , ssp.param_id
+        FROM
+        svy_ui_survey_parameter_vw ssp
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">ssp.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">ssp.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(ssp.name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramName">upper(ssp.param_name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="surveyId">ssp.survey_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramId">ssp.param_id = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">ssp.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="paramName">ssp.param_name $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="name">ssp.name $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="dataType">ssp.data_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="systemParam">ssp.is_system_param $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+
+    <select id="get-survey-parameter-relations-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+        *
+        FROM
+        svy_ui_survey_parameter_vw ssp
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">ssp.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">ssp.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(ssp.name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramName">upper(ssp.param_name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="surveyId">ssp.survey_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramId">ssp.param_id = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="add-survey-parameter-relation" parameterClass="ru.bpc.sv2.survey.configuration.SurveyParameterRelation">
+        {call svy_ui_survey_parameter_pkg.add(
+        o_id                    => #id,jdbcType=NUMERIC,mode=OUT#
+        , i_survey_id           => #surveyId#
+        , i_param_id            => #paramId#
+        )}
+    </procedure>
+
+    <procedure id="remove-survey-parameter-relation" parameterClass="ru.bpc.sv2.survey.configuration.SurveyParameterRelation">
+        {call svy_ui_survey_parameter_pkg.remove(
+        i_id                    => #id#
+        )}
+    </procedure>
+
+
+
+
+
+
+    <resultMap id="mapping-survey-parameter" class="ru.bpc.sv2.survey.configuration.SurveyParameter" extends="mapping-survey-parameter-base">
+        <result property="seqnum" column="seqnum"/>
+        <result property="description" column="description"/>
+        <result property="displayOrder" column="display_order"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="lovName" column="lov_name"/>
+        <result property="multiSelect" column="is_multi_select"/>
+        <result property="tableName" column="table_name"/>
+    </resultMap>
+
+    <select id="get-survey-parameters" parameterClass="qparams" resultMap="mapping-survey-parameter">
+        <include refid="paginatedOpen"/>
+        SELECT
+        sp.id
+        , sp.seqnum
+        , sp.param_name
+        , sp.name
+        , sp.description
+        , sp.data_type
+        , sp.data_type_name
+        , sp.display_order
+        , sp.lov_id
+        , sp.lov_name
+        , sp.is_multi_select
+        , sp.is_system_param
+        , sp.table_name
+        , sp.lang
+        FROM
+        svy_ui_parameter_vw sp
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">sp.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">sp.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(sp.name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramName">upper(sp.param_name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="entityType">
+                exists (select null
+                          from svy_param_entity_vw e
+                         where e.param_id = sp.id
+                           and e.entity_type =  #filters[].value#
+                       )
+            </isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">sp.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="paramName">sp.param_name $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="name">sp.name $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="dataType">sp.data_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="systemParam">sp.is_system_param $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+
+    <select id="get-survey-parameters-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+        *
+        FROM
+        svy_ui_parameter_vw sp
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">sp.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">sp.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(sp.name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramName">upper(sp.param_name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="entityType">
+                exists (select null
+                         from svy_param_entity_vw e
+                        where e.param_id = sp.id
+                          and e.entity_type =  #filters[].value#
+                       )
+            </isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="add-survey-parameter" parameterClass="ru.bpc.sv2.survey.configuration.SurveyParameter">
+        {call svy_ui_parameter_pkg.add(
+        o_id                    => #id,jdbcType=NUMERIC,mode=OUT#
+        , o_seqnum              => #seqnum,jdbcType=NUMERIC,mode=OUT#
+        , i_param_name          => #paramName#
+        , i_data_type           => #dataType#
+        , i_display_order       => #displayOrder#
+        , i_lov_id              => #lovId#
+        , i_is_multi_select     => #multiSelect#
+        , i_name                => #name#
+        , i_description         => #description#
+        , i_lang                => #lang#
+        )}
+    </procedure>
+
+    <procedure id="modify-survey-parameter" parameterClass="ru.bpc.sv2.survey.configuration.SurveyParameter">
+        {call svy_ui_parameter_pkg.modify(
+        i_id                    => #id#
+        , io_seqnum             => #seqnum,jdbcType=NUMERIC,mode=INOUT#
+        , i_param_name          => #paramName#
+        , i_data_type           => #dataType#
+        , i_display_order       => #displayOrder#
+        , i_lov_id              => #lovId#
+        , i_is_multi_select     => #multiSelect#
+        , i_name                => #name#
+        , i_description         => #description#
+        , i_lang                => #lang#
+        )}
+    </procedure>
+
+    <procedure id="remove-survey-parameter" parameterClass="ru.bpc.sv2.survey.configuration.SurveyParameter">
+        {call svy_ui_parameter_pkg.remove(
+        i_id                    => #id#
+        )}
+    </procedure>
+
+
+
+    <resultMap id="mapping-survey-questionary" class="ru.bpc.sv2.survey.Questionary">
+        <result property="id" column="id"/>
+        <result property="seqnum" column="seqnum"/>
+        <result property="instId" column="inst_id"/>
+        <result property="objectId" column="object_id"/>
+        <result property="objectNumber" column="object_number"/>
+        <result property="surveyId" column="survey_id"/>
+        <result property="surveyNumber" column="survey_number"/>
+        <result property="surveyStatus" column="survey_status"/>
+        <result property="surveyStatusName" column="survey_status_name"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="entityTypeName" column="entity_type_name"/>
+        <result property="questionaryNumber" column="questionary_number"/>
+        <result property="questionaryStatus" column="questionary_status"/>
+        <result property="questionaryStatusName" column="questionary_status_name"/>
+        <result property="creationDate" column="creation_date"/>
+        <result property="closureDate" column="closure_date"/>
+        <result property="lang" column="lang"/>
+    </resultMap>
+
+    <select id="get-survey-questionaries" parameterClass="qparams" resultMap="mapping-survey-questionary">
+        <include refid="paginatedOpen"/>
+        SELECT
+        sq.id
+        , sq.seqnum
+        , sq.inst_id
+        , sq.object_id
+        , sq.object_number
+        , sq.survey_id
+        , sq.survey_number
+        , sq.survey_status
+        , sq.survey_status_name
+        , sq.entity_type
+        , sq.entity_type_name
+        , sq.questionary_number
+        , sq.questionary_status
+        , sq.questionary_status_name
+        , sq.creation_date
+        , sq.closure_date
+        , sq.lang
+        FROM
+            svy_ui_questionary_vw sq
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">sq.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">sq.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">sq.inst_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="questionaryNumber">upper(sq.questionary_number) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="questionaryStatus">sq.questionary_status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="surveyNumber">upper(sq.survey_number) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="surveyStatus">sq.survey_status = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">sq.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="questionaryNumber">sq.questionary_number $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="instId">sq.inst_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="entityType">sq.entity_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="questionaryStatus">sq.questionary_status $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="creationDate">sq.creation_date $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+
+    <select id="get-survey-questionaries-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+            *
+        FROM
+            svy_ui_questionary_vw sq
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">sq.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">sq.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">sq.inst_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="questionaryNumber">upper(sq.questionary_number) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="questionaryStatus">sq.questionary_status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="surveyNumber">upper(sq.survey_number) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="surveyStatus">sq.survey_status = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+
+    <resultMap id="mapping-survey-qstn-parameter-value" class="ru.bpc.sv2.survey.SurveyQstnParameterValue">
+        <result property="id" column="id"/>
+        <result property="seqnum" column="seqnum"/>
+        <result property="questionaryId" column="questionary_id"/>
+        <result property="paramId" column="param_id"/>
+        <result property="paramName" column="param_name"/>
+        <result property="paramNameText" column="param_name_text"/>
+        <result property="paramValue" column="param_value_format"/>
+        <result property="seqNumber" column="seq_number"/>
+        <result property="lang" column="lang"/>
+    </resultMap>
+
+    <select id="get-survey-qstn-parameter-values" parameterClass="qparams" resultMap="mapping-survey-qstn-parameter-value">
+        <include refid="paginatedOpen"/>
+        SELECT
+        spv.id
+        , spv.seqnum
+        , spv.questionary_id
+        , spv.param_id
+        , spv.param_name
+        , spv.param_name_text
+        , spv.param_value_format
+        , spv.seq_number
+        , spv.lang
+        FROM
+        svy_ui_qstn_parameter_value_vw spv
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">spv.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">spv.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="questionaryId">spv.questionary_id = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">spv.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="questionaryId">spv.questionary_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="paramId">spv.param_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="paramName">spv.param_name_text $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="paramValue">spv.param_value $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="seqNumber">spv.seq_number $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+
+    <select id="get-survey-qstn-parameter-values-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+        *
+        FROM
+        svy_ui_qstn_parameter_value_vw spv
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">spv.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">spv.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="questionaryId">spv.questionary_id = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+
+
+
+
+
+
+
+    <resultMap id="mapping-survey-parameter-entity" class="ru.bpc.sv2.survey.configuration.SurveyParameterEntity">
+        <result property="id" column="id"/>
+        <result property="seqnum" column="seqnum"/>
+        <result property="paramName" column="param_name"/>
+        <result property="paramId" column="param_id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="entityTypeName" column="entity_type_name"/>
+        <result property="lang" column="lang"/>
+    </resultMap>
+
+    <select id="get-survey-parameter-entities" parameterClass="qparams" resultMap="mapping-survey-parameter-entity">
+        <include refid="paginatedOpen"/>
+        SELECT
+        spe.id
+        , spe.seqnum
+        , spe.param_name
+        , spe.param_id
+        , spe.entity_type
+        , spe.entity_type_name
+        , spe.lang
+        FROM
+        svy_ui_param_entity_vw spe
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">spe.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">spe.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramId">spe.param_id = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">spe.id $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+
+    <select id="get-survey-parameter-entities-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+        *
+        FROM
+        svy_ui_param_entity_vw spe
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">spe.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">spe.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramId">spe.param_id = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="add-survey-parameter-entity" parameterClass="ru.bpc.sv2.survey.configuration.SurveyParameterEntity">
+        {call svy_ui_param_entity_pkg.add(
+        o_id                    => #id,jdbcType=NUMERIC,mode=OUT#
+        , o_seqnum              => #seqnum,jdbcType=NUMERIC,mode=OUT#
+        , i_entity_type         => #entityType#
+        , i_param_id            => #paramId#
+        )}
+    </procedure>
+
+    <procedure id="modify-survey-parameter-entity" parameterClass="ru.bpc.sv2.survey.configuration.SurveyParameterEntity">
+        {call svy_ui_param_entity_pkg.modify(
+        i_id                    => #id#
+        , io_seqnum             => #seqnum,jdbcType=NUMERIC,mode=INOUT#
+        , i_entity_type         => #entityType#
+        , i_param_id            => #paramId#
+        )}
+    </procedure>
+
+    <procedure id="remove-survey-parameter-entity" parameterClass="ru.bpc.sv2.survey.configuration.SurveyParameterEntity">
+        {call svy_ui_param_entity_pkg.remove(
+        i_id                    => #id#
+        )}
+    </procedure>
+</sqlMap>

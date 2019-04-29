@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<h:form id="servicesBtmPanel">
+		<h:panelGroup id="servicesTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="servicesTable" var="item"
+				value="#{MbServices.services}"
+				selection="#{MbServices.itemSelection}" rows="#{MbServices.rowsNum}"
+				selectionMode="single" rowClasses=",odd"
+				headerClass="res-table-header table-header-ext" selectedClass="res-table-selected"
+				styleClass="res-table" enableContextMenu="true"
+				tableState="#{MbServices.tableState}"
+				noDataLabel="#{MbServices.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}">
+
+				<a4j:support event="onselectionchange" ignoreDupResponses="true"
+					reRender="btnPanel" />
+
+				<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" title="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="name" label="#{lblCommon.name}" sortBy="#{'label'}" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+					</f:facet>
+					<h:outputText value="#{item.label}" title="#{item.label}" />
+				</rich:column>
+
+				<rich:column id="service_type" label="#{lblPrd.service_type}" sortBy="#{'type'}" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrd.service_type}"
+							title="#{lblPrd.service_type}" />
+					</f:facet>
+					<h:outputText value="#{item.serviceTypeName}"
+						title="#{item.serviceTypeName}" />
+				</rich:column>
+
+				<rich:column id="institution" label="#{lblCommon.institution}" sortBy="#{'instName'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.institution}"
+							title="#{lblCommon.institution}" />
+					</f:facet>
+					<h:outputText value="#{item.instName}" title="#{item.instName}" />
+				</rich:column>
+
+				<rich:column id="status" label="#{lblCommon.status}" sortBy="#{'status'}" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.status}"
+							title="#{lblCommon.status}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.status]}"
+						title="#{DictUtils.articles[item.description]}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						reRender="serviceModalHeader, serviceModalDiv"
+						value="#{lblForm.add}"
+						oncomplete="#{rich:component('serviceModalPanel')}.show()"
+						action="#{MbServices.add}"
+						disabled="#{MbServices.filter.serviceTypeId == null}"
+						rendered="#{usession.inRole['ADD_SERVICE']}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="serviceModalHeader, serviceModalDiv"
+						value="#{lblForm.edit}"
+						oncomplete="#{rich:component('serviceModalPanel')}.show()"
+						action="#{MbServices.edit}"
+						disabled="#{MbServices.activeService == null}"
+						rendered="#{usession.inRole['MODIFY_SERVICE']}"
+						image="/images/edit.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						disabled="#{MbServices.activeService == null}"
+						rendered="#{usession.inRole['REMOVE_SERVICE']}"
+						image="/images/delete.gif" 
+						oncomplete="#{rich:component('deleteServiceView:confirmPanel')}.show()"/>
+					</h:panelGroup>
+					
+					<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveServiceTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteServiceTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveServiceTableState" action="#{MbServices.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteServiceTableState" action="#{MbServices.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<ui:include src="/pages/products/services/edit_service.jspx">
+		<ui:param name="rerenderList"
+			value="servicesBtmPanel:servicesTable, servicesBtmPanel:btnPanel" />
+		<ui:param name="disableServiceType" value="true" />
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbServices}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="servicesTable, btnPanel"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteServiceView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>			
+	</ui:include>
+
+</ui:composition>
+</html>

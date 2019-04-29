@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/">
+<ui:composition>
+<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm"/>
+
+<h:form id="roleEditForm">
+	<script type="text/javascript">
+//<!--
+		oldValue["roleEditForm"] = "#{roles.newRole.lang}";
+		
+		function checkRoleFields() {
+			var checked = true;
+			
+			if (document.getElementById('roleEditForm:inp_name').value == "") {
+				document.getElementById('roleEditForm:inp_nameError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('roleEditForm:short_desc').value == "") {
+				document.getElementById('roleEditForm:short_descError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+	//-->
+	</script>
+    <h:panelGroup id="roleDiv">
+		<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+			<h:panelGrid columns="2" styleClass="cardholderdata" id="detailsData" width="100%" 
+	        		columnClasses="firstColModal, width250">
+	        		
+				<h:outputLabel for="inp_name" value="* #{lblCommon.system_name}: " title="#{lblCommon.system_name}" />
+				<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+					<h:inputText id="inp_name" label="#{lblCommon.system_name}"
+							maxlength="200"
+							value="#{roles.newRole.name}"
+							onblur="hideErrorField(this)">
+					</h:inputText>
+					<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+						id="inp_nameError" style="display:none;">
+						<f:param name="fieldName" value="#{lblCommon.system_name}"/>
+					</h:outputFormat>
+				</h:panelGrid>
+		
+				<h:outputLabel for="lang" value="#{lblCommon.language}: " title="#{lblCommon.language}" />
+				<h:selectOneMenu id="lang" value="#{roles.newRole.lang}" rendered="#{roles.newMode}">
+					<f:selectItems value="#{roles.languages}"/>
+				</h:selectOneMenu>
+				<h:selectOneMenu id="editLang" value="#{roles.newRole.lang}"
+						rendered="#{roles.editMode}"
+						onchange="document.getElementById('role:confirmPanelForm:newValue').value = this.value;
+								#{rich:component('role:confirmPanel')}.show()">
+					<f:selectItems value="#{roles.languages}"/>
+				</h:selectOneMenu>
+				
+				<h:outputLabel for="short_desc" value="* #{lblCommon.name}: " title="#{lblCommon.name}" />
+				<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+					<h:inputText id="short_desc" value="#{roles.newRole.shortDesc}" 
+						maxlength="200"
+						label="#{lblCommon.name}"
+						onblur="hideErrorField(this)">
+						<a4j:support event="onchange" reRender="short_descErr" limitToList="true"/>
+						<f:validateLength minimum="3"/>	
+					</h:inputText>
+					<rich:message for="short_desc" id="short_descErr" styleClass="errorMarker"/>
+					<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+						id="short_descError" style="display:none;">
+						<f:param name="fieldName" value="#{lblCommon.name}"/>
+					</h:outputFormat>
+				</h:panelGrid>
+				
+				<h:outputLabel value="#{lblNtf.notif_scheme}: " title="#{lblNtf.notif_scheme}" />
+				<h:selectOneMenu id="newNotifScheme" value="#{roles.newRole.notifSchemeId}">
+					<f:selectItem itemValue=""/>
+					<f:selectItems value="#{roles.notifSchemes}"/>
+				</h:selectOneMenu>
+				
+				<h:outputLabel for="full_desc" value="#{lblCommon.description}: " title="#{lblCommon.description}" />
+				<h:panelGrid columns="1" cellspacing="0" cellpadding="0" >
+					<h:inputTextarea id="full_desc" value="#{roles.newRole.fullDesc}"
+							label="#{lblCommon.description}"
+							rows="5" cols="150" onkeypress="if (!limitText(event,this,2000)) return false;">
+							<f:validateLength maximum="2000" />
+					</h:inputTextarea>
+					<rich:message id="full_desc_err" for="full_desc" styleClass="errorMarker"/>
+				</h:panelGrid>
+			</h:panelGrid>
+		</h:panelGroup>
+    </h:panelGroup>
+	<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+		<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+    	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+				<h:outputText/>
+				<bre:taggedCommandButton
+	            		value="#{lblForm.save}" type="submit"
+	                	reRender="mainTable, dsRoles, pagesNum, rolesBtns, details"
+	                	action="#{roles.saveRole}"
+	                	onclick="if (!checkRoleFields()) return false; disableModalPanelBtns(this)"
+	                	oncomplete="enableModalPanelBtns(this); if(#{usession.noErrorResponse})#{rich:component('rolePanel')}.hide()"
+	                	/>
+				<bre:taggedCommandButton
+						value="#{lblForm.cancel}"
+						action="#{roles.cancel}" immediate="true"
+						reRender="roleDiv"
+						oncomplete="#{rich:component('rolePanel')}.hide()">
+                       	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                    </bre:taggedCommandButton>	
+			</h:panelGrid>
+		</h:panelGroup>
+	</h:panelGroup>
+</h:form>
+
+<ui:include src="/pages/utils/langConfirmPanel.jspx">
+	<ui:param name="backingBean" value="#{roles}"/>
+	<ui:param name="rerenderList" value="roleEditForm:short_desc, roleEditForm:full_desc"/>
+	<ui:param name="editElem" value="roleEditForm:editLang"/>
+	<ui:param name="newValue" value="#{roles.newRole.lang}"/>
+	<ui:param name="subviewId" value="role"/>
+	<ui:param name="formName" value="roleEditForm" />
+</ui:include>
+</ui:composition>
+</html>

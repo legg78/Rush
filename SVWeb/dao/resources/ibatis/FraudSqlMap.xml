@@ -1,0 +1,1122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="fraud">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+
+	<resultMap  id="mapping-suite" class="ru.bpc.sv2.fraud.Suite">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="instId" column="inst_id"/>
+        <result property="label" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<select id="get-suites"
+		    parameterClass="qparams"
+		    resultMap="mapping-suite">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  s.id
+					, s.seqnum
+					, s.entity_type
+					, s.inst_id
+					, s.label
+		            , s.description
+		            , s.lang
+		            , i.name AS inst_name
+		    FROM 
+		    	  frp_ui_suite_vw s
+		    	, ost_ui_institution_sys_vw i
+		    WHERE
+		    	s.inst_id = i.id
+		    	AND s.lang = i.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">s.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(s.label) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="caseId">
+					s.id IN (
+						SELECT suite_id FROM frp_ui_suite_case_vw
+						WHERE case_id = #filters[].value#
+					)
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="entityType">s.entity_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instId">s.inst_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="label">upper(s.label) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(s.label)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-suites-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM 
+			  frp_ui_suite_vw s
+			, ost_ui_institution_sys_vw i
+		WHERE 
+			s.inst_id = i.id 
+			AND s.lang = i.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">s.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(s.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseId">
+				s.id IN (
+					SELECT suite_id FROM frp_ui_suite_case_vw
+					WHERE case_id = #filters[].value#
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-suite"
+			parameterClass="ru.bpc.sv2.fraud.Suite">
+    	{call FRP_UI_SUITE_PKG.add_suite(	
+				  o_id 			=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_entity_type	=> #entityType#
+				, i_inst_id		=> #instId#
+				, i_lang		=> #lang#
+				, i_label		=> #label#
+				, i_description	=> #description#
+				)}
+	</procedure>
+	
+	<procedure id="modify-suite"
+			parameterClass="ru.bpc.sv2.fraud.Suite">
+    	{call FRP_UI_SUITE_PKG.modify_suite(
+				  i_id 			=> #id#
+				, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_entity_type	=> #entityType#
+				, i_inst_id		=> #instId#
+				, i_lang		=> #lang#
+				, i_label		=> #label#
+				, i_description	=> #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-suite"
+			parameterClass="ru.bpc.sv2.fraud.Suite">
+    	{call FRP_UI_SUITE_PKG.remove_suite(
+				  i_id			=> #id#
+				, i_seqnum		=> #seqNum#
+				)}
+	</procedure>
+	
+	<resultMap  id="mapping-case" class="ru.bpc.sv2.fraud.Case">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="histDepth" column="hist_depth"/>
+        <result property="instId" column="inst_id"/>
+        <result property="label" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<select id="get-cases"
+		    parameterClass="qparams"
+		    resultMap="mapping-case">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  c.id
+					, c.seqnum
+					, c.hist_depth
+					, c.inst_id
+					, c.label
+		            , c.description
+		            , c.lang
+		            , i.name AS inst_name
+		    FROM 
+		    	  frp_ui_case_vw c
+		    	, ost_ui_institution_sys_vw i
+		    WHERE
+		    	c.inst_id = i.id
+		    	AND c.lang = i.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="hist_depth">c.hist_depth = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">c.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(c.label) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="suiteId">
+					c.id IN (
+						SELECT case_id FROM frp_ui_suite_case_vw
+						WHERE suite_id = #filters[].value#
+					)
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="histDepth">c.hist_depth $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instId">c.inst_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="label">upper(c.label) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(c.label)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-cases-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM 
+			  frp_ui_case_vw c
+			, ost_ui_institution_sys_vw i
+		WHERE
+			c.inst_id = i.id
+			AND c.lang = i.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hist_depth">c.hist_depth = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">c.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(c.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="suiteId">
+				c.id IN (
+					SELECT case_id FROM frp_ui_suite_case_vw
+					WHERE suite_id = #filters[].value#
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-case"
+			parameterClass="ru.bpc.sv2.fraud.Case">
+    	{call FRP_UI_CASE_PKG.add_case(	
+				  o_id 			=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id		=> #instId#
+				, i_hist_depth	=> #histDepth#
+				, i_lang		=> #lang#
+				, i_label		=> #label#
+				, i_description	=> #description#
+				)}
+	</procedure>
+	
+	<procedure id="modify-case"
+			parameterClass="ru.bpc.sv2.fraud.Case">
+    	{call FRP_UI_CASE_PKG.modify_case(
+				  i_id 			=> #id#
+				, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_inst_id		=> #instId#
+				, i_hist_depth	=> #histDepth#
+				, i_lang		=> #lang#
+				, i_label		=> #label#
+				, i_description	=> #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-case"
+			parameterClass="ru.bpc.sv2.fraud.Case">
+    	{call FRP_UI_CASE_PKG.remove_case(
+				  i_id			=> #id#
+				, i_seqnum		=> #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-suite-case" class="ru.bpc.sv2.fraud.SuiteCase">
+        <result property="suiteId" column="suite_id"/>
+        <result property="caseId" column="case_id"/>
+        <result property="priority" column="priority"/>
+        <result property="suiteName" column="suite_name"/>
+        <result property="caseName" column="case_name"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-suite-cases"
+		    parameterClass="qparams"
+		    resultMap="mapping-suite-case">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  sc.suite_id
+					, sc.case_id
+					, sc.priority
+					, s.label AS suite_name
+					, c.label AS case_name
+					, s.lang
+		    FROM 
+		    	  frp_ui_suite_case_vw sc
+		    	, frp_ui_suite_vw s
+		    	, frp_ui_case_vw c
+		    WHERE
+		    	sc.suite_id = s.id
+		    	AND sc.case_id = c.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="suiteId">sc.suite_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="caseId">sc.case_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="priority">sc.priority = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					s.lang = #filters[].value# AND c.lang = #filters[].value#
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="suiteName">upper(suite_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="caseName">upper(case_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="priority">sc.priority $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY sc.priority
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-suite-cases-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM frp_ui_suite_case_vw sc
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="suiteId">sc.suite_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseId">sc.case_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">sc.priority = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-suite-case"
+			parameterClass="ru.bpc.sv2.fraud.SuiteCase">
+    	{call FRP_UI_SUITE_CASE_PKG.add_suite_case(	
+				  i_suite_id	=> #suiteId#
+				, i_case_id		=> #caseId#
+				, i_priority	=> #priority#
+				)}
+	</procedure>
+	
+	<procedure id="modify-suite-case"
+			parameterClass="ru.bpc.sv2.fraud.SuiteCase">
+    	{call FRP_UI_SUITE_CASE_PKG.modify_suite_case(
+				  i_suite_id	=> #suiteId#
+				, i_case_id		=> #caseId#
+				, i_priority	=> #priority#
+				)}
+	</procedure>
+
+	<procedure id="remove-suite-case"
+			parameterClass="ru.bpc.sv2.fraud.SuiteCase">
+    	{call FRP_UI_SUITE_CASE_PKG.remove_suite_case(
+				  i_suite_id	=> #suiteId#
+				, i_case_id		=> #caseId#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-case-event" class="ru.bpc.sv2.fraud.CaseEvent">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="caseId" column="case_id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="respCode" column="resp_code"/>
+        <result property="riskThreshold" column="risk_threshold"/>
+	</resultMap>
+
+	<select id="get-case-events"
+		    parameterClass="qparams"
+		    resultMap="mapping-case-event">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  ce.id
+					, ce.seqnum
+					, ce.case_id
+					, ce.event_type
+					, ce.resp_code
+					, ce.risk_threshold
+		    FROM frp_ui_case_event_vw ce
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">ce.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="caseId">ce.case_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="eventType">ce.event_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="respCode">ce.resp_code = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="riskThreshold">ce.risk_threshold = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">ce.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="caseId">ce.case_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="eventType">ce.event_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="respCode">ce.resp_code $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="riskThreshold">ce.risk_threshold $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY ce.risk_threshold
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-case-events-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		SELECT count(*)
+		FROM frp_ui_case_event_vw ce
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ce.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseId">ce.case_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">ce.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respCode">ce.resp_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="riskThreshold">ce.risk_threshold = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<procedure id="add-case-event"
+			parameterClass="ru.bpc.sv2.fraud.CaseEvent">
+    	{call FRP_UI_CASE_EVENT_PKG.add_case_event(
+				  o_id 				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_case_id			=> #caseId#
+				, i_event_type		=> #eventType#
+				, i_resp_code		=> #respCode#
+				, i_risk_threshold	=> #riskThreshold#
+				)}
+	</procedure>
+	
+	<procedure id="modify-case-event"
+			parameterClass="ru.bpc.sv2.fraud.CaseEvent">
+    	{call FRP_UI_CASE_EVENT_PKG.modify_case_event(
+				  i_id 				=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_case_id			=> #caseId#
+				, i_event_type		=> #eventType#
+				, i_resp_code		=> #respCode#
+				, i_risk_threshold	=> #riskThreshold#
+				)}
+	</procedure>
+
+	<procedure id="remove-case-event"
+			parameterClass="ru.bpc.sv2.fraud.CaseEvent">
+    	{call FRP_UI_CASE_EVENT_PKG.remove_case_event(
+				  i_id 				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-matrix" class="ru.bpc.sv2.fraud.Matrix">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="instId" column="inst_id"/>
+        <result property="xScale" column="x_scale"/>
+        <result property="yScale" column="y_scale"/>
+        <result property="xScaleDesc" column="x_scale_desc"/>
+        <result property="yScaleDesc" column="y_scale_desc"/>
+        <result property="matrixType" column="matrix_type"/>
+        <result property="label" column="label"/>
+        <result property="description" column="description"/>
+        <result property="instName" column="inst_name"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-matrices"
+		    parameterClass="qparams"
+		    resultMap="mapping-matrix">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  m.id
+					, m.seqnum
+					, m.inst_id
+					, m.x_scale
+					, m.y_scale
+					, m.matrix_type
+					, m.label
+					, m.description
+					, m.lang
+					, i.name inst_name
+					, m.x_scale_desc || nvl2(m.x_scale_desc, substr(m.x_scale,instr(m.x_scale,'(')), x_scale) x_scale_desc
+					, m.y_scale_desc || nvl2(m.y_scale_desc, substr(m.y_scale,instr(m.y_scale,'(')), y_scale) y_scale_desc
+		    FROM 
+			    	  frp_ui_matrix_vw m
+			    	, ost_ui_institution_sys_vw i
+			WHERE 
+					m.inst_id = i.id AND m.lang = i.lang 
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">m.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="xScale">upper(m.x_scale) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="yScale">upper(m.y_scale) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="matrixType">m.matrix_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(m.label) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">m.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="xScale">upper(m.x_scale) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="yScale">upper(m.y_scale) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="matrixType">m.matrix_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="label">upper(m.label) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(m.label)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-matrices-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+	    FROM frp_ui_matrix_vw m, ost_ui_institution_sys_vw i
+		WHERE m.inst_id = i.id AND m.lang = i.lang 
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">m.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="xScale">upper(m.x_scale) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="yScale">upper(m.y_scale) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="matrixType">m.matrix_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(m.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-matrix"
+			parameterClass="ru.bpc.sv2.fraud.Matrix">
+    	{call FRP_UI_MATRIX_PKG.add_matrix(
+				  o_id 			=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id		=> #instId#
+				, i_x_scale		=> #xScale#
+				, i_y_scale		=> #yScale#
+				, i_matrix_type	=> #matrixType#
+				, i_lang		=> #lang#
+				, i_label		=> #label#
+				, i_description => #description#
+				)}
+	</procedure>
+	
+	<procedure id="modify-matrix"
+			parameterClass="ru.bpc.sv2.fraud.Matrix">
+    	{call FRP_UI_MATRIX_PKG.modify_matrix(
+				  i_id 			=> #id#
+				, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_inst_id		=> #instId#
+				, i_x_scale		=> #xScale#
+				, i_y_scale		=> #yScale#
+				, i_matrix_type	=> #matrixType#
+				, i_lang		=> #lang#
+				, i_label		=> #label#
+				, i_description => #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-matrix"
+			parameterClass="ru.bpc.sv2.fraud.Matrix">
+    	{call FRP_UI_MATRIX_PKG.remove_matrix(
+				  i_id 				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-matrix-value" class="ru.bpc.sv2.fraud.MatrixValue">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="matrixId" column="matrix_id"/>
+        <result property="xValue" column="x_value"/>
+        <result property="yValue" column="y_value"/>
+        <result property="matrixValue" column="matrix_value"/>
+	</resultMap>
+
+	<select id="get-matrix-values"
+		    parameterClass="qparams"
+		    resultMap="mapping-matrix-value">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  mv.id
+					, mv.seqnum
+					, mv.matrix_id
+					, mv.x_value
+		            , mv.y_value
+		            , mv.matrix_value
+		    FROM frp_ui_matrix_value_vw mv
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">mv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="matrixId">mv.matrix_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="xValue">upper(mv.x_value) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="yValue">upper(mv.y_value) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="matrixValue">upper(mv.matrix_value) LIKE #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">mv.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="matrixId">mv.matrix_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="xValue">upper(mv.x_value) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="yValue">upper(mv.y_value) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="matrixValue">upper(mv.matrix_value) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(mv.y_value)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-matrix-values-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		SELECT count(*)
+		FROM frp_ui_matrix_value_vw mv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">mv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="matrixId">mv.matrix_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="xValue">upper(mv.x_value) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="yValue">upper(mv.y_value) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="matrixValue">upper(mv.matrix_value) LIKE #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<procedure id="add-matrix-value"
+			parameterClass="ru.bpc.sv2.fraud.MatrixValue">
+    	{call FRP_UI_MATRIX_VALUE_PKG.add_matrix_value(	
+				  o_id 				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_matrix_id		=> #matrixId#
+				, i_x_value			=> #xValue#
+				, i_y_value			=> #yValue#
+				, i_matrix_value	=> #matrixValue#
+				)}
+	</procedure>
+	
+	<procedure id="modify-matrix-value"
+			parameterClass="ru.bpc.sv2.fraud.MatrixValue">
+    	{call FRP_UI_MATRIX_VALUE_PKG.modify_matrix_value(
+				  i_id 				=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_matrix_id		=> #matrixId#
+				, i_x_value			=> #xValue#
+				, i_y_value			=> #yValue#
+				, i_matrix_value	=> #matrixValue#
+				)}
+	</procedure>
+
+	<procedure id="remove-matrix-value"
+			parameterClass="ru.bpc.sv2.fraud.MatrixValue">
+    	{call FRP_UI_MATRIX_VALUE_PKG.remove_matrix_value(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+
+
+	<resultMap  id="mapping-check" class="ru.bpc.sv2.fraud.Check">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="caseId" column="case_id"/>
+        <result property="checkType" column="check_type"/>
+        <result property="alertType" column="alert_type"/>
+        <result property="expression" column="expression"/>
+        <result property="riskScore" column="risk_score"/>
+        <result property="riskMatrixId" column="risk_matrix_id"/>
+        <result property="label" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="matrixName" column="matrix_name"/>
+	</resultMap>
+
+	<select id="get-checks"
+		    parameterClass="qparams"
+		    resultMap="mapping-check">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  c.id
+					, c.seqnum
+					, c.case_id
+					, c.check_type
+					, c.alert_type
+					, c.expression
+					, c.risk_score
+					, c.risk_matrix_id
+					, c.label
+		            , c.description
+		            , c.lang
+		            , m.label AS matrix_name
+		    FROM 
+		    	  frp_ui_check_vw c
+		    	, frp_ui_matrix_vw m
+		    WHERE
+		    	c.risk_matrix_id = m.id(+)
+		    	AND c.lang = m.lang(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="caseId">c.case_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="checkType">c.check_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="alertType">c.alert_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="expression">upper(c.expression) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="riskScore">c.risk_score = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="riskMatrix">c.risk_matrix_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(c.label) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">c.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="excludeIds">c.id NOT IN (#filters[].value#)</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="checkType">c.check_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="alertType">c.alert_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="expression">upper(c.expression) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="riskScore">c.risk_score $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="matrixName">upper(matrix_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="label">upper(c.label) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(c.label)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-checks-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+	    FROM 
+	    	  frp_ui_check_vw c
+	    	, frp_ui_matrix_vw m
+	    WHERE
+	    	c.risk_matrix_id = m.id(+)
+	    	AND c.lang = m.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseId">c.case_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="checkType">c.check_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="alertType">c.alert_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="expression">upper(c.expression) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="riskScore">c.risk_score = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="riskMatrix">c.risk_matrix_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(c.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">c.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="excludeIds">c.id NOT IN (#filters[].value#)</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-check"
+			parameterClass="ru.bpc.sv2.fraud.Check">
+    	{call FRP_UI_CHECK_PKG.add_check(	
+				  o_id 				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_case_id			=> #caseId#
+				, i_check_type		=> #checkType#
+				, i_alert_type		=> #alertType#
+				, i_expression		=> #expression#
+				, i_risk_score		=> #riskScore#
+				, i_risk_matrix_id	=> #riskMatrixId#
+				, i_lang			=> #lang#
+				, i_label			=> #label#
+				, i_description		=> #description#
+				)}
+	</procedure>
+	
+	<procedure id="modify-check"
+			parameterClass="ru.bpc.sv2.fraud.Check">
+    	{call FRP_UI_CHECK_PKG.modify_check(
+				  i_id 				=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_case_id			=> #caseId#
+				, i_check_type		=> #checkType#
+				, i_alert_type		=> #alertType#
+				, i_expression		=> #expression#
+				, i_risk_score		=> #riskScore#
+				, i_risk_matrix_id	=> #riskMatrixId#
+				, i_lang			=> #lang#
+				, i_label			=> #label#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-check"
+			parameterClass="ru.bpc.sv2.fraud.Check">
+    	{call FRP_UI_CHECK_PKG.remove_check(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-fraud-data" class="ru.bpc.sv2.fraud.FraudData">
+        <result property="authId" column="auth_id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="splitHash" column="split_hash"/>
+        <result property="msgType" column="msg_type"/>
+        <result property="operDate" column="oper_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="cardNumber" column="card_number"/>
+        <result property="merchantNumber" column="merchant_number"/>
+        <result property="terminalNumber" column="terminal_number"/>
+        <result property="eventType" column="event_type"/>
+        <result property="serialNumber" column="serial_number"/>
+        <result property="operAmount" column="oper_amount"/>
+        <result property="operCurrency" column="oper_currency"/>
+        <result property="caseId" column="case_id"/>
+        <result property="caseName" column="case_name"/>
+	</resultMap>
+
+	<select id="get-fraud-data"
+		    parameterClass="qparams"
+		    resultMap="mapping-fraud-data">
+		<include refid="paginatedOpen"/>
+			SELECT
+					  f.auth_id
+					, f.entity_type
+					, f.object_id
+					, f.split_hash
+					, f.msg_type
+		            , f.oper_date
+		            , f.card_number
+		            , f.merchant_number
+		            , f.terminal_number
+		            , f.event_type
+		            , f.serial_number
+		            , f.oper_amount
+		            , f.oper_currency
+		            , f.case_id
+		            , c.label AS case_name
+		    FROM 
+		    	  frp_ui_fraud_data_vw f
+		    LEFT JOIN frp_ui_case_vw c
+		    	ON f.case_id = c.id
+		    	AND c.lang = #lang#
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="authId">f.auth_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="splitHash">f.split_hash = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">f.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">f.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="msgType">f.msg_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateFrom">trunc(f.oper_date) >= #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateTo">trunc(f.oper_date) <![CDATA[<=]]> #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardNumber">f.card_number LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="merchantNumber">f.merchant_number LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="terminalNumber">f.terminal_number LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="eventType">f.event_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="serialNumber">f.serial_number = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operAmount">f.oper_amount = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operCurrency">f.oper_currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="caseId">f.case_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountNumber">
+					f.card_number IN (
+						SELECT c.card_number FROM iss_ui_card_vw c
+						WHERE c.id IN (
+							SELECT
+								ao.object_id 
+							FROM 
+								acc_ui_account_object_vw ao
+							WHERE
+								ao.entity_type = 'ENTTCARD'
+								AND ao.account_number LIKE #filters[].value#
+						) 
+					)
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="authId">f.auth_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="splitHash">f.split_hash $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="entityType">f.entity_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="objectId">f.object_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="msgType">f.msg_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operDate">f.oper_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardNumber">f.card_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="merchantNumber">f.merchant_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="terminalNumber">f.terminal_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="eventType">f.event_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="serialNumber">f.serial_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operAmount">f.oper_amount $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operCurrency">f.oper_currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="caseName">f.case_name $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY f.oper_date DESC
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-fraud-data-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		SELECT count(*)
+		FROM frp_ui_fraud_data_vw f
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="authId">f.auth_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="splitHash">f.split_hash = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">f.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">f.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">f.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(f.oper_date) >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(f.oper_date) <![CDATA[<=]]> #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">f.card_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantNumber">f.merchant_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalNumber">f.terminal_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">f.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="serialNumber">f.serial_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operAmount">f.oper_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operCurrency">f.oper_currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseId">f.case_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">
+				f.card_number IN (
+					SELECT c.card_number FROM iss_ui_card_vw c
+					WHERE c.id IN (
+						SELECT
+							ao.object_id 
+						FROM 
+							acc_ui_account_object_vw ao
+						WHERE
+							ao.entity_type = 'ENTTCARD'
+							AND ao.account_number LIKE #filters[].value#
+					) 
+				)
+			</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap id="mapping-alert"
+			class="ru.bpc.sv2.fraud.FraudAlert">
+		<result property="id" column="id"/>
+        <result property="checkId" column="check_id"/>
+        <result property="authId" column="auth_id"/>
+        <result property="entityType" column="entity_type" />
+		<result property="objectId" column="object_id"/>
+		<result property="operDate" column="oper_date" javaType="java.util.Date"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="operType" column="oper_type"/>
+		<result property="objectDesc" column="object_desc"/>
+		<result property="checkName" column="check_name"/>
+		<result property="checkDesc" column="check_desc"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" 
+			id="mapping-alerts-proc">
+		<parameter property="alerts" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-alert"/>
+		<parameter property="firstRow" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lastRow" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="tabName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="params" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sortingTab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+	
+	<parameterMap class="java.util.Map" 
+			id="mapping-alerts-count-proc">
+		<parameter property="count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="tabName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="params" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+	
+	<procedure id="get-alerts-proc"
+			parameterMap="mapping-alerts-proc">
+		{call FRP_UI_ALERT_SEARCH_PKG.get_ref_cur(
+			  o_ref_cur     	=> ?
+			, i_first_row   	=> ?
+			, i_last_row    	=> ?
+			, i_tab_name    	=> ?
+			, i_param_tab   	=> ?
+			, i_sorting_tab		=> ?
+			)}		
+	</procedure>
+	
+	<procedure id="get-alerts-count-proc"
+			parameterMap="mapping-alerts-count-proc">
+		{call FRP_UI_ALERT_SEARCH_PKG.get_row_count(
+			  o_row_count   	=> ?
+			, i_tab_name    	=> ?
+			, i_param_tab   	=> ?
+			)}		
+	</procedure>
+
+	<resultMap id="mapping-monitored-alert"
+			class="ru.bpc.sv2.fraud.MonitoredFraudAlert">
+		<result property="id" column="id"/>
+		<result property="authId" column="auth_id"/>
+        <result property="caseId" column="case_id"/>
+        <result property="entityType" column="entity_type" />
+		<result property="objectId" column="object_id"/>
+		<result property="resolution" column="resolution"/>
+		<result property="resolutionUserId" column="resolution_user_id"/>
+		<result property="operDate" column="oper_date" javaType="java.util.Date"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="operType" column="oper_type"/>
+		<result property="objectDesc" column="object_desc"/>
+		<result property="caseName" column="case_name"/>
+		<result property="caseDesc" column="case_desc"/>
+		<result property="resolutionName" column="resolution_name"/>
+		<result property="resolutionUser" column="resolution_user"/>
+		<result property="seqnum" column="seqnum"/>
+	</resultMap>
+	
+	<parameterMap class="java.util.Map" 
+			id="mapping-monitored-fraud-alerts">
+		<parameter property="alerts" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-monitored-alert"/>
+		<parameter property="firstRow" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lastRow" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="tabName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="params" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+	
+	<procedure id="get-monitored-fraud-alerts"
+			parameterMap="mapping-monitored-fraud-alerts">
+		{call frp_ui_fraud_search_pkg.get_ref_cur(
+			  o_ref_cur     	=> ?
+			, i_first_row   	=> ?
+			, i_last_row    	=> ?
+			, i_tab_name    	=> ?
+			, i_param_tab   	=> ?
+			, i_sorting_tab		=> ?
+			)}		
+	</procedure>
+	
+	<procedure id="get-monitored-fraud-alerts-count"
+			parameterMap="mapping-alerts-count-proc">
+		{call frp_ui_fraud_search_pkg.get_row_count(
+			  o_row_count   	=> ?
+			, i_tab_name    	=> ?
+			, i_param_tab   	=> ?
+			)}		
+	</procedure>
+	
+	<procedure id="modify-fraud"
+			parameterClass="ru.bpc.sv2.fraud.MonitoredFraudAlert">
+    	{call frp_ui_fraud_pkg.modify_fraud(
+				   i_id           => #id#
+				 , io_seqnum      => #seqnum#
+				 , i_resolution   => #resolution#
+				)}
+	</procedure>
+
+	<procedure id="generate-package">
+		{call FRP_UI_GEN_PKG.generate_package()}
+	</procedure>
+	
+	<resultMap  id="mapping-fraud-object" class="ru.bpc.sv2.fraud.FraudObject">
+        <result property="id" column="id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="startDate" column="start_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="endDate" column="end_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="seqnum" column="seqnum"/>
+        <result property="suiteId" column="suite_id" />
+        <result property="suiteName" column="suite_name"/>
+	</resultMap>
+	
+	<select id="get-fraud-objects"
+		    parameterClass="qparams"
+		    resultMap="mapping-fraud-object">
+		<include refid="paginatedOpen"/>
+			select id,
+				   entity_type,
+				   object_id,
+				   start_date, 
+				   end_date,
+				   seqnum,
+				   suite_id,
+				   com_api_i18n_pkg.get_text('frp_suite', 'label', suite_id, get_user_lang()) as suite_name
+			from frp_suite_object_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-fraud-objects-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+			select *
+			from frp_suite_object_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			</iterate>
+        <include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-suite-object"
+			parameterClass="ru.bpc.sv2.fraud.FraudObject">
+    	{call frp_ui_suite_pkg.add_suite_object(
+				    o_suite_object_id      => #id,jdbcType=NUMERIC,mode=OUT#
+				  , o_seqnum			   => #seqnum,jdbcType=NUMERIC,mode=OUT#
+				  , i_suite_id             => #suiteId#
+				  , i_entity_type          => #entityType#
+				  , i_object_id            => #objectId#
+				  , i_start_date           => #startDate#
+				  , i_end_date             => #endDate#
+				)}
+	</procedure>
+	
+	<procedure id="modify-suite-object"
+			parameterClass="ru.bpc.sv2.fraud.FraudObject">
+    	{call frp_ui_suite_pkg.modify_suite_object(
+				    i_suite_object_id      => #id#
+				  , io_seqnum			   => #seqnum,jdbcType=NUMERIC,mode=INOUT#
+				  , i_end_date             => #endDate#
+				)}
+	</procedure>
+	
+</sqlMap>

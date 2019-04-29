@@ -1,0 +1,1019 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="events">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+
+    <resultMap  id="mapping-event"
+                class="ru.bpc.sv2.common.events.Event">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="eventType" column="event_type"/>
+        <result property="scaleId" column="scale_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+        <result property="scaleName" column="scale_name"/>
+	</resultMap>
+	
+	<select id="get-events"
+			parameterClass="qparams"
+			resultMap="mapping-event">
+		<include refid="paginatedOpen"/>
+			SELECT	  e.id
+					, e.seqnum
+					, e.event_type
+					, e.scale_id
+					, e.inst_id
+					, i.name inst_name
+					, ms.name scale_name
+			FROM evt_ui_event_vw e, ost_ui_institution_sys_vw i, rul_ui_mod_scale_vw ms
+			WHERE e.inst_id = i.id(+)
+				AND e.scale_id = ms.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">e.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">e.inst_id IN (9999, #filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="eventType">e.event_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					i.lang(+) = #filters[].value# AND ms.lang(+) = #filters[].value# 
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="procedureName">exists(SELECT 1
+																						  FROM
+																							evt_ui_subscription_vw esn
+																							, evt_ui_subscriber_vw esr
+																						  WHERE
+																							esn.subscr_id = esr.id
+																							and esn.event_id=e.id
+																							and esr.procedure_name = upper(#filters[].value#))
+				</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+	            	<isEqual property="sorting[].property" compareValue="id">e.id $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="eventType">e.event_type $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="instName">inst_name $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="scaleName">scale_name $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-events-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	 
+			*
+		FROM 
+			evt_ui_event_vw e
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">e.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">e.inst_id IN (9999, #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">e.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureName">exists(SELECT 1
+																					  FROM
+																						evt_ui_subscription_vw esn
+																						, evt_ui_subscriber_vw esr
+																					  WHERE
+																						esn.subscr_id = esr.id
+																						and esn.event_id=e.id
+																						and esr.procedure_name = upper(#filters[].value#))
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-event"
+    		parameterClass="ru.bpc.sv2.common.events.Event">
+    	{call EVT_UI_EVENT_PKG.add_event(
+			      o_event_id       	=> #id,jdbcType=NUMERIC,mode=OUT#
+			    , o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_event_type  	=> #eventType#
+				, i_scale_id		=> #scaleId#
+				, i_inst_id     	=> #instId#
+				)}
+    </procedure>
+        
+    <procedure id="modify-event"
+    		parameterClass="ru.bpc.sv2.common.events.Event">
+    	{call EVT_UI_EVENT_PKG.modify_event(
+			      i_event_id       	=> #id#
+			    , io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_scale_id		=> #scaleId#
+				)}
+    </procedure>
+    
+    <procedure id="remove-event"
+    		parameterClass="ru.bpc.sv2.common.events.Event">
+    	{call EVT_UI_EVENT_PKG.remove_event(
+			      i_event_id       	=> #id#
+			    , i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+    
+	<resultMap  id="mapping-event-type"
+                class="ru.bpc.sv2.common.events.EventType">
+        <result property="id" column="id"/>
+        <result property="lang" column="lang"/>
+        <result property="name" column="label"/>
+        <result property="seqNum" column="seqnum"/>       
+        <result property="eventType" column="event_type"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="reasonLovId" column="reason_lov_id"/>
+        <result property="reasonLovIdName" column="reason_lov_id_name"/>
+	</resultMap>
+	
+	<select id="get-event-types"
+			parameterClass="qparams"
+			resultMap="mapping-event-type">
+		<include refid="paginatedOpen"/>
+			SELECT	  et.id
+					, et.seqnum
+					, et.event_type
+					, et.entity_type
+					, et.reason_lov_id
+					, et.lang
+					, et.label
+					, com_api_i18n_pkg.get_text(i_table_name=>'com_lov', 
+												i_column_name=>'name', 
+												i_object_id=>et.reason_lov_id,
+												i_lang=>et.lang) reason_lov_id_name
+			FROM evt_ui_event_type_vw et
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">et.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">et.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="eventType">et.event_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">et.lang like #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+	        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+	        		<isEqual property="sorting[].property" compareValue="id">et.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="entityType">et.entity_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="eventType">et.event_type $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-event-types-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM  evt_ui_event_type_vw et
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">et.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">et.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">et.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">et.lang like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-event-type"
+    		parameterClass="ru.bpc.sv2.common.events.EventType">
+    	{call EVT_UI_EVENT_PKG.add_event_type(
+    		 	  o_event_type_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_event_type		=> #eventType#
+				, i_entity_type		=> #entityType#
+				, i_reason_lov_id	=> #reasonLovId#
+				)}
+    </procedure>
+    
+    <procedure id="modify-event-type"
+    		parameterClass="ru.bpc.sv2.common.events.EventType">
+    	{call EVT_UI_EVENT_PKG.modify_event_type(
+    		 	  i_event_type_id	=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_reason_lov_id 	=> #reasonLovId#
+				)}
+    </procedure>
+    
+    <procedure id="remove-event-type"
+    		parameterClass="ru.bpc.sv2.common.events.EventType">
+    	{call EVT_UI_EVENT_PKG.remove_event_type(
+				  i_event_type_id	=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-subscriber"
+                class="ru.bpc.sv2.common.events.EventSubscriber">
+        <result property="id" column="id"/>
+        <result property="procedureName" column="procedure_name"/>       
+        <result property="eventType" column="event_type"/>
+        <result property="priority" column="priority"/>
+        <result property="processName" column="process_name"/>
+	</resultMap>
+	
+	<select id="get-subscribers"
+			parameterClass="qparams"
+			resultMap="mapping-subscriber">
+		<include refid="limitationOpen"/>
+		SELECT	  es.id
+				, es.procedure_name
+				, es.event_type
+				, es.priority
+				, p.name process_name
+		FROM evt_ui_subscriber_vw es, prc_ui_process_vw p
+		WHERE upper(es.procedure_name) = upper(p.procedure_name(+))
+			AND p.lang(+) = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">es.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureName">upper(es.procedure_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">es.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">es.priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">
+				upper(es.procedure_name) IN (
+					SELECT upper(procedure_name) FROM prc_ui_process_vw
+					WHERE inst_id IN (#filters[].value#, 9999)
+				)
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+            	<isEqual property="sorting[].property" compareValue="id">es.id $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="procedureName">es.procedure_name $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="eventType">es.event_type $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="priority">es.priority $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="processName">process_name $sorting[].direction$</isEqual>
+            </isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY es.priority
+		</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-subscribers-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM evt_ui_subscriber_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureName">upper(procedure_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">
+				upper(procedure_name) IN (
+					SELECT upper(procedure_name) FROM prc_ui_process_vw
+					WHERE inst_id IN (#filters[].value#, 9999)
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-subscriber"
+    		parameterClass="ru.bpc.sv2.common.events.EventSubscriber">
+    	{call EVT_UI_EVENT_PKG.add_subscriber(
+    		 	  o_subscr_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_procedure_name		=> #procedureName#
+				, i_event_type			=> #eventType#
+				, i_priority			=> #priority#
+				)}
+    </procedure>
+    
+    <procedure id="modify-subscriber"
+    		parameterClass="ru.bpc.sv2.common.events.EventSubscriber">
+    	{call EVT_UI_EVENT_PKG.modify_subscriber(
+	   		 	  i_subscr_id			=> #id#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_priority			=> #priority#
+				)}
+    </procedure>
+    
+	
+	<procedure id="remove-subscriber"
+    		parameterClass="ru.bpc.sv2.common.events.EventSubscriber">
+    	{call EVT_UI_EVENT_PKG.remove_subscriber(
+    		 	  i_subscr_id			=> #id#
+				, i_seqnum				=> #seqNum#
+				)}
+    </procedure>
+    
+	<resultMap  id="mapping-event-rule-set"
+                class="ru.bpc.sv2.common.events.EventRuleSet">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>       
+        <result property="eventId" column="event_id"/>
+        <result property="ruleSetId" column="rule_set_id"/>
+        <result property="ruleSetName" column="rule_set_name"/>
+        <result property="modId" column="mod_id"/>
+        <result property="modName" column="mod_name"/>
+	</resultMap>
+
+	<select id="get-event-rule-sets"
+			parameterClass="qparams"
+			resultMap="mapping-event-rule-set">
+		<include refid="limitationOpen"/>
+		SELECT	  ers.id
+				, ers.seqnum
+				, ers.event_id
+				, ers.rule_set_id
+				, ers.mod_id
+				, rs.name rule_set_name
+				, m.name mod_name
+		FROM evt_ui_rule_set_vw ers, rul_ui_rule_set_vw rs, rul_ui_mod_vw m
+		WHERE ers.rule_set_id = rs.id(+) 
+				AND ers.mod_id = m.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ers.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventId">ers.event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				rs.lang(+) = #filters[].value# AND m.lang(+) = #filters[].value# 
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">ers.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="rsName">rule_set_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="modName">mod_name $sorting[].direction$</isEqual>
+            </isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-event-rule-sets-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		select *
+		  from evt_ui_rule_set_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventId">event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modIdNotNull">mod_id is not null</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-event-rule-set"
+    		parameterClass="ru.bpc.sv2.common.events.EventRuleSet">
+    	{call EVT_UI_EVENT_PKG.add_event_rule_set(
+    		 	  o_event_rule_set_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_event_id			=> #eventId#
+				, i_rule_set_id			=> #ruleSetId#
+				, i_mod_id				=> #modId#
+				)}
+    </procedure>
+    
+    <procedure id="modify-event-rule-set"
+    		parameterClass="ru.bpc.sv2.common.events.EventRuleSet">
+    	{call EVT_UI_EVENT_PKG.modify_event_rule_set(
+    		 	  i_event_rule_set_id	=> #id#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_mod_id				=> #modId#
+				)}
+    </procedure>
+    
+    <procedure id="remove-event-rule-set"
+    		parameterClass="ru.bpc.sv2.common.events.EventRuleSet">
+    	{call EVT_UI_EVENT_PKG.remove_event_rule_set(
+    		 	  i_event_rule_set_id	=> #id#
+				, i_seqnum				=> #seqNum#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-subscription"
+                class="ru.bpc.sv2.common.events.EventSubscription">
+        <result property="id" column="id"/>
+        <result property="eventId" column="event_id"/>
+        <result property="subscrId" column="subscr_id"/>
+        <result property="procedureName" column="procedure_name"/>
+        <result property="processName" column="process_name"/>
+        <result property="modId" column="mod_id"/>
+        <result property="modName" column="mod_name"/>
+		<result property="containerId" column="container_id"/>
+		<result property="containerName" column="container_name"/>
+		<result property="processDescription" column="process_description"/>
+
+	</resultMap>
+
+	<select id="get-subscriptions"
+			parameterClass="qparams"
+			resultMap="mapping-subscription">
+		<include refid="limitationOpen"/>
+		SELECT	  esn.id
+				, esn.event_id
+				, esn.subscr_id
+				, esn.mod_id
+				, esr.procedure_name procedure_name
+				, m.name mod_name
+				, p.name process_name
+				, esn.container_id
+				, get_text(
+				      i_table_name  => 'prc_process'
+					, i_column_name => 'name'
+					, i_object_id   => pc.CONTAINER_PROCESS_ID
+					, i_lang        => m.lang
+				  ) container_name
+                , get_text(
+                      i_table_name  => 'prc_container'
+                    , i_column_name => 'description'
+                    , i_object_id   => pc.id
+                    , i_lang        => m.lang
+                  ) process_description
+		FROM 
+				  evt_ui_subscription_vw esn
+				, evt_ui_subscriber_vw esr
+				, rul_ui_mod_vw m
+				, prc_ui_process_vw p
+				, prc_container pc
+		WHERE 
+				    esn.subscr_id = esr.id 
+				AND esn.mod_id = m.id(+)
+				AND upper(esr.procedure_name) = upper(p.procedure_name(+))
+				AND esn.container_id = pc.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">esn.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventId">esn.event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modIdNotNull">esn.mod_id is not null</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				m.lang(+) = #filters[].value# AND p.lang(+) = #filters[].value# 
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">esn.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="processName">upper(process_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="modName">upper(mod_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="containerId">esn.container_id $sorting[].direction$</isEqual>
+            </isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-subscriptions-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		select *
+		  from evt_ui_subscription_vw esn
+		     , evt_ui_subscriber_vw esr
+		 where esn.subscr_id = esr.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">esn.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventId">esn.event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modIdNotNull">esn.mod_id is not null</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-subscription"
+    		parameterClass="ru.bpc.sv2.common.events.EventSubscription">
+    	{call EVT_UI_EVENT_PKG.add_subscription(
+    		 	  o_subscript_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_event_id			=> #eventId#
+				, i_subscr_id			=> #subscrId#
+				, i_mod_id				=> #modId#
+				, i_container_id        => #containerId#
+				)}
+    </procedure>
+    
+    <procedure id="modify-subscription"
+    		parameterClass="ru.bpc.sv2.common.events.EventSubscription">
+    	{call EVT_UI_EVENT_PKG.modify_subscription(
+    		 	  i_subscript_id		=> #id#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_mod_id				=> #modId#
+				, i_container_id        => #containerId#
+				)}
+    </procedure>
+    
+    <procedure id="remove-subscription"
+    		parameterClass="ru.bpc.sv2.common.events.EventSubscription">
+    	{call EVT_UI_EVENT_PKG.remove_subscription(
+    		 	  i_subscript_id		=> #id#
+				, i_seqnum				=> #seqNum#
+				)}
+    </procedure>
+
+
+    <resultMap  id="mapping-status-log"
+                class="ru.bpc.sv2.evt.StatusLog">
+        <result property="id" column="id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="initiator" column="initiator"/>
+        <result property="changeDate" column="change_date"/>
+        <result property="status" column="status"/>
+        <result property="userId" column="user_id"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="reason" column="reason"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+	
+	<select id="get-status-logs"
+			parameterClass="qparams"
+			resultMap="mapping-status-log">
+		SELECT	  s.id
+				, s.event_type
+				, s.entity_type
+				, s.object_id
+				, s.initiator
+				, s.change_date
+				, s.status
+				, s.user_id
+				, s.session_id
+				, s.user_name
+				, s.reason
+				, s.lang
+		FROM evt_ui_status_log_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">s.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">s.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">s.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initiator">s.initiator = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">s.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">s.session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userId">s.user_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+            	<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="entityType">s.entity_type $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="objectId">s.object_id $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="eventType">s.event_type $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="initiator">s.initiator $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="changeDate">s.change_date $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="status">s.status $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="sessionId">s.session_id $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="userName">upper(s.user_name) $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="reason">s.reason $sorting[].direction$</isEqual>
+            </isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-status-logs-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT 	 
+			count(id)
+		FROM 
+			evt_ui_status_log_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">s.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">s.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">s.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initiator">s.initiator = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">s.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">s.session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userId">s.user_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<select id="get-change-reason-lovs"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT reason_lov_id
+		FROM evt_ui_event_type_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">event_type = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<procedure id="change-status"
+    		parameterClass="ru.bpc.sv2.evt.StatusLog">
+    	{call EVT_UI_STATUS_PKG.change_status(
+    		 	  i_event_type		=> #eventType#
+				, i_initiator		=> #initiator#
+				, i_entity_type		=> #entityType#
+				, i_object_id		=> #objectId#
+				, i_reason			=> #reason#
+				, i_eff_date		=> #changeDate#
+				)}
+    </procedure>	
+    
+    <procedure id="change-status-by-new-status"
+    		parameterClass="ru.bpc.sv2.evt.StatusLog">
+    	{call EVT_UI_STATUS_PKG.change_status(
+    		 	  i_initiator     => #initiator#
+				, i_entity_type   => #entityType#
+				, i_object_id     => #objectId#
+				, i_new_status    => #status#
+				, i_reason        => #reason#
+				, o_status        => #status,jdbcType=VARCHAR,mode=OUT#
+				, i_raise_error   => 1
+				, i_register_event=> 0
+				)}
+    </procedure>
+
+	<select id="get-card-status-logs"
+			parameterClass="qparams"
+			resultMap="mapping-status-log">
+		SELECT	  s.id
+				, s.event_type
+				, s.entity_type
+				, s.object_id
+				, s.initiator
+				, s.change_date
+				, s.status
+				, s.user_id
+				, s.session_id
+				, s.user_name
+				, s.reason
+				, s.lang
+		FROM evt_ui_status_log_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">s.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">s.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">
+				s.object_id IN (
+					SELECT id FROM iss_ui_card_instance_vw
+					WHERE card_id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="initiator">s.initiator = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">s.status like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">s.session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userId">s.user_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dateFrom">s.change_date >= trunc(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">s.change_date <![CDATA[<=]]> trunc(#filters[].value#)</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+            	<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="entityType">s.entity_type $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="objectId">s.object_id $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="eventType">s.event_type $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="initiator">s.initiator $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="changeDate">s.change_date $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="status">s.status $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="sessionId">s.session_id $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="userName">upper(s.user_name) $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="reason">s.reason $sorting[].direction$</isEqual>
+            </isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-card-status-logs-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT 	 
+			count(id)
+		FROM 
+			evt_ui_status_log_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">s.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">s.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">
+				s.object_id IN (
+					SELECT id FROM iss_ui_card_instance_vw
+					WHERE card_id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="initiator">s.initiator = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">s.status like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">s.session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userId">s.user_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dateFrom">s.change_date >= trunc(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">s.change_date <![CDATA[<=]]> trunc(#filters[].value#)</isEqual>
+		</iterate>
+	</select>
+	
+	
+	<resultMap  id="mapping-status-map"
+                class="ru.bpc.sv2.evt.StatusMap">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="eventType" column="event_type"/>
+        <result property="eventTypeText" column="event_type_text"/>
+        <result property="initiator" column="initiator"/>
+        <result property="initiatorText" column="initiator_text"/>
+        <result property="initialStatus" column="initial_status"/>
+        <result property="initialStatusText" column="initial_status_text"/>
+        <result property="resultStatus" column="result_status"/>
+        <result property="resultStatusText" column="result_status_text"/>
+        <result property="priority" column="priority"/>
+	</resultMap>
+
+	<resultMap  id="mapping-status-inst-map"
+				class="ru.bpc.sv2.evt.StatusMap">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="eventType" column="event_type"/>
+		<result property="eventTypeText" column="event_type_text"/>
+		<result property="initiator" column="initiator"/>
+		<result property="initiatorText" column="initiator_text"/>
+		<result property="initialStatus" column="initial_status"/>
+		<result property="initialStatusText" column="initial_status_text"/>
+		<result property="resultStatus" column="result_status"/>
+		<result property="resultStatusText" column="result_status_text"/>
+		<result property="priority" column="priority"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+	</resultMap>
+	
+	<select id="get-status-maps"
+			parameterClass="qparams"
+			resultMap="mapping-status-map">
+		<include refid="limitationOpen"/>
+		SELECT	  s.id
+				, s.seqnum
+				, s.event_type
+				, s.event_type_text
+				, s.initiator
+				, s.initiator_text
+				, s.initial_status
+				, s.initial_status_text
+				, s.result_status
+				, s.result_status_text
+				, s.priority 
+		FROM evt_ui_status_map_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqNum">s.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">s.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initiator">s.initiator = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initialStatus">s.initial_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="resultStatus">s.result_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">i.lang(+) = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+            	<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="eventType">s.event_type $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="initiator">s.initiator $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="initialStatus">s.initial_status $sorting[].direction$</isEqual>
+            	<isEqual property="sorting[].property" compareValue="resultStatus">s.result_status $sorting[].direction$</isEqual>
+            </isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-status-inst-maps"
+			parameterClass="qparams"
+			resultMap="mapping-status-inst-map">
+		<include refid="limitationOpen"/>
+		SELECT	  s.id
+		, s.seqnum
+		, s.event_type
+		, s.event_type_text
+		, s.initiator
+		, s.initiator_text
+		, s.initial_status
+		, s.initial_status_text
+		, s.result_status
+		, s.result_status_text
+		, s.priority
+		, s.inst_id
+		, i.name inst_name
+		FROM evt_ui_status_map_vw s, ost_ui_institution_sys_vw i
+		WHERE s.inst_id = i.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqNum">s.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">s.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initiator">s.initiator = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initialStatus">s.initial_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="resultStatus">s.result_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instIdSelection">s.inst_id IN (9999,#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">i.lang(+) = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="eventType">s.event_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="initiator">s.initiator $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="initialStatus">s.initial_status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="resultStatus">s.result_status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instId">s.inst_id $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-status-maps-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	 
+			*
+		FROM 
+			evt_ui_status_map_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">s.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initiator">s.initiator = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initialStatus">s.initial_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="resultStatus">s.result_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-status-map"
+    		parameterClass="ru.bpc.sv2.evt.StatusMap">
+    	{call EVT_UI_STATUS_MAP_PKG.add(
+			      o_id       		=> #id,jdbcType=NUMERIC,mode=OUT#
+			    , o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_event_type  	=> #eventType#
+				, i_initiator		=> #initiator#
+				, i_initial_status  => #initialStatus#
+				, i_result_status   => #resultStatus#
+				, i_priority		=> #priority#
+				, i_inst_id			=> #instId#
+				)}
+    </procedure>
+    
+    <procedure id="modify-status-map"
+    		parameterClass="ru.bpc.sv2.evt.StatusMap">
+    	{call EVT_UI_STATUS_MAP_PKG.modify(
+			      i_id       		=> #id#
+			    , io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_event_type     	=> #eventType#
+  				, i_initiator      	=> #initiator#
+  				, i_initial_status 	=> #initialStatus#
+  				, i_result_status  	=> #resultStatus#
+  				, i_priority		=> #priority#
+				, i_inst_id			=> #instId#
+				)}
+    </procedure>
+    
+    <procedure id="remove-status-map"
+    		parameterClass="ru.bpc.sv2.evt.StatusMap">
+    	{call EVT_UI_STATUS_MAP_PKG.remove(
+			      i_id       		=> #id#
+			    , i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+    
+	<parameterMap class="ru.bpc.sv2.common.events.RegisteredEvent" id="register-event-map">
+		<parameter property="eventType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="effectiveDate" javaType="java.util.Date" jdbcType="TIMESTAMP" mode="IN"/>
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="objectId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="splitHash" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+    <procedure id="register-event" parameterMap="register-event-map">
+    	{call evt_ui_event_pkg.register_event(
+			      i_event_type  => ?
+				, i_eff_date    => ?
+				, i_entity_type => ?
+				, i_object_id   => ?
+				, i_inst_id     => ?
+				, i_split_hash  => ?
+				)}
+    </procedure>
+ 
+	<parameterMap class="ru.bpc.sv2.common.events.RegisteredEvent" id="remove-event-object-map">
+		<parameter property="eventType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="objectId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMBER" mode="IN"/>
+	</parameterMap>
+
+    <procedure id="remove-event-object"
+    		parameterMap="remove-event-object-map">
+    	{call EVT_API_EVENT_PKG.remove_event_object(
+			      i_event_type  => ?
+				, i_entity_type => ?
+				, i_object_id   => ?
+				, i_inst_id     => ?
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-event-object"
+                class="ru.bpc.sv2.evt.EventObject">
+        <result property="id" column="id"/>
+        <result property="eventId" column="event_id"/>
+        <result property="procedureName" column="procedure_name"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="effectiveDate" column="eff_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="eventTimestamp" column="event_timestamp" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="instId" column="inst_id"/>
+        <result property="splitHash" column="split_hash"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="eventType" column="event_type"/>
+	</resultMap>
+
+	<select id="get-event-objects"
+			parameterClass="qparams"
+			resultMap="mapping-event-object">
+		SELECT	  eo.id
+				, eo.event_id
+				, eo.procedure_name
+				, eo.entity_type
+				, eo.object_id
+				, eo.eff_date
+				, eo.event_timestamp
+				, eo.inst_id
+				, eo.split_hash
+				, eo.session_id
+				, e.event_type
+		FROM evt_event_object_vw eo, evt_event_vw e
+		WHERE eo.event_id = e.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">eo.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventId">eo.event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureName">eo.procedure_name = upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">eo.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">eo.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">eo.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">eo.session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pmoByDocType">
+				eo.entity_type = 'ENTTPMNO' AND eo.object_id IN (
+					SELECT d.object_id FROM rpt_ui_document_vw d 
+					WHERE d.entity_type = 'ENTTPMNO' AND d.document_type = #filters[].value#
+				)
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">eo.id = #filters[].value#</isEqual>
+				<isEqual property="sorting[].property" compareValue="eventId">eo.event_id = #filters[].value#</isEqual>
+				<isEqual property="sorting[].property" compareValue="procedureName">eo.procedure_name = #filters[].value#</isEqual>
+				<isEqual property="sorting[].property" compareValue="effectiveDate">eo.eff_date = #filters[].value#</isEqual>
+				<isEqual property="sorting[].property" compareValue="eventTimestamp">eo.event_timestamp= #filters[].value#</isEqual>
+            </isNotEqual>
+		</iterate>
+	</select>
+	
+	<select id="get-object-status" parameterClass="ru.bpc.sv2.common.ObjectEntity"
+		resultClass="string">
+		select evt_ui_status_pkg.get_object_status(
+			      i_entity_type => #entityType#
+				, i_object_id   => #objectId#
+				)
+		from dual
+	</select>
+	
+	  <parameterMap id="param-return-status" class="java.util.Map">
+        <parameter property="session_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+	 
+	 <procedure id="return-status" parameterMap="param-return-status">
+        {call evt_api_event_pkg.rollback_event_object(
+        i_session_id            => ?       
+        )}
+    </procedure>
+
+	<parameterMap id="get-status-reason-map" class="java.util.Map">
+		<parameter property="result" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="id"     javaType="java.lang.Long"   jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="type"   javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-status-reason" parameterMap="get-status-reason-map">
+		{? = call evt_ui_status_pkg.get_status_reason(
+			  i_object_id		=> ?
+			, i_entity_type		=> ?
+		)}
+	</procedure>
+</sqlMap>

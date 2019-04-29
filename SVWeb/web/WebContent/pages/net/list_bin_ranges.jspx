@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+	<script type="text/javascript">
+    	//<![CDATA[
+		function checkFields() {
+			var instIdEl = document.getElementById("binRangesSearchForm:binNumber");
+			if (instIdEl.value == null || instIdEl.value == "") {
+				instIdEl.style.backgroundColor = "#FF9999";
+				instIdEl.focus();
+				return false;
+			} else {
+				instIdEl.style.backgroundColor = "#FFFFFF";
+			}
+			return true;
+		}
+		//]]>
+		</script>
+		<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net"/>
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblNet.bin_ranges}"/>
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+		<!-- search panel -->
+    	<h:form id="binRangesSearchForm">
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+	               		<h:panelGroup styleClass="search_block_left" layout="block">
+	                		<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                		<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+			            			<h:outputLabel for="binNumber" value="* #{lblNet.bin_number}: " title="#{lblNet.bin_number}" />
+			            			<h:inputText id="binNumber" value="#{MbBinRanges.binNumber}" 
+			            					label="#{lblNet.bin_number}" onkeypress="if (!numbersOnly(this, event)) return false;">
+			            				<f:validateLength minimum="3"/>			            							            					
+			            			</h:inputText>
+	
+			            			<h:inputText style="display:none" 
+			            					value="IE hack for 'Enter' hit when there's only one input field 
+			            							on form. Stick it to the bottom to not to break layout"/>
+			            			<h:inputText style="display:none" 
+			            					value="IE hack for 'Enter' hit when there's only one input field 
+			            							on form. Stick it to the bottom to not to break layout"/>
+	                			</h:panelGrid>
+	                		<h:panelGrid columns="1">
+		                		<bre:taggedCommandButton
+			                			action="#{MbBinRanges.search}"
+			                			onclick="if (!checkFields()) {return false;} disableModalPanelBtns(this);"
+	        							reRender="binRangesTable, binRangesDs, pagesNum, detailsTab, binNumberErr"
+	                					image="/_img/icon_search.png" type="submit"
+	                					value="#{lblForm.search}" style="width:85px;"
+	                					oncomplete="updateHeight(); enableModalPanelBtns(this);"
+	                					eventsQueue="queue"/>
+	                			<h:panelGroup styleClass="link-clear" layout="block">
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink  oncomplete="updateHeight();" 
+		                					value="#{lblForm.clear_all}" 
+						        			action="#{MbBinRanges.clearFilter}"
+						        			reRender="binRangesSearchForm, binRangesForm, details">
+						        	</a4j:commandLink>
+	            	    		</h:panelGroup>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+	               			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+	               			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+               			</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="binRangesForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		    		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="binRangesTable"
+							var="item"
+							tableState="#{MbBinRanges.tableState}"
+							value="#{MbBinRanges.binRanges}"
+							selection="#{MbBinRanges.itemSelection}"
+							rows="#{MbBinRanges.rowsNum}"
+							height="255px"
+							selectionMode="single"
+							rowClasses=",odd"
+							headerClass="res-table-header"
+							selectedClass="res-table-selected"
+							styleClass="res-table"
+							enableContextMenu="true"
+							noDataLabel="#{MbBinRanges.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="detailsTab, binRangesForm:btnPanel">
+			
+						<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="detailsTab, binRangesForm:btnPanel"/>
+			
+						<rich:column id="pan_low" label="#{lblNet.pan_low}" sortBy="#{'panLow'}" width="15%">
+							<f:facet name="header">
+			                   	 <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblNet.pan_low}" title="#{lblNet.pan_low}" />
+								</a4j:outputPanel>	
+							</f:facet>
+			               	<h:outputText value="#{item.panLow}" />
+						</rich:column>
+			
+						<rich:column id="pan_high" label="#{lblNet.pan_high}" sortBy="#{'panHigh'}" width="15%">
+							<f:facet name="header">
+			                   	<h:outputText value="#{lblNet.pan_high}" title="#{lblNet.pan_high}" />
+							</f:facet>
+			               	<h:outputText value="#{item.panHigh}"/>
+						</rich:column>
+			
+				        <rich:column id="priority" label="#{lblNet.priority}" sortBy="#{'priority'}" width="10%">
+							<f:facet name="header">
+			                    <h:outputText value="#{lblNet.priority}" title="#{lblNet.priority}"/>
+							</f:facet>
+			                <h:outputText value="#{item.priority}"/>
+				        </rich:column>
+	
+				        <rich:column id="card_type" label="#{lblNet.card_type}" sortBy="#{'cardType'}" width="10%">
+							<f:facet name="header">
+			                    <h:outputText value="#{lblNet.card_type}" title="#{lblNet.card_type}"/>
+							</f:facet>
+			                <h:outputText value="#{item.cardTypeName}"/>
+				        </rich:column>
+
+				        <rich:column id="country" label="#{lblNet.country}" sortBy="#{'country'}" width="10%">
+							<f:facet name="header">
+			                    <h:outputText value="#{lblNet.country}" title="#{lblNet.country}"/>
+			                </f:facet>
+			                <ui:remove><div class="#{CountryUtils.flag[item.country]}"></div></ui:remove>
+			                <div class="#{EntityIcons.objectsMapS['ENTTACCT'][item.country]}"/>
+			                <h:outputText value="#{CountryUtils.countryMap[item.country]}"/>
+				        </rich:column>
+
+				        <rich:column id="card_network" label="#{lblNet.card_network}" width="13%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblNet.card_network}" title="#{lblNet.card_network}"/>
+			                </f:facet>
+			                
+			                <div class="#{EntityIcons.objectsMap['ENTTNETW'][item.cardNetworkId]}"/>
+			                <h:outputText value="#{item.cardNetworkName}" title="#{item.cardNetworkName}"/>
+				        </rich:column>
+
+				        <rich:column id="card_inst" label="#{lblNet.card_inst}" width="13%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblNet.card_inst}" title="#{lblNet.card_inst}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.cardInstName}" title="#{item.cardInstName}"/>
+				        </rich:column>
+
+				        <rich:column id="iss_host" label="#{lblNet.iss_host}" width="14%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblNet.iss_host}" title="#{lblNet.iss_host}"/>
+			                </f:facet>
+			                <div class="#{EntityIcons.objectsMap['ENTTNETW'][item.issNetworkId]}"/>
+			                <h:outputText value="#{item.issHostName}" title="#{item.issHostName}" rendered="#{item.issHostName != null}"/>
+			                <h:outputText value="#{item.issNetworkName}, #{item.issInstName}" title="#{item.issNetworkName} - #{item.issInstName}" rendered="#{item.issHostName == null}"/>
+				        </rich:column>
+
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+        <h:form id="binRangesBtnForm">
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+							<h:selectOneMenu id="rows_num" value="#{MbBinRanges.rowsNum}" styleClass="row_per_page" >
+								<a4j:support event="onchange" reRender="binRangesTable, binRangesDs, pagesNum, detailsTab"/>
+		                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+		                    		pagesVar="pages" styleClass="res-datascroller"
+				                    id="binRangesDs" for="binRangesTable"
+				                    reRender="detailsTab, binRangesForm:btnPanel">
+				            	<f:facet name="first">
+				                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+				                <f:facet name="first_disabled">
+				                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="last">
+				                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="last_disabled">
+				                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="previous_disabled">
+				                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="next">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="next_disabled">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="pages">
+				                </f:facet>
+							</rich:datascroller>
+
+		                    <h:panelGroup id="pagesNum">
+		                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+		                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbBinRanges.binRanges.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+		                    </h:panelGroup>
+		                    
+		                    <h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbBinRanges.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbBinRanges.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+					
+		            <h:panelGrid id="btnPanel" columns="4" styleClass="itempanel">
+					</h:panelGrid>
+				</h:panelGroup>
+		    </h:panelGroup>
+    	</h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content">
+
+				<rich:tab label="#{lblCommon.details}" name="detailsTab">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup layout="block" id="detailsTab">
+   						<ui:include src="/pages/net/binRangeDetails.jspx"></ui:include>
+   						<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+       				</h:panelGroup>
+			    </rich:tab>
+
+		    </rich:tabPanel>
+        </h:panelGroup>
+
+		<script>
+			//<![CDATA[
+            function updateHeight(){
+                updateGridHeight();
+            }
+
+            layout =
+            {
+                SEARCH_FORM_ID:                 'binRangesSearchForm',
+                SEARCH_RESULT_FORM_ID:          'binRangesForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID:   'binRangesBtnForm',
+                TAB_PANEL_ID:                   'workplacePanel',
+
+                TAB_DATA:      [{
+                    TAB_FORM_ID:            'binRangeDetailsForm',
+                    TAB_FORM_WRAPPER_ID:    'binRangeDetailsWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+                ]
+
+            };
+            updateHeight();
+            jQuery(window).resize(updateHeight);
+			//]]>
+		</script>		
+	</ui:define>
+</ui:composition>
+</html>

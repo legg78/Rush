@@ -1,0 +1,1510 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="atm">
+	<sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>              
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-atm-scenario"
+                class="ru.bpc.sv2.atm.AtmScenario">
+        <result property="id" column="id"/>
+        <result property="name" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="dateBegin" column="date_begin"/>
+        <result property="dateLoad" column="date_load"/>
+        <result property="userLoad" column="user_load"/>
+	</resultMap>    
+    
+    <select id="get-scenarios"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-atm-scenario" >
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  a.id
+					, a.label
+					, a.description
+					, a.lang
+					, a.date_begin
+					, a.date_load
+					, a.user_load
+            FROM 
+					  atm_ui_scenario_vw a					
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+				<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="label">upper(a.label) $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-scenarios-count"
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>       
+		SELECT a.id    
+		  FROM 
+			   atm_ui_scenario_vw a		     
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-terminal-atm"
+                class="ru.bpc.sv2.atm.TerminalATM">
+        <result property="id" column="id"/>
+        <result property="atmType" column="atm_type"/>
+        <result property="atmModel" column="atm_model"/>
+        <result property="serialNumber" column="serial_number"/>
+        <result property="placementType" column="placement_type"/>
+        <result property="availabilityType" column="availability_type"/>
+        <result property="operationHours" column="operating_hours"/>
+        <result property="localDateGap" column="local_date_gap"/>
+        <result property="counterSyncCond" column="counter_sync_cond"/>        
+        <result property="cassetteCount" column="cassette_count"/>
+        <result property="keyChangeAlgo" column="key_change_algo"/>
+        <result property="rejectDispWarn" column="reject_disp_warn"/>
+        <result property="dispRestWarn" column="disp_rest_warn"/>
+        <result property="receiptWarn" column="receipt_warn"/>
+        <result property="cardCaptureWarn" column="card_capture_warn"/>
+        <result property="noteMaxCount" column="note_max_count"/>
+        <result property="scenarioId" column="scenario_id"/>
+        <result property="scenarioName" column="scenario_name"/>
+        <result property="hopperCount" column="hopper_count"/>
+        <result property="manualSynch" column="manual_synch"/>
+        <result property="establConnSynch" column="establ_conn_synch"/>
+        <result property="counterMismatchSynch" column="counter_mismatch_synch"/>
+        <result property="onlineInSynch" column="online_in_synch"/>
+        <result property="onlineOutSynch" column="online_out_synch"/>
+        <result property="safeCloseSynch" column="safe_close_synch"/>
+        <result property="dispErrorSynch" column="disp_error_synch"/>
+        <result property="periodicSynch" column="periodic_synch"/>
+        <result property="periodicAllOper" column="periodic_all_oper"/>
+        <result property="periodicOperCount" column="periodic_oper_count"/>
+		<result property="rejectDispMinWarn" column="reject_disp_min_warn"/>
+        <result property="cashInPresent" column="cash_in_present"/>
+		<result property="cashInMinWarn" column="cash_in_min_warn"/>
+		<result property="cashInMaxWarn" column="cash_in_max_warn"/>
+        <result property="lang" column="lang"/>
+        <result property="dispenseAlg" column="dispense_algo"/>
+	</resultMap>    
+    
+    <select id="get-terminal-template-atms"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-terminal-atm" >
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  t.id
+					, t.atm_type
+					, t.atm_model        
+					, t.serial_number    
+					, t.placement_type
+					, t.availability_type
+					, t.operating_hours  
+					, t.local_date_gap   
+					, t.counter_sync_cond										
+					, t.cassette_count
+					, t.key_change_algo
+					, t.reject_disp_warn
+					, t.disp_rest_warn
+          			, t.receipt_warn
+          			, t.card_capture_warn
+          			, t.note_max_count
+          			, t.scenario_id
+          			, t.hopper_count
+          			, t.manual_synch
+          			, t.establ_conn_synch
+          			, t.counter_mismatch_synch
+          			, t.online_in_synch
+          			, t.online_out_synch
+          			, t.safe_close_synch
+          			, t.disp_error_synch
+          			, t.periodic_synch
+          			, t.periodic_all_oper
+          			, t.periodic_oper_count
+					, t.reject_disp_min_warn
+          			, t.cash_in_present
+					, t.cash_in_min_warn
+          			, t.cash_in_max_warn
+          			, t.lang
+          			, s.label scenario_name
+          			, t.dispense_algo
+            FROM 
+				  atm_ui_template_vw t,
+				  atm_ui_scenario_vw s
+			WHERE 	  
+				  t.scenario_id = s.id(+) 
+				  AND t.lang = s.lang(+) 
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="terminalId">t.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="atmType">t.atm_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="keyChangeAlgo">t.key_change_algo = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-terminal-template-atms-count"
+			parameterClass="qparams" 
+			resultClass="int">	   
+		<include refid="limitationOpenCount"/>    
+		SELECT t.id    
+	    FROM 
+			  atm_ui_template_vw t			  
+		WHERE 	  
+			  t.lang = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend=" AND " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">t.id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="atmType">t.atm_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyChangeAlgo">t.key_change_algo = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	    <select id="get-terminal-atms"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-terminal-atm" >
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  t.id
+					, t.atm_type
+					, t.atm_model        
+					, t.serial_number    
+					, t.placement_type
+					, t.availability_type
+					, t.operating_hours  
+					, t.local_date_gap   
+					, t.counter_sync_cond										
+					, t.cassette_count
+					, t.key_change_algo
+					, t.reject_disp_warn
+					, t.disp_rest_warn
+          			, t.receipt_warn
+          			, t.card_capture_warn
+          			, t.note_max_count
+          			, t.scenario_id
+          			, t.hopper_count
+          			, t.manual_synch
+          			, t.establ_conn_synch
+          			, t.counter_mismatch_synch
+          			, t.online_in_synch
+          			, t.online_out_synch
+          			, t.safe_close_synch
+          			, t.disp_error_synch
+          			, t.periodic_synch
+          			, t.periodic_all_oper
+          			, t.periodic_oper_count
+					, t.reject_disp_min_warn
+          			, t.cash_in_present
+					, t.cash_in_min_warn
+          			, t.cash_in_max_warn
+          			, t.lang
+          			, s.label scenario_name
+          			, t.dispense_algo
+            FROM 
+				  atm_ui_terminal_vw t,
+				  atm_ui_scenario_vw s
+			WHERE 	  
+				  t.scenario_id = s.id(+) 
+				  AND t.lang = s.lang(+) 
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="terminalId">t.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="atmType">t.atm_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="keyChangeAlgo">t.key_change_algo = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-terminal-atms-count"
+			parameterClass="qparams" 
+			resultClass="int">	   
+		<include refid="limitationOpenCount"/>    
+		SELECT t.id    
+	    FROM 
+			  atm_ui_terminal_vw t			  
+		WHERE 	  
+			  t.lang = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend=" AND " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">t.id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="terminalId">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="atmType">t.atm_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyChangeAlgo">t.key_change_algo = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-terminal-atm"
+		   	parameterClass="ru.bpc.sv2.atm.TerminalATM">
+    	{call ATM_UI_TERMINAL_PKG.add_atm_terminal(
+				  i_terminal_id            => #id#
+				, i_atm_type               => #atmType#
+				, i_atm_model              => #atmModel#
+				, i_serial_number          => #serialNumber#
+				, i_placement_type         => #placementType#
+				, i_availability_type      => #availabilityType#
+				, i_operating_hours        => #operationHours#
+				, i_local_date_gap         => #localDateGap#
+				, i_counter_sync_cond      => #counterSyncCond#
+				, i_cassette_count         => #cassetteCount#
+				, i_key_change_algo        => #keyChangeAlgo#
+				, i_reject_disp_warn       => #rejectDispWarn#
+				, i_disp_rest_warn         => #dispRestWarn#
+				, i_receipt_warn           => #receiptWarn#
+				, i_card_capture_warn      => #cardCaptureWarn#
+				, i_note_max_count         => #noteMaxCount#
+				, i_scenario_id            => #scenarioId#
+				, i_hopper_count           => #hopperCount#
+				, i_manual_synch           => #manualSynch#
+				, i_establ_conn_synch      => #establConnSynch#
+				, i_counter_mismatch_synch => #counterMismatchSynch#
+				, i_online_in_synch        => #onlineInSynch#
+				, i_online_out_synch       => #onlineOutSynch#
+				, i_safe_close_synch       => #safeCloseSynch#
+				, i_disp_error_synch       => #dispErrorSynch#
+				, i_periodic_synch         => #periodicSynch#
+				, i_periodic_all_oper      => #periodicAllOper#
+				, i_periodic_oper_count    => #periodicOperCount#
+				, i_reject_disp_min_warn   => #rejectDispMinWarn#
+				, i_cash_in_present        => #cashInPresent#
+				, i_cash_in_min_warn       => #cashInMinWarn#
+				, i_cash_in_max_warn       => #cashInMaxWarn#
+				, i_dispense_algo      	   => #dispenseAlg#
+  				)}
+    </procedure>
+ 
+	<procedure id="modify-terminal-atm"
+		   	parameterClass="ru.bpc.sv2.atm.TerminalATM">
+    	{call ATM_UI_TERMINAL_PKG.modify_atm_terminal(
+				  i_terminal_id            => #id#
+				, i_atm_model              => #atmModel#
+				, i_serial_number          => #serialNumber#
+				, i_placement_type         => #placementType#
+				, i_availability_type      => #availabilityType#
+				, i_operating_hours        => #operationHours#
+				, i_counter_sync_cond      => #counterSyncCond#
+				, i_cassette_count         => #cassetteCount#
+				, i_key_change_algo        => #keyChangeAlgo#
+				, i_reject_disp_warn       => #rejectDispWarn#
+				, i_disp_rest_warn         => #dispRestWarn#
+				, i_receipt_warn           => #receiptWarn#
+				, i_card_capture_warn      => #cardCaptureWarn#
+				, i_note_max_count         => #noteMaxCount#
+				, i_scenario_id            => #scenarioId#
+				, i_hopper_count           => #hopperCount#
+				, i_manual_synch           => #manualSynch#
+				, i_establ_conn_synch      => #establConnSynch#
+				, i_counter_mismatch_synch => #counterMismatchSynch#
+				, i_online_in_synch        => #onlineInSynch#
+				, i_online_out_synch       => #onlineOutSynch#
+				, i_safe_close_synch       => #safeCloseSynch#
+				, i_disp_error_synch       => #dispErrorSynch#
+				, i_periodic_synch         => #periodicSynch#
+				, i_periodic_all_oper      => #periodicAllOper#
+				, i_periodic_oper_count    => #periodicOperCount#
+				, i_reject_disp_min_warn   => #rejectDispMinWarn#
+				, i_cash_in_present        => #cashInPresent#
+				, i_cash_in_min_warn       => #cashInMinWarn#
+				, i_cash_in_max_warn       => #cashInMaxWarn#
+				, i_dispense_algo      	   => #dispenseAlg#
+				)}
+    </procedure>
+    
+    <procedure id="remove-terminal-atm"
+		   	parameterClass="ru.bpc.sv2.atm.TerminalATM">
+    	{call ATM_UI_TERMINAL_PKG.remove_atm_terminal(
+				  i_terminal_id            => #id#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-atm-dispenser"
+                class="ru.bpc.sv2.atm.AtmDispenser">
+		<result property="id" column="id"/>
+		<result property="terminalId" column="terminal_id"/>
+		<result property="dispNumber" column="disp_number"/>
+		<result property="faceValue" column="face_value"/>
+		<result property="faceValueName" column="face_value_name"/>
+		<result property="currency" column="currency"/>
+		<result property="denominationId" column="denomination_id"/>
+		<result property="dispenserType" column="dispenser_type"/>
+		<result property="dispenserTypeName" column="dispenser_type_name"/>
+		<result property="noteLoaded" column="note_loaded"/>
+		<result property="sumLoaded" column="sum_loaded"/>
+		<result property="noteDispensed" column="note_dispensed"/>
+		<result property="sumDispensed" column="sum_dispensed"/>
+		<result property="noteRejected" column="note_rejected"/>
+		<result property="sumRejected" column="sum_rejected"/>
+		<result property="noteRemained" column="note_remained"/>
+		<result property="sumRemained" column="sum_remained"/>
+		<result property="cassetteStatus" column="cassette_status"/>
+		<result property="cassetteStatusName" column="cassette_status_name"/>
+		<result property="dispRestWarn" column="disp_rest_warn"/>
+	</resultMap>
+
+	<select id="get-dispensers"
+			parameterClass="qparams"
+			resultMap="mapping-atm-dispenser">
+		<include refid="paginatedOpen"/>
+			SELECT 	  d.id
+					, d.terminal_id
+					, d.disp_number
+					, d.face_value
+					, d.face_value_name
+					, d.currency
+					, d.denomination_id
+					, d.dispenser_type
+					, d.dispenser_type_name
+					, d.note_loaded
+					, d.sum_loaded
+					, d.note_dispensed
+					, d.sum_dispensed
+					, d.note_rejected
+					, d.sum_rejected
+					, d.note_remained
+					, d.sum_remained
+					, d.cassette_status
+					, d.cassette_status_name
+					, d.disp_rest_warn
+			FROM
+				atm_ui_dispenser_vw d
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="terminalId">d.terminal_id = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">d.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="dispNumber">d.disp_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="faceValue">d.face_value $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="denominationId">upper(d.denomination_id) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="dispenserType">upper(d.dispenser_type) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">d.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	
+	<select id="get-last-synchronization"
+			parameterClass="qparams"
+			resultClass="java.util.Date">
+		<include refid="paginatedOpen"/>
+			SELECT 	  d.LAST_SYNCH_DATE
+			FROM
+				ATM_TERMINAL_DYNAMIC d
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-dispensers-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+			SELECT
+				d.id
+			FROM
+				atm_ui_dispenser_vw d
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="terminalId">d.terminal_id = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-dispenser"
+    		parameterClass="ru.bpc.sv2.atm.AtmDispenser">
+    	{call ATM_UI_DISPENSER_PKG.add_dispenser(
+				  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_terminal_id 	=> #terminalId#
+				, i_disp_number		=> #dispNumber#
+				, i_face_value		=> #faceValue#
+				, i_currency		=> #currency#
+				, i_denomination_id	=> #denominationId#
+				, i_dispenser_type	=> #dispenserType# 
+    			)}
+    </procedure>
+    
+    <procedure id="edit-dispenser"
+    		parameterClass="ru.bpc.sv2.atm.AtmDispenser">
+    	{call ATM_UI_DISPENSER_PKG.modify_dispenser(
+				  i_id				=> #id#
+				, i_terminal_id 	=> #terminalId#
+				, i_disp_number		=> #dispNumber#
+				, i_face_value		=> #faceValue#
+				, i_currency		=> #currency#
+				, i_denomination_id	=> #denominationId#
+				, i_dispenser_type	=> #dispenserType# 
+    			)}
+    </procedure>
+    
+    <procedure id="remove-dispenser"
+    		parameterClass="ru.bpc.sv2.atm.AtmDispenser">
+    	{call ATM_UI_DISPENSER_PKG.remove_dispenser(
+    		  i_id			 => #id#
+    		)}
+    </procedure>
+    
+    <procedure id="modify-dispenser-state"
+    		parameterClass="ru.bpc.sv2.atm.AtmDispenser">
+    	{call ATM_UI_DISPENSER_PKG.change_dispenser_status(
+				  i_dispenser_id	=> #id#
+				, i_cassette_status	=> #cassetteStatus#
+    			)}
+    </procedure>
+
+	<resultMap  id="mapping-atm-cash-in"
+                class="ru.bpc.sv2.atm.AtmCashIn">
+        <result property="id" column="id"/>
+        <result property="terminalId" column="terminal_id"/>
+        <result property="faceValue" column="face_value"/>
+        <result property="currency" column="currency"/>
+        <result property="denominationCode" column="denomination_code"/>
+        <result property="isActive" column="is_active"/>
+	</resultMap>    
+    
+    <select id="get-atm-cash-ins"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-atm-cash-in">
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  a.id
+					, a.terminal_id
+					, a.face_value
+					, a.currency
+					, a.denomination_code
+					, a.is_active
+            FROM 
+					atm_ui_cash_in_vw a					
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+				<isEqual property="filters[].element" compareValue="terminalId">a.terminal_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="faceValue">a.face_value = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="denominationCode">a.denomination_code = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isActive">a.is_active = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="terminalId">a.terminal_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="faceValue">a.face_value $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">a.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="denominationCode">a.denomination_code $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="isActive">a.is_active $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-atm-cash-ins-count"
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>       
+			SELECT a.id    
+			FROM atm_ui_cash_in_vw a		     
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+				<isEqual property="filters[].element" compareValue="terminalId">a.terminal_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="faceValue">a.face_value = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="denominationCode">a.denomination_code = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isActive">a.is_active = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-atm-collection"
+                class="ru.bpc.sv2.atm.AtmCollection">
+        <result property="id" column="id"/>
+        <result property="terminalId" column="terminal_id"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+	</resultMap>    
+    
+    <select id="get-atm-collections"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-atm-collection">
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  c.id
+					, c.terminal_id
+					, c.start_date
+					, c.end_date
+            FROM 
+					atm_ui_collection_vw c					
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>                        
+				<isEqual property="filters[].element" compareValue="terminalId">c.terminal_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="startDate">trunc(c.start_date) >= trunc(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="endDate">trunc(c.end_date) <![CDATA[<=]]> trunc(#filters[].value#)</isEqual>		
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="terminalId">c.terminal_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="startDate">c.start_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="endDate">c.end_date $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting">ORDER BY c.id DESC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-atm-collections-count"
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>       
+			SELECT	
+					c.id					
+            FROM 
+					atm_ui_collection_vw c					
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>                        
+				<isEqual property="filters[].element" compareValue="terminalId">c.terminal_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="startDate">trunc(c.start_date) >= trunc(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="endDate">trunc(c.end_date) <![CDATA[<=]]> trunc(#filters[].value#)</isEqual>						
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-atm-collection-dispensers"
+                class="ru.bpc.sv2.atm.AtmCollectionDispenser">
+        <result property="collectionId" column="collection_id"/>
+        <result property="dispNumber" column="disp_number"/>
+		<result property="currency" column="currency"/>
+		<result property="faceValue" column="face_value"/>
+		<result property="faceValueName" column="face_value_name"/>
+		<result property="noteLoaded" column="note_loaded"/>
+		<result property="sumLoaded" column="sum_loaded"/>
+	</resultMap>    
+    
+    <select id="get-atm-collection-dispensers"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-atm-collection-dispensers">
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  c.collection_id
+					, c.disp_number
+					, c.currency
+					, c.face_value
+					, c.face_value_name
+					, c.note_loaded
+					, c.sum_loaded
+            FROM 
+					atm_ui_collection_disp_vw c					
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="collectionId">c.collection_id = #filters[].value#</isEqual>                       
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="dispNumber">c.disp_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">c.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="faceValue">c.face_value $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting">ORDER BY c.collection_id ASC, c.disp_number ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-atm-collection-dispensers-count"
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>       
+			SELECT	
+					c.*					
+            FROM 
+					atm_ui_collection_disp_vw c					
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="collectionId">c.collection_id = #filters[].value#</isEqual>			
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-atm-dispensers-sum"
+                class="ru.bpc.sv2.atm.AtmDispenser">
+        <result property="terminalId" column="terminal_id"/>
+       	<result property="currency" column="currency"/>
+		<result property="noteLoaded" column="note_loaded"/>
+		<result property="sumLoaded" column="sum_loaded"/>
+		<result property="noteDispensed" column="note_dispensed"/>
+		<result property="sumDispensed" column="sum_dispensed"/>
+		<result property="noteRejected" column="note_rejected"/>
+		<result property="sumRejected" column="sum_rejected"/>
+		<result property="noteRemained" column="note_remained"/>
+		<result property="sumRemained" column="sum_remained"/>
+	</resultMap>    
+    
+    <select id="get-atm-dispensers-sum"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-atm-dispensers-sum">
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  d.terminal_id
+					, d.currency
+					, d.note_loaded
+					, d.sum_loaded
+					, d.note_dispensed
+					, d.sum_dispensed
+					, d.note_rejected
+					, d.sum_rejected
+					, d.note_remained
+					, d.sum_remained
+            FROM 
+					atm_ui_dispenser_sum_vw d					
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="terminalId">d.terminal_id = #filters[].value#</isEqual>                       
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting">ORDER BY d.terminal_id ASC, d.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-atm-dispensers-sum-count"
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>       
+			SELECT	
+					d.*					
+            FROM 
+					atm_ui_dispenser_sum_vw d					
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="terminalId">d.terminal_id = #filters[].value#</isEqual>			
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+
+	<resultMap  id="mapping-monitored-atm"
+	            class="ru.bpc.sv2.atm.MonitoredAtm"  >
+	    <result property="id" column="id" />
+	    <result property="atmType" column="atm_type" />
+	    <result property="atmModel" column="atm_model" />
+	    <result property="serialNumber" column="serial_number" />
+	    <result property="placementType" column="placement_type" />
+	    <result property="availabilityType" column="availability_type" />
+	    <result property="operatingHours" column="operating_hours" />
+	    <result property="localDateGap" column="local_date_gap" />
+	    <result property="cassetteCount" column="cassette_count" />
+	    <result property="keyChangeAlgo" column="key_change_algo" />
+	    <result property="counterSyncCond" column="counter_sync_cond" />
+	    <result property="rejectDispWarn" column="reject_disp_warn" />
+	    <result property="dispRestWarn" column="disp_rest_warn" />
+	    <result property="receiptWarn" column="receipt_warn" />
+	    <result property="cardCaptureWarn" column="card_capture_warn" />
+	    <result property="noteMaxCount" column="note_max_count" />
+	    <result property="scenarioId" column="scenario_id" />
+	    <result property="hopperCount" column="hopper_count" />
+	    <result property="manualSynch" column="manual_synch" />
+	    <result property="establConnSynch" column="establ_conn_synch" />
+	    <result property="counterMismatchSynch" column="counter_mismatch_synch" />
+	    <result property="onlineInSynch" column="online_in_synch" />
+	    <result property="onlineOutSynch" column="online_out_synch" />
+	    <result property="safeCloseSynch" column="safe_close_synch" />
+	    <result property="dispErrorSynch" column="disp_error_synch" />
+	    <result property="periodicSynch" column="periodic_synch" />
+	    <result property="periodicAllOper" column="periodic_all_oper" />
+	    <result property="periodicOperCount" column="periodic_oper_count" />
+	    <result property="collId" column="coll_id" />
+	    <result property="collOperCount" column="coll_oper_count" />
+	    <result property="lastOperId" column="last_oper_id" />
+	    <result property="lastOperDate" column="last_oper_date" />
+	    <result property="receiptLoaded" column="receipt_loaded" />
+	    <result property="receiptPrinted" column="receipt_printed" />
+	    <result property="receiptRemained" column="receipt_remained" />
+	    <result property="cardCaptured" column="card_captured" />
+	    <result property="cardReaderStatus" column="card_reader_status" />
+	    <result property="rcptStatus" column="rcpt_status" />
+	    <result property="rcptPaperStatus" column="rcpt_paper_status" />
+	    <result property="rcptRibbonStatus" column="rcpt_ribbon_status" />
+	    <result property="rcptHeadStatus" column="rcpt_head_status" />
+	    <result property="rcptKnifeStatus" column="rcpt_knife_status" />
+	    <result property="jrnlStatus" column="jrnl_status" />
+	    <result property="jrnlPaperStatus" column="jrnl_paper_status" />
+	    <result property="jrnlRibbonStatus" column="jrnl_ribbon_status" />
+	    <result property="jrnlHeadStatus" column="jrnl_head_status" />
+	    <result property="ejrnlStatus" column="ejrnl_status" />
+	    <result property="ejrnlSpaceStatus" column="ejrnl_space_status" />
+	    <result property="stmtStatus" column="stmt_status" />
+	    <result property="stmtPaperStatus" column="stmt_paper_status" />
+	    <result property="stmtRibbonStat" column="stmt_ribbon_stat" />
+	    <result property="stmtHeadStatus" column="stmt_head_status" />
+	    <result property="stmtKnifeStatus" column="stmt_knife_status" />
+	    <result property="stmtCaptBinStatus" column="stmt_capt_bin_status" />
+	    <result property="todClockStatus" column="tod_clock_status" />
+	    <result property="depositoryStatus" column="depository_status" />
+	    <result property="nightSafeStatus" column="night_safe_status" />
+	    <result property="encryptorStatus" column="encryptor_status" />
+	    <result property="tscreenKeybStatus" column="tscreen_keyb_status" />
+	    <result property="voiceGuidanceStatus" column="voice_guidance_status" />
+	    <result property="cameraStatus" column="camera_status" />
+	    <result property="bunchAcptStatus" column="bunch_acpt_status" />
+	    <result property="envelopeDispStatus" column="envelope_disp_status" />
+	    <result property="chequeModuleStatus" column="cheque_module_status" />
+	    <result property="barcodeReaderStatus" column="barcode_reader_status" />
+	    <result property="coinDispStatus" column="coin_disp_status" />
+	    <result property="dispenserStatus" column="dispenser_status" />
+	    <result property="workflowStatus" column="workflow_status" />
+	    <result property="serviceStatus" column="service_status" />
+	    <result property="lang" column="lang" />
+	    <result property="instId" column="inst_id" />
+	    <result property="agentId" column="agent_id" />
+	    <result property="agentName" column="agent_name" />
+	    <result property="standardId" column="standard_id" />
+	    <result property="standardName" column="standard_name" />
+	    <result property="financeStatus" column="finance_status" />
+	    <result property="techStatus" column="tech_status" />
+	    <result property="consumablesStatus" column="consumables_status" />
+	    <result property="atmAddress" column="atm_address" />
+	    <result property="atmDate" column="atm_date" />
+	    <result property="workTime" column="work_time" />
+	    <result property="cashInPresent" column="cash_in_present" javaType="boolean"/>
+	    <result property="initiator" column="initiator" />
+	    <result property="format" column="format" />
+	    <result property="isEnabled" column="is_enabled" />
+	    <result property="communicationPlugin" column="communication_plugin" />
+	    <result property="remoteAddress" column="remote_address" />
+	    <result property="remotePort" column="remote_port" />
+	    <result property="monitorConnection" column="monitor_connection" />
+	    <result property="localPort" column="local_port" />
+	    <result property="terminalNumber" column="terminal_number" />
+	    <result property="terminalDescription" column="terminal_description" />
+	    <result property="merchantId" column="merchant_id" />
+	    <result property="merchantNumber" column="merchant_number" />
+	    <result property="merchantDescription" column="merchant_description" />
+	    <result property="connectionStatus" column="connection_status" />
+        <result property="agentNumber" column="agent_number" />
+	</resultMap>
+
+	<select id="get-monitored-atms"
+			parameterClass="qparams" resultMap="mapping-monitored-atm">
+		SELECT 
+			x.*
+			, get_object_desc(i_object_id => x.id, i_entity_type => 'ENTTTRMN') terminal_description
+			, get_object_desc(i_object_id => x.merchant_id, i_entity_type => 'ENTTMRCH') merchant_description
+		FROM (
+		<include refid="paginatedOpen" />
+			SELECT
+				tv.id
+				,tv.atm_type
+				,tv.atm_model
+				,tv.serial_number
+				,tv.placement_type
+				,tv.availability_type
+				,tv.operating_hours
+				,tv.local_date_gap
+				,tv.cassette_count
+				,tv.key_change_algo
+				,tv.counter_sync_cond
+				,tv.reject_disp_warn
+				,tv.disp_rest_warn
+				,tv.receipt_warn
+				,tv.card_capture_warn
+				,tv.note_max_count
+				,tv.scenario_id
+				,tv.hopper_count
+				,tv.manual_synch
+				,tv.establ_conn_synch
+				,tv.counter_mismatch_synch
+				,tv.online_in_synch
+				,tv.online_out_synch
+				,tv.safe_close_synch
+				,tv.disp_error_synch
+				,tv.periodic_synch
+				,tv.periodic_all_oper
+				,tv.periodic_oper_count
+				,tv.coll_id
+				,tv.coll_oper_count
+				,tv.last_oper_id
+				,tv.last_oper_date
+				,tv.receipt_loaded
+				,tv.receipt_printed
+				,tv.receipt_remained
+				,tv.card_captured
+				,tv.card_reader_status
+				,tv.rcpt_status
+				,tv.rcpt_paper_status
+				,tv.rcpt_ribbon_status
+				,tv.rcpt_head_status
+				,tv.rcpt_knife_status
+				,tv.jrnl_status
+				,tv.jrnl_paper_status
+				,tv.jrnl_ribbon_status
+				,tv.jrnl_head_status
+				,tv.ejrnl_status
+				,tv.ejrnl_space_status
+				,tv.stmt_status
+				,tv.stmt_paper_status
+				,tv.stmt_ribbon_stat
+				,tv.stmt_head_status
+				,tv.stmt_knife_status
+				,tv.stmt_capt_bin_status
+				,tv.tod_clock_status
+				,tv.depository_status
+				,tv.night_safe_status
+				,tv.encryptor_status
+				,tv.tscreen_keyb_status
+				,tv.voice_guidance_status
+				,tv.camera_status
+				,tv.bunch_acpt_status
+				,tv.envelope_disp_status
+				,tv.cheque_module_status
+				,tv.barcode_reader_status
+				,tv.coin_disp_status
+				,tv.dispenser_status
+				,tv.workflow_status
+				,tv.service_status
+				,tv.lang
+				,tv.inst_id 
+				,tv.agent_id
+				,tv.agent_name
+				,tv.standard_id
+				,tv.standard_name
+				,tv.finance_status
+				,tv.tech_status
+				,tv.consumables_status
+				,tv.atm_address
+				,tv.atm_date
+				,tv.work_time
+				,tv.cash_in_present
+				,tv.initiator
+				,tv.format
+				,tv.is_enabled
+				,tv.communication_plugin
+				,tv.remote_address
+				,tv.remote_port
+				,tv.monitor_connection
+				,tv.local_port
+				,tv.terminal_number
+				,tv.merchant_id
+				,tv.merchant_number
+				,tv.connection_status
+                ,tv.agent_number
+
+			FROM
+				atm_ui_terminal_vw tv
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="agentId">agent_id = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="placementType">placement_type = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="atmType">atm_type = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="serialNumber">serial_number = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="serviceStatus">service_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="todClockStatus">tod_clock_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="cardReaderStatus">card_reader_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="envelopeDispStatus">envelope_disp_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="jrnlStatus">jrnl_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="nightSafeStatus">night_safe_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="encryptorStatus">encryptor_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="cameraStatus">camera_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="coinDispStatus">coin_disp_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="barcodeReaderStatus">barcode_reader_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="chequeModuleStatus">cheque_module_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="bunchAcptStatus">bunch_acpt_status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>             
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>          
+				<isEqual property="filters[].element" compareValue="terminalNumber">terminal_number $filters[].condition$ #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="connectionStatus">connection_status = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="groupId">id in
+                    (select numeric_value from com_array_element where array_id in (#filters[].value#))
+                </isEqual>
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="terminalNumber">terminal_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="merchantNumber">merchant_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="serialNumber">serial_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="atmModel">atm_model $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="standardName">atm_model $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="serviceStatus">service_status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="financeStatus">finance_status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="techStatus">tech_status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="consumablesStatus">consumables_status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="connectionStatus">connection_status $sorting[].direction$</isEqual>
+			</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+		) x
+	</select>
+	
+	<select id="get-monitored-atms-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(tv.id)
+		FROM
+			atm_ui_terminal_vw tv
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="agentId">agent_id = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="placementType">placement_type = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="atmType">atm_type = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="serialNumber">serial_number = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="serviceStatus">service_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="todClockStatus">tod_clock_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="cardReaderStatus">card_reader_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="envelopeDispStatus">envelope_disp_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="jrnlStatus">jrnl_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="nightSafeStatus">night_safe_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="encryptorStatus">encryptor_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="cameraStatus">camera_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="coinDispStatus">coin_disp_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="barcodeReaderStatus">barcode_reader_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="chequeModuleStatus">cheque_module_status = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="bunchAcptStatus">bunch_acpt_status = #filters[].value#</isEqual>                   
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>             
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>          
+				<isEqual property="filters[].element" compareValue="terminalNumber">terminal_number $filters[].condition$ #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="connectionStatus">connection_status = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="groupId">id in
+                  (select numeric_value from com_array_element where array_id in (#filters[].value#))
+                </isEqual>
+		</iterate>			
+	</select>		
+
+	<resultMap  id="mapping-captured-card"
+	            class="ru.bpc.sv2.atm.CapturedCard"  >
+	    <result property="authId" column="auth_id" />
+	    <result property="terminalId" column="terminal_id" />
+	    <result property="collId" column="coll_id" />
+	    <result property="operDate" column="oper_date" />
+	    <result property="cardMask" column="card_mask" />
+	    <result property="cardId" column="card_id" />
+	    <result property="respCode" column="resp_code" />
+	</resultMap>
+
+	<select id="get-captured-cards"
+			parameterClass="qparams" resultMap="mapping-captured-card">
+		SELECT
+			ccv.auth_id
+			,ccv.terminal_id
+			,ccv.coll_id
+			,ccv.card_mask
+			,ccv.card_id
+			,ccv.resp_code
+			,ccv.oper_date
+		FROM
+			atm_ui_captured_card_vw ccv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="authId">ccv.auth_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">ccv.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="collId">ccv.coll_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDate">ccv.oper_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">ccv.card_mask like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardId">ccv.card_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">ccv.card_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respCode">ccv.resp_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">trim(ccv.oper_date) >= trim(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="endDate">trim(ccv.oper_date) <![CDATA[<]]>= trim(#filters[].value#)</isEqual>
+			
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="authId">ccv.auth_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="terminalId">ccv.terminal_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="collId">ccv.coll_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operDate">ccv.oper_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardMask">ccv.card_mask $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardId">ccv.card_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardNumber">ccv.card_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="respCode">ccv.resp_code $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>			
+	</select>
+	
+	<select id="get-captured-cards-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(*)
+		FROM
+			atm_ui_captured_card_vw ccv
+			
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="authId">ccv.auth_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">ccv.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="collId">ccv.coll_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDate">ccv.oper_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">ccv.card_mask like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardId">ccv.card_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">ccv.card_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respCode">ccv.resp_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">trim(ccv.oper_date) >= trim(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="endDate">trim(ccv.oper_date) <![CDATA[<]]>= trim(#filters[].value#)</isEqual>			
+		</iterate>			
+	</select>
+	
+	<select id="get-atm-plugin" 
+		parameterClass="qparams"
+		resultClass="string">
+		SELECT distinct
+			s.application_plugin
+		FROM
+			atm_ui_terminal_vw t
+		LEFT JOIN cmn_ui_standard_vw s
+		ON
+			t.standard_id = s.id
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">t.id = #filters[].value#</isEqual>	
+			<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value# and s.lang = #filters[].value#</isEqual>	
+		</iterate>
+	</select>
+
+	<resultMap  id="mapping-admin-operation"
+	            class="ru.bpc.sv2.atm.AdminOperation"  >
+	    <result property="terminalId" column="terminal_id" />
+	    <result property="commandDate" column="command_date" />
+	    <result property="command" column="command" />
+	    <result property="commandName" column="command_name" />
+	    <result property="commandResult" column="command_result" />
+	    <result property="commandResultName" column="command_result_name" />
+	    <result property="userId" column="user_id" />
+	    <result property="userName" column="user_name" />
+	    <result property="lang" column="lang" />
+	    <result property="id" column="id" />
+	</resultMap>	
+	
+	<select id="get-admin-operations"
+			parameterClass="qparams" resultMap="mapping-admin-operation">
+		SELECT
+			rownum id
+			,clv.terminal_id
+			,clv.command_date
+			,clv.command
+			,clv.command_name
+			,clv.command_result
+			,clv.command_result_name
+			,clv.user_id
+			,clv.user_name
+			,clv.lang
+		FROM
+			atm_ui_command_log_vw clv
+	<iterate prepend="WHERE" conjunction="AND" property="filters">
+		<isEqual property="filters[].element" compareValue="terminalId">clv.terminal_id = #filters[].value#</isEqual>
+		<isEqual property="filters[].element" compareValue="commandDate">clv.command_date = #filters[].value#</isEqual>
+		<isEqual property="filters[].element" compareValue="command">clv.command = #filters[].value#</isEqual>
+		<isEqual property="filters[].element" compareValue="commandName">clv.command_name = #filters[].value#</isEqual>
+		<isEqual property="filters[].element" compareValue="commandResult">clv.command_result = #filters[].value#</isEqual>
+		<isEqual property="filters[].element" compareValue="commandResultName">clv.command_result_name = #filters[].value#</isEqual>
+		<isEqual property="filters[].element" compareValue="userId">clv.user_id = #filters[].value#</isEqual>
+		<isEqual property="filters[].element" compareValue="userName">clv.user_name = #filters[].value#</isEqual>
+		<isEqual property="filters[].element" compareValue="lang">clv.lang = #filters[].value#</isEqual>
+	</iterate>
+	<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+		<isNotEqual property="sorting[].direction" compareValue="AUTO">
+			<isEqual property="sorting[].property" compareValue="terminalId">clv.terminal_id $sorting[].direction$</isEqual>		
+			<isEqual property="sorting[].property" compareValue="commandDate">clv.command_date $sorting[].direction$</isEqual>		
+			<isEqual property="sorting[].property" compareValue="command">clv.command $sorting[].direction$</isEqual>		
+			<isEqual property="sorting[].property" compareValue="commandName">clv.command_name $sorting[].direction$</isEqual>		
+			<isEqual property="sorting[].property" compareValue="commandResult">clv.command_result $sorting[].direction$</isEqual>		
+			<isEqual property="sorting[].property" compareValue="commandResultName">clv.command_result_name $sorting[].direction$</isEqual>		
+			<isEqual property="sorting[].property" compareValue="userId">clv.user_id $sorting[].direction$</isEqual>		
+			<isEqual property="filters[].element" compareValue="userName">upper(clv.user_name) like #filters[].value#</isEqual>	
+			<isEqual property="sorting[].property" compareValue="lang">clv.lang $sorting[].direction$</isEqual>		
+		</isNotEqual>
+	</iterate>			
+	</select>
+	
+	<select id="get-admin-operations-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(terminal_id)
+		FROM
+			atm_ui_command_log_vw clv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">clv.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="commandDate">clv.command_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="command">clv.command = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="commandName">clv.command_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="commandResult">clv.command_result = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="commandResultName">clv.command_result_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userId">clv.user_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userName">upper(clv.user_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">clv.lang = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+
+	<resultMap  id="mapping-status-message"
+	            class="ru.bpc.sv2.atm.StatusMessage"  >
+	    <result property="terminalId" column="terminal_id" />
+	    <result property="changeDate" column="change_date" />
+	    <result property="status" column="status" />
+	    <result property="statusName" column="status_name" />
+	    <result property="lang" column="lang" />
+	    <result property="id" column="id" />
+	</resultMap>
+
+	<select id="get-status-messages"
+			parameterClass="qparams" resultMap="mapping-status-message">
+		<include refid="paginatedOpen"/>
+		SELECT
+			rownum id
+			,slv.terminal_id
+			,slv.change_date
+			,slv.status
+			,slv.status_name
+			,slv.lang
+		FROM
+			atm_ui_status_log_vw slv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">slv.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="changeDate">slv.change_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">slv.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="statusName">slv.status_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">slv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">slv.change_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		 	<isEqual property="filters[].element" compareValue="endDate">slv.change_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>		
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="terminalId">slv.terminal_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="changeDate">slv.change_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="status">slv.status $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="statusName">slv.status_name $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="lang">slv.lang $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-status-messages-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(*)
+		FROM
+			atm_ui_status_log_vw slv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">slv.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="changeDate">slv.change_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">slv.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="statusName">slv.status_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">slv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">slv.change_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		 	<isEqual property="filters[].element" compareValue="endDate">slv.change_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>			
+		</iterate>			
+	</select>	
+
+	<resultMap  id="mapping-fraud-operation"
+	            class="ru.bpc.sv2.atm.FraudOperation"  >
+	    <result property="terminalId" column="terminal_id" />
+	    <result property="operDate" column="oper_date" />
+	    <result property="operType" column="oper_type" />
+	    <result property="operTypeName" column="oper_type_name" />
+	    <result property="operCurrency" column="oper_currency" />
+	    <result property="operCurrencyName" column="oper_currency_name" />
+	    <result property="exponent" column="exponent" />
+	    <result property="operAmount" column="oper_amount" />
+	    <result property="eventType" column="event_type" />
+	    <result property="eventTypeName" column="event_type_name" />
+	    <result property="caseId" column="case_id" />
+	    <result property="caseLabel" column="case_label" />
+	    <result property="cardNumber" column="card_number" />
+	    <result property="cardMask" column="card_mask" />
+	    <result property="lang" column="lang" />
+	    <result property="id" column="id" />
+	</resultMap>
+
+	<select id="get-fraud-operations"
+			parameterClass="qparams" resultMap="mapping-fraud-operation">
+		SELECT
+			rownum id
+			,fv.terminal_id
+			,fv.oper_date
+			,fv.oper_type
+			,fv.oper_type_name
+			,fv.oper_currency
+			,fv.oper_currency_name
+			,fv.exponent
+			,fv.oper_amount
+			,fv.event_type
+			,fv.event_type_name
+			,fv.case_id
+			,fv.case_label
+			,fv.card_number
+			,fv.card_mask
+			,fv.lang
+		FROM
+			atm_ui_fraud_vw fv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">fv.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDate">fv.oper_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">fv.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operTypeName">fv.oper_type_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operCurrency">fv.oper_currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operCurrencyName">fv.oper_currency_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="exponent">fv.exponent = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operAmount">fv.oper_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">fv.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventTypeName">fv.event_type_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseId">fv.case_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseLabel">fv.case_label = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">fv.card_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">fv.card_mask = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">fv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(fv.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(fv.oper_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="terminalId">fv.terminal_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operDate">fv.oper_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operType">fv.oper_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operTypeName">fv.oper_type_name $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operCurrency">fv.oper_currency $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operCurrencyName">fv.oper_currency_name $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="exponent">fv.exponent $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operAmount">fv.oper_amount $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="eventType">fv.event_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="eventTypeName">fv.event_type_name $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="caseId">fv.case_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="caseLabel">fv.case_label $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardNumber">fv.card_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardMask">fv.card_mask $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="lang">fv.lang $sorting[].direction$</isEqual>
+
+			</isNotEqual>
+		</iterate>			
+	</select>
+	
+	<select id="get-fraud-operations-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(fv.terminal_id)
+		FROM
+			atm_ui_fraud_vw fv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">fv.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDate">fv.oper_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">fv.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operTypeName">fv.oper_type_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operCurrency">fv.oper_currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operCurrencyName">fv.oper_currency_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="exponent">fv.exponent = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operAmount">fv.oper_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">fv.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventTypeName">fv.event_type_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseId">fv.case_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caseLabel">fv.case_label = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">fv.card_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">fv.card_mask = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">fv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(fv.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(fv.oper_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>			
+	</select>
+
+
+    <resultMap  id="mapping-atm-array-elements"
+                class="ru.bpc.sv2.common.arrays.AtmArrayElement">
+        <result property="id" column="id" />
+        <result property="terminalNumber" column="terminal_number" />
+        <result property="terminalDescription" column="terminal_description" />
+        <result property="standardId" column="standard_id" />
+        <result property="standardName" column="standard_name" />
+        <result property="merchantNumber" column="merchant_number" />
+        <result property="merchantDescription" column="merchant_description" />
+        <result property="agentId" column="agent_id" />
+        <result property="agentName" column="agent_name" />
+        <result property="atmAddress" column="atm_address" />
+        <result property="serialNumber" column="serial_number" />
+        <result property="atmModel" column="atm_model" />
+        <result property="serviceStatus" column="service_status" />
+        <result property="connectionStatus" column="connection_status" />
+        <result property="financeStatus" column="finance_status" />
+        <result property="techStatus" column="tech_status" />
+        <result property="consumablesStatus" column="consumables_status" />
+        <result property="elementId" column="element_id" />
+        <result property="agentNumber" column="agent_number" />
+    </resultMap>
+
+    <select id="get-atm-array-elements"
+            parameterClass="qparams" resultMap="mapping-atm-array-elements">
+        SELECT
+        x.*
+        , get_object_desc(i_object_id => x.id, i_entity_type => 'ENTTTRMN') terminal_description
+        , get_object_desc(i_object_id => x.merchant_id, i_entity_type => 'ENTTMRCH') merchant_description
+        FROM (
+        <include refid="paginatedOpen" />
+        SELECT
+         tv.id
+        ,tv.terminal_number
+        ,tv.standard_id
+        ,tv.standard_name
+        ,tv.merchant_number
+        ,tv.agent_name
+        ,tv.agent_id
+        ,tv.atm_address
+        ,tv.serial_number
+        ,tv.atm_model
+        ,tv.service_status
+        ,tv.connection_status
+        ,tv.finance_status
+        ,tv.tech_status
+        ,tv.consumables_status
+        ,tv.merchant_id
+        ,ev.id as element_id
+        ,tv.agent_number
+        FROM
+        ATM_UI_TERMINAL_VW tv, COM_UI_ARRAY_ELEMENT_VW ev
+        WHERE
+        tv.id = ev.numeric_value(+)
+        <iterate prepend=" AND " conjunction=" AND " property="filters">
+            <isEqual property="filters[].element" compareValue="arrayId">ev.array_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">ev.lang = #filters[].value# AND tv.lang = #filters[].value#</isEqual>
+        </iterate>
+
+        <iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="terminalNumber">terminal_number $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="merchantNumber">merchant_number $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="serialNumber">serial_number $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="atmModel">atm_model $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="standardName">atm_model $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="serviceStatus">service_status $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="financeStatus">finance_status $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="techStatus">tech_status $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="consumablesStatus">consumables_status $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="connectionStatus">connection_status $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose" />
+        ) x
+    </select>
+
+    <select id="get-atm-array-elements-count" parameterClass="qparams"  resultClass="int">
+        SELECT
+          count(tv.id)
+        FROM
+        ATM_UI_TERMINAL_VW tv, COM_UI_ARRAY_ELEMENT_VW ev
+        WHERE
+        tv.id = ev.numeric_value(+)
+        <iterate prepend=" AND " conjunction=" AND " property="filters">
+            <isEqual property="filters[].element" compareValue="arrayId">ev.array_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">ev.lang = #filters[].value# AND tv.lang = #filters[].value#</isEqual>
+        </iterate>
+    </select>
+    
+    <resultMap  id="mapping-receive-status-msg"
+                class="ru.bpc.sv2.atm.Unsolicited">
+        <result property="id" column="id"/>
+        <result property="techId" column="tech_id"/>
+       	<result property="messageType" column="message_type"/>
+		<result property="deviceId" column="device_id"/>
+		<result property="deviceName" column="device_name"/>
+		<result property="deviceStatus" column="device_status"/>
+		<result property="errorSeverity" column="error_severity"/>
+		<result property="diagStatus" column="diag_status"/>
+		<result property="suppliesStatus" column="supplies_status"/>
+		<result property="lastOperId" column="last_oper_id"/>
+	</resultMap> 
+    
+    <select id="get-receive-status-msg"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-receive-status-msg">
+		<include refid="paginatedOpen"/>
+			select
+			    s.id 
+			  , s.tech_id
+			  , t.message_type
+			  , s.device_id
+			  , s.device_name
+			  , s.device_status
+			  , s.error_severity
+			  , s.diag_status
+			  , s.supplies_status
+			  , t.last_oper_id
+			 from aup_ui_atm_status_vw s,
+				  aup_atm_tech_vw t
+			where t.tech_id=s.tech_id(+)			
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="terminalId">t.terminal_id = #filters[].value#</isEqual>                       
+				<isEqual property="filters[].element" compareValue="messageType">t.message_type like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="deviceId">s.device_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="deviceStatus">s.device_status like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="errorSeverity">s.error_severity like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="diagStatus">s.diag_status like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="suppliesStatus">s.supplies_status like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lastOperId">t.last_oper_id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="messageType">t.message_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deviceId">s.device_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deviceStatus">s.device_status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="errorSeverity">s.error_severity $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="diagStatus">s.diag_status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="suppliesStatus">s.supplies_status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="lastOperId">t.last_oper_id $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting">ORDER BY t.message_type ASC, s.device_id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-receive-status-msg-count" parameterClass="qparams"  resultClass="int">
+        SELECT
+          count(*)
+        from aup_ui_atm_status_vw s,
+				  aup_atm_tech_vw t
+		where t.tech_id=s.tech_id(+)			
+		<iterate prepend=" AND " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">t.terminal_id = #filters[].value#</isEqual>                       
+			<isEqual property="filters[].element" compareValue="messageType">t.message_type like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="deviceId">s.device_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="deviceStatus">s.device_status like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="errorSeverity">s.error_severity like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="diagStatus">s.diag_status like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="suppliesStatus">s.supplies_status like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lastOperId">t.last_oper_id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+		</iterate>
+    </select>
+</sqlMap>

@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<style type="text/css">
+		.width100px {
+			width: 100px;
+		}
+		.alignLeft {
+			text-align: left !important;
+		}
+	</style>
+	
+   	<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+   	<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+   	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+	
+	<script type="text/javascript">
+	//<!--
+	function checkFclForm() {
+		var checked = true;
+		var formChecked;
+		var tabs = 0;
+		var msg = "";
+		if (document.getElementById("generalTab") != null) {
+			formChecked = checkGeneralForm();
+			tabs++;
+			if (!formChecked) msg += "#{lblAcm.check_table_form}<br/>";
+			checked = checked && formChecked;
+		}
+		if (document.getElementById("partitionCyclesTab") != null) {
+			formChecked = checkCyclesForm();
+			tabs++;
+			if (!formChecked) msg += "#{lblFcl.check_cycle_form}<br/>";
+			checked = checked && formChecked;
+		}
+		if (document.getElementById("storageCyclesTab") != null) {
+			formChecked = checkCyclesForm();
+			tabs++;
+			if (!formChecked) msg += "#{lblFcl.check_cycle_form}<br/>";
+			checked = checked && formChecked;
+		}
+
+		if (tabs > 1 && !checked) {
+			document.getElementById("errModalDiv:mess").innerHTML = msg;
+			Richfaces.showModalPanel('errModalPanel');
+		}
+		return checked;
+	}
+	
+	function checkGeneralForm() {
+		var checked = true;
+
+		if (document.getElementById("generalForm:tableName").value == "") {
+			document.getElementById("generalForm:tableNameError").style.display = "inline";
+			checked = false;
+		} else {
+			document.getElementById("generalForm:tableNameError").style.display = "none";
+		}
+		
+		return checked;
+	}
+
+	function isNumeric(value, isDotAllowed, canBeNegative) {
+		var dot = false;
+		for (var i = 0; i < value.length; i++) {
+			if (value[i] == "-") {
+				if (i == 0 && canBeNegative) continue;
+				else return false;
+			}
+			if (value[i] == "." || value[i] == ",") {
+				if (!isDotAllowed || (isDotAllowed && dot)) return false;
+				else {
+					dot = true;
+					continue;
+				}
+			}
+			if (value[i] < "0" || value[i] > "9") {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	function hideErrorField(elem) {
+		document.getElementById(elem.id + "Error").style.display = "none";
+
+		// this one is for minimal values where appropriate
+		// needs to be changed in a more universal way, i think
+		if (document.getElementById(elem.id + "MinError") != null) {
+			document.getElementById(elem.id + "MinError").style.display = "none";
+		}
+	}
+
+	/** 
+	 * IE doesn't correctly process "onchange" event for radio buttons, that's why
+	 * the "onclick" event should be used. This code provides proper processing for
+	 * such clicks to not to make server calls when same radio button is clicked.
+	 */  
+	var prevParCycleMode;
+	var prevStoCycleMode;
+	
+	function checkParCycleMode() {
+		var parCycleModes = jQuery("input[name='parCycleModesForm:cycleModeSelector']");
+		for (var i = 0; i < parCycleModes.length; i++) {
+			if (parCycleModes[i].checked) {
+				if (prevParCycleMode == parCycleModes[i].value) return false;
+				prevParCycleMode = parCycleModes[i].value;
+				return true;
+			}
+		}
+		return true;
+	}
+
+	function checkStoCycleMode() {
+		var stoCycleModes = jQuery("input[name='stoCycleModesForm:cycleModeSelector']");
+		for (var i = 0; i < stoCycleModes.length; i++) {
+			if (stoCycleModes[i].checked) {
+				if (prevStoCycleMode == stoCycleModes[i].value) return false;
+				prevStoCycleMode = stoCycleModes[i].value;
+				return true;
+			}
+		}
+		return true;
+	}
+	//-->
+	</script>
+
+    <h:form>
+        <a4j:jsFunction name="storeSubTab" ajaxSingle="true" limitToList="true" reRender="#{MbPartitionTables.subTabName}">
+            <a4j:actionparam name="subTabName" assignTo="#{MbPartitionTables.subTabName}" />
+        </a4j:jsFunction>
+    </h:form>
+
+	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		<rich:tabPanel switchType="client" id="fclTabPanel" tabClass="tab-cell"
+		    	activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    	contentClass="tab-content">
+		    <rich:tab ontabenter="storeSubTab('generalTab')" label="#{lblPrd.general_data}" name="generalTab" >
+				<f:facet name="label">
+					<h:panelGroup styleClass="first tab-label" layout="block">
+						<h:outputText value="#{lblPrd.general_data}" title="#{lblPrd.general_data}"/>
+					</h:panelGroup>
+				</f:facet>
+				<h:panelGroup id="generalTab" >
+					<h:panelGroup layout="block" styleClass="carddata-wrapper" style="height: 380px;overflow-y: hidden;">
+						<h:form id="generalForm">
+							<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+								<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal alignLeft width100px, width250">
+									<h:outputLabel value="* #{lblAcm.table_name}:" title="#{lblAcm.table_name}" style="text-align: left;"/>
+									<h:panelGrid columns="1" cellspacing="0" cellpadding="0" border="0" styleClass="noWrap">
+										
+										<h:selectOneMenu id="tableName" value="#{MbPartitionTables.newPartitionTable.tableName}"
+												onblur="hideErrorField(this)">
+											<a4j:support event="onchange" reRender="tableName" limitToList="true" ajaxSingle="true" />
+											<f:selectItem itemValue=""/>
+											<f:selectItems value="#{MbPartitionTables.tableList}"/>
+										</h:selectOneMenu>
+										<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+												id="tableNameError" style="display:none;">
+											<f:param name="fieldName" value="#{lblAcm.table_name}"/>
+										</h:outputFormat>
+									</h:panelGrid>
+									
+								</h:panelGrid>
+							</h:panelGroup>
+						</h:form>
+						
+					</h:panelGroup>
+				</h:panelGroup>
+				
+			</rich:tab>
+			
+			<rich:tab ontabenter="storeSubTab('cyclesTab')" label="#{lblAcm.partition_cycle}" name="cyclesTab" >
+				<f:facet name="label">
+					<h:panelGroup styleClass="first tab-label" layout="block">
+						<h:outputText value="#{lblAcm.partition_cycle}" title="#{lblAcm.partition_cycle}"/>
+					</h:panelGroup>
+				</f:facet>
+				<h:panelGroup id="cyclesTab">
+					<h:panelGroup layout="block" styleClass="carddata-wrapper" style="height: 380px; overflow-y: hidden;">
+						<h:form id="parCycleModesForm">
+							<script type="text/javascript">
+//<!--
+								prevParCycleMode = "#{MbPartitionTables.parCycleMode}";
+							//-->
+							</script>
+							<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+								<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal alignLeft width100px, width250">
+									<h:outputLabel value="#{lblFcl.cycle}:" title="#{lblFcl.cycle}" style="text-align: left;"/>
+									<h:selectOneMenu value="#{MbPartitionTables.parCycleId}"
+											id="cycleSelector"
+											valueChangeListener="#{MbPartitionTables.changeCycle}"
+											disabled="#{!MbPartitionTables.newMode  
+													or MbPartitionTables.parCycleMode == MbPartitionTables.createValue}">
+										<a4j:support event="onchange" reRender="parCycle:cyclesPanel"/>
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbPartitionTables.cycles}"/>
+									</h:selectOneMenu>
+								</h:panelGrid>
+
+								<h:selectOneRadio id="cycleModeSelector" 
+										valueChangeListener="#{MbPartitionTables.changeCycleMode}"
+										value="#{MbPartitionTables.parCycleMode}" 
+										disabled="#{!MbPartitionTables.newMode}">
+									<a4j:support event="onclick" limitToList="true" ajaxSingle="true"
+											onsubmit="if (!checkParCycleMode()) return false;"
+											reRender="parCycleModesForm:cycleSelector, parCycle:cyclesPanel"/>
+									<f:selectItem itemValue="#{MbPartitionTables.createValue}" itemLabel="#{lblCommon.create_new_value}"/>
+									<f:selectItem itemValue="#{MbPartitionTables.cloneValue}" itemLabel="#{lblCommon.clone_value}"/>
+									<f:selectItem itemValue="#{MbPartitionTables.applyValue}" itemLabel="#{lblCommon.apply_value}"/>
+								</h:selectOneRadio>
+							</h:panelGroup>
+						</h:form>
+						
+						<ui:include src="/pages/administrative/edit_cycle_tab.jspx">
+							<ui:param name="subviewId" value="parCycle"/>
+							<ui:param name="cycleBean" value="#{MbPartitionTables.parCycle}"/>
+							<ui:param name="cycleMode" value="#{MbPartitionTables.parCycleMode}"/>
+							<ui:param name="shiftBean" value="#{MbCycleShiftsSearch}"/>
+						</ui:include>
+					
+					</h:panelGroup>
+				</h:panelGroup>
+				
+			</rich:tab>
+			
+			<rich:tab ontabenter="storeSubTab('stoCyclesTab')" label="#{lblAcm.storage_cycle}" name="stoCyclesTab" >
+				<f:facet name="label">
+					<h:panelGroup styleClass="first tab-label" layout="block">
+						<h:outputText value="#{lblAcm.storage_cycle}" title="#{lblAcm.storage_cycle}"/>
+					</h:panelGroup>
+				</f:facet>
+				<h:panelGroup id="stoCyclesTab">
+					<h:panelGroup layout="block" styleClass="carddata-wrapper" style="height: 380px; overflow-y: hidden;">
+						<h:form id="stoCycleModesForm">
+							<script type="text/javascript">
+//<!--
+								prevStoCycleMode = "#{MbPartitionTables.stoCycleMode}";
+							//-->
+							</script>
+							<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+								<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal alignLeft width100px, width250">
+									<h:outputLabel value="#{lblFcl.cycle}:" title="#{lblFcl.cycle}" style="text-align: left;"/>
+									<h:selectOneMenu value="#{MbPartitionTables.stoCycleId}"
+											id="cycleSelector"
+											valueChangeListener="#{MbPartitionTables.changeCycle}"
+											disabled="#{!MbPartitionTables.newMode  
+													or MbPartitionTables.stoCycleMode == MbPartitionTables.createValue}">
+										<a4j:support event="onchange" reRender="stoCycle:cyclesPanel"/>
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbPartitionTables.cycles}"/>
+									</h:selectOneMenu>
+								</h:panelGrid>
+
+								<h:selectOneRadio id="cycleModeSelector" 
+										valueChangeListener="#{MbPartitionTables.changeCycleMode}"
+										value="#{MbPartitionTables.stoCycleMode}" 
+										disabled="#{!MbPartitionTables.newMode}">
+									<a4j:support event="onclick" limitToList="true" ajaxSingle="true"
+											onsubmit="if (!checkStoCycleMode()) return false;"
+											reRender="stoCycleModesForm:cycleSelector, stoCycle:cyclesPanel"/>
+									<f:selectItem itemValue="#{MbPartitionTables.createValue}" itemLabel="#{lblCommon.create_new_value}"/>
+									<f:selectItem itemValue="#{MbPartitionTables.cloneValue}" itemLabel="#{lblCommon.clone_value}"/>
+									<f:selectItem itemValue="#{MbPartitionTables.applyValue}" itemLabel="#{lblCommon.apply_value}"/>
+								</h:selectOneRadio>
+							</h:panelGroup>
+						</h:form>
+						
+						<ui:include src="/pages/administrative/edit_cycle_tab.jspx">
+							<ui:param name="subviewId" value="stoCycle"/>
+							<ui:param name="cycleBean" value="#{MbPartitionTables.stoCycle}"/>
+							<ui:param name="cycleMode" value="#{MbPartitionTables.stoCycleMode}"/>
+							<ui:param name="shiftBean" value="#{MbCycleShiftsStoSearch}"/>
+						</ui:include>
+					
+					</h:panelGroup>
+				</h:panelGroup>
+				
+			</rich:tab>
+			
+		</rich:tabPanel>
+	
+	</h:panelGroup>
+	
+	<rich:modalPanel id="errModalPanel" autosized="true" minWidth="300" minHeight="100">
+      	<f:facet name="header">
+			<h:panelGroup id="errModalHeader">
+           	    <h:outputText value="#{lblForm.error}"/>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+	    </f:facet>
+		<h:form id="errModalDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="1" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					<h:panelGroup id="mess" layout="block"/>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>                       	
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.ok}" 
+                        		immediate="true" limitToList="true"
+                        		oncomplete="#{rich:component('errModalPanel')}.hide()">
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                        </bre:taggedCommandButton>	
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>			
+	</rich:modalPanel>
+	
+</ui:composition>
+</html>

@@ -1,0 +1,421 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/pages/common/wizard/commonWizard.css" />
+		<script type="text/javascript" src="#{request.contextPath}/js/stretch.js" />
+
+		<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net"/>
+		<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+		<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+		
+    	<h:panelGroup rendered="#{usession.inRole['VIEW_SETTLEMENT_MAPPING']}">
+    		
+    		<!-- navigation bar -->
+            <bpct:navBar pageName="#{lblNet.sttl_maps}"/>
+	        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+	        
+	        <script type="text/javascript">
+		//<![CDATA[
+		function handleEnter(event) {
+			 if (event.keyCode == 13) {
+				 document.getElementById('sttlMapsSearchForm:searchBtn').click(); 
+				 return false; 
+			} 
+			return true;
+		 }	
+		//]]>
+		</script>
+		
+	    	<h:form id="sttlMapsSearchForm" onkeypress="handleEnter(event)">
+	
+				<!-- search panel -->
+				<h:panelGroup styleClass="search_block" layout="block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+		                <h:panelGroup styleClass="search_block_left" layout="block">
+		                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+			                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+			            			
+			            			<h:outputLabel for="modIdFilter" value="#{lblRul.modifier}: " title="#{lblRul.modifier}" />
+			            			<h:selectOneMenu id="modIdFilter" value="#{MbSttlMaps.filter.modId}">
+			            				<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbSttlMaps.modifiers}"/>
+			            			</h:selectOneMenu>
+			            			
+			            			<h:outputLabel for="sttlTypeFilter" value="#{lblNet.sttl_type}: " title="#{lblNet.sttl_type}" />
+			            			<h:selectOneMenu id="sttlTypeFilter" value="#{MbSttlMaps.filter.sttlType}">
+			            				<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbSttlMaps.sttlTypes}"/>
+									</h:selectOneMenu>
+			            			
+	                			</h:panelGrid>
+		                		<h:panelGrid columns="1">
+			                		<bre:taggedCommandButton
+				                			action="#{MbSttlMaps.search}"
+				                			id="searchBtn"
+		        							reRender="sttlMapsTable, sttlMapsDs, pagesNum, btnPanel, detailsTab"
+		                					image="/_img/icon_search.png" type="submit"
+		                					value="#{lblForm.search}" style="width:85px;"
+		                					onclick="disableModalPanelBtns(this);"
+		                					oncomplete="updateHeight(); enableModalPanelBtns(this);"
+		                					eventsQueue="queue"/>
+		                			<h:panelGroup styleClass="link-clear" layout="block">
+			                			<h:graphicImage url="/_img/icon_clear.png"/>
+			                			<a4j:commandLink value="#{lblForm.clear_all}"
+			                					reRender="sttlMapsSearchForm, sttlMapsForm, details"
+							        			action="#{MbSttlMaps.clearFilter}">
+							        	</a4j:commandLink>
+		            	    		</h:panelGroup>
+		                		</h:panelGrid>
+		               		</h:panelGrid>
+		               		<a4j:outputPanel ajaxRendered="true">
+		               			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		               			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	               			</a4j:outputPanel>
+		               	</h:panelGroup>
+	               	</h:panelGroup>
+	               	</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<h:form id="sttlMapsForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+			    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+			    		<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+					    <rich:extendedDataTable
+								id="sttlMapsTable"
+								var="item"
+								tableState="#{MbSttlMaps.tableState}"
+								value="#{MbSttlMaps.sttlMaps}"
+								selection="#{MbSttlMaps.itemSelection}"
+								rows="#{MbSttlMaps.rowsNum}"
+								height="255px"
+								selectionMode="single"
+								rowClasses=",odd"
+								headerClass="res-table-header"
+								selectedClass="res-table-selected"
+								styleClass="res-table"
+								enableContextMenu="true"
+								noDataLabel="#{MbSttlMaps.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+								reRender="detailsTab, sttlMapsForm:btnPanel">
+				
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+									reRender="detailsTab, sttlMapsForm:btnPanel" />
+				
+							<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="5%">
+				                   <f:facet name="header">
+				                   	<a4j:outputPanel layout="none">
+										<script>
+										if (document.readyState == 'complete'){
+											updateHeight();
+										}
+										</script>
+				                   		<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+				                   	</a4j:outputPanel>
+				                   </f:facet>
+				               	<h:outputText value="#{item.id}" title="#{item.id}"/>
+							</rich:column>
+				
+							<rich:column id="iss_inst" label="#{lblNet.iss_inst}" sortBy="#{'issInstName'}" width="12%">
+								<f:facet name="header">
+									<h:outputText value="#{lblNet.iss_inst}" title="#{lblNet.iss_inst}"/>
+								</f:facet>
+								<bm:entityDisplay  entityId="#{item.issInstId}"
+									value="#{item.issInstName}"
+									rendered="#{!item.anyIssInst}"/>
+				               	<bm:entityDisplay  description="#{item.issInstId}"
+									value="#{item.issInstName}"
+									rendered="#{item.anyIssInst}"/>
+							</rich:column>
+							
+					        <rich:column id="iss_network" label="#{lblNet.iss_network}" sortBy="#{'issNetworkName'}" width="9%">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblNet.iss_network}" title="#{lblNet.iss_network}"/>
+				                </f:facet>
+				                <bm:entityDisplay entityId="#{item.issNetworkId}" value="#{item.issNetworkName}"
+			                		 entityName="ENTTNETW" showIcon="true" rendered="#{!item.anyIssNetwork}"/>
+					        </rich:column>
+
+							<rich:column id="acq_inst" label="#{lblNet.acq_inst}" sortBy="#{'acqInstName'}" width="12%">
+								<f:facet name="header">
+									<h:outputText value="#{lblNet.acq_inst}" title="#{lblNet.acq_inst}" />
+								</f:facet>
+								<bm:entityDisplay entityId="#{item.acqInstId}" value="#{item.acqInstName}"
+			                		 rendered="#{!item.anyAcqInst}"/>
+							</rich:column>
+				
+					        <rich:column id="acq_network" label="#{lblNet.acq_network}" sortBy="#{'acqNetworkName'}" width="9%">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblNet.acq_network}" title="#{lblNet.acq_network}"/>
+				                </f:facet>
+				                <bm:entityDisplay entityId="#{item.acqNetworkId}" value="#{item.acqNetworkName}"
+			                		 entityName="ENTTNETW" showIcon="true" rendered="#{!item.anyAcqNetwork}"/>
+					        </rich:column>
+	
+					        <rich:column id="card_inst" label="#{lblNet.card_inst}" sortBy="#{'cardInstName'}" width="12%">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblNet.card_inst}" title="#{lblNet.card_inst}"/>
+				                </f:facet>
+				                <bm:entityDisplay  entityId="#{item.cardInstId}"
+									value="#{item.cardInstName}"
+									rendered="#{!item.anyCardInst}"/>
+									
+					        </rich:column>
+	
+					        <rich:column id="card_network" label="#{lblNet.card_network}" sortBy="#{'cardNetworkName'}" width="9%">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblNet.card_network}" title="#{lblNet.card_network}"/>
+				                </f:facet>
+				                <bm:entityDisplay entityId="#{item.cardNetworkId}" value="#{item.cardNetworkName}"
+			                		 entityName="ENTTNETW" showIcon="true" rendered="#{!item.anyCardNetwork}"/>
+					        </rich:column>
+	
+					        <rich:column id="modifier" label="#{lblRul.modifier}" sortBy="#{'modName'}" width="9%">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblRul.modifier}" title="#{lblRul.modifier}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.modId} - #{item.modName}" 
+				               			title="#{item.modName}" rendered="#{item.modId != null}" />
+				               	<h:outputText value="" title="" rendered="#{item.modId == null}" />			                	
+					        </rich:column>
+	
+					        <rich:column id="sttl_type" label="#{lblNet.sttl_type}" sortBy="#{'sttlType'}" width="9%">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblNet.sttl_type}" title="#{lblNet.sttl_type}"/>
+				                </f:facet>
+				                <h:outputText value="#{DictUtils.articles[item.sttlType]}" 
+				               			title="#{DictUtils.articles[item.sttlType]}"
+				               			rendered="#{item.sttlType != null}" />
+				               	<h:outputText value="" title="" rendered="#{item.sttlType == null}" />			                	
+					        </rich:column>
+
+							<rich:column id="operType" label="#{lblOpr.oper_type}" sortBy="#{'operType'}" width="9%">
+								<f:facet name="header">
+									<h:outputText value="#{lblOpr.oper_type}" title="#{lblOpr.oper_type}"/>
+								</f:facet>
+								<h:outputText value="#{item.operType}" title="#{item.operType}" rendered="#{!item.anyOperType}"/>
+								<h:outputText value="#{lblCommon.any}" rendered="#{item.anyOperType}"/>
+							</rich:column>
+	
+					        <rich:column id="priority" label="#{lblCommon.priority}" sortBy="#{'priority'}" width="5%">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblCommon.priority}" title="#{lblCommon.priority}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.priority}" title="#{item.priority}"/>			                	
+					        </rich:column>
+					    </rich:extendedDataTable>
+					    </h:panelGroup>
+					    <a4j:outputPanel ajaxRendered="true">
+					    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    	<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    	<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+					    </a4j:outputPanel>
+					</h:panelGroup>
+				</h:panelGroup>
+                </h:form>
+
+                <h:form id="sttlMapsBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="5"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+								<h:selectOneMenu id="rows_num" value="#{MbSttlMaps.rowsNum}"
+									styleClass="row_per_page">
+									<a4j:support event="onchange"
+										reRender="sttlMapsTable, sttlMapsDs, pagesNum, detailsTab, sttlMapsForm:btnPanel" oncomplete="updateHeight();"/>
+									<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+								</h:selectOneMenu>
+
+								<rich:datascroller maxPages="10" fastControls="hide"
+									pagesVar="pages" styleClass="res-datascroller" id="sttlMapsDs"
+									for="sttlMapsTable" reRender="detailsTab, sttlMapsForm:btnPanel">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbSttlMaps.sttlMaps.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+								
+								<h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbSttlMaps.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbSttlMaps.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+
+						<h:panelGrid id="btnPanel" columns="4" styleClass="itempanel">
+							<bre:taggedCommandButton id="addBtn" value="#{lblForm.add}"
+								action="#{MbSttlMaps.add}"
+								reRender="sttlMapModalHeader, sttlMapModalDiv"
+								rendered="#{usession.inRole['ADD_SETTLEMENT_MAPPING']}"
+								oncomplete="#{rich:component('sttlMapModalPanel')}.show()"
+								image="/images/create_doc.gif" />
+							<bre:taggedCommandButton id="editNetworkBtn"
+								value="#{lblForm.edit}"
+								reRender="sttlMapModalHeader, sttlMapModalDiv"
+								action="#{MbSttlMaps.edit}"
+								disabled="#{MbSttlMaps.activeSttlMap == null}"
+								rendered="#{usession.inRole['MODIFY_SETTLEMENT_MAPPING']}"
+								oncomplete="#{rich:component('sttlMapModalPanel')}.show()"
+								image="/images/edit.gif" />
+							<bre:taggedCommandButton id="deleteBtn" value="#{lblForm.delete}"
+								disabled="#{MbSttlMaps.activeSttlMap == null}"
+								rendered="#{usession.inRole['REMOVE_SETTLEMENT_MAPPING']}"
+								image="/images/delete.gif" 
+								oncomplete="#{rich:component('deleteSttlView:confirmPanel')}.show()"/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+	
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+		    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+		    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    			contentClass="tab-content">
+	
+					<rich:tab label="#{lblCommon.details}" name="detailsTab">
+	      				<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+							<h:panelGroup id="detailsTab" layout="block">
+		      					<ui:include src="/pages/net/sttl_map_details.jspx"></ui:include>
+				      			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+		       				</h:panelGroup>
+				    </rich:tab>
+	
+			    </rich:tabPanel>
+	        </h:panelGroup>
+	
+			<rich:modalPanel id="sttlMapModalPanel" autosized="true" minWidth="200" minHeight="100"
+					rendered="#{usession.inRole['ADD_SETTLEMENT_MAPPING'] or usession.inRole['MODIFY_SETTLEMENT_MAPPING']}">
+		      	<f:facet name="header">
+		      		<h:panelGroup id="sttlMapModalHeader">
+		      			<h:outputText value="#{lblNet.new_sttl_map}" rendered="#{MbSttlMaps.newMode}"/>
+		      			<h:outputText value="#{lblNet.edit_sttl_map}" rendered="#{MbSttlMaps.editMode}"/>
+		      		</h:panelGroup>
+		        </f:facet>
+		  	    <f:facet name="controls">
+		      	</f:facet>
+	      		<h:form id="sttlMapModalDiv">
+					<ui:include src="/pages/net/sttl_map_edit.jspx"/>
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+								<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+										action="#{MbSttlMaps.save}"
+										reRender="sttlMapsTable, sttlMapsDs, pagesNum, btnPanel, detailsTab"
+										onclick="if (!checkSttlMapFields()) return false; disableModalPanelBtns(this)"
+										oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('sttlMapModalPanel')}.hide()"
+										/>
+			                	<bre:taggedCommandButton
+				                       	value="#{lblForm.cancel}" action="#{MbSttlMaps.close}"
+				                       	immediate="true" limitToList="true"
+				                       	oncomplete="#{rich:component('sttlMapModalPanel')}.hide()"
+				                       	reRender="sttlMapModalDiv">
+		                       		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+		                        </bre:taggedCommandButton>
+							</h:panelGrid>
+						</h:panelGroup>
+					</h:panelGroup>
+	      	    </h:form>			
+			</rich:modalPanel>
+		</h:panelGroup>
+			
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_SETTLEMENT_MAPPING']}" style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+		</h:panelGroup>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbSttlMaps}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="sttlMapsTable, sttlMapsDs, pagesNum, btnPanel, detailsTab"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteSttlView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+
+		<script>
+			//<![CDATA[
+
+            function updateHeight(){
+                updateGridHeight();
+            }
+
+            layout =
+            {
+                SEARCH_FORM_ID:                 'sttlMapsSearchForm',
+                SEARCH_RESULT_FORM_ID:          'sttlMapsForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID:   'sttlMapsBtnForm',
+                TAB_PANEL_ID:                   'workplacePanel',
+
+                TAB_DATA:      [{
+                    TAB_FORM_ID:            'sttlMapDetailsForm',
+                    TAB_FORM_WRAPPER_ID:    'sttlMapDetailsWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+                ]
+
+            };
+            updateHeight();
+            jQuery(window).resize(updateHeight);
+			//]]>
+		</script>
+	</ui:define>
+</ui:composition>
+</html>

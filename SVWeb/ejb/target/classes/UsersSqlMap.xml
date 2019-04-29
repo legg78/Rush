@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="users">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig 
+     -->
+     
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>              
+    </sql>
+    
+    <sql id="paginatedClose">
+   		<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+	
+	<resultMap id="mapping-user" class="ru.bpc.sv2.administrative.users.User">
+        <result property="id" column="user_id" />
+        <result property="name" column="user_name" />
+        <result property="personId" column="person_id" />
+        <result property="status" column="user_status" />
+        <result property="person" resultMap="users.mapping-person"/>
+    </resultMap>
+	
+	<resultMap id="mapping-person" class="ru.bpc.sv2.common.Person">
+		<result property="personId" column="person_id"/>
+		<result property="lang" column="lang"/>
+		<result property="title" column="title"/>
+		<result property="firstName" column="first_name"/>
+		<result property="secondName" column="second_name"/>
+		<result property="surname" column="surname"/>
+		<result property="suffix" column="suffix"/>
+		<result property="gender" column="gender"/>
+		<result property="birthday" column="birthday"/>
+		<result property="placeOfBirth" column="place_of_birth"/>
+	</resultMap>
+	<!--
+        Queries related to roles list management 
+     -->
+     
+	<select
+	    id="get-user-insts"
+	    parameterClass="string"
+	    resultClass="string" >
+	       <include refid="paginatedOpen"/>
+		SELECT
+		    usr_insts.inst_id
+		FROM
+		    SEC_USERS usrs
+		    JOIN
+		    SEC_USER_INSTITUTIONS usr_insts
+		        ON
+		        usrs.id = usr_insts.user_id
+		WHERE
+		    usrs.name = #value#
+            <include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-user-language"
+    		resultClass="string">
+    	select com_ui_user_env_pkg.get_user_lang from dual
+    </select>
+    
+    <select id="get-user-inst"
+    		resultClass="int">
+    	select com_ui_user_env_pkg.get_user_inst from dual
+    </select>
+    
+    <select id="get-user-agent"
+    		resultClass="int">
+    	select com_ui_user_env_pkg.get_user_agent from dual
+    </select>
+
+	<select id="get-user-date-pattern"
+    		resultClass="string">
+    	SELECT
+			set_ui_value_pkg.GET_USER_PARAM_V('DATE_PATTERN')
+		FROM
+			dual
+    </select>
+
+	<select id="get-user-time-pattern"
+			resultClass="string">
+		SELECT
+			set_ui_value_pkg.GET_USER_PARAM_V('TIME_PATTERN')
+		FROM
+			dual
+	</select>
+
+	<select id="get-user-article-format"
+			resultClass="string">
+		SELECT
+			set_ui_value_pkg.GET_USER_PARAM_V('ARTICLE_FORMAT')
+		FROM
+			dual
+	</select>
+
+    <procedure id="set-session-last-use">
+    	{ call PRC_API_SESSION_PKG.set_session_last_use }
+    </procedure>
+    
+    <resultMap class="ru.bpc.sv2.utils.KeyLabelItem" id="mapping-section-filter-record">
+    	<result property="value" column="name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="label" column="value" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    </resultMap>
+    
+    <select id="get-section-filter-records"
+	    	parameterClass="java.lang.Integer"
+	    	resultMap="mapping-section-filter-record" >
+	    SELECT 
+			id
+			, seqnum
+			, filter_id
+			, name
+			, value
+		FROM 
+			acm_ui_filter_component_vw
+		WHERE
+			filter_id = #value#
+	</select>
+	
+	 <resultMap class="ru.bpc.sv2.filters.SectionFilter" id="mapping-section-filter">
+    	<result property="id" column="id"/>
+    	<result property="name" column="name"/>
+    	<result property="instId" column="inst_id"/>
+    	<result property="displayOrder" column="display_order"/>
+    	<result property="seqNum" column="seqnum"/>
+    	<result property="lang" column="lang"/>
+    	<result property="sectionId" column="section_id"/>    	
+    </resultMap>
+    
+    <select id="get-section-filters"
+	    	parameterClass="java.lang.Integer"
+	    	resultMap="mapping-section-filter" >
+			SELECT
+				id
+				, name
+				, seqnum
+				, user_id
+				, section_id
+				, inst_id
+				, display_order
+				, lang
+			FROM
+				acm_ui_filter_vw
+			WHERE 
+				lang = com_ui_user_env_pkg.get_user_lang
+                AND user_id = com_ui_user_env_pkg.get_user_id
+                AND section_id = #value#
+            ORDER BY 
+            	display_order ASC
+	</select>
+							
+	<select id="get-user-sections-filters"
+	    	resultMap="mapping-section-filter" >
+			SELECT
+				id
+				, name
+				, seqnum
+				, user_id
+				, section_id
+				, inst_id
+				, display_order
+				, lang
+			FROM
+				acm_ui_filter_vw
+			WHERE 
+				lang = com_ui_user_env_pkg.get_user_lang
+                AND user_id = com_ui_user_env_pkg.get_user_id
+            ORDER BY 
+            	section_id ASC, display_order ASC
+	</select>
+	
+	<procedure id="add-filter"
+			parameterClass="ru.bpc.sv2.filters.SectionFilter">
+    	{call ACM_UI_FILTER_PKG.add(	
+				  o_id 				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_name         	=> #name#
+				, i_lang         	=> com_ui_user_env_pkg.get_user_lang
+				, i_section_id   	=> #sectionId#
+				, i_inst_id      	=> 9999
+				, i_user_id      	=> com_ui_user_env_pkg.get_user_id
+				, i_display_order	=> #displayOrder#
+				)}
+	</procedure>
+	
+	<procedure id="modify-filter"
+			parameterClass="ru.bpc.sv2.filters.SectionFilter">
+    	{call ACM_UI_FILTER_PKG.modify(
+				  i_id 				=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_name         	=> #name#
+				, i_lang         	=> com_ui_user_env_pkg.get_user_lang
+				, i_display_order	=> #displayOrder#
+				)}
+	</procedure>
+	
+	<parameterMap id="mapping-modify-filter-records" class="ru.bpc.sv2.filters.SectionFilter">
+		<parameter property="id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="recs" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+    </parameterMap>
+    
+	<procedure id="modify-filter-records"
+			parameterMap="mapping-modify-filter-records">
+    	{call ACM_UI_FILTER_COMPONENT_PKG.modify_package(
+				  i_filter_id		=> ?
+				, i_package			=> ?				
+				)}
+	</procedure>
+
+	<procedure id="remove-filter"
+			parameterClass="ru.bpc.sv2.filters.SectionFilter">
+    	{call ACM_UI_FILTER_PKG.remove(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-user-inst" extends="mapping-user"
+				class="ru.bpc.sv2.administrative.users.User"  >
+		<result property="instId" column="inst_id" />
+	</resultMap>
+
+	<resultMap  id="mapping-user-inst-date" extends="mapping-user-inst"
+				class="ru.bpc.sv2.administrative.users.User"  >
+		<result property="creationDate" column="creation_date"/>
+		<result property="authScheme" column="auth_scheme"/>
+	</resultMap>
+	
+	<select id="get-users"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-user-inst-date" >
+		<include refid="paginatedOpen"/>
+			SELECT	  user_id
+					, user_name
+					, user_status
+					, person_id
+					, lang
+					, title
+					, first_name
+					, second_name
+					, surname
+					, suffix
+					, gender
+					, birthday
+					, place_of_birth
+					, inst_id
+					, creation_date
+					, auth_scheme
+			FROM
+			(
+                SELECT
+                    u.*
+                    , row_number() over (partition by user_id order by decode(u.lang, com_ui_user_env_pkg.get_user_lang, 0, 'LANGENG', 1, 2)) row_num
+                FROM
+                    acm_ui_user_vw u
+            )
+            WHERE                
+                row_num = 1
+			<iterate prepend="AND" conjunction="AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">user_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(user_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="surname">upper(surname) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">user_status = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="name">upper(user_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">user_status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="surname">upper(surname) $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-users-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT *
+        FROM
+        (
+            SELECT
+                u.*
+                , row_number() over (partition by user_id order by decode(u.lang, com_ui_user_env_pkg.get_user_lang, 0, 'LANGENG', 1, 2)) row_num
+            FROM
+                acm_ui_user_vw u
+        )
+        WHERE row_num = 1
+		<iterate prepend="AND" conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">user_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(user_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="surname">upper(surname) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">user_status = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+    <select id="get-users-by-priv"
+			parameterClass="qparams"
+			resultMap="mapping-user" >
+		<include refid="limitationOpen"/>
+		SELECT DISTINCT
+				  ur.user_id
+				, ur.user_name
+				, ur.user_status
+				, ur.person_id
+				, ur.lang
+				, ur.title
+				, ur.first_name
+				, ur.second_name
+				, ur.surname
+				, ur.suffix
+				, ur.gender
+				, ur.birthday
+				, ur.place_of_birth
+		FROM
+				acm_ui_role_user_vw ur
+				, acm_ui_role_privilege_vw rp
+		WHERE
+				ur.role_id = rp.role_id
+				and rp.lang = ur.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">ur.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(ur.user_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="privId">rp.priv_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">upper(ur.user_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">ur.user_status $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-users-by-priv-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT DISTINCT *
+        FROM (
+			SELECT ur.user_id
+			FROM acm_ui_role_user_vw ur
+				, acm_ui_role_privilege_vw rp
+			WHERE ur.role_id = rp.role_id
+			  and rp.lang = ur.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">ur.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(ur.user_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="privId">rp.priv_id = #filters[].value#</isEqual>
+			</iterate>
+		)
+		<include refid="limitationClose"/>
+    </select>
+    
+    <select id="get-users-by-role"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-user" >
+	    <include refid="limitationOpen"/>
+		SELECT	  u.user_id
+				, u.user_name
+				, u.user_status
+				, u.person_id
+				, u.lang
+				, u.title
+				, u.first_name
+				, u.second_name
+				, u.surname
+				, u.suffix
+				, u.gender
+				, u.birthday
+				, u.place_of_birth
+		FROM acm_ui_role_user_vw u
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">u.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(u.user_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="roleId">u.role_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">upper(u.user_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">u.user_status $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-users-by-role-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+		SELECT *
+		FROM acm_ui_role_user_vw u
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">u.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(u.user_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="roleId">u.role_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+
+	<select id="get-user-is-active"
+			parameterClass="string"
+			resultClass="int" >
+		SELECT acm_api_user_pkg.get_user_is_active(#value#) FROM dual
+	</select>
+
+	<procedure id="avoid-expire-date"
+			   parameterClass="ru.bpc.sv2.administrative.users.User">
+		{call acm_ui_user_pkg.avoid_expire_date(
+			i_user_name       => #name#
+		)}
+	</procedure>
+
+    <select id="get-active-user-sessions"
+            parameterClass="qparams"
+            resultClass="java.lang.Long">
+        select distinct s.id
+          from prc_session_vw s
+             , acm_ui_user_vw u
+         where s.process_id is null
+           and s.parent_id is null
+           and s.user_id = u.user_id
+        <iterate prepend="AND" conjunction="AND " property="filters">
+            <isEqual property="filters[].element" compareValue="user_name">upper(u.user_name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="end_time">s.end_time >= to_timestamp(#filters[].value#, 'yyyy-mm-dd hh24:mi:ss')</isEqual>
+            <isEqual property="filters[].element" compareValue="user_session_id">s.id != #filters[].value#</isEqual>
+        </iterate>
+    </select>
+
+	<select id="get-user-auth-scheme"
+			parameterClass="string"
+			resultClass="string" >
+		select auth_scheme from acm_user_vw where upper(name)=upper(#value#)
+	</select>
+
+	<parameterMap id="map-modify-user-data" class="java.util.Map">
+		<parameter property="tabName" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="userData" jdbcType="ACM_USER_DATA_TPT" typeName="ACM_USER_DATA_TPT" typeHandler="ru.bpc.sv2.utils.UserDataTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="modify-user-data" parameterMap="map-modify-user-data">
+		{call acm_ui_user_pkg.modify_user_data(
+			  i_tab_name	=> ?
+			, i_user_data	=> ?
+		)}
+	</procedure>
+
+	<select id="get-user-group-separator"
+			resultClass="string">
+		select set_ui_value_pkg.GET_USER_PARAM_V('DIGIT_GROUP_SEPARATOR') from dual
+	</select>
+</sqlMap>

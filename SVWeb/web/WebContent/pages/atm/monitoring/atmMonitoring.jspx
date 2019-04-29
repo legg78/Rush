@@ -1,0 +1,772 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+    xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+
+		<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/stretch.js" />
+		<script>
+		//<![CDATA[					           
+		           
+		    var mainTabs = new Tabs(null, 'detailsTab');
+			function selectTab(tabName) {
+				setMainTabName(tabName);
+				if (!mainTabs.loaded(tabName)) {
+					refreshMainTab(tabName);
+				}
+				mainTabs.set(tabName);		
+			}
+			
+			function checkFieldsMonitoring(){
+				var atmDeviceEL = document.getElementById('atmMonitoringSearchForm:atmDevice');
+				var selectedDeviceStatusEL = document.getElementById('atmMonitoringSearchForm:selectedDeviceStatus');
+				selectedDeviceStatusEL.style.backgroundColor = "#FFFFFF";
+				if(atmDeviceEL.value==""){
+					return true;
+				}
+				if(selectedDeviceStatusEL.value==""){
+					selectedDeviceStatusEL.style.backgroundColor = "#FF5555";
+					jQuery("#searchError\\:confirmPanelForm\\:warningMsg").text("#{lblCommon.monitoring_search_relate_error}");
+	    			#{rich:component('searchError:confirmPanel')}.show();
+	    			if (/hidden-filter/.test(jQuery('.search_block_inner-0').attr('class'))) {
+	    				jQuery('div.search_block div.show-more-vert').click();
+	    			}
+					return false;
+				}
+				return true;
+			} 
+			
+		//]]>
+		</script>
+		
+		<f:loadBundle var="lblAtm" basename="ru.bpc.sv2.ui.bundles.Atm" />
+		<f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost" />
+		<f:loadBundle var="lblCmn" basename="ru.bpc.sv2.ui.bundles.Cmn" />
+		<f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form" />
+
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblAtm.atm_monitoring}" />
+		
+		<h:form id="queueForm">
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/> 
+		</h:form>
+
+		<!-- search panel -->
+		
+		<script type="text/javascript">
+		//<![CDATA[
+		function handleEnter(event) {
+						 if (event.keyCode == 13) {
+							 document.getElementById('atmMonitoringSearchForm:searchBtn').click(); 
+							 return false; 
+						} 
+						return true;
+					 }	
+		//]]>
+		</script>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="warningMsg" value=""/> 
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="searchError"/>
+			<ui:param name="yesAction" value=""/>
+			<ui:param name="noAction" value=""/>
+			<ui:param name="no" value="#{lblForm.ok}"/>
+		</ui:include>
+			
+		<h:form id="atmMonitoringSearchForm" onkeypress="handleEnter(event)">
+			
+			<h:panelGroup layout="block" styleClass="search_block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+						<h:panelGroup layout="block" styleClass="search_block_left">
+							<h:panelGroup
+								styleClass="search_block_inner-0 search_block_inner-hidden-filter"
+								layout="block">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses=",link-cont">
+
+									<h:panelGrid
+										styleClass="filter-table field-cont twoColumnTable"
+										columns="4"
+										columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+										<h:outputLabel for="instId" value="#{lblCommon.institution}:" />
+										<h:selectOneMenu id="instId"
+											value="#{MbAtmMonitoring.filter.instId}">
+											<f:selectItems value="#{MbAtmMonitoring.institutions}" />
+											<a4j:support event="onchange" reRender="agentId"
+												oncomplete="document.getElementById('atmMonitoringSearchForm:instId').focus();"
+												limitToList="true" ajaxSingle="true" />
+										</h:selectOneMenu>
+
+										<h:outputLabel for="agentId" value="#{lblCommon.agent}:" />
+										<h:selectOneMenu id="agentId"
+											value="#{MbAtmMonitoring.filter.agentId}">
+											<f:selectItems value="#{MbAtmMonitoring.agents}" />
+										</h:selectOneMenu>
+										
+										<h:outputLabel for="terminalNumber"
+											value="#{lblAcq.terminal_number}:" />
+										<h:inputText id="terminalNumber"
+											value="#{MbAtmMonitoring.filter.terminalNumber}">
+										</h:inputText>
+
+										<h:outputLabel for="placementType"
+											value="#{lblAtm.placement_type}:" />
+										<h:selectOneMenu id="placementType"
+											value="#{MbAtmMonitoring.filter.placementType}">
+											<f:selectItems
+												value="#{MbAtmMonitoring.atmInstallationPlaces}" />
+										</h:selectOneMenu>
+
+										<h:outputLabel for="atmType" value="#{lblAtm.atm_type}:" />
+										<h:selectOneMenu id="atmType"
+											value="#{MbAtmMonitoring.filter.atmType}">
+											<f:selectItems value="#{MbAtmMonitoring.atmTypes}" />
+										</h:selectOneMenu>
+
+
+
+                                        <h:outputLabel for="atmGroup" value="#{lblAtm.atm_group}:" />
+                                        <h:selectOneMenu id="atmGroup"
+                                                         value="#{MbAtmMonitoring.filter.groupId}">
+                                            <f:selectItems value="#{MbAtmMonitoring.atmGroups}" />
+                                        </h:selectOneMenu>
+
+
+										<h:outputLabel for="serviceStatus"
+											value="#{lblAtm.service_status}:" />
+										<h:selectOneMenu id="serviceStatus"
+											value="#{MbAtmMonitoring.filter.serviceStatus}">
+											<f:selectItems value="#{MbAtmMonitoring.serviceStatuses}" />
+										</h:selectOneMenu>
+
+										<h:outputLabel for="atmDevice" value="#{lblAtm.atm_device}:" />
+										<h:selectOneMenu id="atmDevice"
+											value="#{MbAtmMonitoring.filterAtmDevice}">
+											<f:selectItems value="#{MbAtmMonitoring.atmDevices}" />
+											<a4j:support event="onchange" reRender="selectedDeviceStatus"
+												limitToList="true" ajaxSingle="true" />
+										</h:selectOneMenu>
+
+										<h:outputLabel />
+										<h:outputLabel />
+
+										<h:outputLabel for="selectedDeviceStatus"
+											value="#{lblAtm.selected_device_status}:" />
+										<h:selectOneMenu id="selectedDeviceStatus"
+											value="#{MbAtmMonitoring.filterSelectedDeviceStatus}">
+											<f:selectItems value="#{MbAtmMonitoring.atmDeviceStatuses}" />
+										</h:selectOneMenu>
+
+									</h:panelGrid>
+
+									<h:panelGrid columns="1">
+										<h:panelGroup styleClass="stdButton">
+											<bre:taggedCommandButton action="#{MbAtmMonitoring.search}"
+												onclick="if (!checkFieldsMonitoring()) {return false;} disableModalPanelBtns(this);"
+												id="searchBtn"
+												oncomplete="mainTabs.flush();selectTab(mainTabs.currentTab); enableModalPanelBtns(this);"
+												reRender="atmMonitoringTable, atmMonitoringBtnForm:AtmUiTerminalVwDataScroller, atmMonitoringBtnForm:pagesNum, atmMonitoringBtnForm:btnPanel, #{MbAtmMonitoring.tabName}"
+												image="/_img/icon_search.png" value="#{lblForm.search }"
+												style="width:85px;" eventsQueue="queue"/>
+
+										</h:panelGroup>
+
+										<h:panelGrid columns="1" >
+											<h:panelGroup styleClass="link-clear" layout="block">
+												<h:graphicImage url="/_img/icon_clear.png" />
+												<a4j:commandLink value="#{lblForm.clear_all}"
+													action="#{MbAtmMonitoring.clearFilter}"
+													reRender="atmMonitoringResultForm, atmMonitoringSearchForm, atmMonitoringBtnForm, details">
+												</a4j:commandLink>
+											</h:panelGroup>
+											
+											<h:panelGroup>
+												<bpct:filterBar sectionId="#{MbAtmMonitoring.sectionId}" />
+											</h:panelGroup>
+										</h:panelGrid>
+									</h:panelGrid>
+
+								</h:panelGrid>
+							</h:panelGroup>
+							<a4j:outputPanel ajaxRendered="true">
+								<h:panelGroup styleClass="show-more-vert" layout="block" />
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</a4j:outputPanel>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<!-- Result panel -->
+		<h:form id="atmMonitoringResultForm">
+			<a4j:jsFunction name="setMainTabName" reRender="err_ajax"
+				limitToList="true" ajaxSingle="true" eventsQueue="queue">
+				<a4j:actionparam name="tabName" assignTo="#{MbAtmMonitoring.tabName}" />
+			</a4j:jsFunction>
+
+			<a4j:jsFunction name="refreshMainTab" eventsQueue="queue"
+				limitToList="true" ajaxSingle="true"
+				reRender="#{MbAtmMonitoring.tabName}, err_ajax"
+				oncomplete="updateHeight();">
+			</a4j:jsFunction>
+			
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff"
+					layout="block">
+					<h:panelGroup id="atmMonitoringTableWrapper" styleClass="search_result_block_inner" layout="block">
+						<rich:extendedDataTable id="atmMonitoringTable"
+							styleClass="res-table" headerClass="res-table-header"
+							rowClasses=",odd" selectedClass="res-table-selected" var="item"
+							value="#{MbAtmMonitoring.dataModel}"
+							selection="#{MbAtmMonitoring.itemSelection}"
+							rows="#{MbAtmMonitoring.rowsNum}" selectionMode="single"
+							enableContextMenu="true"
+							height="255px"
+							noDataLabel="#{MbAtmMonitoring.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+							reRender="atmMonitoringBtnForm:btnPanel, #{MbAtmMonitoring.tabName}">
+							<a4j:support event="onselectionchange" limitToList="true"
+								reRender="#{MbAtmMonitoring.tabName}, err_ajax"
+								oncomplete="updateHeight();mainTabs.flush();" eventsQueue="queue">
+							</a4j:support>
+								
+							<rich:column title="Terminal" sortBy="#{'terminalNumber'}" label="#{lblAtm.terminal}"
+								width="10%">
+								<f:facet name="header">
+									<h:panelGroup>
+										<script>
+											updateHeight();
+										</script>
+										<h:outputText value="#{lblAtm.terminal}"
+											title="#{lblAtm.terminal}" />
+									</h:panelGroup>
+								</f:facet>
+								<h:panelGroup layout="block">
+									<div class="default_icon ${EntityIcons.objectsMap['STANDARD'][item.standardIdAsString]}"
+					                	title="#{item.standardName}" rendered="#{item.standardId != null}"
+					                	style="float:left; margin: 0 5px 0 0;"/>				                
+						            <h:outputText value="#{item.terminalNumber}"
+										title="#{item.terminalDescription}" />
+								</h:panelGroup>
+							</rich:column>
+							
+							<rich:column title="Merchant" sortBy="#{'merchantNumber'}" label="#{lblAcq.merchant}"
+								width="12%">
+								<f:facet name="header">
+									<h:panelGroup>
+										<h:outputText value="#{lblAcq.merchant}"
+											title="#{lblAcq.merchant}" />
+									</h:panelGroup>
+								</f:facet>
+								<h:outputText value="#{item.merchantNumber}"
+									title="#{item.merchantDescription}" />
+							</rich:column>
+							
+							<rich:column title="Agent" label="#{lblCommon.agent}"
+								width="15%">
+								<f:facet name="header">
+									<h:panelGroup>
+										<h:outputText value="#{lblCommon.agent}"
+											title="#{lblCommon.agent}" />
+									</h:panelGroup>
+								</f:facet>
+                                <bm:entityDisplay  entityId="#{item.agentNumber}" value="#{item.agentName}"/>
+							</rich:column>
+							
+							
+							<rich:column title="Terminal address" label="#{lblCommon.address}"
+								width="35%">
+								<f:facet name="header">
+									<h:panelGroup>
+										<h:outputText value="#{lblCommon.address}"
+											title="#{lblCommon.address}" />
+									</h:panelGroup>
+								</f:facet>
+								<h:outputText value="#{item.atmAddress}"
+									title="#{item.atmAddress}" />
+							</rich:column>
+
+							<rich:column title="Serial Number" sortBy="#{'serialNumber'}" label="#{lblCommon.number}"
+								width="7%" visible="false">
+								<f:facet name="header">
+									<h:panelGroup>
+										<h:outputText value="#{lblCommon.number}"
+											title="#{lblCommon.number}" />
+									</h:panelGroup>
+								</f:facet>
+								<h:outputText value="#{item.serialNumber}"
+									title="#{item.serialNumber}" />
+							</rich:column>
+
+							<rich:column title="AMT model" sortBy="#{'atmModel'}" width="7%" label="#{lblAtm.model}"
+								visible="false">
+								<f:facet name="header">
+									<h:outputText value="#{lblAtm.model}" title="#{lblAtm.model}" />
+								</f:facet>
+								<h:outputText value="#{item.atmModel}" title="#{item.atmModel}" />
+							</rich:column>
+
+							<rich:column title="Standard" sortBy="#{'standardName'}" label="#{lblCmn.standard}"
+								width="5%" visible="false">
+								<f:facet name="header">
+									<h:outputText value="#{lblCmn.standard}"
+										title="#{lblCmn.standard}" />
+								</f:facet>
+				                <h:outputText value="#{item.standardId} - #{item.standardName}" 
+					            	title="#{item.standardId} - #{item.standardName}"/>									
+							</rich:column>
+
+							<rich:column title="Service Status" sortBy="#{'serviceStatus'}" label="#{lblAtm.service_status}"
+								width="5%">
+								<f:facet name="header">
+									<h:outputText value="Serv"
+										title="#{lblAtm.service_status}" />
+								</f:facet> 
+				                <div class="default_icon #{EntityIcons.objectsMap['ASST'][item.serviceStatus]}"
+				                	title="#{DictUtils.articles[item.serviceStatus]}" rendered="#{item.serviceStatus != null}"/>				                
+					            <h:outputText value="" title="" rendered="#{item.serviceStatus == null}" />
+							</rich:column>
+
+							<rich:column title="Connection status" sortBy="#{'connectionStatus'}" label="#{lblForm.connection_status}"
+								width="5%">
+								<f:facet name="header">
+									<h:outputText value="Con"
+										title="#{lblForm.connection_status}" />
+								</f:facet>
+								 <div class="default_icon #{EntityIcons.objectsMap['ENTT0047'][item.connectionStatus]}"
+				                	title="#{DictUtils.articles[item.connectionStatus]}" rendered="#{item.connectionStatus != null}"/>				                
+					            <h:outputText value="" title="" rendered="#{item.connectionStatus == null}" />
+							</rich:column>
+
+							<rich:column title="Finance Status" label="#{lblAtm.finance_status}"
+								sortBy="#{'financeStatusName'}" width="5%">
+								<f:facet name="header">
+									<h:outputText value="Fin"
+										title="#{lblAtm.finance_status}" />
+								</f:facet>
+				                <div class="default_icon #{EntityIcons.objectsMap['AFCS'][item.financeStatus]}"
+				                	title="#{DictUtils.articles[item.financeStatus]}" rendered="#{item.financeStatus != null}"/>			                
+					            <h:outputText value="" title="" rendered="#{item.financeStatus == null}" />
+							</rich:column>
+
+							<rich:column title="Technical Status" label="#{lblAtm.tech_status}"
+								sortBy="#{'techStatusName'}" width="5%">
+								<f:facet name="header">
+									<h:outputText value="Tech"
+										title="#{lblAtm.tech_status}" />
+								</f:facet>
+				                <div class="default_icon #{EntityIcons.objectsMap['ATCS'][item.techStatus]}"
+				                	title="#{DictUtils.articles[item.techStatus]}" rendered="#{item.techStatus != null}"/>			                
+					            <h:outputText value="" title="" rendered="#{item.techStatus == null}" />								
+							</rich:column>
+
+							<rich:column title="Consumables Status" label="#{lblAtm.consumables_status}"
+								sortBy="#{'consumablesStatus'}" width="5%">
+								<f:facet name="header">
+									<h:outputText value="Cons"
+										title="#{lblAtm.consumables_status}" />
+								</f:facet>
+				                <div class="default_icon #{EntityIcons.objectsMap['AECS'][item.consumablesStatus]}"
+				                	title="#{DictUtils.articles[item.consumablesStatus]}" rendered="#{item.consumablesStatus != null}"/>				                
+					            <h:outputText value="" title="" rendered="#{item.consumablesStatus == null}" />								
+							</rich:column>
+
+						</rich:extendedDataTable>
+					</h:panelGroup>
+					<a4j:outputPanel ajaxRendered="true">
+						<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						<h:graphicImage url="/_img/hd_searchblock.gif"
+							styleClass="hd-searchblock" />
+						<h:panelGroup styleClass="collapse-vert table-collapse-vert"
+							layout="block" />
+					</a4j:outputPanel>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="atmMonitoringBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="4"
+							columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount">
+
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" />
+
+							<h:selectOneMenu id="rows_num" value="#{MbAtmMonitoring.rowsNum}"
+								styleClass="row_per_page">
+								<a4j:support event="onchange" eventsQueue="queue"
+									reRender="atmMonitoringTable, AtmUiTerminalVwDataScroller, pagesNum, btnPanel, #{MbAtmMonitoring.tabName}" 
+									oncomplete="mainTabs.flush();selectTab(mainTabs.currentTab)"/>
+								<f:selectItem itemValue="10" itemLabel="10" />
+								<f:selectItem itemValue="20" itemLabel="20" />
+								<f:selectItem itemValue="50" itemLabel="50" />
+							</h:selectOneMenu>
+
+							<rich:datascroller id="AtmUiTerminalVwDataScroller" maxPages="10"
+								fastControls="hide" pagesVar="pages"
+								styleClass="res-datascroller" for="atmMonitoringTable"
+								reRender="btnPanel, detailsTab, #{MbAtmMonitoring.tabName}"
+								oncomplete="mainTabs.flush();selectTab(mainTabs.currentTab)"
+								eventsQueue="queue">
+								<f:facet name="first">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="first_disabled">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="last">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="last_disabled">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="previous_disabled">
+									<h:outputText value="#{lblCommon.prev}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="next">
+									<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="next_disabled">
+									<h:outputText value="#{lblCommon.next}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="pages">
+								</f:facet>
+							</rich:datascroller>
+
+							<h:panelGroup id="pagesNum">
+								<h:outputText styleClass="strongClass" value="#{pages} " />
+								<h:outputText value=" #{lblCommon.pages}" />
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbAtmMonitoring.dataModel.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGrid id="btnPanel" columns="2" styleClass="buttons_block">
+						<bre:taggedCommandButton id="openCloseAtm"
+							oncomplete="alert('#{lblAtm.request_sent}');"
+							rendered="#{usession.inRole['OPEN_CLOSE_ATM']}"
+							value="#{lblAtm.open_close_atm}" disabled="#{MbAtmMonitoring.activeItem == null}"
+							action="#{MbAtmMonitoring.openCloseAtm}"
+							image="/_img/folder.png" />
+						<bre:taggedCommandButton id="refreshActiveItem"
+							reRender="atmMonitoringTable, AtmUiTerminalVwDataScroller, details, pagesNum, btnPanel, atmStatus"
+							value="#{lblForm.refresh}" disabled="#{MbAtmMonitoring.activeItem == null}"
+							action="#{MbAtmMonitoring.updateActiveItem}"
+							/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<!-- Working panel -->
+		<h:panelGroup styleClass="workplace" id="workplacePanel"
+			layout="block">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content">
+
+				<rich:tab label="#{lblCommon.details}" name="detailsTab"
+					style="height:100%;" ontabenter="selectTab('detailsTab')">
+					
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/atm/monitoring/monitoredAtmDetails.jspx"></ui:include>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+				</rich:tab>
+
+                <rich:tab name="atmGroupsTab" label="Atm Groups" style="height:100%"
+                          styleClass="large-cell"
+                          ontabenter="selectTab('atmGroupsTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="first tab-label" layout="block">
+                            <h:outputText value="#{lblAtm.atm_groups}" title="#{lblAtm.atm_groups}" />
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup layout="block" id="atmGroupsTab" styleClass="carddata-wrapper"
+                                  style="height: 100%;overflow:hidden;position:relative;">
+                        <ui:include src="/pages/atm/monitoring/atmGroupsBottom.jspx" />
+                    </h:panelGroup>
+                </rich:tab>
+
+        		<rich:tab label="Collections" name="collectionsTab"
+        				style="height:100%" ontabenter="selectTab('collectionsTab')">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblAtm.collection}" title="#{lblAtm.collection}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="collectionsTab" layout="block" styleClass="carddata-wrapper" 
+        					style="height: 100%;overflow:hidden;position:relative;">
+        				<h:panelGroup id="collectionsTabContents">
+	       					<ui:include src="/pages/atm/monitoring/atmCollectionsBottom.jspx">	       						     						
+	       					</ui:include>
+       					</h:panelGroup>
+        			</h:panelGroup>
+        		</rich:tab>
+
+				<rich:tab name="dispensersTab" label="Dispensers"
+					styleClass="large-cell" style="height:100%"
+					rendered="#{usession.inRole['VIEW_ATM_DISPENSER']}"
+                    ontabenter="selectTab('dispensersTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.dispensers}"
+								title="#{lblAtm.dispensers}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="dispensersTab"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/atm/monitoring/atmDispensersBottom.jspx">
+							<ui:param name="showButtons" value="false" />
+							<ui:param name="isTemplate" value="false" />
+							<ui:param name="fragmentId" value="atmMonitoring" />
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab name="cashInTab" label="Cash In" style="height:100%"
+					styleClass="large-cell" 
+					rendered="#{usession.inRole['VIEW_ATM_CASH_IN']}"
+                    ontabenter="selectTab('cashInTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.cash_in}" title="#{lblAtm.cash_in}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="cashInTab" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="cashInTabContents">
+							<ui:include src="/pages/atm/atmCashIn.jspx" />
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+			
+				<rich:tab name="capturedCardsTab" label="Captured Cards" style="height:100%"
+					styleClass="large-cell"
+					onlabelclick="selectTab('capturedCardsTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.captured_cards}" title="#{lblAtm.captured_cards}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="capturedCardsTab" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include src="/pages/atm/monitoring/atmCapturedCardsBottom.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab name="controlTab" label="Control" style="height:100%"
+					styleClass="large-cell"
+                    ontabenter="selectTab('controlTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.control}" title="#{lblAtm.control}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="controlTab" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include src="/pages/atm/monitoring/control/atmControlBottom.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab name="stateTab" label="State"
+					styleClass="large-cell"
+                    ontabenter="selectTab('stateTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.state}" title="#{lblAtm.state}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="stateTab">
+						<ui:include src="/pages/atm/monitoring/state/atmStateBottom.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+					
+				<rich:tab name="historyTab" label="History" style="height:100%"
+					styleClass="large-cell"
+                    ontabenter="selectTab('historyTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.history}" title="#{lblAtm.history}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="historyTab" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include src="/pages/atm/monitoring/history/atmHistoryBottom.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab name="unsolicitedTab" label="received status messages" style="height:100%"
+					styleClass="large-cell"
+                    ontabenter="selectTab('unsolicited')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.received_status_msg}" title="#{lblAtm.received_status_msg}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="unsolicited" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include src="/pages/atm/monitoring/state/list_unsolicited_bottom.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<!--Include edit modal panel <ui:include src="/pages/emv/????"></ui:include> -->
+		
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.css" style and "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel" и layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+			
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'atmMonitoringSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'atmMonitoringResultForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'atmMonitoringTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'atmMonitoringBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'monitoredAtmDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'monitoredAtmDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'atmGroupsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'atmGroupsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.CHECKBOX
+	                                    }, {
+	                                    TAB_FORM_ID:            'collectionsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'collectionsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'collectionParamsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'collectionParamsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'atmMonitoringmainDispensersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomDispensersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.CHECKBOX
+	                                    }, {
+	                                    TAB_FORM_ID:            'atmCashInForm',
+	                                    TAB_FORM_WRAPPER_ID:    'atmCashInTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'capturedCardsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'capturedCardsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'desKeysBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'desKeysTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'atmScenarioForm',
+	                                    TAB_FORM_WRAPPER_ID:    'atmScenarioTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'atmDispenserForm',
+	                                    TAB_FORM_WRAPPER_ID:    'atmDispenserTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'adminOperationForm',
+	                                    TAB_FORM_WRAPPER_ID:    'adminOperationTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'statusMessageForm',
+	                                    TAB_FORM_WRAPPER_ID:    'statusMessageTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'operationForm',
+	                                    TAB_FORM_WRAPPER_ID:    'operationTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'monitoredAtmDetailsForm1',
+	                                    TAB_FORM_WRAPPER_ID:    'monitoredAtmDetailsWrapper1',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'monitoredAtmDetailsForm2',
+	                                    TAB_FORM_WRAPPER_ID:    'monitoredAtmDetailsWrapper2',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'monitoredAtmDetailsForm3',
+	                                    TAB_FORM_WRAPPER_ID:    'monitoredAtmDetailsWrapper3',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'monitoredAtmDetailsForm4',
+	                                    TAB_FORM_WRAPPER_ID:    'monitoredAtmDetailsWrapper4',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'devicesDetails',
+	                                    TAB_FORM_WRAPPER_ID:    'devicesDetailssWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'financialStateForm',
+	                                    TAB_FORM_WRAPPER_ID:    'financialStateWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.TABS + Stretch.BUTTONS + Stretch.CHECKBOX + 26
+	                                    }, {
+	                                    TAB_FORM_ID:            'atmGroupsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'atmGroupsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'unsolicitedForm',
+	                                    TAB_FORM_WRAPPER_ID:    'unsolicitedWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>
+	</ui:define>
+</ui:composition>
+</html>

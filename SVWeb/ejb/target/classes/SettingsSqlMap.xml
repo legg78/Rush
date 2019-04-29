@@ -1,0 +1,600 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="settings">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+    </sql>
+
+    <sql id="paginatedClose">
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-param"
+                class="ru.bpc.sv2.settings.SettingParam">
+        <result property="id" column="id" />
+        <result property="systemName" column="name" />
+        <result property="name" column="caption" />
+        <result property="dataType" column="data_type" />
+        <result property="valueV" column="value_v" />
+        <result property="valueN" column="value_n" />
+        <result property="valueD" column="value_d" />
+        <result property="lovValue" column="lov_value" />
+        <result property="moduleCode" column="module_code" />
+        <result property="description" column="description" />
+        <result property="lang" column="lang" />
+        <result property="lowestLevel" column="lowest_level" />
+        <result property="defaultValue" column="default_value" />
+        <result property="lovId" column="lov_id" />
+        <result property="parentId" column="parent_id" />
+	</resultMap>
+
+	<resultMap  id="mapping-param-hier"
+                class="ru.bpc.sv2.settings.SettingParam"
+                extends="mapping-param">
+		<result property="isLeaf" column="is_leaf"/>
+		<result property="level" column="level"/>
+		<result property="isEncrypted" column="is_encrypted" nullValue="false"/>
+	</resultMap>
+
+	<select id="get-inst-params"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param">
+		SELECT
+				  id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, lov_value
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+		FROM
+			set_ui_inst_parameters_vw
+		WHERE 1=1
+			AND inst_id = #levelValue#
+		<isNotNull property="id">AND id = #id#</isNotNull>
+		<isNotNull property="name">AND name = #systemName#</isNotNull>
+		<isNotNull property="lowestLevel">AND lowest_level = #lowestLevel#</isNotNull>
+	</select>
+
+	<select id="get-agent-params"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param">
+		SELECT
+				  id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, lov_value 
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+		FROM 
+			set_ui_agent_parameters_vw
+		WHERE agent_id = #levelValue#
+		<isNotNull property="id">AND id = #id#</isNotNull>
+		<isNotNull property="name">AND name = #systemName#</isNotNull>
+		<isNotNull property="lowestLevel">AND lowest_level = #lowestLevel#</isNotNull>
+	</select>
+
+	<select id="get-user-params"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param">
+		SELECT
+				  id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, lov_value 
+				, NULL AS module_code
+				, description
+				, com_ui_user_env_pkg.get_user_lang AS lang
+				, NULL AS lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+		FROM 
+			set_ui_user_parameters_vw
+		WHERE user_name = #levelValue#
+		<isNotNull property="id">AND id = #id#</isNotNull>
+		<isNotNull property="name">AND name = #systemName#</isNotNull>
+	</select>
+
+	<select id="get-system-params"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param">
+		SELECT
+				  id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, lov_value 
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+		FROM 
+			set_ui_system_parameters_vw
+		WHERE 1=1
+		<isNotNull property="id">AND id = #id#</isNotNull>
+		<isNotNull property="name">AND name = #systemName#</isNotNull>
+		<isNotNull property="lowestLevel">AND lowest_level = #lowestLevel#</isNotNull>
+	</select>
+
+	<resultMap  id="mapping-param-no-lov-value"
+                class="ru.bpc.sv2.settings.SettingParam">
+        <result property="id" column="id" />
+        <result property="systemName" column="name" />
+        <result property="name" column="caption" />
+        <result property="dataType" column="data_type" />
+        <result property="valueV" column="value_v" />
+        <result property="valueN" column="value_n" />
+        <result property="valueD" column="value_d" />
+        <result property="moduleCode" column="module_code" />
+        <result property="description" column="description" />
+        <result property="lang" column="lang" />
+        <result property="lowestLevel" column="lowest_level" />
+        <result property="defaultValue" column="default_value" />
+        <result property="lovId" column="lov_id" />
+        <result property="parentId" column="parent_id" />
+	</resultMap>
+	
+	<select id="get-system-params-no-context"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param-no-lov-value" fetchSize="500">
+		SELECT
+				  id
+				, name
+				, caption
+				, set_ui_value_pkg.GET_SYSTEM_PARAM_V(i_param_name => name, i_data_type => data_type) value_v
+				, set_ui_value_pkg.GET_SYSTEM_PARAM_N(i_param_name => name, i_data_type => data_type) value_n
+				, set_ui_value_pkg.GET_SYSTEM_PARAM_D(i_param_name => name, i_data_type => data_type) value_d
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+		FROM set_ui_parameter_vw
+		WHERE lang = 'LANGENG'
+	</select>
+	
+	<select id="get-inst-params-no-context"
+			parameterClass="java.lang.Integer"
+			resultMap="mapping-param-no-lov-value">
+		SELECT
+				  id
+				, name
+				, caption
+				, set_ui_value_pkg.GET_INST_PARAM_V(i_param_name => name, i_inst_id => #value#, i_data_type => data_type) value_v
+				, set_ui_value_pkg.GET_INST_PARAM_N(i_param_name => name, i_inst_id => #value#, i_data_type => data_type) value_n
+				, set_ui_value_pkg.GET_INST_PARAM_D(i_param_name => name, i_inst_id => #value#, i_data_type => data_type) value_d
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+		FROM set_ui_parameter_vw
+		WHERE lang = 'LANGENG'
+	</select>
+
+	<select id="get-user-params-no-context" parameterClass="java.lang.String" resultMap="mapping-param-no-lov-value">
+		select id
+		     , name
+		     , caption
+		     , set_ui_value_pkg.get_user_param_v(i_param_name => name, i_user_id => #value#, i_data_type => data_type) value_v
+		     , set_ui_value_pkg.get_user_param_n(i_param_name => name, i_user_id => #value#, i_data_type => data_type) value_n
+		     , set_ui_value_pkg.get_user_param_d(i_param_name => name, i_user_id => #value#, i_data_type => data_type) value_d
+		     , module_code
+		     , description
+		     , lang
+		     , lowest_level
+		     , default_value
+		     , data_type
+		     , lov_id
+		     , parent_id
+		  from set_ui_parameter_vw
+		 where lang = 'LANGENG'
+	</select>
+
+	<select id="get-params-count"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultClass="int">
+		SELECT
+			count(name)
+		FROM
+			set_ui_parameter_vw
+		WHERE lang = com_ui_user_env_pkg.get_user_lang()
+		<isNotNull property="id">AND id = #id#</isNotNull>
+		<isNotNull property="name">AND name = #systemName#</isNotNull>
+		<isNotNull property="lowestLevel">AND lowest_level = #lowestLevel#</isNotNull>
+    </select>
+
+
+	<select id="get-inst-params-hier"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param-hier">
+		SELECT
+			  level
+			, id
+			, name
+			, caption
+			, value_v
+			, value_n
+			, value_d
+			, is_encrypted
+			, lov_value
+			, module_code
+			, description
+			, lang
+			, lowest_level
+			, default_value
+			, data_type
+			, lov_id
+			, parent_id
+			, connect_by_isleaf as is_leaf
+		FROM ( SELECT
+				  id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, is_encrypted
+				, lov_value
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+				, display_order
+				, inst_id
+			FROM  set_ui_inst_parameters_vw
+			WHERE inst_id = #levelValue#
+			UNION SELECT
+				  id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, is_encrypted
+				, lov_value
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+				, display_order
+				, TO_NUMBER(#levelValue#) as inst_id
+			FROM  set_ui_system_parameters_vw p
+			WHERE lowest_level = TO_CHAR('PLVLSYST')
+			AND exists (
+					SELECT 1
+					FROM set_ui_inst_parameters_vw c
+					WHERE c.parent_id = p.id
+					AND c.lowest_level = #paramLevel#
+			)
+		)
+		WHERE inst_id = #levelValue#
+			<isNotNull property="name" prepend="AND"> name = #systemName#</isNotNull>
+		start WITH parent_id IS NULL
+		AND inst_id = #levelValue#
+		CONNECT BY PRIOR id = parent_id
+		AND lang = PRIOR lang
+		ORDER SIBLINGS BY display_order
+	</select>
+
+	<select id="get-agent-params-hier"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param-hier" >
+		SELECT
+				  level
+				, id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, 0 as is_encrypted
+				, lov_value 
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+				, CONNECT_BY_ISLEAF as is_leaf
+		FROM set_ui_agent_parameters_vw
+		WHERE agent_id = #levelValue#
+			<isNotNull property="name" prepend="AND"> name = #systemName#</isNotNull>
+		START WITH parent_id IS NULL AND agent_id = #levelValue#
+		CONNECT BY PRIOR id = parent_id and lang = prior lang
+		ORDER SIBLINGS BY display_order
+	</select>
+
+	<select id="get-user-params-hier"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param-hier" >
+		SELECT
+				  level
+				, id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, 0 as is_encrypted
+				, lov_value 
+				, NULL AS module_code
+				, description
+				, com_ui_user_env_pkg.get_user_lang AS lang
+				, NULL AS lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+				, CONNECT_BY_ISLEAF as is_leaf
+		FROM set_ui_user_parameters_vw
+		WHERE user_name = #levelValue#
+			<isNotNull property="name" prepend="AND"> name = #systemName#</isNotNull>			
+		START WITH parent_id IS NULL AND user_name = #levelValue# 
+		CONNECT BY PRIOR id = parent_id
+		ORDER SIBLINGS BY display_order
+	</select>
+
+	<select id="get-system-params-hier"
+			parameterClass="ru.bpc.sv2.settings.SettingParam"
+			resultMap="mapping-param-hier" >
+		SELECT
+				  level
+				, id
+				, name
+				, caption
+				, value_v
+				, value_n
+				, value_d
+				, lov_value
+				, is_encrypted
+				, module_code
+				, description
+				, lang
+				, lowest_level
+				, default_value
+				, data_type
+				, lov_id
+				, parent_id
+				, CONNECT_BY_ISLEAF as is_leaf
+		FROM set_ui_system_parameters_vw
+		WHERE 1=1
+			<isNotNull property="name" prepend="AND"> name = #systemName#</isNotNull>
+		START WITH parent_id IS NULL
+		CONNECT BY PRIOR id = parent_id and lang = prior lang
+		ORDER SIBLINGS BY display_order
+	</select>
+
+	<select id="get-release" resultClass="String">
+		select get_release from dual
+	</select>
+
+	<procedure id="set-system-param_v"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_system_param_v(#systemName#,#valueV#)}
+    </procedure>
+
+    <procedure id="set-system-param_n"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_system_param_n(#systemName#,#valueN#)}
+    </procedure>
+
+    <procedure id="set-system-param_d"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_system_param_d(#systemName#,#valueD#)}
+    </procedure>
+
+	<procedure id="set-inst-param_v"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_inst_param_v(#systemName#,#valueV#,#levelValue#)}
+    </procedure>
+
+    <procedure id="set-inst-param_n"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_inst_param_n(#systemName#,#valueN#,#levelValue#)}
+    </procedure>
+
+    <procedure id="set-inst-param_d"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_inst_param_d(#systemName#,#valueD#,#levelValue#)}
+    </procedure>
+
+    <procedure id="set-agent-param_v"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_agent_param_v(#systemName#,#valueV#,#levelValue#)}
+    </procedure>
+
+    <procedure id="set-agent-param_n"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_agent_param_n(#systemName#,#valueN#,#levelValue#)}
+    </procedure>
+
+    <procedure id="set-agent-param_d"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_agent_param_d(#systemName#,#valueD#,#levelValue#)}
+    </procedure>
+
+    <procedure id="set-user-param_v"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_user_param_v(#systemName#,#valueV#)}
+    </procedure>
+
+    <procedure id="set-user-param_n"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_user_param_n(#systemName#,#valueN#)}
+    </procedure>
+
+    <procedure id="set-user-param_d"
+    		parameterClass="ru.bpc.sv2.settings.SettingParam">
+    	{call set_ui_value_pkg.set_user_param_d(#systemName#,#valueD#)}
+    </procedure>
+
+	<parameterMap class="java.util.Map" id="get-system-param-v">
+		<parameter property="value" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+	<parameterMap class="java.util.Map" id="get-system-param-n">
+		<parameter property="value" javaType="java.lang.Double" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+	<parameterMap class="java.util.Map" id="get-system-param-d">
+		<parameter property="value" javaType="java.util.Date" jdbcType="DATE" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+	
+	<parameterMap class="java.util.Map" id="get-param-v">
+		<parameter property="value" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="levelValue" javaType="java.lang.String" jdbcType="NUMERIC" mode="IN" nullValue="NULL"/>
+	</parameterMap>
+	
+	<parameterMap class="java.util.Map" id="get-user-param-v">
+		<parameter property="value" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="levelValue" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" nullValue="NULL"/>
+	</parameterMap>
+	
+	<parameterMap class="java.util.Map" id="get-param-n">
+		<parameter property="value" javaType="java.lang.Double" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="levelValue" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" nullValue="NULL"/>
+	</parameterMap>
+	
+	<parameterMap class="java.util.Map" id="get-user-param-n">
+		<parameter property="value" javaType="java.lang.Double" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="levelValue" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" nullValue="NULL"/>
+	</parameterMap>
+	
+	<parameterMap class="java.util.Map" id="get-param-d">
+		<parameter property="value" javaType="java.util.Date" jdbcType="DATE" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="levelValue" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" nullValue="NULL"/>
+	</parameterMap>
+	
+	<parameterMap class="java.util.Map" id="get-user-param-d">
+		<parameter property="value" javaType="java.util.Date" jdbcType="DATE" mode="OUT"/>
+		<parameter property="systemName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="levelValue" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" nullValue="NULL"/>
+	</parameterMap>
+
+	<procedure id="get-system-param_v"
+    		parameterMap="get-system-param-v">
+    	{? = call set_ui_value_pkg.get_system_param_v(?)}
+    </procedure>
+
+    <procedure id="get-system-param_n"
+    		parameterMap="get-system-param-n">
+    	{? = call set_ui_value_pkg.get_system_param_n(?)}
+    </procedure>
+
+    <procedure id="get-system-param_d"
+    		parameterMap="get-system-param-d">
+    	{? = call set_ui_value_pkg.get_system_param_d(?)}
+    </procedure>
+
+	<procedure id="get-inst-param_v"
+    		parameterMap="get-param-v">
+    	{? = call set_ui_value_pkg.get_inst_param_v(?, ?)}
+    </procedure>
+
+    <procedure id="get-inst-param_n"
+    		parameterMap="get-param-n">
+    	{? = call set_ui_value_pkg.get_inst_param_n(?, ?)}
+    </procedure>
+
+    <procedure id="get-inst-param_d"
+    		parameterMap="get-param-d">
+    	{? = call set_ui_value_pkg.get_inst_param_d(?, ?)}
+    </procedure>
+
+    <procedure id="get-agent-param_v"
+    		parameterMap="get-param-v">
+    	{? = call set_ui_value_pkg.get_agent_param_v(?, ?)}
+    </procedure>
+
+    <procedure id="get-agent-param_n"
+    		parameterMap="get-param-n">
+    	{? = call set_ui_value_pkg.get_agent_param_n(?, ?)}
+    </procedure>
+
+    <procedure id="get-agent-param_d"
+    		parameterMap="get-param-d">
+    	{? = call set_ui_value_pkg.get_agent_param_d(?, ?)}
+    </procedure>
+
+    <procedure id="get-user-param_v"
+    		parameterMap="get-user-param-v">
+    	{? = call set_ui_value_pkg.get_user_param_v(?, ?)}
+    </procedure>
+
+    <procedure id="get-user-param_n"
+    		parameterMap="get-user-param-n">
+    	{? = call set_ui_value_pkg.get_user_param_n(?, ?)}
+    </procedure>
+
+    <procedure id="get-user-param_d"
+    		parameterMap="get-user-param-d">
+    	{? = call set_ui_value_pkg.get_user_param_d(?, ?)}
+    </procedure>
+
+	<procedure id="initialization">
+		{call iss_api_token_pkg.initialization()}
+	</procedure>
+</sqlMap>

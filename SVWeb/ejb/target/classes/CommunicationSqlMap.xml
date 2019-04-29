@@ -1,0 +1,2161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="cmn">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql> 
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>                
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-response-code" class="ru.bpc.sv2.cmn.ResponseCodeMapping">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="respCode" column="resp_code"/>
+        <result property="deviceCodeIn" column="device_code_in"/>
+        <result property="deviceCodeOut" column="device_code_out"/>
+        <result property="respReason" column="resp_reason"/>
+	</resultMap>
+
+	<select id="get-resp-codes-mappings"
+		    parameterClass="qparams"
+		    resultMap="mapping-response-code">
+		<include refid="paginatedOpen"/>
+			SELECT 	id
+					, seqnum
+					, standard_id
+					, resp_code
+		            , device_code_in
+		            , device_code_out
+		            , resp_reason
+		    FROM cmn_ui_resp_code_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="onlyIn">device_code_in IS NOT NULL</isEqual>
+				<isEqual property="filters[].element" compareValue="onlyOut">device_code_out IS NOT NULL</isEqual>
+				<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="respCode">resp_code = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="deviceCodeIn">device_code_in = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="deviceCodeOut">device_code_out = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="respReason">resp_reason = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="respCode">resp_code $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="standardId">standard_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deviceCodeIn">device_code_in $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deviceCodeOut">device_code_out $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="respReason">resp_reason $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend=" ORDER BY ">resp_code ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-resp-codes-mappings-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	* FROM cmn_ui_resp_code_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="onlyIn">device_code_in IS NOT NULL</isEqual>
+			<isEqual property="filters[].element" compareValue="onlyOut">device_code_out IS NOT NULL</isEqual>
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respCode">resp_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="deviceCodeIn">device_code_in = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="deviceCodeOut">device_code_out = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="respReason">resp_reason = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-resp-code-mapping"
+			parameterClass="ru.bpc.sv2.cmn.ResponseCodeMapping">
+    	{call CMN_UI_RESP_CODE_PKG.add_resp_code( 
+				  o_resp_code_id 	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_standard		=> #standardId#
+				, i_resp_code		=> #respCode#
+				, i_device_code_in	=> #deviceCodeIn#
+				, i_device_code_out	=> #deviceCodeOut#
+				, i_resp_reason		=> #respReason#
+				)}
+	</procedure>
+	
+	<procedure id="edit-resp-code-mapping"
+			parameterClass="ru.bpc.sv2.cmn.ResponseCodeMapping">
+    	{call CMN_UI_RESP_CODE_PKG.modify_resp_code( 
+				  i_resp_code_id 	=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_device_code_in	=> #deviceCodeIn#
+				, i_device_code_out	=> #deviceCodeOut#
+				, i_resp_reason		=> #respReason#
+				)}
+	</procedure>
+
+	<procedure id="delete-resp-code-mapping"
+			parameterClass="ru.bpc.sv2.cmn.ResponseCodeMapping">
+    	{call CMN_UI_RESP_CODE_PKG.remove_resp_code(
+				  i_resp_code_id	=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+
+
+	<resultMap  id="mapping-cmn-standard" class="ru.bpc.sv2.cmn.CmnStandard">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="appPlugin" column="application_plugin"/>
+        <result property="respCodeLovId" column="resp_code_lov_id"/>
+        <result property="respCodeLovName" column="rc_lov_name"/>
+        <result property="keyTypeLovId" column="key_type_lov_id"/>
+        <result property="keyTypeLovName" column="kt_lov_name"/>
+        <result property="standardType" column="standard_type"/>
+        <result property="label" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+		<result property="entityType" column="entity_type"/>
+	</resultMap>
+	
+	<select id="get-standards"
+		    parameterClass="qparams"
+		    resultMap="mapping-cmn-standard">
+		<include refid="paginatedOpen"/>
+			SELECT 	  
+					s.id
+					, s.seqnum
+					, s.application_plugin
+					, s.resp_code_lov_id
+					, s.key_type_lov_id
+					, s.standard_type
+		            , s.label
+		            , s.description
+		            , s.lang
+		            , l1.name rc_lov_name
+		            , l2.name kt_lov_name
+		            , 'ENTTSTDR' AS entity_type
+		    FROM 
+		    	cmn_ui_standard_vw s, com_ui_lov_vw l1, com_ui_lov_vw l2
+		    WHERE
+		    	s.resp_code_lov_id = l1.id(+)
+		    	AND s.lang = l1.lang(+)
+		    	AND s.key_type_lov_id = l2.id(+)
+		    	AND s.lang = l2.lang(+)
+	        <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="ids">s.id IN ($filters[].value$)</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardType">s.standard_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardTypes">s.standard_type IN ($filters[].value$)</isEqual>
+				<isEqual property="filters[].element" compareValue="appPlugin">upper(s.application_plugin) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="appPluginExists">s.application_plugin IS NOT NULL</isEqual>
+				<isEqual property="filters[].element" compareValue="appPluginNotExists">s.application_plugin IS NULL</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(s.label) like #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="appPlugin">s.application_plugin $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="standardType">s.standard_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="label">s.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="rcLovName">upper(rc_lov_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="ktLovName">upper(kt_lov_name) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend=" ORDER BY ">s.label ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-standards-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			s.id 
+		FROM 
+			cmn_ui_standard_vw s
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ids">s.id IN ($filters[].value$)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="appPlugin">upper(s.application_plugin) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardType">s.standard_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardTypes">s.standard_type IN ($filters[].value$)</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(s.label) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap  id="mapping-cmn-standard-tree" class="ru.bpc.sv2.cmn.CmnStandard"
+			extends="mapping-cmn-standard">
+		<result property="parentId" column="parent_standard_id"/>
+		<result property="level" column="level"/>
+        <result property="isLeaf" column="is_leaf"/>
+	</resultMap>
+	
+	<select id="get-standards-tree"
+		    parameterClass="qparams"
+		    resultMap="mapping-cmn-standard-tree">
+		SELECT 
+			      s.*
+				, l1.name rc_lov_name
+				, l2.name kt_lov_name
+			    , level
+			    , CONNECT_BY_ISLEAF is_leaf  
+		FROM (
+		    SELECT
+		            null parent_standard_id
+		            , 'ENTTSTDR' AS entity_type
+		            , s.id
+		            , s.seqnum
+		            , s.label
+		            , null version_order
+		            , s.description
+		            , s.standard_type
+		            , s.application_plugin
+		            , s.resp_code_lov_id
+		            , s.key_type_lov_id
+		            , s.lang
+		    FROM cmn_ui_standard_vw s
+		    WHERE s.lang = #lang#
+		    <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="ids">s.id IN ($filters[].value$)</isEqual>
+				<isEqual property="filters[].element" compareValue="standardType">s.standard_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="appPlugin">upper(s.application_plugin) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="appPluginExists">s.application_plugin IS NOT NULL</isEqual>
+				<isEqual property="filters[].element" compareValue="appPluginNotExists">s.application_plugin IS NULL</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(s.label) like #filters[].value#</isEqual>
+			</iterate>
+		UNION ALL
+		    SELECT
+		            v.standard_id parent_standard_id
+		            , 'ENTTSTVR' AS entity_type
+		            , v.id
+		            , v.seqnum
+		            , v.version_number label
+		            , v.version_order
+		            , v.description
+		            , null standard_type
+		            , null application_plugin
+		            , null resp_code_lov_id
+		            , null key_type_lov_id
+		            , v.lang
+		    FROM cmn_ui_standard_version_vw v
+		    WHERE v.lang = #lang#
+		) s
+		, com_ui_lov_vw l1, com_ui_lov_vw l2
+	    WHERE
+		    	s.resp_code_lov_id = l1.id(+)
+		    	AND s.lang = l1.lang(+)
+		    	AND s.key_type_lov_id = l2.id(+)
+		    	AND s.lang = l2.lang(+)
+		    	AND s.lang = #lang#	        
+		START WITH s.entity_type = 'ENTTSTDR'
+		CONNECT BY 
+		    PRIOR s.id = s.parent_standard_id 
+		    AND s.entity_type = 'ENTTSTVR'
+		    AND PRIOR s.entity_type = 'ENTTSTDR'
+        ORDER SIBLINGS BY decode (s.entity_type, 'ENTTSTDR', s.label,  'ENTTSTVR', s.version_order)
+	</select>
+
+	<procedure id="add-standard"
+			parameterClass="ru.bpc.sv2.cmn.CmnStandard">
+    	{call CMN_UI_STANDARD_PKG.add_standard( 
+				  o_standard_id 		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_appl_plugin			=> #appPlugin#
+				, i_resp_code_lov_id	=> #respCodeLovId#
+				, i_key_type_lov_id		=> #keyTypeLovId#
+				, i_standard_type		=> #standardType#
+				, i_label				=> #label#
+				, i_description			=> #description#
+				, i_lang				=> #lang#
+				)}
+	</procedure>
+	
+	<procedure id="edit-standard"
+			parameterClass="ru.bpc.sv2.cmn.CmnStandard">
+    	{call CMN_UI_STANDARD_PKG.modify_standard( 
+				  i_standard_id 		=> #id#
+				, i_appl_plugin			=> #appPlugin#
+				, i_resp_code_lov_id	=> #respCodeLovId#
+				, i_key_type_lov_id		=> #keyTypeLovId#
+				, i_label				=> #label#
+				, i_description			=> #description#
+				, i_lang				=> #lang#
+				, i_seqnum				=> #seqNum#
+				)}
+	</procedure>
+
+	<procedure id="delete-standard"
+			parameterClass="ru.bpc.sv2.cmn.CmnStandard">
+    	{call CMN_UI_STANDARD_PKG.remove_standard(
+				  i_standard_id 		=> #id#
+				, i_seqnum				=> #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-cmn-parameter" class="ru.bpc.sv2.cmn.CmnParameter">
+        <result property="id" column="id"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="systemName" column="name"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="dataType" column="data_type"/>
+        <result property="defaultValue" column="default_value"/>
+        <result property="defaultValueV" column="default_value_v"/>
+        <result property="defaultValueN" column="default_value_n"/>
+        <result property="defaultValueD" column="default_value_d"/>
+        <result property="defaultLovValue" column="default_lov_value"/>
+        <result property="lovName" column="lov_name"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="name" column="caption"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="scaleId" column="scale_id"/>
+        <result property="scaleName" column="scale_name"/>
+        <result property="pattern" column="pattern"/>
+        <result property="patternDescription" column="pattern_desc"/>
+	</resultMap>
+
+	<select id="get-cmn-parameters"
+			parameterClass="qparams"
+			resultMap="mapping-cmn-parameter">
+		<include refid="paginatedOpen"/>
+			SELECT	  cp.id
+					, cp.standard_id
+					, cp.name
+					, cp.entity_type
+					, cp.data_type
+					, cp.default_value
+					, cp.lov_id
+			        , lov.name as lov_name
+					, cp.caption
+					, cp.description
+					, cp.lang
+	                , cp.default_char_value default_value_v
+					, cp.default_number_value default_value_n
+					, cp.default_date_value default_value_d  
+					, cp.default_lov_value default_lov_value
+					, cp.scale_id
+					, cp.scale_name
+					, cp.pattern
+					, cp.pattern_desc
+			FROM cmn_ui_parameter_vw cp, com_ui_lov_vw lov
+			WHERE 
+				lov.id(+) = cp.lov_id
+				AND lov.lang(+) = cp.lang
+            <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">cp.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">cp.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">cp.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(cp.name) like #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">cp.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="dataType">cp.data_type $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(cp.name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="caption">upper(cp.caption) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="description">upper(cp.description) $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">cp.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-cmn-parameters-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			id
+		FROM 
+			cmn_ui_parameter_vw cp
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">cp.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">cp.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">cp.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(cp.name) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-parameter"
+			parameterClass="ru.bpc.sv2.cmn.CmnParameter">
+    	{call CMN_UI_PARAMETER_PKG.add_parameter( 
+				  o_param_id           => #id,jdbcType=NUMERIC,mode=OUT#
+				, i_standard           => #standardId#
+				, i_param_name         => #systemName#
+				, i_entity_type        => #entityType#
+				, i_data_type          => #dataType#
+				, i_lov_id             => #lovId#
+				, i_default_value_char => #defaultValueV#
+				, i_default_value_num  => #defaultValueN#
+				, i_default_value_date => #defaultValueD#
+				, i_scale_id           => #scaleId#
+				, i_caption            => #name#
+				, i_description        => #description#
+				, i_lang               => #lang#
+				, i_pattern            => #pattern#
+  				, i_pattern_desc       => #patternDescription#
+				)}
+	</procedure>
+	
+	<procedure id="edit-parameter"
+			parameterClass="ru.bpc.sv2.cmn.CmnParameter">
+    	{call CMN_UI_PARAMETER_PKG.modify_parameter( 
+				  i_param_id           => #id#
+				, i_entity_type        => #entityType#
+				, i_data_type          => #dataType#
+				, i_lov_id             => #lovId#
+				, i_default_value_char => #defaultValueV#
+				, i_default_value_num  => #defaultValueN#
+				, i_default_value_date => #defaultValueD#
+				, i_scale_id           => #scaleId#
+				, i_caption            => #name#
+				, i_description        => #description#
+				, i_lang               => #lang#
+				, i_pattern            => #pattern#
+  				, i_pattern_desc       => #patternDescription#
+				)}
+	</procedure>
+
+	<procedure id="delete-parameter"
+			parameterClass="int">
+    	{call CMN_UI_PARAMETER_PKG.remove_parameter(
+				  i_param_id           => #id#
+				)}
+	</procedure>
+	
+	<resultMap  id="mapping-cmn-version" class="ru.bpc.sv2.cmn.CmnVersion">
+        <result property="id" column="id"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="versionNumber" column="version_number"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="seqNum" column="seqnum"/>
+	</resultMap>
+	
+	<select id="get-cmn-versions" parameterClass="qparams" resultMap="mapping-cmn-version">
+		<include refid="paginatedOpen"/>
+			SELECT	  v.id
+					, v.standard_id
+					, v.version_number
+					, v.version_order
+					, v.description
+					, v.lang
+		            , v.seqnum
+			FROM CMN_UI_STANDARD_VERSION_VW v
+            <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">v.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">v.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">v.lang = #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">v.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="description">upper(v.description) $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">v.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-cmn-versions-count"	parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			id
+		FROM 
+			CMN_UI_STANDARD_VERSION_VW v
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">v.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">v.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">v.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-version"	parameterClass="ru.bpc.sv2.cmn.CmnVersion">
+    	{call CMN_UI_STANDARD_PKG.add_standard_version( 
+				  o_id             => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum         => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_standard_id    => #standardId#
+				, i_version_number => #versionNumber#
+				, i_description    => #description#
+  				, i_lang           => #lang#
+				)}
+	</procedure>
+	
+	<procedure id="edit-version" parameterClass="ru.bpc.sv2.cmn.CmnVersion">
+    	{call CMN_UI_STANDARD_PKG.modify_standard_version( 
+				  i_id              => #id#
+				, io_seqnum         => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_version_number  => #versionNumber#
+				, i_description     => #description#
+  				, i_lang            => #lang#
+				)}
+	</procedure>
+
+	<procedure id="delete-version" parameterClass="ru.bpc.sv2.cmn.CmnVersion">
+    	{call CMN_UI_STANDARD_PKG.remove_standard_version(
+				  i_id              => #id#
+				, i_seqnum          => #seqNum#
+				)}
+	</procedure>
+	
+	<resultMap  id="mapping-cmn-version-parameter" class="ru.bpc.sv2.cmn.CmnVersionParameter">
+        <result property="id" column="id"/>
+        <result property="versionId" column="version_id"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="name" column="name"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="dataType" column="data_type"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="caption" column="caption"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+	
+	<select id="get-cmn-version-parameters"	parameterClass="qparams"
+			resultMap="mapping-cmn-version-parameter">
+		<include refid="paginatedOpen"/>
+			SELECT	  p.id
+					, p.version_id
+					, p.standard_id
+					, p.name
+					, p.entity_type
+					, p.data_type
+					, p.lov_id
+					, p.caption
+					, p.description
+					, p.lang
+			FROM CMN_UI_VERSION_PARAMETER_VW p
+            <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="versionId">p.version_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">p.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+                	<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+                	<isEqual property="sorting[].property" compareValue="description">upper(p.description) $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">upper(p.name) ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-cmn-version-parameters-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			id
+		FROM 
+			CMN_UI_VERSION_PARAMETER_VW p
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">p.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">p.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-version-parameter"
+			parameterClass="ru.bpc.sv2.cmn.CmnVersionParameter">
+    	{call CMN_UI_PARAMETER_PKG.add_version_parameter( 
+				  i_param_id	 	=> #id#
+				, i_version_id		=> #versionId#
+				)}
+	</procedure>
+	
+	<procedure id="delete-version-parameter"
+			parameterClass="ru.bpc.sv2.cmn.CmnVersionParameter">
+    	{call CMN_UI_PARAMETER_PKG.remove_version_parameter( 
+				  i_param_id	 	=> #id#
+				, i_version_id		=> #versionId#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-cmn-param-value" class="ru.bpc.sv2.cmn.CmnParamValue"
+				extends="mapping-cmn-parameter">
+        <result property="paramId" column="param_id"/>
+        <result property="objectId" column="object_id"/>
+        <result property="lovValue" column="lov_value"/>
+        <result property="paramValue" column="param_value"/>
+        <result property="paramValueV" column="param_value_v"/>
+        <result property="paramValueN" column="param_value_n"/>
+        <result property="paramValueD" column="param_value_d"/>
+        <result property="paramValueXml" column="param_value_xml" jdbcType="CLOB"/>
+        <result property="defaultXmlValue" column="default_xml_value" jdbcType="CLOB"/>
+        <result property="modId" column="mod_id"/>
+        <result property="modName" column="mod_name"/>
+	</resultMap>
+	
+	<select id="get-cmn-param-values"
+			parameterClass="qparams"
+			resultMap="mapping-cmn-param-value">
+		<include refid="limitationOpen"/>
+        SELECT    pv.id
+                , pv.param_id
+                , pv.entity_type
+                , pv.object_id
+                , pv.param_value
+                , pv.standard_id
+                , pv.name
+                , pv.data_type
+                , p.default_value
+                , pv.lov_id
+                , l.name AS lov_name
+                , pv.caption
+                , pv.description
+                , pv.lang
+                , pv.param_char_value AS param_value_v
+				, pv.param_number_value AS param_value_n
+				, pv.param_date_value AS param_value_d  
+				, pv.param_lov_value AS lov_value
+				, pv.xml_value AS param_value_xml
+                , p.default_char_value AS default_value_v
+				, p.default_number_value AS default_value_n
+				, p.default_date_value AS default_value_d  
+				, p.default_lov_value AS default_lov_value
+				, pv.scale_id
+				, pv.scale_name
+				, pv.mod_id
+				, pv.mod_name
+				, null default_xml_value
+				, null pattern
+				, null pattern_desc
+        FROM CMN_UI_PARAMETER_VALUE_VW pv, CMN_UI_PARAMETER_VW p, com_ui_lov_vw l
+      	WHERE pv.param_id = p.id AND pv.lang = p.lang
+      			AND pv.lov_id = l.id(+) AND pv.lang = l.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">upper(pv.name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="caption">upper(pv.caption) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">upper(pv.name) ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-cmn-param-values-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT pv.id
+		FROM CMN_UI_PARAMETER_VALUE_VW pv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="set-param-num-value"
+			parameterClass="ru.bpc.sv2.cmn.CmnParamValue">
+		{call CMN_UI_STANDARD_PKG.set_param_value_number(
+				  i_standard_id => #standardId#
+				, i_version_id  => #versionId#
+				, i_object_id   => #objectId#
+				, i_entity_type => #entityType#
+				, i_mod_id      => #modId#
+				, i_param_name  => #systemName#
+				, i_param_value => #paramValueN#
+				)}
+	</procedure>
+	
+	<procedure id="set-param-char-value"
+			parameterClass="ru.bpc.sv2.cmn.CmnParamValue">
+		{call CMN_UI_STANDARD_PKG.set_param_value_char(
+				  i_standard_id => #standardId#
+				, i_version_id  => #versionId#
+				, i_object_id   => #objectId#
+				, i_entity_type => #entityType#
+				, i_mod_id      => #modId#
+				, i_param_name  => #systemName#
+				, i_param_value => #paramValueV#
+				)}
+	</procedure>
+
+	<procedure id="set-param-date-value"
+			parameterClass="ru.bpc.sv2.cmn.CmnParamValue">
+		{call CMN_UI_STANDARD_PKG.set_param_value_date(
+				  i_standard_id => #standardId#
+				, i_version_id  => #versionId#
+				, i_object_id   => #objectId#
+				, i_entity_type => #entityType#
+				, i_mod_id      => #modId#
+				, i_param_name  => #systemName#
+				, i_param_value => #paramValueD#
+				)}
+	</procedure>
+	
+	<procedure id="set-param-clob-value"
+			parameterClass="ru.bpc.sv2.cmn.CmnParamValue">
+		{call CMN_UI_STANDARD_PKG.set_param_value_clob(
+				  i_standard_id => #standardId#
+				, i_version_id  => #versionId#
+				, i_object_id   => #objectId#
+				, i_entity_type => #entityType#
+				, i_mod_id      => #modId#
+				, i_param_name  => #systemName#
+				, i_xml_value   => #paramValueXml#
+				)}
+	</procedure>
+
+	<procedure id="remove-param-value"
+			parameterClass="int">
+		{call CMN_UI_STANDARD_PKG.remove_param_value(
+				  i_id          => #id#
+				)}
+	</procedure>
+
+	<select id="get-version-param-values"
+			parameterClass="qparams"
+			resultMap="mapping-cmn-param-value">
+		select t.id
+			, t.param_id
+			, t.entity_type
+			, t.object_id
+			, t.param_value
+			, t.standard_id
+			, t.name
+			, t.data_type
+			, t.default_value
+			, t.lov_id
+			, t.lov_name
+			, t.caption
+			, t.description
+			, t.lang
+			, t.param_value_v
+			, t.param_value_n
+			, t.param_value_d
+			, t.lov_value
+			, case when t.id is null then null else pv.xml_value end param_value_xml
+			, t.scale_id
+			, t.scale_name
+			, t.mod_id
+			, t.mod_name
+			, t.default_value_v
+			, t.default_value_n
+			, t.default_value_d
+			, t.default_lov_value
+			, case when t.id is null then null else pv.xml_default_value end default_xml_value
+			, t.pattern
+			, t.pattern_desc
+		from (
+				SELECT    pv.id
+					, pv.param_id
+					, pv.entity_type
+					, pv.object_id
+					, pv.param_value
+					, pv.standard_id
+					, pv.param_name AS name
+					, pv.data_type
+					, pv.default_value
+					, pv.lov_id
+					, l.name AS lov_name
+					, pv.caption
+					, pv.description
+					, pv.lang
+					, pv.param_char_value AS param_value_v
+					, pv.param_number_value AS param_value_n
+					, pv.param_date_value AS param_value_d
+					, pv.param_lov_value AS lov_value
+					, pv.scale_id
+					, pv.scale_name
+					, pv.mod_id
+					, pv.mod_name
+					, pv.default_char_value AS default_value_v
+					, pv.default_number_value AS default_value_n
+					, pv.default_date_value AS default_value_d
+					, pv.default_lov_value AS default_lov_value
+					, null pattern
+					, null pattern_desc
+			FROM cmn_ui_version_parameter_vw pv, com_ui_lov_vw l
+			WHERE pv.lov_id = l.id(+) AND pv.lang = l.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+		</iterate>
+			union
+			select null id
+				, p.id param_id
+				, null entity_type
+				, null object_id
+				, null param_value
+				, p.standard_id
+				, p.name
+				, p.data_type
+				, p.default_value
+				, p.lov_id
+				, l.name AS lov_name
+				, p.caption
+				, p.description
+				, p.lang
+				, null param_value_v
+				, null param_value_n
+				, null param_value_d
+				, null lov_value
+				, p.scale_id
+				, p.scale_name
+				, null mod_id
+				, null mod_name
+				, p.default_char_value AS default_value_v
+				, p.default_number_value AS default_value_n
+				, p.default_date_value AS default_value_d
+				, p.default_lov_value AS default_lov_value
+				, null pattern
+				, null pattern_desc
+			from cmn_ui_parameter_vw p, com_ui_lov_vw l
+			where p.lov_id = l.id(+) AND p.lang = l.lang(+)
+
+				and p.id not in (
+					SELECT  pv.param_id
+					from cmn_ui_version_parameter_vw pv
+					<iterate prepend="WHERE" conjunction="AND" property="filters">
+						<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+					</iterate>
+					)
+
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">p.standard_id = #filters[].value#</isEqual>
+			</iterate>
+				) t
+				, cmn_ui_version_parameter_vw pv
+				where pv.id(+) = t.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">pv.lang (+)= #filters[].value#</isEqual>
+		</iterate>
+		
+		<isEmpty property="sorting" prepend=" ORDER BY ">upper(name) ASC</isEmpty>
+	</select>
+	
+	<select id="get-version-param-values-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT count(*)
+		FROM cmn_ui_version_parameter_vw pv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">
+				(pv.entity_type = #filters[].value# OR pv.entity_type IS NULL)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">
+				(pv.object_id = #filters[].value# OR pv.object_id IS NULL)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap id="mapping-device" class="ru.bpc.sv2.cmn.Device">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="commPlugin" column="communication_plugin"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="caption" column="caption"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="standardName" column="standard_name"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<resultMap id="mapping-tcp-device" class="ru.bpc.sv2.cmn.TcpIpDevice" extends="mapping-device">
+        <result property="remoteAddress" column="remote_address"/>
+        <result property="localPort" column="local_port"/>
+        <result property="remotePort" column="remote_port"/>
+        <result property="initiator" column="initiator"/>
+        <result property="format" column="format"/>
+        <result property="keepAlive" column="keep_alive" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="enabled" column="is_enabled" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="monitorConnection" column="monitor_connection" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="multipleConnection" column="multiple_connection" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="statusOk" column="status_ok"/>
+	</resultMap>
+	
+	<select id="get-tcp-devices"
+			parameterClass="qparams"
+			resultMap="mapping-tcp-device">
+		<include refid="paginatedOpen"/>
+			SELECT 	  dev.id
+					, dev.seqnum
+					, dev.communication_plugin
+					, dev.standard_id
+					, dev.inst_id
+					, dev.caption
+					, dev.description
+					, dev.lang
+					, tcp.remote_address
+					, decode(tcp.local_port,'ANY','',tcp.local_port) local_port
+					, decode(tcp.remote_port,'ANY','',tcp.remote_port) remote_port
+					, tcp.initiator
+					, tcp.format
+					, tcp.keep_alive
+					, tcp.is_enabled
+					, tcp.monitor_connection
+					, tcp.multiple_connection
+                    , std.label standard_name
+                    , inst.name inst_name
+                    , nvl(dd.status_ok, 0) status_ok
+            FROM 
+                cmn_ui_device_vw dev
+                , cmn_ui_tcp_ip_vw tcp
+                , cmn_ui_standard_vw std
+                , ost_ui_institution_sys_vw inst
+                , (
+                	SELECT device_id, COUNT(device_id) AS status_ok FROM cmn_ui_device_connection_vw 
+					WHERE status = 'DCNSGOOD' GROUP BY device_id
+				) dd
+            WHERE 
+                dev.id = tcp.id
+                AND std.id(+) = dev.standard_id
+                AND std.lang(+) = dev.lang
+                AND inst.id = dev.inst_id
+                AND inst.lang = dev.lang
+                AND dd.device_id(+) = dev.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">dev.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">dev.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">dev.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardIds">dev.standard_id IN ($filters[].value$)</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">dev.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isEnabled">tcp.is_enabled = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="availableOnly">
+					dev.id NOT IN (
+						SELECT device_id FROM net_ui_device_vw
+					)
+				</isEqual>
+			</iterate>
+            <iterate prepend="ORDER BY" conjunction="," property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="instName">upper(inst.name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(dev.caption) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="commPlugin">dev.communication_plugin $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="standardName">upper(standard_name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="remoteAddress">tcp.remote_address $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="remotePort">tcp.remote_port $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="format">tcp.format $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="initiator">tcp.initiator $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="keepAlive">tcp.keep_alive $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="isEnabled">tcp.is_enabled $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="statusOk">status_ok $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">dev.caption ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-tcp-devices-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			dev.id
+		FROM 
+			cmn_ui_device_vw dev, cmn_ui_tcp_ip_vw tcp, ost_ui_institution_sys_vw inst
+		WHERE 
+			dev.id = tcp.id
+			AND inst.id = dev.inst_id
+			AND inst.lang = dev.lang	
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dev.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">dev.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">dev.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardIds">dev.standard_id IN ($filters[].value$)</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">dev.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="isEnabled">tcp.is_enabled = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="availableOnly">
+				dev.id NOT IN (
+					SELECT device_id FROM net_ui_device_vw
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-tcp-ip"
+			parameterClass="ru.bpc.sv2.cmn.TcpIpDevice">
+    	{call CMN_UI_TCP_IP_PKG.add_tcp_ip( 
+				  i_tcp_ip_id           => #id#
+				, i_remote_address      => #remoteAddress#
+				, i_local_port          => #localPort#
+				, i_remote_port         => #remotePort#
+				, i_initiator           => #initiator#
+				, i_format              => #format#
+				, i_keep_alive          => #keepAlive#
+				, i_is_enabled          => #enabled#
+				, i_monitor_connection  => #monitorConnection#
+				, i_multiple_connection => #multipleConnection#
+				, o_seqnum              => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				)}
+	</procedure>
+	
+	<procedure id="edit-tcp-ip"
+			parameterClass="ru.bpc.sv2.cmn.TcpIpDevice">
+    	{call CMN_UI_TCP_IP_PKG.modify_tcp_ip( 
+				  i_tcp_ip_id           => #id#
+				, i_remote_address      => #remoteAddress#
+				, i_local_port          => #localPort#
+				, i_remote_port         => #remotePort#
+				, i_initiator           => #initiator#
+				, i_format              => #format#
+				, i_keep_alive          => #keepAlive#
+				, i_monitor_connection  => #monitorConnection#
+				, i_multiple_connection => #multipleConnection#
+				, io_seqnum             => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+	</procedure>
+
+	<procedure id="delete-tcp-ip"
+			parameterClass="ru.bpc.sv2.cmn.TcpIpDevice">
+    	{call CMN_UI_TCP_IP_PKG.remove_tcp_ip(
+				  i_tcp_ip_id          => #id#
+				, i_seqnum             => #seqNum#
+				)}
+	</procedure>
+
+	<procedure id="enable-tcp-ip"
+			parameterClass="ru.bpc.sv2.cmn.TcpIpDevice">
+    	{call cmn_ui_device_pkg.set_is_enabled(
+				  i_device_id  => #id,jdbcType=NUMERIC#
+				, i_is_enabled => #enabled,jdbcType=NUMERIC#
+				, io_seqnum    => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+	</procedure>
+	
+	<procedure id="enable-device"
+			parameterClass="ru.bpc.sv2.cmn.Device">
+    	{call cmn_ui_device_pkg.set_is_enabled(
+				  i_device_id  => #id,jdbcType=NUMERIC#
+				, i_is_enabled => #enabled,jdbcType=NUMERIC#
+				, io_seqnum    => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+	</procedure>
+
+	<select id="get-devices"
+			parameterClass="qparams"
+			resultMap="mapping-device">
+		<include refid="paginatedOpen"/>
+			SELECT 	  d.id
+					, d.seqnum
+					, d.communication_plugin
+					, d.standard_id
+					, d.inst_id
+					, d.caption
+					, d.description
+					, d.lang
+					, s.label AS standard_name
+					, i.name AS inst_name
+			FROM 
+					cmn_ui_device_vw d 
+	                , cmn_ui_standard_vw s
+	                , ost_ui_institution_sys_vw i
+            WHERE
+	                d.standard_id = s.id
+	                AND d.lang = s.lang
+	                AND d.inst_id = i.id
+	                AND d.lang = i.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">d.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">d.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="commPlugin">d.communication_plugin = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardName">upper(s.label) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instName">upper(i.name) LIKE #filters[].value#</isEqual>
+			</iterate>
+            <iterate prepend="ORDER BY" conjunction="," property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">d.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(d.caption) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="commPlugin">dev.communication_plugin $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="standardName">upper(standard_name) $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">caption ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-devices-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM 
+				cmn_ui_device_vw d 
+				, cmn_ui_standard_vw s
+				, ost_ui_institution_sys_vw i
+		WHERE
+               d.standard_id = s.id
+               AND d.lang = s.lang
+               AND d.inst_id = i.id
+               AND d.lang = i.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">d.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">d.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="commPlugin">d.communication_plugin = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardName">upper(s.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instName">upper(i.name) LIKE #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-device"
+			parameterClass="ru.bpc.sv2.cmn.Device">
+    	{call CMN_UI_DEVICE_PKG.add_device( 
+				  o_device_id	 		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_comm_plugin			=> #commPlugin#
+				, i_standard_id			=> #standardId#
+				, i_inst_id				=> #instId#
+				, i_caption				=> #caption#
+				, i_description			=> #description#
+				, i_lang				=> #lang#
+				)}
+	</procedure>
+	
+	<procedure id="edit-device"
+			parameterClass="ru.bpc.sv2.cmn.Device">
+    	{call CMN_UI_DEVICE_PKG.modify_device( 
+				  i_device_id	 		=> #id#
+				, i_comm_plugin			=> #commPlugin#
+				, i_standard_id			=> #standardId#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_caption				=> #caption#
+				, i_description			=> #description#
+				, i_lang				=> #lang#
+				)}
+	</procedure>
+
+	<procedure id="delete-device"
+			parameterClass="ru.bpc.sv2.cmn.Device">
+    	{call CMN_UI_DEVICE_PKG.remove_device(
+ 				  i_device_id	 		=> #id#
+ 				, i_seqnum				=> #seqNum#
+				)}
+	</procedure>
+
+    <procedure id="add-standard-object"
+               parameterClass="ru.bpc.sv2.cmn.ObjectStandard">
+        {call CMN_UI_STANDARD_OBJECT_PKG.add_standard_object(
+        i_entity_type     => #entityType#
+        , i_object_id       => #objectId#
+        , i_standard_id     => #standardId#
+        )}
+    </procedure>
+
+    <procedure id="remove-standard-object"
+               parameterClass="int">
+        {call CMN_UI_STANDARD_OBJECT_PKG.remove_standard_object(
+        i_id	 		=> #id#
+        )}
+    </procedure>
+
+	<resultMap  id="mapping-profile" class="ru.bpc.sv2.cmn.Profile">
+        <result property="id" column="id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="caption" column="caption"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="instName" column="inst_name"/>
+        <result property="standardName" column="standard_name"/>
+	</resultMap>
+	
+	<select id="get-profiles"
+		    parameterClass="qparams"
+		    resultMap="mapping-profile">
+		<include refid="paginatedOpen"/>
+			SELECT	  p.id
+					, p.inst_id
+					, p.seqnum
+					, p.standard_id
+					, p.caption
+		            , p.description
+		            , p.lang
+		            , i.name inst_name
+		            , s.label standard_name
+		    FROM cmn_ui_profile_vw p, ost_ui_institution_sys_vw i, cmn_ui_standard_vw s 
+		    WHERE i.lang = p.lang
+					AND i.id = p.inst_id
+					AND s.lang(+) = p.lang
+					AND s.id(+) = p.standard_id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">p.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="caption">upper(p.caption) like #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="caption">upper(caption) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="inst">upper(inst_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="standard">upper(standard_name) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-profiles-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT id 
+		FROM cmn_ui_profile_vw
+		WHERE lang = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="caption">upper(caption) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-profile"
+			parameterClass="ru.bpc.sv2.cmn.Profile">
+    	{call CMN_UI_PROFILE_PKG.add( 
+				  o_id	 				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_standard_id			=> #standardId#
+				, i_inst_id				=> #instId#
+				, i_lang				=> #lang#
+				, i_caption				=> #caption#
+				, i_description			=> #description#
+				)}
+	</procedure>
+	
+	<procedure id="edit-profile"
+			parameterClass="ru.bpc.sv2.cmn.Profile">
+    	{call CMN_UI_PROFILE_PKG.modify( 
+				  i_id	 				=> #id#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_lang				=> #lang#
+				, i_caption				=> #caption#
+				, i_description			=> #description#
+				)}
+	</procedure>
+
+	<procedure id="delete-profile"
+			parameterClass="ru.bpc.sv2.cmn.Profile">
+    	{call CMN_UI_PROFILE_PKG.remove(
+    					  i_id	 				=> #id#
+    					, i_seqnum				=> #seqNum#
+						)}
+	</procedure>
+
+	<resultMap id="mapping-standard-key-type-maps"
+		class="ru.bpc.sv2.cmn.StandardKeyTypeMap">
+		<result property="id" column="id"/>
+		<result property="standardId" column="standard_id"/>
+		<result property="seqnum" column="seqnum"/>
+		<result property="keyType" column="key_type"/>
+		<result property="standardKeyType" column="standard_key_type"/>
+		<result property="standardKeyTypeName" column="standard_key_type_name"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+	
+	<select id="get-standard-key-type-maps"
+		parameterClass="qparams"
+		resultMap="mapping-standard-key-type-maps">
+		<include refid="limitationOpen"/>
+			select kt.id
+		        , kt.standard_id
+		        , kt.seqnum
+		        , kt.key_type
+		        , kt.standard_key_type
+		        , (case when s.key_type_lov_id is not null then COM_UI_LOV_PKG.GET_NAME(s.key_type_lov_id, kt.standard_key_type) else null end) standard_key_type_name
+		        , s.lang
+			from cmn_ui_key_type_vw kt, 
+				cmn_ui_standard_vw s
+			where 
+				kt.standard_id = s.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="standardId">kt.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">kt.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="keyType">kt.key_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="standardKeyType">kt.standard_key_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <isEmpty property="sorting">ORDER BY upper(kt.key_type) ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-standard-key-type-maps-count"
+		parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+			select kt.id
+			from cmn_ui_key_type_vw kt
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-standard-key-type-map"
+			parameterClass="ru.bpc.sv2.cmn.StandardKeyTypeMap">
+    	{call cmn_ui_key_type_pkg.add_key_type( 
+    			o_id                    => #id,jdbcType=NUMERIC,mode=OUT#
+			    , o_seqnum              => #seqnum,jdbcType=NUMERIC,mode=OUT#
+			    , i_standard_id         => #standardId#
+			    , i_key_type            => #keyType#
+			    , i_standard_key_type   => #standardKeyType#
+				)}
+	</procedure>
+	
+	<procedure id="modify-standard-key-type-map"
+			parameterClass="ru.bpc.sv2.cmn.StandardKeyTypeMap">
+    	{call cmn_ui_key_type_pkg.modify_key_type( 
+    			i_id                  	=> #id#
+				, io_seqnum           	=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+				, i_standard_id       	=> #standardId#
+				, i_key_type          	=> #keyType#
+				, i_standard_key_type 	=> #standardKeyType#
+				)}
+	</procedure>
+	
+	<procedure id="remove-standard-key-type-map"
+			parameterClass="ru.bpc.sv2.cmn.StandardKeyTypeMap">
+    	{call cmn_ui_key_type_pkg.remove_key_type( 
+    			i_id      				=> #id#
+				, i_seqnum				=> #seqnum#
+				)}
+	</procedure>
+	
+	<select id="get-standard-by-network"
+			parameterClass="int"
+			resultClass="int">
+		SELECT online_standard_id 
+		FROM net_ui_host_vw 
+		WHERE network_id = #networkId#
+				AND inst_id = (
+						SELECT inst_id FROM net_ui_network_vw 
+						WHERE id = #networkId# AND lang = com_ui_user_env_pkg.get_user_lang
+						)
+				AND lang = com_ui_user_env_pkg.get_user_lang
+	</select> 
+	
+	<select id="get-standard-by-device"
+			parameterClass="int"
+			resultClass="int">
+		SELECT standard_id 
+		FROM cmn_ui_device_vw 
+		WHERE id = #deviceId#
+				AND lang = com_ui_user_env_pkg.get_user_lang
+	</select> 
+	
+	<resultMap  id="mapping-object-standard" class="ru.bpc.sv2.cmn.ObjectStandard">
+        <result property="id" column="id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="standardType" column="standard_type"/>
+        <result property="objectName" column="object_name"/>
+	</resultMap>
+
+    <select	id="get-standard-objects"
+               parameterClass="qparams"
+               resultMap="mapping-object-standard">
+        SELECT s.id
+        , so.entity_type
+        , so.object_id
+        , so.standard_id
+        , so.standard_type
+        , s.label AS object_name
+        FROM cmn_ui_standard_vw s, cmn_ui_standard_object_vw so
+        WHERE s.id = so.standard_id
+        AND s.lang = com_ui_user_env_pkg.get_user_lang
+        <iterate prepend="AND" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="id">so.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="entityType">so.entity_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="objectId">so.object_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="standardId">so.standard_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="standardType">so.standard_type = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">so.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="entityType">so.entity_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="objectId">so.object_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="standardId">so.standard_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="standardType">so.standard_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="objectName">upper(object_name) $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting">ORDER BY upper(object_name) ASC</isEmpty>
+    </select>
+
+	<select	id="get-object-standards"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-object-standard">
+		SELECT 
+				  id
+				, entity_type
+				, object_id
+				, standard_id
+				, standard_type
+				, get_object_desc(i_object_id => object_id, i_entity_type => entity_type, i_lang => com_ui_user_env_pkg.get_user_lang) AS object_name
+		FROM 
+				cmn_ui_standard_object_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardType">standard_type = #filters[].value#</isEqual>
+		</iterate>
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">entity_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="objectId">object_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="standardId">standard_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="standardType">standard_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="objectName">upper(object_name) $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <isEmpty property="sorting">ORDER BY upper(object_name) ASC</isEmpty>
+	</select>
+	
+	<select	id="get-object-standards-count"
+	    	parameterClass="qparams"
+	    	resultClass="int">
+		SELECT count(*)
+		FROM cmn_ui_standard_object_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardType">standard_type = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap  id="mapping-object-standard-version" class="ru.bpc.sv2.cmn.ObjectStandardVersion">
+        <result property="id" column="id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="versionId" column="version_id"/>
+        <result property="startDate" column="start_date"/>
+        <result property="objectName" column="object_name"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="lang" column="lang"/>
+		<result property="parentId" column="parent_id"/>
+		<result property="versionNumber" column="version_number"/>		
+	</resultMap>
+
+	<select	id="get-object-standard-versions"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-object-standard-version">
+	    <include refid="limitationOpen"/>
+		SELECT 
+				  osv.id
+				, osv.entity_type
+				, osv.object_id
+				, osv.version_id
+				, osv.start_date
+				, get_object_desc(i_object_id => osv.object_id, i_entity_type => osv.entity_type, i_lang => #lang#) AS object_name
+				, sv.standard_id
+				, sv.lang
+				, sv.version_number
+				, sv.standard_id AS parent_id
+		FROM 
+				cmn_ui_standard_version_obj_vw osv, cmn_ui_standard_version_vw sv
+		WHERE osv.version_id = sv.id AND sv.lang = #lang#
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">osv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">osv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">osv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">osv.version_id = #filters[].value#</isEqual>
+		</iterate>
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">osv.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">osv.entity_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="objectId">osv.object_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="versionId">osv.version_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="objectName">upper(object_name) $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <isEmpty property="sorting">ORDER BY upper(object_name) ASC</isEmpty>
+        <include refid="limitationClose"/>
+	</select>
+	
+	<select	id="get-object-standard-versions-count"
+	    	parameterClass="qparams"
+	    	resultClass="int">
+	    <include refid="limitationOpenCount"/>
+		SELECT *
+		FROM cmn_ui_standard_version_obj_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">version_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap  id="mapping-object-standard-version-tree" 
+			class="ru.bpc.sv2.cmn.ObjectStandardVersion"
+			extends="mapping-object-standard-version">
+        <result property="level" column="level"/>
+        <result property="isLeaf" column="is_leaf"/>
+	</resultMap>
+
+	<select	id="get-object-standard-versions-tree"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-object-standard-version-tree">
+		SELECT
+		        a.*
+		        , level
+		        , CONNECT_BY_ISLEAF is_leaf
+		FROM (
+			SELECT
+					  s.id
+					, os.entity_type
+					, os.object_id
+					, null AS version_id
+					, null AS start_date
+					, null AS parent_id 
+		            , null AS version_number
+		            , null AS version_order
+		            , 'ENTTSTDR' AS rec_entity_type
+					, s.id AS standard_id
+		            , s.label AS object_name
+		            , s.lang
+		    FROM cmn_ui_standard_vw s, cmn_ui_standard_object_vw os
+		    WHERE s.id = os.standard_id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">os.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">os.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">(s.id = #filters[].value# or s.standard_type='STDT0000')</isEqual>
+			</iterate>
+		UNION ALL
+		    SELECT
+		        v.id
+		        , v.entity_type
+		        , v.object_id
+		        , v.version_id
+		        , v.start_date
+		        , sv.standard_id AS parent_id
+		        , sv.version_number
+		        , sv.version_order
+		        , 'ENTTSTVR' AS rec_entity_type
+		        , sv.standard_id
+		        , null AS object_name
+		        , sv.lang
+		    FROM  cmn_ui_standard_version_obj_vw v, cmn_ui_standard_version_vw sv
+		    WHERE v.version_id = sv.id
+				<iterate prepend="AND" conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="objectId">v.object_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">sv.lang = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="entityType">v.entity_type = #filters[].value#</isEqual>
+				</iterate>
+		) a
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+		</iterate>
+		START WITH a.parent_id IS NULL and a.rec_entity_type = 'ENTTSTDR'
+		CONNECT BY prior a.id = a.parent_id 
+				AND prior a.standard_id = a.standard_id
+			    AND a.rec_entity_type = 'ENTTSTVR'
+			    AND PRIOR a.rec_entity_type = 'ENTTSTDR'
+        ORDER SIBLINGS BY decode (a.rec_entity_type, 'ENTTSTDR', a.object_name,  'ENTTSTVR', a.version_order)		
+	</select>
+
+	<procedure id="add-object-standard-version"
+			parameterClass="ru.bpc.sv2.cmn.ObjectStandardVersion">
+    	{call CMN_UI_STANDARD_OBJECT_PKG.add_standard_version_object(
+				  o_id          => #id,jdbcType=NUMERIC,mode=OUT#
+				, i_entity_type => #entityType#
+				, i_object_id   => #objectId#
+				, i_version_id  => #versionId#
+				, i_start_date  => #startDate#
+				)}
+	</procedure>
+	
+	<procedure id="modify-object-standard-version"
+			parameterClass="ru.bpc.sv2.cmn.ObjectStandardVersion">
+    	{call CMN_UI_STANDARD_OBJECT_PKG.modify_standard_version_object( 
+				  i_id          => #id#
+				, i_start_date  => #startDate#
+				)}
+	</procedure>
+
+	<procedure id="remove-object-standard-version" parameterClass="long">
+    	{call CMN_UI_STANDARD_OBJECT_PKG.remove_standard_version_object(
+				  i_id           => #id#
+				)}
+	</procedure>
+
+	<select id="get-interface-version-param-values"
+			parameterClass="qparams"
+			resultMap="mapping-cmn-param-value">
+		<include refid="limitationOpen"/>
+        SELECT    pv.id
+                , pv.param_id
+                , pv.entity_type
+                , pv.object_id
+                , pv.param_value
+                , pv.standard_id
+                , pv.param_name AS name
+                , pv.data_type
+                , pv.default_value
+                , pv.lov_id
+                , l.name AS lov_name
+                , pv.caption AS caption
+                , null AS description
+                , pv.lang
+                , pv.param_char_value param_value_v
+				, pv.param_number_value param_value_n
+				, pv.param_date_value param_value_d  
+				, pv.param_lov_value lov_value
+				, null AS param_value_xml  
+                , pv.default_char_value default_value_v
+				, pv.default_number_value default_value_n
+				, pv.default_date_value default_value_d  
+				, pv.default_lov_value default_lov_value
+				, null AS default_xml_value
+				, pv.scale_id
+				, pv.scale_name
+				, pv.mod_id
+				, pv.mod_name
+				, null pattern
+				, null pattern_desc
+        FROM net_ui_interface_parameter_vw pv, com_ui_lov_vw l
+      	WHERE pv.lov_id = l.id(+) AND pv.lang = l.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">upper(pv.param_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="caption">upper(pv.caption) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">upper(pv.param_name) ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-interface-version-param-values-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM net_ui_interface_parameter_vw pv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-net-device-version-param-values"
+			parameterClass="qparams"
+			resultMap="mapping-cmn-param-value">
+		<include refid="limitationOpen"/>
+        SELECT    pv.id
+                , pv.param_id
+                , pv.entity_type
+                , pv.object_id
+                , pv.param_value
+                , pv.standard_id
+                , pv.param_name AS name
+                , pv.data_type
+                , pv.default_value
+                , pv.lov_id
+                , l.name AS lov_name
+                , pv.caption AS caption
+                , null AS description
+                , pv.lang
+                , pv.param_char_value param_value_v
+				, pv.param_number_value param_value_n
+				, pv.param_date_value param_value_d  
+				, pv.param_lov_value lov_value  
+				, pv.xml_value AS param_value_xml  
+                , pv.default_char_value default_value_v
+				, pv.default_number_value default_value_n
+				, pv.default_date_value default_value_d  
+				, pv.default_lov_value default_lov_value
+				, null as default_xml_value
+				, pv.scale_id
+				, pv.scale_name
+				, pv.mod_id
+				, pv.mod_name
+				, null pattern
+				, null pattern_desc
+        FROM net_ui_device_parameter_vw pv, com_ui_lov_vw l
+      	WHERE pv.lov_id = l.id(+) AND pv.lang = l.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">upper(pv.param_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="caption">upper(pv.caption) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">upper(pv.param_name) ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-net-device-version-param-values-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM net_ui_device_parameter_vw pv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+    <select id="get-hsm-device-version-param-values"
+            parameterClass="qparams"
+            resultMap="mapping-cmn-param-value">
+        <include refid="limitationOpen"/>
+        SELECT    pv.id
+        , pv.param_id
+        , pv.entity_type
+        , pv.object_id
+        , pv.param_value
+        , pv.standard_id
+        , pv.param_name AS name
+        , pv.data_type
+        , pv.default_value
+        , pv.lov_id
+        , l.name AS lov_name
+        , pv.caption AS caption
+        , null AS description
+        , pv.lang
+        , pv.param_char_value param_value_v
+        , pv.param_number_value param_value_n
+        , pv.param_date_value param_value_d
+        , pv.param_lov_value lov_value
+        , pv.xml_value AS param_value_xml
+        , pv.default_char_value default_value_v
+        , pv.default_number_value default_value_n
+        , pv.default_date_value default_value_d
+        , pv.default_lov_value default_lov_value
+        , null as default_xml_value
+        , pv.scale_id
+        , pv.scale_name
+        , pv.mod_id
+        , pv.mod_name
+        , null pattern
+        , null pattern_desc
+        FROM hsm_ui_device_parameter_vw pv, com_ui_lov_vw l
+        WHERE pv.lov_id = l.id(+) AND pv.lang = l.lang(+)
+        <iterate prepend="AND" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="name">upper(pv.param_name) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="caption">upper(pv.caption) $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" ORDER BY ">upper(pv.param_name) ASC</isEmpty>
+        <include refid="limitationClose"/>
+    </select>
+
+    <select id="get-hsm-device-version-param-values-count"
+            parameterClass="qparams"
+            resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT *
+        FROM hsm_ui_device_parameter_vw pv
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+	
+	<resultMap id="mapping-complex-device"
+			extends="mapping-device" 
+			class="ru.bpc.sv2.cmn.Device">
+        <result property="tcpDevice" resultMap="cmn.mapping-tcp-device"/>
+	</resultMap>
+	
+	<select id="get-all-devices"
+			parameterClass="qparams"
+			resultMap="mapping-complex-device">
+		<include refid="paginatedOpen"/>
+			SELECT 	  dev.id
+					, dev.seqnum
+					, dev.communication_plugin
+					, dev.standard_id
+					, dev.inst_id
+					, dev.caption
+					, dev.description
+					, dev.lang
+					, tcp.remote_address
+					, decode(tcp.local_port,'ANY','',tcp.local_port) local_port
+					, decode(tcp.remote_port,'ANY','',tcp.remote_port) remote_port
+					, tcp.initiator
+					, tcp.format
+					, tcp.keep_alive
+					, dev.is_enabled
+					, tcp.monitor_connection
+					, tcp.multiple_connection
+                    , std.label standard_name
+                    , inst.name inst_name
+                    , nvl(dd.status_ok, 0) status_ok
+            FROM 
+                cmn_ui_device_vw dev
+                , cmn_ui_tcp_ip_vw tcp
+                , cmn_ui_standard_vw std
+                , ost_ui_institution_sys_vw inst
+                , (
+                	SELECT device_id, COUNT(device_id) AS status_ok FROM cmn_ui_device_connection_vw 
+					WHERE status = 'DCNSGOOD' GROUP BY device_id
+				) dd
+            WHERE 
+                dev.id = tcp.id(+)
+                AND std.id(+) = dev.standard_id
+                AND std.lang(+) = dev.lang
+                AND inst.id = dev.inst_id
+                AND inst.lang = dev.lang
+                AND dd.device_id(+) = dev.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">dev.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">dev.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">dev.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardIds">dev.standard_id IN ($filters[].value$)</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">dev.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isEnabled">tcp.is_enabled = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="availableOnly">
+					dev.id NOT IN (
+						SELECT device_id FROM net_ui_device_vw
+					)
+				</isEqual>
+			</iterate>
+            <iterate prepend="ORDER BY" conjunction="," property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="instName">upper(inst.name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(dev.caption) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="commPlugin">dev.communication_plugin $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="standardName">upper(standard_name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="remoteAddress">tcp.remote_address $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="remotePort">tcp.remote_port $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="format">tcp.format $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="initiator">tcp.initiator $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="keepAlive">tcp.keep_alive $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="isEnabled">tcp.is_enabled $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="statusOk">status_ok $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="localPort">tcp.local_port $sorting[].direction$</isEqual>
+                	
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">dev.caption ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-all-devices-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			dev.id
+		FROM 
+			cmn_ui_device_vw dev, cmn_ui_tcp_ip_vw tcp, ost_ui_institution_sys_vw inst
+		WHERE 
+			dev.id = tcp.id(+)
+			AND inst.id = dev.inst_id
+			AND inst.lang = dev.lang	
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dev.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">dev.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">dev.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardIds">dev.standard_id IN ($filters[].value$)</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">dev.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="isEnabled">tcp.is_enabled = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="availableOnly">
+				dev.id NOT IN (
+					SELECT device_id FROM net_ui_device_vw
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-terminal-version-param-values"
+			parameterClass="qparams"
+			resultMap="mapping-cmn-param-value">
+		<include refid="limitationOpen"/>
+        SELECT    pv.id
+                , pv.param_id
+                , pv.entity_type
+                , pv.object_id
+                , pv.param_value
+                , pv.standard_id
+                , pv.param_name AS name
+                , pv.data_type
+                , pv.default_value
+                , pv.lov_id
+                , l.name AS lov_name
+                , pv.caption AS caption
+                , null AS description
+                , pv.lang
+                , pv.param_char_value param_value_v
+				, pv.param_number_value param_value_n
+				, pv.param_date_value param_value_d  
+				, pv.param_lov_value lov_value  
+				, pv.xml_value AS param_value_xml  
+                , pv.default_char_value default_value_v
+				, pv.default_number_value default_value_n
+				, pv.default_date_value default_value_d  
+				, pv.default_lov_value default_lov_value
+				, pv.scale_id
+				, pv.scale_name
+				, pv.mod_id
+				, pv.mod_name
+				, pv.default_xml_value AS default_xml_value
+				, null pattern
+				, null pattern_desc
+        FROM acq_ui_terminal_parameter_vw pv, com_ui_lov_vw l
+      	WHERE pv.lov_id = l.id(+) AND pv.lang = l.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">upper(pv.param_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="caption">upper(pv.caption) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">upper(pv.param_name) ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-terminal-version-param-values-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM acq_ui_terminal_parameter_vw pv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-acq-device-version-param-values"
+			parameterClass="qparams"
+			resultMap="mapping-cmn-param-value">
+		<include refid="limitationOpen"/>
+        SELECT    pv.id
+                , pv.param_id
+                , pv.entity_type
+                , pv.object_id
+                , pv.param_value
+                , pv.standard_id
+                , pv.param_name AS name
+                , pv.data_type
+                , pv.default_value
+                , pv.lov_id
+                , l.name AS lov_name
+                , pv.caption AS caption
+                , null AS description
+                , pv.lang
+                , pv.param_char_value param_value_v
+				, pv.param_number_value param_value_n
+				, pv.param_date_value param_value_d  
+				, pv.param_lov_value lov_value  
+				, null AS param_value_xml  
+                , pv.default_char_value default_value_v
+				, pv.default_number_value default_value_n
+				, pv.default_date_value default_value_d  
+				, pv.default_lov_value default_lov_value
+				, null as default_xml_value
+				, pv.scale_id
+				, pv.scale_name
+				, pv.mod_id
+				, pv.mod_name
+				, null pattern
+				, null pattern_desc
+        FROM acq_ui_device_parameter_vw pv, com_ui_lov_vw l
+      	WHERE pv.lov_id = l.id(+) AND pv.lang = l.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">upper(pv.param_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="caption">upper(pv.caption) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">upper(pv.param_name) ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-acq-device-version-param-values-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM acq_ui_device_parameter_vw pv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">pv.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">pv.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="versionId">pv.version_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramLevel">pv.param_level = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="move-version-up" parameterClass="ru.bpc.sv2.cmn.CmnVersion">
+    	{call CMN_UI_STANDARD_PKG.move_version_up(
+				  i_id           => #id#
+				)}
+	</procedure>
+	
+	<procedure id="move-version-down" parameterClass="ru.bpc.sv2.cmn.CmnVersion">
+    	{call CMN_UI_STANDARD_PKG.move_version_down(
+				  i_id           => #id#
+				)}
+	</procedure>
+</sqlMap>

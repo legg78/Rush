@@ -1,0 +1,438 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:param name="pageHelp" value="communication_devices_0313.htm"/>
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblCmn" basename="ru.bpc.sv2.ui.bundles.Cmn" />
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<h:panelGroup rendered="#{usession.inRole['VIEW_COMMUNIC_DEVICE']}">
+
+			<bpct:navBar pageName="#{lblCmn.devices}" />
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+			
+			<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('devicesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			
+			<h:form id="devicesSearchForm" onkeypress="handleEnter(event)">
+
+				<!-- search panel -->
+				<h:panelGroup styleClass="search_block" layout="block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+							<h:panelGroup styleClass="search_block_left" layout="block">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses="top ,link-cont">
+									<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+										columnClasses="firstCol,secondCol,firstCol,secondCol">
+										<h:outputLabel value="#{lblCommon.institution}:" title="#{lblCommon.institution}" />
+										<h:selectOneMenu id="instSelector"
+											value="#{MbDevices.filter.instId}">
+											<f:selectItem itemValue="" itemLabel="" />
+											<f:selectItems value="#{MbDevices.institutions}" />
+										</h:selectOneMenu>
+
+										<h:outputText />
+										<h:outputText />
+
+										<h:outputLabel value="#{lblCmn.standard}: " title="#{lblCmn.standard}" />
+										<h:selectOneMenu id="filterInitiator"
+											value="#{MbDevices.filter.standardId}"
+											disabled="#{MbDevices.blockFilterStandard}">
+											<f:selectItem itemValue="" itemLabel="" />
+											<f:selectItems value="#{MbDevices.standards}" />
+										</h:selectOneMenu>
+									</h:panelGrid>
+									<h:panelGrid columns="1">
+										<bre:taggedCommandButton action="#{MbDevices.search}"
+											reRender="tcpsTable, devicesBtnForm, #{MbDevices.tabName}"
+											image="/_img/icon_search.png" type="submit"
+											value="#{lblForm.search}" style="width:85px;"
+											id="searchBtn"
+											onclick="disableModalPanelBtns(this);" 
+											oncomplete="enableModalPanelBtns(this);"
+											eventsQueue="queue"/>
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+												action="#{MbDevices.clearFilter}"
+												reRender="devicesSearchForm, devicesForm, devicesBtnForm, #{MbDevices.tabName}">
+											</a4j:commandLink>
+										</h:panelGroup>
+									</h:panelGrid>
+								</h:panelGrid>
+								<a4j:outputPanel ajaxRendered="true">
+									<h:graphicImage url="/_img/hd_searchblock.gif"
+										styleClass="hd-searchblock" />
+									<h:panelGroup styleClass="collapse-vert" layout="block" />
+								</a4j:outputPanel>
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+			<h:form id="devicesForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+					<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+						<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+						<rich:extendedDataTable id="tcpsTable" var="item"
+							tableState="#{MbDevices.tableState}" value="#{MbDevices.devices}"
+							selection="#{MbDevices.itemSelection}"
+							rows="#{MbDevices.rowsNum}" height="255px" selectionMode="single"
+							rowClasses=",odd" headerClass="res-table-header"
+							selectedClass="res-table-selected" styleClass="res-table"
+							enableContextMenu="true"
+							noDataLabel="#{MbDevices.searching ? lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="devicesBtnForm:btnPanel, #{MbDevices.tabName}">
+
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="devicesBtnForm:btnPanel, #{MbDevices.tabName}" />
+
+							<rich:column id="id" label="#{lblCommon.id}" width="8%"
+								sortBy="#{'id'}">
+								<f:facet name="header">
+									<a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+								</f:facet>
+								<h:outputText value="#{item.id}" title="#{item.id}" />
+							</rich:column>
+
+							<rich:column id="name" label="#{lblCommon.name}" width="15%"
+								sortBy="#{'name'}">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.name}"
+										title="#{lblCommon.name}" />
+								</f:facet>
+								<h:outputText value="#{item.caption}" title="#{item.caption}"
+									converter="bpc.ShortStringConverter" />
+							</rich:column>
+
+							<rich:column id="institution" label="#{lblCommon.institution}"
+								sortBy="#{'instName'}" width="13%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.institution}"
+										title="#{lblCommon.institution}" />
+								</f:facet>
+								<h:outputText value="#{item.instId} - #{item.instName}" 
+									title="#{item.instId} - #{item.instName}"
+									converter="bpc.ShortStringConverter" />
+							</rich:column>
+
+							<rich:column id="comm_plugin" label="#{lblCmn.comm_plugin}"
+								sortBy="#{'commPlugin'}" width="18%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCmn.comm_plugin}"
+										title="#{lblCmn.comm_plugin}" />
+								</f:facet>
+								<h:outputText value="#{DictUtils.articles[item.commPlugin]}"
+									title="#{DictUtils.articles[item.commPlugin]}"
+									converter="bpc.ShortStringConverter" />
+							</rich:column>
+
+							<rich:column id="initiator" label="#{lblCmn.initiator}"
+								sortBy="#{'initiator'}" width="12%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCmn.initiator}"
+										title="#{lblCmn.initiator}" />
+								</f:facet>
+								<h:outputText
+									value="#{DictUtils.articles[item.tcpDevice.initiator]}"
+									title="#{DictUtils.articles[item.tcpDevice.initiator]}"
+									converter="bpc.ShortStringConverter" />
+							</rich:column>
+
+							<rich:column id="remote_address" label="#{lblCmn.remote_address}"
+								sortBy="#{'remoteAddress'}" width="13%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCmn.remote_address}"
+										title="#{lblCmn.remote_address}" />
+								</f:facet>
+								<h:outputText value="#{item.tcpDevice.remoteAddress}"
+									title="#{item.tcpDevice.remoteAddress}"
+									rendered="#{item.tcpDevice.remotePort == null}" />
+								<h:outputText
+									value="#{item.tcpDevice.remoteAddress}:#{item.tcpDevice.remotePort}"
+									title="#{item.tcpDevice.remoteAddress}:#{item.tcpDevice.remotePort}"
+									rendered="#{item.tcpDevice.remotePort != null}" />
+							</rich:column>
+
+							<rich:column id="local_port" label="#{lblCmn.local_port}"
+								sortBy="#{'localPort'}" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCmn.local_port}"
+										title="#{lblCmn.local_port}" />
+								</f:facet>
+								<h:outputText value="#{item.tcpDevice.localPort}"
+									title="#{item.tcpDevice.localPort}" />
+							</rich:column>
+
+							<rich:column id="status_ok" label="#{lblCmn.status_ok}"
+								sortBy="#{'statusOk'}" width="7%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCmn.status_ok}"
+										title="#{lblCmn.status_ok}" />
+								</f:facet>
+								<h:outputText value="#{item.tcpDevice.statusOk}"
+									title="#{item.tcpDevice.statusOk}" />
+							</rich:column>
+
+							<rich:column id="enabled" label="Enabled" sortBy="#{'isEnabled'}"
+								width="4%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCmn.s }"
+										title="#{lblCommon.status}" />
+								</f:facet>
+								<h:graphicImage url="/images/red-cross.png"
+									rendered="#{!item.tcpDevice.enabled}" style="align:center" />
+								<h:graphicImage url="/images/green-tick.png"
+									rendered="#{item.tcpDevice.enabled}" style="align:center" />
+							</rich:column>
+						</rich:extendedDataTable>
+						</h:panelGroup>
+						<a4j:outputPanel ajaxRendered="true">
+							<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+							<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+							<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block" />
+						</a4j:outputPanel>
+
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+			<h:form id="devicesBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="5"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+								<h:selectOneMenu id="rows_num" value="#{MbDevices.rowsNum}"
+									styleClass="row_per_page">
+									<a4j:support event="onchange"
+										reRender="tcpsTable, devicesBtnForm, #{MbDevices.tabName}" />
+									<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+								</h:selectOneMenu>
+
+								<rich:datascroller maxPages="10" fastControls="hide"
+									pagesVar="pages" styleClass="res-datascroller" id="tcpsDs"
+									for="tcpsTable" reRender="devicesBtnForm:btnPanel, #{MbDevices.tabName}">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbDevices.devices.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+								
+								<h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbDevices.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbDevices.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+
+						<h:panelGrid id="btnPanel" columns="9" styleClass="itempanel">
+
+							<bre:taggedCommandButton id="btn_select_device" value="#{lblForm.select}"
+								action="#{MbDevices.selectDevice}"
+								disabled="#{MbDevices.activeDevice == null}"
+								rendered="#{MbDevices.selectMode}" />
+							<bre:taggedCommandButton id="btn_cancel_select_parameter"
+								value="#{lblForm.cancel}" action="#{MbDevices.cancelSelect}"
+								rendered="#{MbDevices.selectMode}" />
+
+							<rich:spacer style="width:20px"
+								rendered="#{MbDevices.selectMode}" />
+
+							<bre:taggedCommandButton id="addTcpBtn"
+								reRender="deviceModalHeader, deviceEditForm"
+								value="#{lblForm.add}"
+								oncomplete="#{rich:component('deviceModalPanel')}.show()"
+								action="#{MbDevices.add}"
+								rendered="#{usession.inRole['ADD_COMMUNIC_DEVICE']}"
+								disabled="#{MbDevices.addDisabled }"
+								image="/images/create_doc.gif" />
+							<bre:taggedCommandButton id="editTcpBtn"
+								reRender="deviceModalHeader, deviceEditForm"
+								value="#{lblForm.edit}"
+								oncomplete="#{rich:component('deviceModalPanel')}.show()"
+								action="#{MbDevices.edit}"
+								disabled="#{MbDevices.activeDevice == null or MbDevices.activeDevice.tcpDevice.enabled}"
+								rendered="#{usession.inRole['MODIFY_COMMUNIC_DEVICE']}"
+								image="/images/edit.gif" />
+							<bre:taggedCommandButton id="deleteTcpBtn"
+								reRender="tcpsTable, devicesBtnForm, connectionsTab, details"
+								value="#{lblForm.delete}" action="#{MbDevices.delete}"
+								onclick="if (!confirm('#{lblMsg.confirm_delete}')) return false;"
+								disabled="#{MbDevices.activeDevice == null or MbDevices.activeDevice.tcpDevice.enabled}"
+								rendered="#{usession.inRole['REMOVE_COMMUNIC_DEVICE']}"
+								image="/images/delete.gif" />
+							<bre:taggedCommandButton id="reloadBtn" rendered="false"
+								disabled="#{MbDevices.activeDevice == null}"
+								value="#{lblForm.reload}" action="#{MbDevices.reload}"
+								reRender="devicesSynchronizationResultModalPanel"
+								oncomplete="if (#{usession.noErrorResponse}) {#{rich:component('devicesSynchronizationResultModalPanel')}.show();}" />
+							<bre:taggedCommandButton id="enableDeviceBtn"
+								reRender="devicesForm, devicesBtnForm, #{MbDevices.tabName}"
+								value="#{lblForm.enable}" action="#{MbDevices.enableDevice}"
+								onclick="if (!confirm('#{lblCmn.confirm_enable_device}')) return false;"
+								disabled="#{MbDevices.activeDevice == null}"
+								rendered="#{usession.inRole['MODIFY_COMMUNIC_DEVICE'] and 
+				                      	(MbDevices.activeDevice != null 
+				                      			and !MbDevices.activeDevice.tcpDevice.enabled)}" />
+							<bre:taggedCommandButton id="disableDeviceBtn"
+								rendered="#{usession.inRole['MODIFY_COMMUNIC_DEVICE'] and 
+										MbDevices.activeDevice.tcpDevice.enabled}"
+								reRender="devicesForm, devicesBtnForm, confirmDisablePanelCover, #{MbDevices.tabName}"
+								value="#{lblForm.disable}" action="#{MbDevices.disableDevice}"
+								onclick="if (!confirm('#{lblCmn.confirm_disable_device}')) return false;" />
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+            <h:form>
+                <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbDevices.tabName}" action="#{MbDevices.setBeans}">
+                    <a4j:actionparam name="tabName" assignTo="#{MbDevices.tabName}" />
+                </a4j:jsFunction>
+            </h:form>
+
+			<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+				<rich:tabPanel  switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content" selectedTab="#{MbDevices.tabName}">
+
+					<rich:tab ontabenter="storeTab('detailsTab')" label="#{lblCommon.details}" name="detTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="detailsTab" layout="block">
+							<ui:include src="/pages/communication/deviceDetails.jspx" />
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+					</rich:tab>
+					
+					<rich:tab ontabenter="storeTab('traceTab')" label="#{lblProcess.trace}" name="traceTab" style="height:100%;">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblProcess.trace}" title="#{lblProcess.trace}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="traceTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include src="/pages/processes/monitoring/list_process_trace.jspx">
+								<ui:param name="show_user_id" value="true"></ui:param>
+							</ui:include>
+						</h:panelGroup>
+					</rich:tab>
+				
+				</rich:tabPanel>
+			</h:panelGroup>
+
+			<ui:include src="/pages/communication/deviceEdit.jspx">
+				<ui:param name="rerenderList"
+					value="tcpsTable, devicesBtnForm, #{MbDevices.tabName}" />
+				<ui:param name="devicesBean" value="#{MbDevices}" />
+			</ui:include>
+		</h:panelGroup>
+
+		<ui:include src="/pages/communication/devicesSynchronizationResultModalPanel.jspx" />
+
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_COMMUNIC_DEVICE']}"
+			style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}"
+				style="font-size: 5em" />
+		</h:panelGroup>
+		
+		<script>
+		//<![CDATA[
+		function updateHeight(){
+        updateGridHeight();
+	    }
+	
+	    layout =
+	            {
+	                SEARCH_FORM_ID:                 'devicesSearchForm',
+	                SEARCH_RESULT_FORM_ID:          'devicesForm',
+	                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                SEARCH_RESULT_FOOTER_FORM_ID:   'devicesBtnForm',
+	                TAB_PANEL_ID:                   'workplacePanel',
+	
+	                TAB_DATA:      [{
+	                                TAB_FORM_ID:            'deviceDetailsForm',
+	                                TAB_FORM_WRAPPER_ID:    'deviceDetailsWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                },
+	                                {
+	                                TAB_FORM_ID:            'traceForm',
+	                                TAB_FORM_WRAPPER_ID:    'statTableWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.PAGINATED_AND_BUTTONS
+	                                }]
+	
+	            };
+	    jQuery(window).resize(updateHeight);
+		
+		updateHeight();
+		//]]>
+		</script>		
+	</ui:define>
+</ui:composition>
+</html>

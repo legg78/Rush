@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<f:view>
+<ui:composition>
+	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+	<f:loadBundle var="lblMsg" basename="ru.bpc.sv2.ui.bundles.Msg"/>
+	
+<h:form id="matchConditionEditForm">
+	<script type="text/javascript">
+//<!--
+		oldValue["matchConditionEditForm"] = "#{MbMatchConditions.newMatchCondition.lang}";
+		
+		function checkMatchConditionFields() {
+			var checked = true;
+			
+			if (document.getElementById('matchConditionEditForm:instId').value == "") {
+				document.getElementById('matchConditionEditForm:instIdError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('matchConditionEditForm:newName').value == "") {
+				document.getElementById('matchConditionEditForm:newNameError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+	//-->
+	</script>
+	
+	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+			<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+				<h:selectOneMenu id="instId" 
+						disabled="#{MbMatchConditions.editMode}"
+						value="#{MbMatchConditions.newMatchCondition.instId}"
+						label="#{lblCommon.institution}"
+						onblur="hideErrorField(this)">
+					<f:selectItem itemValue=""/>
+					<f:selectItems value="#{MbMatchConditions.institutions}"/>
+				</h:selectOneMenu>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+						id="instIdError" style="display:none;">
+					<f:param name="fieldName" value="#{lblCommon.institution}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+
+			<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+			<h:selectOneMenu id="newLang" 
+					value="#{MbMatchConditions.newMatchCondition.lang}"
+					rendered="#{MbMatchConditions.newMode}">
+			    <f:selectItems value="#{MbMatchConditions.languages}"/>
+			</h:selectOneMenu>
+			<h:selectOneMenu id="editLang" value="#{MbMatchConditions.newMatchCondition.lang}"
+					rendered="#{MbMatchConditions.editMode}"
+					onchange="document.getElementById('matchCondition:confirmPanelForm:newValue').value = this.value;
+							#{rich:component('matchCondition:confirmPanel')}.show()">
+				<f:selectItems value="#{MbMatchConditions.languages}"/>
+			</h:selectOneMenu>
+
+			<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+				<h:inputText id="newName" maxlength="200"
+						value="#{MbMatchConditions.newMatchCondition.name}"
+						label="#{lblCommon.name}"
+						onblur="hideErrorField(this)">
+					<f:validateLength minimum="3"/>
+					<a4j:support event="onchange" reRender="newNameErr" 
+							limitToList="true" ajaxSingle="true"/>
+				</h:inputText>
+				<rich:message for="newName" id="newNameErr" styleClass="errorMarker"/>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="newNameError" style="display:none;">
+					<f:param name="fieldName" value="#{lblCommon.name}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+
+			<h:outputLabel value="#{lblOpr.condition}: " title="#{lblOpr.condition}"/>
+			<h:inputTextarea id="newCondition" value="#{MbMatchConditions.newMatchCondition.condition}"
+				rows="5" cols="150" 
+				onkeypress="if (!limitText(event,this,1000)) return false;" label="#{lblOpr.condition}">
+				  	<f:validateLength maximum="1000" />
+			</h:inputTextarea>
+
+	    </h:panelGrid>
+    </h:panelGroup>
+    
+    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+		<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	     	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	     	    		<h:outputText/>
+				<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+						action="#{MbMatchConditions.save}"
+						reRender="matchConditionsTable, matchConditionsDs, pagesNum, matchConditionsForm:btnPanel, detailsTab"
+						onclick="if (!checkMatchConditionFields()) return false; disableModalPanelBtns(this)"
+						oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('matchConditionModalPanel')}.hide()"
+						/>
+	              	<bre:taggedCommandButton
+	                      	value="#{lblForm.cancel}" action="#{MbMatchConditions.cancel}"
+	                      	immediate="true" limitToList="true"
+	                      	oncomplete="#{rich:component('matchConditionModalPanel')}.hide()"
+	                   	reRender="matchConditionEditForm">
+	                     	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                     </bre:taggedCommandButton>
+			</h:panelGrid>
+		</h:panelGroup>
+	</h:panelGroup>
+</h:form>
+
+<ui:include src="/pages/utils/langConfirmPanel.jspx">
+   	<ui:param name="backingBean" value="#{MbMatchConditions}"/>
+   	<ui:param name="rerenderList" value="matchConditionEditForm:newName"/>
+   	<ui:param name="editElem" value="matchConditionEditForm:editLang"/>
+   	<ui:param name="newValue" value="#{MbMatchConditions.newMatchCondition.lang}"/>
+   	<ui:param name="subviewId" value="matchCondition"/>
+   	<ui:param name="formName" value="matchConditionEditForm" />
+</ui:include>	
+</ui:composition>
+</f:view>
+</html>

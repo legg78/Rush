@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml" 
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets" 
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich" 
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/"
+		xmlns:fmt="http://www.bpc.ru/el/formatter"
+		>
+<ui:composition>
+	<f:loadBundle var="lblProcess" basename="ru.bpc.sv2.ui.bundles.Process"/>
+	<h:form id="tracesForm">
+		<h:panelGroup id="tracesTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="traceTable" enableContextMenu="true"
+					styleClass="res-table" headerClass="res-table-header table-header-ext"
+					selectedClass="res-table-selected" 
+					var="item"
+					rowClasses=",odd"
+					value="#{(traceBean==null ? MbTrace : traceBean).processSessions}"
+					selection="#{(traceBean==null ? MbTrace : traceBean).itemSelection}" 
+					rows="0" height="221px"
+					selectionMode="single" 
+					tableState="#{(traceBean==null ? MbTrace : traceBean).tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+				<a4j:support event="onselectionchange" requestDelay="500"
+						reRender="traceBtnPanel" />
+				
+				<rich:column id="trace_timestamp" label="#{lblProcess.trace_timestamp}" width="20%" sortBy="#{'traceTimestamp'}" sortOrder="DESCENDING">
+					<f:facet name="header">
+						<h:panelGroup>         
+							<script>updateHeight();</script>
+		                    <h:outputText value="#{lblProcess.trace_timestamp}" title="#{lblProcess.trace_timestamp}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:outputText
+							value="#{fmt:formatDate(item.traceTimestamp, usession.fullDatePatternMilliseconds, CommonUtils.timeZoneId)}"
+							title="#{fmt:formatDate(item.traceTimestamp, usession.fullDatePatternMilliseconds, CommonUtils.timeZoneId)}" 
+							/>
+				 </rich:column>
+				 
+				<rich:column id="trace_level" label="#{lblProcess.trace_level}" width="10%" sortBy="#{'traceLevel'}">
+					<f:facet name="filter">
+									<h:selectOneMenu
+										value="#{(traceBean==null ? MbTrace : traceBean).filter.traceLevelFilter}"
+										style="width: 100%;">
+										<f:selectItem itemValue="" />
+										<f:selectItems value="#{(traceBean==null ? MbTrace : traceBean).traceLevels}" />
+										<a4j:support event="onchange" reRender="traceTable"
+											eventsQueue="processQueue" action="#{(traceBean==null ? MbTrace : traceBean).search}"
+											limitToList="true" />
+									</h:selectOneMenu>
+					</f:facet>
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.trace_level}" title="#{lblProcess.trace_level}" />
+					</f:facet>
+					<h:outputText value="#{item.traceLevel}" />
+				</rich:column>
+				<rich:column id="trace_text" label="#{lblProcess.trace_text}" width="65%" sortBy="#{'traceText'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.trace_text}" title="#{lblProcess.trace_text}" />
+					</f:facet>
+					<h:outputText value="#{item.traceText}"  title="#{item.traceText}" >
+						<f:attribute name="stringLength" value="100"/>
+					</h:outputText>
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{traceBean==null}">
+	            <h:panelGrid id="traceBtnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	            	<h:panelGroup styleClass="stdButton">
+						<bre:taggedCommandButton id="viewBtn"
+	                      		reRender="prc_trace_view_modal_div"
+	                      		value="#{lblForm.view}"
+	                      		action="#{MbTrace.view}"
+                    			oncomplete="#{rich:component('prc_trace_view_modal_panel')}.show()"
+	                      		disabled="#{MbTrace.activeProcessTrace == null}"/>
+						<bre:taggedCommandButton id="exportBtn"
+								reRender="prc_trace_export_modal_div" value="#{lblForm.export}"
+								action="#{MbTrace.view}"
+								oncomplete="#{rich:component('prc_trace_export_modal_panel')}.show()"
+								disabled="#{MbTrace.activeProcessTrace == null}" />
+	                </h:panelGroup>	
+	                <h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveTraceTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteTraceTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveTraceTableState" action="#{MbTrace.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteTraceTableState" action="#{MbTrace.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>	            	
+				</h:panelGrid>
+			</h:panelGroup>
+   		</h:panelGroup>
+	</h:form>
+		
+		
+	<rich:modalPanel id="prc_trace_view_modal_panel" autosized="true" minWidth="300" minHeight="100">
+ 	    <f:facet name="header">
+	    	<h:outputText value="#{lblProcess.trace}"/> 			
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:panelGroup id="prc_trace_view_modal_div">
+      		<h:form>
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width350">        
+			      	
+						<h:outputLabel for="full_desc" value="#{lblProcess.trace_level}: " title="#{lblProcess.trace_level}"/>
+						<h:inputText id="full_desc" value="#{MbTrace.activeProcessTrace.traceLevel}" readonly="true"/>
+						
+						<h:outputLabel value="#{lblProcess.trace_timestamp}: " title="#{lblProcess.trace_timestamp}"/>
+						<h:inputText value="#{MbTrace.activeProcessTrace.traceTimestamp}">
+							<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss:SSS" timeZone="#{CommonUtils.timeZone}" />
+						</h:inputText>
+						
+						<h:outputLabel for="inst_name" value="#{lblProcess.trace_text}: " title="#{lblProcess.trace_text}"/>
+						<h:inputTextarea id="inst_name" rows="20" value="#{MbTrace.activeProcessTrace.traceText}" readonly="true"/>
+					</h:panelGrid>		
+				</h:panelGroup>
+
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+		       	    		<h:outputText/>
+                        	<bre:taggedCommandButton
+	                        		value="#{lblForm.close}" 
+	                        		action="#{MbTrace.cancel}" immediate="true"
+	                        		oncomplete="#{rich:component('prc_trace_view_modal_panel')}.hide()"
+	                        		reRender="prc_trace_view_modal_div">
+		                    	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+		                    </bre:taggedCommandButton>	
+			    		</h:panelGrid>
+			    	</h:panelGroup>
+			    </h:panelGroup>
+			</h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+	
+	<rich:modalPanel id="prc_trace_export_modal_panel" autosized="true" minWidth="300" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="Exporting format" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="prc_trace_export_modal_div">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					<h:outputLabel value="* #{lblCommon.format}: " title="#{lblCommon.format}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+            			<h:selectOneMenu id="exportType" value="#{MbTrace.exportFormat}"
+            					label="#{lblCommon.format}" onblur="hideErrorField(this)">
+            				<a4j:support event="onchange" reRender="exportTypeError" 
+										limitToList="true" ajaxSingle="true"/>
+							<f:selectItem itemValue="XLS" itemLabel="XLS"/>
+ 							<f:selectItem itemValue="XML" itemLabel="XML"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="exportTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.format}"/>
+						</h:outputFormat>
+           			</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+			
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.ok}" type="submit" action="#{MbTrace.export}"
+                       			onclick="if (!checkFormat()) return false; disableModalPanelBtns(this)"
+			                   	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('prc_trace_export_modal_panel')}.hide();document.getElementById('downloadFileLink1').click();"
+                       			reRender="downloadFileLink1,prc_trace_view_modal_div" />
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbTrace.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('prc_trace_export_modal_panel')}.hide()">
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                		</bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<script type="text/javascript">
+	//<!-- 
+		function checkFormat() {
+			var checked = true;
+			if (document.getElementById('prc_trace_export_modal_div:exportType').value == "") {
+				document.getElementById('prc_trace_export_modal_div:exportTypeError').style.display = "inline";
+				checked = false;
+			}
+			return checked;
+		}
+	//-->
+	</script>
+	
+	<h:outputLink id="downloadFileLink1" value="#{request.contextPath}/file/#{MbTrace.reportName}" />
+</ui:composition>
+</html>

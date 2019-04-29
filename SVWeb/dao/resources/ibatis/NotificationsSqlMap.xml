@@ -1,0 +1,1215 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="ntf">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+
+    <sql id="limitationClose">
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-scheme" class="ru.bpc.sv2.notifications.Scheme">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="instId" column="inst_id"/>
+        <result property="schemeType" column="scheme_type"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<select id="get-schemes"
+		    parameterClass="qparams"
+		    resultMap="mapping-scheme">
+		<include refid="paginatedOpen"/>
+			SELECT 	  s.id
+					, s.seqnum
+					, s.inst_id
+					, s.scheme_type
+					, s.name
+		            , s.description
+		            , s.lang
+		            , i.name as inst_name
+		    FROM
+		    	  ntf_ui_scheme_vw s
+		    	, ost_ui_institution_sys_vw i
+		    WHERE
+		    	s.inst_id = i.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="schemeType">s.scheme_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(s.name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value# AND i.lang(+) = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">upper(s.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(i.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="schemeType">s.scheme_type $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(s.name)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-schemes-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_scheme_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeType">scheme_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-scheme"
+			parameterClass="ru.bpc.sv2.notifications.Scheme">
+    	{call NTF_UI_SCHEME_PKG.add_scheme(
+				  o_id			 	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_scheme_type		=> #schemeType#
+				, i_inst_id			=> #instId#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="edit-scheme"
+			parameterClass="ru.bpc.sv2.notifications.Scheme">
+    	{call NTF_UI_SCHEME_PKG.modify_scheme(
+				  i_id			 	=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_scheme_type		=> #schemeType#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="delete-scheme"
+			parameterClass="ru.bpc.sv2.notifications.Scheme">
+    	{call NTF_UI_SCHEME_PKG.remove_scheme(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#)}
+	</procedure>
+
+	<resultMap  id="mapping-notification" class="ru.bpc.sv2.notifications.Notification">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="eventType" column="event_type"/>
+        <result property="instId" column="inst_id"/>
+        <result property="reportId" column="report_id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="instName" column="inst_name"/>
+        <result property="reportName" column="report_name"/>
+	</resultMap>
+
+	<select id="get-notifications"
+		    parameterClass="qparams"
+		    resultMap="mapping-notification">
+		<include refid="paginatedOpen"/>
+			SELECT 	  n.id
+					, n.seqnum
+					, n.event_type
+					, n.inst_id
+					, n.report_id
+					, n.name
+		            , n.description
+		            , n.lang
+		            , i.name as inst_name
+		            , r.label as report_name
+		    FROM
+		    	  ntf_ui_notification_vw n
+		    	, ost_ui_institution_sys_vw i
+		    	, rpt_ui_report_vw r
+		    WHERE
+		    	n.inst_id = i.id
+		    	AND n.report_id = r.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">n.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">n.inst_id IN (#filters[].value#, 9999)</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(n.name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+						n.lang = #filters[].value# AND i.lang(+) = #filters[].value# AND r.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="eventType">n.event_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="reportId">n.report_id = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">n.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">upper(n.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(i.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="eventType">n.event_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="report">upper(report_name) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(n.name)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-notifications-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_notification_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id IN (#filters[].value#, 9999)</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">report_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap  id="notification-messages-map" class="ru.bpc.sv2.notifications.NotificationMessage">
+        <result property="id" column="id"/>
+        <result property="channelId" column="channel_id"/>
+        <result property="channelName" column="channel_name"/>
+        <result property="deliveryAddress" column="delivery_address"/>
+        <result property="text" column="text" javaType="java.lang.String" jdbcType="CLOB"/>
+        <result property="lang" column="lang"/>
+        <result property="deliveryDate" column="delivery_date"/>
+        <result property="delivered" column="is_delivered"/>
+        <result property="urgencyLevel" column="urgency_level"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<select id="get-notification-messages"
+		parameterClass="qparams"
+		resultMap="notification-messages-map">
+		<include refid="paginatedOpen"/>
+		SELECT
+			channel_id
+			, channel_name
+			, delivery_address
+			, text
+			, id
+          	, lang
+          	, delivery_date
+            , is_delivered
+          	, urgency_level
+          	, inst_id
+          	, inst_name
+          FROM ntf_ui_message_vw
+         <iterate prepend="WHERE" conjunction="AND" property="filters">
+	         <isEqual property="filters[].element" compareValue="channelId">channel_id = #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="chanelName">upper(channel_name) $filters[].condition$ #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="from">delivery_date $filters[].condition$ #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="to">delivery_date $filters[].condition$ #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="deliveryAddress">upper(delivery_address) $filters[].condition$ #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="delivered">is_delivered = #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="urgencyLevel">urgency_level = #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+         </iterate>
+         <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="channelId">channel_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="deliveryDate">delivery_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="delivered">is_delivered $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="deliveryAddress">delivery_address $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="urgencyLevel">urgency_level $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instId">inst_id $sorting[].direction$</isEqual>
+			</isNotEqual>
+	      </iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-notification-messages-count"
+		parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			 id
+          FROM ntf_ui_message_vw
+         <iterate prepend="WHERE" conjunction="AND" property="filters">
+	         <isEqual property="filters[].element" compareValue="channelId">channel_id = #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="chanelName">upper(channel_name) $filters[].condition$ #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="from">delivery_date $filters[].condition$ #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="to">delivery_date $filters[].condition$ #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="deliveryAddress">upper(delivery_address) $filters[].condition$ #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="delivered">is_delivered = #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="urgencyLevel">urgency_level = #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+	         <isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+         </iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+
+	<procedure id="add-notification"
+			parameterClass="ru.bpc.sv2.notifications.Notification">
+    	{call NTF_UI_NOTIFICATION_PKG.add_notification(
+				  o_id			 	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_event_type		=> #eventType#
+				, i_report_id		=> #reportId#
+				, i_inst_id			=> #instId#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="edit-notification"
+			parameterClass="ru.bpc.sv2.notifications.Notification">
+    	{call NTF_UI_NOTIFICATION_PKG.modify_notification(
+				  i_id			 	=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_report_id		=> #reportId#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="delete-notification"
+			parameterClass="ru.bpc.sv2.notifications.Notification">
+    	{call NTF_UI_NOTIFICATION_PKG.remove_notification(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#)}
+	</procedure>
+
+	<resultMap  id="mapping-template" class="ru.bpc.sv2.notifications.NotificationTemplate">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="notificationId" column="notif_id"/>
+        <result property="channelId" column="channel_id"/>
+        <result property="lang" column="lang"/>
+        <result property="reportTemplateId" column="report_template_id"/>
+        <result property="notificationName" column="notif_name"/>
+        <result property="channelName" column="channel_name"/>
+        <result property="reportTemplateName" column="report_template_name"/>
+        <result property="reportId" column="report_id"/>
+	</resultMap>
+
+	<select id="get-templates"
+		    parameterClass="qparams"
+		    resultMap="mapping-template">
+		<include refid="paginatedOpen"/>
+			SELECT 	  t.id
+					, t.seqnum
+					, t.notif_id
+					, t.channel_id
+		            , t.lang
+		            , t.report_template_id
+		            , n.name as notif_name
+		            , n.report_id
+		            , c.name as channel_name
+		            , r.label as report_template_name
+		    FROM
+		    	  ntf_ui_template_vw t
+		    	, ntf_ui_notification_vw n
+		    	, ntf_ui_channel_vw c
+		    	, rpt_ui_template_vw r
+		    WHERE
+		    		t.notif_id = n.id(+)
+		    	AND t.channel_id = c.id(+)
+		    	AND t.report_template_id = r.id(+)
+		    	AND t.lang = r.lang(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">t.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="notifId">t.notif_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="channelId">t.channel_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					n.lang(+) = #filters[].value# AND c.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="templateLang">
+					t.lang = #filters[].value#
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="notifName">upper(n.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="channelName">upper(c.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="reportName">upper(r.label) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="templateLang">t.lang $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY n.name
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-templates-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_template_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="notifId">notif_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">channel_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="templateLang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-template"
+			parameterClass="ru.bpc.sv2.notifications.NotificationTemplate">
+    	{call NTF_UI_TEMPLATE_PKG.add_template(
+				  o_id			 		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_notif_id			=> #notificationId#
+				, i_channel_id			=> #channelId#
+				, i_lang				=> #lang#
+				, i_report_template_id	=> #reportTemplateId#
+				)}
+	</procedure>
+
+	<procedure id="edit-template"
+			parameterClass="ru.bpc.sv2.notifications.NotificationTemplate">
+    	{call NTF_UI_TEMPLATE_PKG.modify_template(
+				  i_id			 		=> #id#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_report_template_id	=> #reportTemplateId#
+				)}
+	</procedure>
+
+	<procedure id="delete-template"
+			parameterClass="ru.bpc.sv2.notifications.NotificationTemplate">
+    	{call NTF_UI_TEMPLATE_PKG.remove_template(
+				  i_id					=> #id#
+				, i_seqnum				=> #seqNum#)}
+	</procedure>
+
+	<resultMap  id="mapping-scheme-event" class="ru.bpc.sv2.notifications.SchemeEvent">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="schemeId" column="scheme_id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="contactType" column="contact_type"/>
+        <result property="notificationId" column="notif_id"/>
+        <result property="channelId" column="channel_id"/>
+        <result property="scaleId" column="scale_id"/>
+        <result property="scaleName" column="scale_name"/>
+        <result property="deliveryTime" column="delivery_time"/>
+        <result property="customizable" column="is_customizable" javaType="boolean" jdbcType="NUMBER"/>
+		<result property="batchSend" column="is_batch_send" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="status" column="status"/>
+        <result property="notificationName" column="notif_name"/>
+        <result property="channelName" column="channel_name"/>
+        <result property="priority" column="priority"/>
+	</resultMap>
+
+	<select id="get-scheme-events"
+		    parameterClass="qparams"
+		    resultMap="mapping-scheme-event">
+		<include refid="limitationOpen"/>
+		SELECT 	  se.id
+				, se.seqnum
+				, se.scheme_id
+				, se.event_type
+				, se.entity_type
+				, se.contact_type
+				, se.notif_id
+				, se.channel_id
+	            , se.delivery_time
+	            , se.is_customizable
+	            , se.status
+	            , se.scale_id
+	            , se.is_batch_send
+	            , se.priority
+	            , n.name as notif_name
+	            , c.name as channel_name
+	            , m.name as scale_name
+	    FROM
+	    	  ntf_ui_scheme_event_vw se
+	    	, ntf_ui_notification_vw n
+	    	, ntf_ui_channel_vw c
+	    	, rul_ui_mod_scale_vw m
+	    WHERE
+	    		se.notif_id = n.id(+)
+	    	AND se.channel_id = c.id(+)
+	    	AND se.scale_id = m.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">se.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeId">se.scheme_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">se.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="notifId">se.notif_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">se.channel_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				n.lang(+) = #filters[].value#
+				AND c.lang(+) = #filters[].value#
+				AND m.lang(+) = #filters[].value#
+			</isEqual>
+		</iterate>
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">se.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="notifName">upper(n.name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="channelName">upper(c.name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="scaleName">upper(m.name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="priority">se.priority $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+	</select>
+
+	<select id="get-scheme-events-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_scheme_event_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeId">scheme_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="notifId">notif_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">channel_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-scheme-event"
+			parameterClass="ru.bpc.sv2.notifications.SchemeEvent">
+    	{call NTF_UI_SCHEME_EVENT_PKG.add_scheme_event(
+				  o_id			 	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_scheme_id		=> #schemeId#
+				, i_event_type		=> #eventType#
+				, i_entity_type		=> #entityType#
+				, i_contact_type	=> #contactType#
+				, i_notif_id		=> #notificationId#
+				, i_channel_id		=> #channelId#
+				, i_delivery_time	=> #deliveryTime#
+				, i_is_customizable	=> #customizable#
+				, i_status			=> #status#
+				, i_is_batch_send	=> #batchSend#
+				, i_scale_id		=> #scaleId#
+				, i_priority		=> #priority#
+				)}
+	</procedure>
+
+	<procedure id="edit-scheme-event"
+			parameterClass="ru.bpc.sv2.notifications.SchemeEvent">
+    	{call NTF_UI_SCHEME_EVENT_PKG.modify_scheme_event(
+				  i_id			 	=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_scheme_id		=> #schemeId#
+				, i_notif_id		=> #notificationId#
+				, i_contact_type	=> #contactType#
+				, i_channel_id		=> #channelId#
+				, i_delivery_time	=> #deliveryTime#
+				, i_is_customizable	=> #customizable#
+				, i_status			=> #status#
+				, i_is_batch_send	=> #batchSend#
+				, i_scale_id		=> #scaleId#
+				, i_priority		=> #priority#
+				)}
+	</procedure>
+
+	<procedure id="delete-scheme-event"
+			parameterClass="ru.bpc.sv2.notifications.SchemeEvent">
+    	{call NTF_UI_SCHEME_EVENT_PKG.remove_scheme_event(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#
+				, i_scheme_id		=> #schemeId#)}
+	</procedure>
+
+	<resultMap  id="mapping-channel" class="ru.bpc.sv2.notifications.Channel">
+        <result property="id" column="id"/>
+        <result property="addressPattern" column="address_pattern"/>
+        <result property="msgMaxLength" column="mess_max_length"/>
+        <result property="addressSource" column="address_source"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-channels"
+		    parameterClass="qparams"
+		    resultMap="mapping-channel">
+		<include refid="paginatedOpen"/>
+			SELECT 	  c.id
+					, c.address_pattern
+					, c.mess_max_length
+					, c.address_source
+					, c.name
+		            , c.description
+		            , c.lang
+		    FROM ntf_ui_channel_vw c
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">c.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(c.name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="addressPattern">upper(c.address_pattern) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="addressSource">upper(c.address_source) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">c.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="notifId">
+					c.id IN (
+						SELECT channel_id FROM ntf_ui_template_vw
+						WHERE notif_id = #filters[].value#
+					)
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">upper(c.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="addressPattern">upper(c.address_pattern) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="addressSource">upper(c.address_source) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(c.name)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-channels-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_channel_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="addressPattern">upper(address_pattern) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="addressSource">upper(address_source) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="notifId">
+				id IN (
+					SELECT channel_id FROM ntf_ui_template_vw
+					WHERE notif_id = #filters[].value#
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-channel"
+			parameterClass="ru.bpc.sv2.notifications.Channel">
+    	{call NTF_UI_CHANNEL_PKG.add_channel(
+				  o_id			 	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_address_pattern	=> #addressPattern#
+				, i_mess_max_length	=> #msgMaxLength#
+				, i_address_source	=> #addressSource#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="edit-channel"
+			parameterClass="ru.bpc.sv2.notifications.Channel">
+    	{call NTF_UI_CHANNEL_PKG.modify_channel(
+				  i_id			 	=> #id#
+				, i_address_pattern	=> #addressPattern#
+				, i_mess_max_length	=> #msgMaxLength#
+				, i_address_source	=> #addressSource#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="delete-channel"
+			parameterClass="ru.bpc.sv2.notifications.Channel">
+    	{call NTF_UI_CHANNEL_PKG.remove_channel(
+				  i_id				=> #id#
+				)}
+	</procedure>
+
+	<resultMap  id="custom-event" class="ru.bpc.sv2.notifications.CustomEvent">
+        <result property="id" column="id"/>
+        <result property="schemeEventId" column="scheme_event_id"/>
+        <result property="objectId" column="object_id"/>
+        <result property="channelId" column="channel_id"/>
+        <result property="deliveryAddress" column="delivery_address"/>
+        <result property="deliveryTime" column="delivery_time"/>
+        <result property="status" column="status"/>
+        <result property="eventType" column="event_type"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="channelName" column="channel_name"/>
+        <result property="modId" column="mod_id"/>
+        <result property="modName" column="mod_name"/>
+        <result property="lang" column="lang"/>
+        <result property="recepient" column="recepient"/>
+        <result property="customizable" column="is_customizable"/>
+	</resultMap>
+
+	<resultMap id="mapping-custom-event" extends="custom-event" class="ru.bpc.sv2.notifications.CustomEvent">
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="entityNumber" column="event_entity_number"/>
+	</resultMap>
+
+	<select id="get-custom-events" parameterClass="qparams" resultMap="mapping-custom-event">
+		<include refid="paginatedOpen"/>
+			select ce.id
+				 , ce.scheme_event_id
+				 , ce.object_id
+				 , ce.channel_id
+				 , ce.delivery_address
+				 , ce.delivery_time
+				 , ce.status
+				 , ce.mod_id
+				 , ce.inst_id
+				 , ce.event_type
+				 , ce.entity_type
+				 , ce.event_entity_number
+				 , ce.inst_name
+				 , ce.channel_name
+				 , ce.mod_name
+				 , ce.lang
+				 , null is_customizable
+				 , get_object_desc(i_object_id => ce.object_id, i_entity_type => ce.entity_type, i_lang => ce.lang) as recepient
+			  from ntf_ui_custom_event_cust_vw ce
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ce.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">ce.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">ce.channel_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeEventId">ce.scheme_event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">ce.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">ce.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">ce.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityNumber">ce.event_entity_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">
+				(ce.object_id is null or ce.object_id = #filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="notifSchemeId">
+				ce.event_type in (
+					select event_type
+					  from ntf_ui_scheme_event_vw
+					 where scheme_id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">ce.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">ce.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="eventType">ce.event_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="schemeEventId">ce.scheme_event_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">upper(ce.inst_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="channelName">upper(ce.channel_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="modName">upper(ce.mod_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="deliveryTime">ce.delivery_time $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="deliveryAddress">upper(ce.delivery_address) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">ce.status $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			order by upper(ce.id)
+		</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-custom-events-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_custom_event_cust_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">channel_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeEventId">scheme_event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">
+				(object_id IS NULL OR object_id = #filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="notifSchemeId">
+				event_type IN (
+					SELECT event_type FROM ntf_ui_scheme_event_vw
+					WHERE scheme_id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-role-custom-events"
+		    parameterClass="qparams"
+		    resultMap="mapping-custom-event">
+		<include refid="paginatedOpen"/>
+			SELECT 	  ce.id
+					, ce.scheme_event_id
+					, ce.object_id
+					, ce.channel_id
+		            , ce.delivery_address
+		            , ce.delivery_time
+		            , ce.status
+		            , ce.mod_id
+		            , ce.inst_id
+		            , ce.event_type
+		            , ce.entity_type
+		            , ce.inst_name
+		            , ce.channel_name
+		            , ce.mod_name
+		            , ce.lang
+		            , get_object_desc(i_object_id => ce.object_id, i_entity_type => 'ENTTROLE', i_lang => ce.lang) AS recepient
+		    FROM ntf_ui_role_custom_event_vw ce
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">ce.id LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">ce.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="channelId">ce.channel_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="schemeEventId">ce.scheme_event_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="eventType">ce.event_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">ce.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">ce.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">ce.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="notifSchemeId">
+					ce.event_type IN (
+						SELECT event_type FROM ntf_ui_scheme_event_vw
+						WHERE scheme_id = #filters[].value#
+					)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">ce.lang = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">ce.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="eventType">ce.event_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="schemeEventId">ce.scheme_event_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(ce.inst_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="channelName">upper(ce.channel_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="modName">upper(ce.mod_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deliveryTime">ce.delivery_time $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deliveryAddress">upper(ce.delivery_address) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">ce.status $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(ce.id)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-role-custom-events-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_role_custom_event_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">channel_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeEventId">scheme_event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="notifSchemeId">
+				event_type IN (
+					SELECT event_type FROM ntf_ui_scheme_event_vw
+					WHERE scheme_id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-user-custom-events"
+		    parameterClass="qparams"
+		    resultMap="mapping-custom-event">
+		<include refid="paginatedOpen"/>
+			SELECT 	  ce.id
+					, ce.scheme_event_id
+					, ce.object_id
+					, ce.channel_id
+		            , ce.delivery_address
+		            , ce.delivery_time
+		            , ce.status
+		            , ce.mod_id
+		            , ce.inst_id
+		            , ce.event_type
+		            , ce.entity_type
+		            , ce.inst_name
+		            , ce.channel_name
+		            , ce.mod_name
+		            , ce.lang
+		            , get_object_desc(i_object_id => ce.object_id, i_entity_type => ce.entity_type, i_lang => ce.lang) AS recepient
+		            , ce.is_customizable
+		    FROM ntf_ui_user_custom_event_vw ce
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">ce.id LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">ce.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="channelId">ce.channel_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="schemeEventId">ce.scheme_event_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="eventType">ce.event_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">ce.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">ce.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">ce.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="notifSchemeId">
+					ce.event_type IN (
+						SELECT event_type FROM ntf_ui_scheme_event_vw
+						WHERE scheme_id = #filters[].value#
+					)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">ce.lang = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">ce.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="eventType">ce.event_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="schemeEventId">ce.scheme_event_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(ce.inst_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="channelName">upper(ce.channel_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="modName">upper(ce.mod_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deliveryTime">ce.delivery_time $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deliveryAddress">upper(ce.delivery_address) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">ce.status $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(ce.id)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-user-custom-events-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_user_custom_event_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">channel_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeEventId">scheme_event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="notifSchemeId">
+				event_type IN (
+					SELECT event_type FROM ntf_ui_scheme_event_vw
+					WHERE scheme_id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+<!--
+	<resultMap  id="mapping-user-custom-event" extends="custom-event"
+			class="ru.bpc.sv2.notifications.UserCustomEvent">
+        <result property="lang" column="lang"/>
+        <result property="roleId" column="role_id"/>
+        <result property="userId" column="user_id"/>
+	</resultMap>
+
+	<select id="get-user-custom-events"
+		    parameterClass="qparams"
+		    resultMap="mapping-user-custom-event">
+		<include refid="paginatedOpen"/>
+			SELECT 	  ce.id
+					, ce.scheme_event_id
+					, ce.object_id
+					, ce.channel_id
+		            , ce.delivery_address
+		            , ce.delivery_time
+		            , ce.is_active
+		            , ce.mod_id
+		            , ce.event_type
+		            , ce.entity_type
+		            , ce.lang
+		            , ce.mod_name
+		            , ce.role_id
+		            , ce.user_id
+		            , c.name as channel_name
+		    FROM
+		    		  ntf_ui_user_custom_event_vw ce
+			    	, ntf_ui_channel_vw c
+		    WHERE
+		    		ce.channel_id = c.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">ce.id LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="userId">ce.user_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="roleId">ce.role_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="channelId">ce.channel_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="schemeEventId">ce.scheme_event_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="eventType">ce.event_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="active">ce.is_active = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					ce.lang = #filters[].value# AND c.lang(+) = #filters[].value#
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">ce.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="eventType">ce.event_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="schemeEventId">ce.scheme_event_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="channelName">upper(c.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deliveryTime">ce.delivery_time $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="deliveryAddress">upper(ce.delivery_address) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="active">ce.is_active $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting">
+	        	ORDER BY upper(ce.id)
+	        </isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-user-custom-events-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		SELECT count(*)
+		FROM ntf_ui_user_custom_event_vw ce
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ce.id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userId">ce.user_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="roleId">ce.role_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">ce.channel_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="schemeEventId">ce.scheme_event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="eventType">ce.event_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="active">ce.is_active = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">ce.lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+-->
+	<procedure id="set-custom-event"
+			parameterClass="ru.bpc.sv2.notifications.CustomEvent">
+    	{call NTF_UI_CUSTOM_PKG.set_custom_event(
+				  io_id					=> #id,jdbcType=NUMERIC,mode=INOUT#
+				, i_event_type			=> #eventType#
+				, i_entity_type			=> #entityType#
+				, i_object_id			=> #objectId#
+				, i_channel_id			=> #channelId#
+				, i_delivery_address	=> #deliveryAddress#
+				, i_delivery_time		=> #deliveryTime#
+				, i_status				=> #status#
+				, i_mod_id				=> #modId#
+				, i_start_date			=> #startDate#
+				, i_end_date			=> #endDate#
+				)}
+	</procedure>
+
+	<procedure id="delete-custom-event"
+			parameterClass="ru.bpc.sv2.notifications.CustomEvent">
+    	{call NTF_UI_CUSTOM_PKG.remove_custom_event(
+    			  i_id					=> #id#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-custom-object" class="ru.bpc.sv2.notifications.CustomObject">
+        <result property="id" column="id"/>
+        <result property="customEventId" column="custom_event_id"/>
+        <result property="objectId" column="object_id"/>
+        <result property="active" column="is_active"/>
+		<result property="objectType" column="entity_type"/>
+		<result property="objectMask" column="entity_number"/>
+		<result property="objectNumber" column="entity_number"/>
+	</resultMap>
+
+	<select id="get-custom-objects"
+		    parameterClass="qparams"
+		    resultMap="mapping-custom-object">
+		<include refid="limitationOpen"/>
+		SELECT 	  co.id
+				, co.custom_event_id
+				, co.object_id
+				, co.is_active
+				, co.entity_type
+				, co.entity_number
+		FROM ntf_ui_custom_object_vw co
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">co.id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customEventId">co.custom_event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="active">co.is_active = #filters[].value#</isEqual>
+		</iterate>
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">co.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="active">co.is_active $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+	</select>
+
+	<select id="get-custom-objects-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM ntf_ui_custom_object_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customEventId">custom_event_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="active">is_active = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="set-custom-object"
+			parameterClass="ru.bpc.sv2.notifications.CustomObject">
+    	{call NTF_UI_CUSTOM_PKG.set_custom_object(
+				  io_id					=> #id,jdbcType=NUMERIC,mode=INOUT#
+				, i_custom_event_id		=> #customEventId#
+				, i_object_id			=> #objectId#
+				, i_is_active			=> #active#
+				)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.notifications.NotificationCustomEvent" id="notification-settings-cur-map">
+		<result property="id" column="id" javaType="java.lang.Long" jdbcType="NUMERIC" />
+		<result property="schemeId" column="scheme_id" javaType="java.lang.Integer" jdbcType="NUMERIC" />
+		<result property="notifId" column="notif_id" javaType="java.lang.Integer" jdbcType="NUMERIC" />
+		<result property="reportId" column="report_id" javaType="java.lang.Integer" jdbcType="NUMERIC" />
+		<result property="channelId" column="channel_id" javaType="java.lang.Integer" jdbcType="NUMERIC" />
+		<result property="deliveryTime" column="delivery_time" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="deliveryAddress" column="delivery_address" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="contactType" column="contact_type" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="priority" column="priority" javaType="java.lang.Integer" jdbcType="NUMERIC" />
+		<result property="status" column="status" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="eventType" column="event_type" javaType="java.lang.String" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="notification-settings-map">
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="objectId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="notification-settings-cur-map"/>
+	</parameterMap>
+
+	<procedure id="get-notification-settings"
+			parameterMap="notification-settings-map">
+    	{call ntf_api_notification_pkg.get_notification_settings(
+			    i_dst_entity_type       => ?
+			  , i_dst_object_id         => ?
+			  , o_ref_cursor            => ?
+			) }
+	</procedure>
+
+	<procedure id="get-object-notification-settings"
+			parameterMap="notification-settings-map">
+    	{call ntf_api_notification_pkg.get_obj_notification_settings(
+			    i_dst_entity_type       => ?
+			  , i_dst_object_id         => ?
+			  , o_ref_cursor            => ?
+			) }
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="notification-message-prc-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="notification-message-prc-map-result"/>
+		<parameter property="first_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.notifications.NotificationMessage" id="notification-message-prc-map-result">
+		<result property="id" column="id"/>
+		<result property="channelId" column="channel_id"/>
+		<result property="channelName" column="channel_name"/>
+		<result property="text" column="text"/>
+		<result property="lang" column="lang"/>
+		<result property="deliveryAddress" column="delivery_address"/>
+		<result property="deliveryDate" column="delivery_date"/>
+		<result property="delivered" column="is_delivered" nullValue="false"/>
+		<result property="urgencyLevel" column="urgency_level"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="eventType" column="event_type"/>
+		<result property="effDate" column="eff_date"/>
+		<result property="entityType" column="entity_type"/>
+		<result property="objectId" column="object_id"/>
+		<result property="messageStatus" column="message_status"/>
+	</resultMap>
+
+	<procedure id="get-notification-message-prc"
+			parameterMap="notification-message-prc-map">
+		{ call ntf_ui_message_search_pkg.get_ref_cur(
+			   o_ref_cur           => ?
+			 , i_first_row         => ?
+			 , i_last_row          => ?
+			 , i_param_tab         => ?
+			 , i_sorting_tab       => ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="notification-message-prc-map-count">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-notification-message-prc-count"
+		parameterMap="notification-message-prc-map-count">
+		{ call ntf_ui_message_search_pkg.get_row_count(
+			o_row_count		=> ?
+			, i_param_tab	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="change-status-map">
+		<parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="messageStatus" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="error" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="change-status"
+		parameterMap="change-status-map">
+		{ call ntf_ui_message_pkg.mark_message_unprocessed(
+			  i_message_id			=> ?
+			, i_message_status      => ?
+			, i_mask_error          => ?
+		)}
+	</procedure>
+</sqlMap>

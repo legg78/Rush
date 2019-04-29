@@ -1,0 +1,2328 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="accounts">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+     <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+
+	<resultMap  id="mapping-account-type-entity"
+                class="ru.bpc.sv2.accounts.AccountTypeEntity">
+        <result property="id" column="id" />
+       	<result property="seqNum" column="seqnum" />
+        <result property="accountType" column="account_type" />
+        <result property="instId" column="inst_id" />
+        <result property="instName" column="inst_name" />
+        <result property="entityType" column="entity_type" />       	
+	</resultMap>
+
+	<resultMap  id="mapping-entry-template-common"
+                class="ru.bpc.sv2.accounts.EntryTemplate"  >
+        <result property="bunchTypeId" column="bunch_type_id" />
+        <result property="transactionType" column="transaction_type" />
+       	<result property="transactionNum" column="transaction_num" />
+        <result property="amountName" column="amount_name" />
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="filter-balance-map">
+		<parameter property="accountType" javaType="String" jdbcType="VARCHAR"/>
+		<parameter property="instId" javaType="Integer" jdbcType="NUMBER"/>
+	</parameterMap>
+
+	<resultMap  id="mapping-account-gl"
+                class="ru.bpc.sv2.accounts.AccountGL">
+        <result property="id" column="id"/>
+        <result property="accountType" column="account_type"/>
+        <result property="accountNumber" column="account_number"/>
+        <result property="currency" column="currency"/>
+        <result property="instId" column="inst_id"/>
+        <result property="agentId" column="agent_id"/>
+        <result property="status" column="status"/>
+        <result property="balance" column="balance"/>
+       	<result property="contractId" column="contract_id"/>
+       	<result property="contractNumber" column="contract_number"/>
+       	<result property="productId" column="product_id"/>
+       	<result property="entityType" column="entity_type"/>
+       	<result property="entityId" column="entity_id"/>
+       	<result property="splitHash" column="split_hash"/>
+       	<result property="customerId" column="customer_id"/>
+       	<result property="instName" column="inst_name"/>
+       	<result property="agentName" column="agent_name"/>
+       	<result property="entity" column="entity"/>
+	</resultMap>
+
+	<select id="get-gl-accounts" 
+			parameterClass="qparams"
+			resultMap="mapping-account-gl">
+		<include refid="paginatedOpen"/>
+		SELECT	  gla.id
+				, gla.account_type
+				, gla.account_number
+				, gla.currency
+				, gla.inst_id
+				, gla.agent_id
+				, gla.status
+				, gla.balance
+				, gla.contract_id
+				, gla.customer_id
+				, c.contract_number
+				, c.product_id
+				, gla.entity_type
+				, gla.entity_id
+				, get_object_desc (gla.entity_type, gla.entity_id) entity
+				, gla.split_hash
+				, i.name inst_name
+				, a.name agent_name
+		FROM 
+			acc_ui_gl_account_vw gla
+			, prd_ui_contract_vw c
+			, ost_ui_institution_vw i
+			, ost_ui_agent_vw a
+		WHERE 
+			c.id(+) = gla.contract_id
+			AND i.id(+) = gla.inst_id
+			AND i.lang(+) = com_ui_user_env_pkg.get_user_lang
+			AND a.id(+) = gla.agent_id
+			AND a.lang(+) = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">gla.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">gla.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityId">gla.entity_id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">gla.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">gla.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">gla.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">upper(gla.account_number) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">gla.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractId">gla.contract_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerId">gla.customer_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="accountNumber">gla.account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="currency">gla.currency $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="accountType">gla.account_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">gla.entity_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">gla.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="balance">gla.balance $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="contractNumber">c.contract_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-gl-accounts-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			gla.*
+		FROM
+			acc_ui_gl_account_vw gla
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">gla.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">gla.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityId">gla.entity_id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">gla.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">gla.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">gla.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">upper(gla.account_number) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">gla.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractId">gla.contract_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerId">gla.customer_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap  id="mapping-account-type"
+                class="ru.bpc.sv2.accounts.AccountType">
+        <result property="id" column="id"/>
+       	<result property="seqNum" column="seqnum"/>
+        <result property="accountType" column="account_type"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+        <result property="numberPrefix" column="number_prefix"/>
+        <result property="productType" column="product_type"/>
+       	<result property="numberFormatId" column="number_format_id"/>
+       	<result property="numberFormatName" column="number_format_name"/>
+	</resultMap>
+
+	<select id="get-account-types" 
+			parameterClass="qparams" 
+			resultMap="mapping-account-type">
+	    <include refid="paginatedOpen"/>
+			SELECT 	
+					  a.id
+					, a.seqnum
+					, a.account_type
+					, a.inst_id
+					, a.number_format_id
+					, a.number_prefix
+					, a.product_type
+					, f.label number_format_name
+					, i.name inst_name
+			FROM 
+				acc_ui_account_type_vw a, rul_ui_name_format_vw f, ost_ui_institution_sys_vw i
+			WHERE
+				a.number_format_id = f.id(+)
+				AND a.inst_id = i.id(+) 
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountType">a.account_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="productType">a.product_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					f.lang(+) = #filters[].value# AND i.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">
+					a.account_type IN (
+						SELECT 
+							e.account_type 
+						FROM 
+							acc_ui_account_type_entity_vw e 
+						WHERE 
+							e.entity_type = #filters[].value# and a.inst_id = e.inst_id
+						)
+				</isEqual>
+			</iterate>			
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+	                <isEqual property="sorting[].property" compareValue="accountType">a.account_type $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-account-types-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	
+			a.*
+		FROM 
+			acc_ui_account_type_vw a
+		<iterate prepend="WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">a.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="productType">a.product_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">
+					a.account_type IN (
+						SELECT 
+							e.account_type 
+						FROM 
+							acc_ui_account_type_entity_vw e 
+						WHERE 
+							e.entity_type = #filters[].value# and a.inst_id = e.inst_id
+						)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-account-type"
+    		parameterClass="ru.bpc.sv2.accounts.AccountType">
+    	{call ACC_UI_ACCOUNT_TYPE_PKG.add(
+   				  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_account_type		=> #accountType#
+				, i_inst_id				=> #instId#
+				, i_number_format_id	=> #numberFormatId#
+				, i_number_prefix		=> #numberPrefix#
+				, i_product_type		=> #productType#
+   				)}
+    </procedure>
+
+	<procedure id="modify-account-type"
+    		parameterClass="ru.bpc.sv2.accounts.AccountType">
+    	{call ACC_UI_ACCOUNT_TYPE_PKG.modify(
+   				  i_id					=> #id#
+				, io_seqnum				=> #seqNum#
+				, i_number_format_id	=> #numberFormatId#
+				, i_number_prefix		=> #numberPrefix#
+				, i_product_type		=> #productType#
+				)}
+    </procedure>
+
+	<procedure id="remove-account-type"
+    		parameterClass="ru.bpc.sv2.accounts.AccountType">
+    	{call ACC_UI_ACCOUNT_TYPE_PKG.remove(
+   				  i_id					=> #id#
+				, i_seqnum				=> #seqNum#
+				)}
+    </procedure>
+
+	<select id="get-account-type-entities" 
+			parameterClass="qparams" 
+			resultMap="mapping-account-type-entity">
+	    <include refid="paginatedOpen"/>
+			SELECT 	
+					  a.id
+					, a.seqnum
+					, a.account_type
+					, a.inst_id
+					, a.entity_type
+					, i.name inst_name
+			FROM 
+				acc_ui_account_type_entity_vw a, ost_ui_institution_sys_vw i
+			WHERE i.id = a.inst_id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountType">a.account_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+	                <isEqual property="sorting[].property" compareValue="entityType">a.entity_type $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="accountType">a.account_type $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-account-type-entities-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	
+			a.*
+		FROM 
+			acc_ui_account_type_entity_vw a, ost_ui_institution_sys_vw i
+		WHERE i.id = a.inst_id
+		<iterate prepend="AND" conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">a.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-account-type-entity"
+    		parameterClass="ru.bpc.sv2.accounts.AccountTypeEntity">
+    	{call ACC_UI_ACCOUNT_TYPE_PKG.add_entity_type(
+   				  o_id              => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum          => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_account_type	=> #accountType#
+				, i_inst_id         => #instId#
+				, i_entity_type     => #entityType#
+				)}
+    </procedure>
+
+	<procedure id="remove-account-type-entity"
+    		parameterClass="ru.bpc.sv2.accounts.AccountTypeEntity">
+    	{call ACC_UI_ACCOUNT_TYPE_PKG.remove_entity_type(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-balance-type"
+                class="ru.bpc.sv2.accounts.BalanceType"  >
+        <result property="id" column="id" />
+        <result property="accountType" column="accountType" />
+        <result property="balanceType" column="balanceType" />
+       	<result property="instId" column="instId" />
+       	<result property="avalImpact" column="avalImpact" />
+        <result property="seqNum" column="seqNum" />
+        <result property="currency" column="currency" />
+        <result property="status" column="status" />
+       	<result property="instId" column="instId" />       	
+       	<result property="rateType" column="rate_type"/>
+       	<result property="numberPrefix" column="number_prefix"/>
+       	<result property="numberFormatId" column="number_format_id" />
+       	<result property="numberFormatName" column="number_format_name" />
+       	<result property="updateMacrosType" column="update_macros_type" />
+       	<result property="balanceAlgorithm" column="balance_algorithm"/>
+	</resultMap>
+	
+	<select id="get-balance-types" 
+			parameterClass="qparams" 
+			resultMap="mapping-balance-type">
+	    <include refid="paginatedOpen"/>
+			SELECT 	  bt.account_type as accountType
+					, bt.balance_type as balanceType
+					, bt.inst_id as instId
+					, bt.aval_impact as avalImpact
+					, bt.seqnum as seqNum
+					, bt.currency as currency
+					, bt.status as status
+					, bt.id as id
+					, bt.rate_type
+					, bt.number_format_id
+					, bt.number_prefix
+					, bt.update_macros_type
+					, f.label number_format_name
+					, bt.balance_algorithm				
+			FROM 
+				acc_ui_balance_type_vw bt
+				, rul_ui_name_format_vw f
+			WHERE
+				bt.number_format_id = f.id(+)	
+				<iterate prepend=" AND " conjunction="AND " property="filters">
+					<isEqual property="filters[].element" compareValue="id">bt.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">f.lang(+) = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="rateType">bt.rate_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="accountType">bt.account_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="instId">bt.inst_id = #filters[].value#</isEqual>
+				</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-balance-types-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	
+			bt.*
+		FROM 
+			acc_ui_balance_type_vw bt
+		<iterate prepend="WHERE" conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="rateType">rate_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-insts-by-account-type"
+			parameterClass="String"
+			resultClass="ru.bpc.sv2.orgstruct.Institution">
+		SELECT inst.id AS id,
+		        inst.seqnum AS seqNum,
+		        inst.parent_id AS parentId,
+		        inst.network_id AS networkId
+		        inst.name as name
+		        inst.description as description
+		FROM ost_ui_institution_vw inst
+		WHERE inst.id IN (
+				SELECT DISTINCT	inst_id
+			    FROM acc_ui_balance_type_vw
+				WHERE account_type = #accountType#)
+	</select>
+
+	<procedure id="add-balance-type"
+    		parameterClass="ru.bpc.sv2.accounts.BalanceType">
+    	{call ACC_UI_BALANCE_TYPE_PKG.add(
+				  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum          	=> #seqNum,jdbcType=NUMERIC,mode=OUT# 
+				, i_inst_id         	=> #instId#
+				, i_account_type    	=> #accountType#
+				, i_balance_type    	=> #balanceType# 
+				, i_currency        	=> #currency# 
+				, i_rate_type       	=> #rateType# 
+				, i_aval_impact     	=> #avalImpact# 
+				, i_status          	=> #status# 
+				, i_number_format_id	=> #numberFormatId#
+				, i_number_prefix		=> #numberPrefix#
+				, i_update_macros_type	=> #updateMacrosType#
+				, i_balance_algorithm   => #balanceAlgorithm#
+				)}
+    </procedure>
+
+	<procedure id="modify-balance-type"
+    		parameterClass="ru.bpc.sv2.accounts.BalanceType">
+    	{call ACC_UI_BALANCE_TYPE_PKG.modify(
+				  i_id					=> #id#                 
+				, io_seqnum         	=> #seqNum,jdbcType=NUMERIC,mode=INOUT# 
+				, i_inst_id         	=> #instId#
+				, i_account_type    	=> #accountType# 
+				, i_balance_type    	=> #balanceType# 
+				, i_currency       		=> #currency# 
+				, i_rate_type       	=> #rateType# 
+				, i_aval_impact     	=> #avalImpact# 
+				, i_status          	=> #status# 
+				, i_number_format_id	=> #numberFormatId#
+				, i_number_prefix		=> #numberPrefix#
+				, i_update_macros_type	=> #updateMacrosType#
+				, i_balance_algorithm   => #balanceAlgorithm#
+				)}
+    </procedure>
+
+	<procedure id="remove-balance-type"
+    		parameterClass="ru.bpc.sv2.accounts.BalanceType">
+    	{call ACC_UI_BALANCE_TYPE_PKG.remove(
+				  i_id					=> #id#       
+				, i_seqnum				=> #seqNum#
+				)}
+    </procedure>
+	
+	<select id="get-acc-macros-bunch-type" parameterClass="qparams" resultClass="ru.bpc.sv2.accounts.BunchType">
+		<include refid="paginatedOpen"/>
+			select id
+			     , seqnum as seqNum
+			     , name
+			     , lang
+			     , inst_id as instId
+			     , inst_name as instName
+			  from acc_ui_macros_bunch_type_vw
+			<iterate prepend="where" conjunction="and" property="filters">
+				<isEqual property="filters[].element" compareValue="instId">
+					(inst_id = #filters[].value# or inst_id is null)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			</iterate>
+			<isEmpty property="sorting">order by name asc</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-bunch-types" parameterClass="qparams" resultClass="ru.bpc.sv2.accounts.BunchType">
+		<include refid="paginatedOpen"/>
+			select id
+			     , seqnum as seqNum
+			     , name
+			     , description
+			     , details
+			     , inst_id as instId
+			     , inst_name as instName
+			     , lang
+			  from acc_ui_bunch_type_vw
+			<iterate prepend="where" conjunction="and" property="filters">
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(description) like upper(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like upper(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="instIds">
+					(inst_id = #filters[].value# or inst_id is null)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			</iterate>
+			<isEmpty property="sorting">order by name asc</isEmpty>
+			<iterate prepend="order by" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="auto">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">description $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-bunch-types-count" parameterClass="qparams" resultClass="int">
+		select count(*)
+		  from acc_ui_bunch_type_vw
+		<iterate prepend="where" conjunction="and" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(description) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+    </select>
+
+	<procedure id="add-bunch-type" parameterClass="ru.bpc.sv2.accounts.BunchType">
+		{call acc_ui_bunch_type_pkg.add(
+			  o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_short_desc	=> #name#
+			, i_full_desc	=> #description#
+			, i_details		=> #details#
+			, i_inst_id		=> #instId#
+			, i_lang		=> #lang#
+		)}
+    </procedure>
+
+	<procedure id="modify-bunch-type" parameterClass="ru.bpc.sv2.accounts.BunchType">
+		{call acc_ui_bunch_type_pkg.modify(
+			  i_id			=> #id#
+			, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_short_desc	=> #name#
+			, i_full_desc	=> #description#
+			, i_lang		=> #lang#
+		)}
+    </procedure>
+
+	<procedure id="remove-bunch-type" parameterClass="ru.bpc.sv2.accounts.BunchType">
+		{call acc_ui_bunch_type_pkg.remove(
+			  i_id		=> #id#
+			, i_seqnum	=> #seqNum#
+		)}
+    </procedure>
+
+    <select id="get-entry-templates"
+    		parameterClass="qparams"
+    		resultMap="mapping-entry-template-common">
+    	<include refid="limitationOpen"/>
+		SELECT bunch_type_id, transaction_type, transaction_num, amount_name 
+		FROM acc_ui_entry_tpl_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="bunchTypeId">bunch_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transType">transaction_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="amountName">amount_name like #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="transactionNum">transaction_num $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="amount">amount_name $sorting[].direction$</isEqual>
+            </isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+    <select id="get-entry-templates-count"
+     		parameterClass="qparams"
+    		resultClass="int">
+    	<include refid="limitationOpenCount"/>
+        SELECT * FROM acc_ui_entry_tpl_vw  
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="bunchTypeId">bunch_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transType">transaction_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="amountName">amount_name like #filters[].value#</isEqual>
+		</iterate>		
+		<include refid="limitationClose"/>
+    </select>
+
+	<procedure id="add-entry-template"
+    		parameterClass="ru.bpc.sv2.accounts.EntryTemplate">
+    	{call ACC_UI_ENTRY_TPL_PKG.add(
+				  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_bunch_type_id		=> #bunchTypeId#
+				, i_transaction_type	=> #transactionType#
+				, i_transaction_num		=> #transactionNum#
+				, i_negative_allowed	=> #negativeAllowed#
+				, i_account_name		=> #accountName#
+				, i_amount_name			=> #amountName#
+				, i_date_name			=> #dateName#
+				, i_posting_method		=> #postingMethod#
+				, i_balance_type		=> #balanceType#
+				, i_balance_impact		=> #balanceImpact#
+				, i_dest_entity_type	=> #destEntityType#
+				, i_dest_account_type	=> #destAccountType#
+				, i_mod_id				=> #modId#
+				)}
+    </procedure>
+
+	<procedure id="modify-entry-template"
+    		parameterClass="ru.bpc.sv2.accounts.EntryTemplate">
+    	{call ACC_UI_ENTRY_TPL_PKG.modify(
+				  i_id					=> #id#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_bunch_type_id		=> #bunchTypeId#
+				, i_transaction_type	=> #transactionType#
+				, i_transaction_num		=> #transactionNum#
+				, i_negative_allowed	=> #negativeAllowed#
+				, i_account_name		=> #accountName#
+				, i_amount_name			=> #amountName#
+				, i_date_name			=> #dateName#
+				, i_posting_method		=> #postingMethod#
+				, i_balance_type		=> #balanceType#
+				, i_balance_impact		=> #balanceImpact#
+				, i_dest_entity_type	=> #destEntityType#
+				, i_dest_account_type	=> #destAccountType#
+				, i_mod_id				=> #modId#
+				)}
+    </procedure>
+
+	<procedure id="remove-entry-template"
+    		parameterClass="ru.bpc.sv2.accounts.EntryTemplate">
+    	{call ACC_UI_ENTRY_TPL_PKG.remove(
+				  i_id					=> #id#
+				, i_seqnum				=> #seqNum#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-entry-template-pair"
+                class="ru.bpc.sv2.accounts.EntryTemplatePair">
+        <result property="bunchTypeId" column="bunch_type_id" />
+       	<result property="transactionNum" column="transaction_num" />
+        <result property="transactionType" column="transaction_type" />
+        <result property="dateName" column="date_name" />
+        <result property="creditBalanceImpact" column="credit" />
+        <result property="creditId" column="credit_id" />
+        <result property="creditSeqNum" column="credit_seqnum" />
+        <result property="creditAmountName" column="credit_amount_name"/>
+       	<result property="creditAccountName" column="credit_account" />
+       	<result property="creditPostingMethod" column="credit_posting_method" />
+       	<result property="creditBalanceType" column="credit_balance" />
+       	<result property="creditDestEntityType" column="credit_dest_entity_type" />
+       	<result property="creditDestAccountType" column="credit_dest_account_type" />
+       	<result property="creditModId" column="credit_mod_id" />
+       	<result property="creditModDesc" column="credit_mod_desc" />       	
+        <result property="debitBalanceImpact" column="debit" />
+        <result property="debitId" column="debit_id" />
+        <result property="debitSeqNum" column="debit_seqnum" />
+        <result property="debitAmountName" column="debit_amount_name"/>
+       	<result property="debitAccountName" column="debit_account" />
+       	<result property="debitPostingMethod" column="debit_posting_method" />
+       	<result property="debitBalanceType" column="debit_balance" />
+       	<result property="debitDestEntityType" column="debit_dest_entity_type" />
+       	<result property="debitDestAccountType" column="debit_dest_account_type" />
+		<result property="debitModId" column="debit_mod_id" />
+		<result property="debitModDesc" column="debit_mod_desc" />		
+       	<result property="negativeAllowed" column="negative_allowed" javaType="boolean"/>
+	</resultMap>
+
+    <select id="get-entry-template-pairs"
+    		parameterClass="qparams"
+    		resultMap="mapping-entry-template-pair">
+	    <include refid="paginatedOpen"/>
+	        SELECT    bunch_type_id
+	        		, transaction_num
+	        		, transaction_type
+	        		, date_name
+	        		, credit
+	          		, credit_id
+	        		, credit_seqnum
+	        		, credit_amount_name
+	        		, credit_account
+	        		, credit_posting_method
+	        		, credit_balance
+	        		, credit_dest_entity_type
+	        		, credit_dest_account_type
+	        		, credit_mod_id
+	        		, credit_mod_desc
+	        		, debit
+	          		, debit_id
+	        		, debit_seqnum
+	        		, debit_amount_name
+	        		, debit_account
+	        		, debit_posting_method
+	        		, debit_balance
+	        		, debit_dest_entity_type
+	        		, debit_dest_account_type
+	        		, debit_mod_id
+	        		, debit_mod_desc
+	        		, negative_allowed
+	        FROM acc_ui_entry_tpl_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="bunchTypeId">bunch_type_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="debitId">debit_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="creditId">credit_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="transactionNum">transaction_num = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="transType">transaction_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="amountName">amount_name like #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+	            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="transactionNum">transaction_num $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="amount">amount_name $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+	    <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-entry-template-pairs-count"
+     		parameterClass="qparams"
+    		resultClass="int">
+       	SELECT count(*) FROM acc_ui_entry_tpl_vw  
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="bunchTypeId">bunch_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="debitId">debit_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="creditId">credit_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transactionNum">transaction_num = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transType">transaction_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="amountName">amount_name like #filters[].value#</isEqual>
+		</iterate>
+    </select>
+
+	<procedure id="add-entry-template-pair"
+    		parameterClass="ru.bpc.sv2.accounts.EntryTemplatePair">
+    	{call ACC_UI_ENTRY_TPL_PKG.add_pair(
+				  o_debit_id                 => #debitId,jdbcType=NUMERIC,mode=OUT#
+				, o_debit_seqnum             => #debitSeqNum,jdbcType=NUMERIC,mode=OUT#
+				, o_credit_id                => #creditId,jdbcType=NUMERIC,mode=OUT#
+				, o_credit_seqnum            => #creditSeqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_bunch_type_id            => #bunchTypeId#
+				, i_transaction_type         => #transactionType#
+				, i_transaction_num          => #transactionNum#
+				, i_negative_allowed         => #negativeAllowed#
+				, i_date_name                => #dateName#
+				, i_debit_amount_name        => #debitAmountName#
+				, i_debit_account_name       => #debitAccountName#
+				, i_debit_posting_method     => #debitPostingMethod#
+				, i_debit_balance_type       => #debitBalanceType#
+				, i_debit_dest_entity_type   => #debitDestEntityType#
+				, i_debit_dest_account_type  => #debitDestAccountType#
+				, i_credit_amount_name       => #creditAmountName#
+				, i_credit_account_name      => #creditAccountName#
+				, i_credit_posting_method    => #creditPostingMethod#
+				, i_credit_balance_type      => #creditBalanceType#
+				, i_credit_dest_entity_type  => #creditDestEntityType#
+				, i_credit_dest_account_type => #creditDestAccountType#
+		)}
+    </procedure>
+
+	<select id="get-macros-types" parameterClass="qparams" resultClass="ru.bpc.sv2.accounts.MacrosType">
+		<include refid="limitationOpen"/>
+			select m.id            as id
+			     , m.bunch_type_id as bunchTypeId
+			     , b.name          as bunchTypeName
+			     , m.seqnum        as seqNum
+			     , m.name          as name
+			     , m.description   as description
+			     , m.details       as details
+			     , m.inst_id       as instId
+			     , m.inst_name     as instName
+			     , m.lang          as lang
+			     , m.status        as status
+			  from (select mt.id
+			             , mt.bunch_type_id
+			             , mt.seqnum
+			             , mt.name
+			             , mt.description
+			             , mt.details
+			             , null as inst_id
+			             , null as inst_name
+			             , mt.lang
+			             , mt.status
+			          from acc_ui_macros_type_vw mt
+			         union
+			        select mb.id
+			             , mb.bunch_type_id
+			             , mb.seqnum
+			             , mb.name
+			             , mb.description
+			             , mb.details
+			             , mb.inst_id
+			             , mb.inst_name
+			             , mb.lang
+			             , mb.status
+			          from acc_ui_macros_bunch_type_vw mb
+			       ) m
+			     , acc_ui_bunch_type_vw b
+			 where m.bunch_type_id = b.id(+)
+			   and m.lang          = b.lang(+)
+		<iterate prepend="and" conjunction="and" property="filters">
+			<isEqual property="filters[].element" compareValue="name">upper(m.name) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(m.description) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">m.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="bunchTypeId">m.bunch_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="order by" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="auto">
+				<isEqual property="sorting[].property" compareValue="id">m.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">m.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="description">m.description $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="bunchTypeName">b.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">m.status $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-macros-types-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+			select *
+			  from (select mt.id
+			             , mt.bunch_type_id
+			             , mt.name
+			             , mt.description
+			             , mt.lang
+			             , null as inst_id
+			          from acc_ui_macros_type_vw mt
+			         union
+			        select mb.id
+			             , mb.bunch_type_id
+			             , mb.name
+			             , mb.description
+			             , mb.lang
+			             , mb.inst_id
+			          from acc_ui_macros_bunch_type_vw mb
+			       ) m
+			     , acc_ui_bunch_type_vw b
+			 where m.bunch_type_id = b.id(+)
+			   and m.lang          = b.lang(+)
+		<iterate prepend="and" conjunction="and" property="filters">
+			<isEqual property="filters[].element" compareValue="name">upper(m.name) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(m.description) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">m.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="bunchTypeId">m.bunch_type_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-macros-type" parameterClass="ru.bpc.sv2.accounts.MacrosType">
+		{call acc_ui_macros_type_pkg.add(
+			  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_bunch_type_id	=> #bunchTypeId#
+			, i_status 			=> #status#
+			, i_short_desc		=> #name#
+			, i_full_desc		=> #description#
+			, i_details			=> #details#
+			, i_inst_id			=> #instId#
+			, i_lang			=> #lang#
+		)}
+	</procedure>
+
+	<procedure id="modify-macros-type" parameterClass="ru.bpc.sv2.accounts.MacrosType">
+		{call acc_ui_macros_type_pkg.modify(
+			  i_id				=> #id#
+			, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_bunch_type_id	=> #bunchTypeId#
+			, i_status 			=> #status#
+			, i_short_desc		=> #name#
+			, i_full_desc		=> #description#
+			, i_details			=> #details#
+			, i_lang			=> #lang#
+		)}
+	</procedure>
+
+	<procedure id="remove-macros-type" parameterClass="ru.bpc.sv2.accounts.MacrosType">
+		{call acc_ui_macros_type_pkg.remove(
+			  i_id		=> #id#
+			, i_seqnum	=> #seqNum#
+		)}
+	</procedure>
+
+    <select id="get-account-types-by-entity-type"
+    		parameterClass="String"
+    		resultClass="String">
+    	SELECT DISTINCT
+    		account_type 
+    	FROM 
+    		acc_ui_account_type_entity_vw 
+    	WHERE 
+    		entity_type = #value#
+    </select>
+
+    <procedure id="generate-gl-accounts"
+    		parameterClass="ru.bpc.sv2.accounts.AccountGL">
+    	{call ACC_UI_GL_ACCOUNT_PKG.create_gl_accounts(
+    			  i_entity_type		=> #entityType#
+				, i_currency 		=> #currency#
+				, i_object_id		=> #entityId#
+				)}
+    </procedure>
+    
+    <procedure id="create-gl-account"
+    		parameterClass="ru.bpc.sv2.accounts.AccountGL">
+    	{call ACC_UI_GL_ACCOUNT_PKG.create_gl_account(
+    		 	  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, io_account_number	=> #accountNumber,jdbcType=VARCHAR,mode=INOUT#
+				, i_entity_type		=> #entityType#
+				, i_account_type	=> #accountType#
+				, i_currency		=> #currency#
+				, i_object_id		=> #entityId#														
+				)}
+    </procedure>
+    
+    <procedure id="remove-gl-account"
+    		parameterClass="ru.bpc.sv2.accounts.AccountGL">
+    	{call ACC_UI_GL_ACCOUNT_PKG.remove_gl_account(
+    			  i_account_id		=> #id#
+				, i_split_hash		=> #splitHash#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-account-object"
+                class="ru.bpc.sv2.accounts.Account">
+        <result property="bindId" column="id"/>
+        <result property="accountType" column="account_type"/>
+        <result property="accountNumber" column="account_number"/>
+        <result property="currency" column="currency"/>
+        <result property="id" column="account_id"/>
+       	<result property="objectId" column="object_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="agentId" column="agent_id"/>
+        <result property="instName" column="inst_name"/>
+        <result property="agentName" column="agent_name"/>
+        <result property="status" column="status"/>
+        <result property="productId" column="product_id"/>
+       	<result property="contractId" column="contract_id"/>
+       	<result property="contractNumber" column="contract_number"/>
+       	<result property="entityType" column="entity_type"/>
+       	<result property="splitHash" column="split_hash"/>
+       	<result property="balance" column="balance"/>
+       	<result property="customerId" column="customer_id"/>
+       	<result property="productType" column="product_type"/>
+	</resultMap>
+	
+	<select id="get-account-objects" 
+			parameterClass="qparams"
+			resultMap="mapping-account-object" >
+		<include refid="limitationOpen"/>
+		SELECT	  a.id
+				, a.account_type
+				, a.account_number
+				, a.currency
+				, a.account_id
+				, a.object_id
+				, a.inst_id
+				, a.agent_id
+				, a.status
+				, a.contract_id
+				, a.contract_number
+				, a.product_id
+				, a.inst_name
+				, a.agent_name
+				, a.entity_type
+				, a.split_hash
+				, a.balance
+				, a.customer_id
+				, a.product_type
+		FROM 
+			acc_ui_account_object_vw a			
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="splitHash">a.split_hash = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">a.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">a.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">a.account_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="accNum">a.account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="currency">a.currency $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="accType">a.account_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">a.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="contractNumber">a.contract_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="balance">a.balance $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">a.account_number ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-account-objects-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			a.id
+		FROM 
+			acc_ui_account_object_vw a
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="splitHash">a.split_hash = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">a.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">a.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">a.account_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap id="mapping-account" class="ru.bpc.sv2.accounts.Account">
+		<result property="id" column="id" />
+		<result property="accountType" column="account_type" />
+		<result property="accountNumber" column="account_number" />
+		<result property="balance" column="balance" />
+		<result property="currency" column="currency" />
+		<result property="instId" column="inst_id" />
+		<result property="agentId" column="agent_id" />
+		<result property="instName" column="inst_name" />
+		<result property="agentName" column="agent_name" />
+		<result property="agentNumber" column="agent_number" />
+		<result property="status" column="status" />
+		<result property="productId" column="product_id"/>
+		<result property="contractId" column="contract_id"/>
+		<result property="contractNumber" column="contract_number"/>
+		<result property="splitHash" column="split_hash" />
+		<result property="customerId" column="customer_id"/>
+		<result property="customerType" column="customer_type"/>
+		<result property="productType" column="product_type"/>
+	</resultMap>
+	
+	<resultMap class="ru.bpc.sv2.accounts.Account" id="mapping-account-ext" extends="mapping-account">
+		<result property="productName" column="product_name" />
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.accounts.Account" id="mapping-account-ext-cur" extends="mapping-account-ext">
+		<result property="defaultAccountPerCurrency" column="default_acc_per_cur" />
+		<result property="statusReason" column="status_reason" />
+	</resultMap>
+
+	<select id="get-accounts" 
+			parameterClass="qparams"
+			resultMap="mapping-account-ext" >
+		<include refid="paginatedOpen"/>
+			SELECT	  a.id
+					, a.account_type
+					, a.account_number
+					, a.currency
+					, a.inst_id
+					, a.agent_id
+					, a.status
+					, a.contract_id
+					, a.balance
+					, a.customer_id
+					, a.split_hash
+					, a.contract_number
+					, a.product_id
+					, a.product_type
+					, i.name inst_name
+					, ag.name agent_name
+					, ag.agent_number
+					, a.customer_type
+					, get_text('PRD_PRODUCT','LABEL',a.product_id) as product_name
+			FROM 
+				acc_ui_account_vw a
+				, ost_ui_institution_sys_vw i
+				, ost_ui_agent_vw ag
+			WHERE 
+				 a.inst_id = i.id
+				AND a.agent_id = ag.id(+)
+			<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>				
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">	
+					i.lang = #filters[].value#
+					AND ag.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="agentId">a.agent_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="contractId">a.contract_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerId">a.customer_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accNum">reverse(a.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerNumber">reverse(a.customer_number) like decode(substr(#filters[].value#,1,1), '%', reverse(upper(substr(#filters[].value#,2)))||'%', '%')
+					and a.customer_number like decode(substr(#filters[].value#,1,1), '%', '%', upper(#filters[].value#))</isEqual>
+				<isEqual property="filters[].element" compareValue="productType">
+					a.contract_id IN ( 
+						SELECT id FROM prd_ui_contract_vw
+						WHERE product_id IN (
+							SELECT id FROM prd_ui_product_vw
+							WHERE product_type = #filters[].value#
+						)
+					)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="authId">
+					a.account_number IN (
+						SELECT p.account_number
+						FROM aut_ui_auth_vw a, 
+							opr_ui_operation_vw o, 
+							opr_ui_participant_vw p
+						WHERE a.id = o.id 
+							AND O.ID = p.OPER_ID 
+							AND  a.id = #filters[].value#
+					) 
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="contractNumber">a.contract_number like upper(#filters[].value#)</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="accNum">a.account_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">a.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accType">a.account_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">a.status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="contractNumber">a.contract_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(i.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="balance">a.balance $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend="ORDER BY ">a.account_number ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-accounts-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			a.*
+		FROM 
+			acc_ui_account_vw a
+			, prd_ui_customer_vw cu			
+		WHERE 
+			a.customer_id = cu.id
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>			
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="agentId">a.agent_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractId">a.contract_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerId">a.customer_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accNum">reverse(a.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">reverse(a.customer_number) like decode(substr(#filters[].value#,1,1), '%', reverse(upper(substr(#filters[].value#,2)))||'%', '%')
+				and a.customer_number like decode(substr(#filters[].value#,1,1), '%', '%', upper(#filters[].value#))</isEqual>
+			<isEqual property="filters[].element" compareValue="productType">
+				a.contract_id IN ( 
+					SELECT id FROM prd_ui_contract_vw
+					WHERE product_id IN (
+						SELECT id FROM prd_ui_product_vw
+						WHERE product_type = #filters[].value#
+					)
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="authId">
+				a.account_number IN (
+					SELECT
+						o.account_number
+					FROM 
+						opr_ui_operation_vw o
+					WHERE
+						o.entity_type = 'ENTTAUTH'
+						AND o.id = #filters[].value#
+				) 
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="contractNumber">a.contract_number like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-iss-account"
+	        extends="mapping-account"
+	        class="ru.bpc.sv2.accounts.Account">
+       	<result property="productType" column="product_type"/>
+	</resultMap>
+	
+	<resultMap id="ResultSetMapResult" class="ru.bpc.sv2.reports.QueryResult" >
+	    <result property="result" typeHandler="ru.bpc.sv2.utils.ResultSetHandlerCallback" />  
+	</resultMap>
+	
+	
+	<select id="get-iss-accounts-rs"  
+			parameterClass="qparams"
+			resultMap="ResultSetMapResult" >
+		<include refid="paginatedOpen"/>
+			SELECT	  a.id
+					, a.account_type
+					, a.account_number
+					, a.currency
+					, a.inst_id
+					, a.agent_id
+					, a.status
+					, a.contract_id
+					, a.balance
+					, a.customer_id
+					, c.product_id
+					, c.contract_number
+					, a.split_hash
+					, i.name inst_name
+					, ag.name agent_name
+					, c.product_type
+					, cu.entity_type customer_type
+			FROM 
+				iss_ui_account_vw a
+				, prd_ui_contract_vw c
+				, ost_ui_institution_sys_vw i
+				, ost_ui_agent_vw ag
+				, prd_ui_customer_vw cu
+			WHERE 
+				c.id(+) = a.contract_id
+				AND a.inst_id = i.id
+				AND a.agent_id = ag.id(+)
+				AND a.customer_id = cu.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">	
+					i.lang(+) = #filters[].value#
+					AND ag.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="agentId">a.agent_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountNumber">reverse(a.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerNumber">cu.customer_number like upper(#filters[].value#)</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="accNum">a.account_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">a.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accType">a.account_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">a.status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="contractNumber">c.contract_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(i.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="balance">a.balance $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend="ORDER BY ">a.account_number ASC</isEmpty>			
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-iss-accounts" 
+			parameterClass="qparams"
+			resultMap="mapping-account" >
+		<include refid="paginatedOpen"/>
+			SELECT	  a.id
+					, a.account_type
+					, a.account_number
+					, a.currency
+					, a.inst_id
+					, a.agent_id
+					, a.status
+					, a.contract_id
+					, a.balance
+					, a.customer_id
+					, c.product_id
+					, c.contract_number
+					, a.split_hash
+					, i.name inst_name
+					, ag.name agent_name
+					, ag.agent_number
+					, c.product_type
+					, cu.entity_type customer_type
+			FROM 
+				iss_ui_account_vw a
+				, prd_ui_contract_vw c
+				, ost_ui_institution_sys_vw i
+				, ost_ui_agent_vw ag
+				, prd_ui_customer_vw cu
+			WHERE 
+				c.id(+) = a.contract_id
+				AND a.inst_id = i.id
+				AND a.agent_id = ag.id(+)
+				AND a.customer_id = cu.id
+			<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">	
+					i.lang = #filters[].value#
+					AND ag.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="agentId">a.agent_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountNumber">reverse(a.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerNumber">reverse(cu.customer_number) like decode(substr(#filters[].value#,1,1), '%', reverse(upper(substr(#filters[].value#,2)))||'%', '%')
+					and cu.customer_number like decode(substr(#filters[].value#,1,1), '%', '%', upper(#filters[].value#))</isEqual>
+				<isEqual property="filters[].element" compareValue="contractNumber">a.contract_number like upper(#filters[].value#)</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="accNum">a.account_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">a.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accType">a.account_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">a.status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="contractNumber">c.contract_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(i.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="balance">a.balance $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend="ORDER BY ">a.account_number ASC</isEmpty>			
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-iss-accounts-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			a.*
+		FROM 
+			iss_ui_account_vw a
+			, ost_ui_institution_sys_vw i
+			, prd_ui_customer_vw cu			
+		WHERE 
+			a.inst_id = i.id
+			AND a.customer_id = cu.id
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="agentId">a.agent_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">reverse(a.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">reverse(cu.customer_number) like decode(substr(#filters[].value#,1,1), '%', reverse(upper(substr(#filters[].value#,2)))||'%', '%')
+				and cu.customer_number like decode(substr(#filters[].value#,1,1), '%', '%', upper(#filters[].value#))</isEqual>
+			<isEqual property="filters[].element" compareValue="contractNumber">a.contract_number like upper(#filters[].value#)</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-acq-accounts" 
+			parameterClass="qparams"
+			resultMap="mapping-account" >
+		<include refid="paginatedOpen"/>
+			SELECT	  a.id
+					, a.account_type
+					, a.account_number
+					, a.currency
+					, a.inst_id
+					, a.agent_id
+					, a.status
+					, a.contract_id
+					, a.balance
+					, a.customer_id
+					, c.product_id
+					, c.product_type
+					, c.contract_number
+					, a.split_hash
+					, i.name inst_name
+					, ag.name agent_name
+					, cu.entity_type customer_type
+                    , ag.agent_number
+			FROM 
+				acq_ui_account_vw a
+				, prd_ui_contract_vw c
+				, ost_ui_institution_sys_vw i
+				, ost_ui_agent_vw ag
+				, prd_ui_customer_vw cu	
+			WHERE 
+				c.id(+) = a.contract_id
+				AND a.inst_id = i.id
+				AND a.agent_id = ag.id(+)
+				AND a.customer_id = cu.id
+			<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">	
+					i.lang = #filters[].value#
+					AND ag.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="agentId">a.agent_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountNumber">reverse(a.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerNumber">reverse(a.customer_number) like decode(substr(#filters[].value#,1,1), '%', reverse(upper(substr(#filters[].value#,2)))||'%', '%')
+					and a.customer_number like decode(substr(#filters[].value#,1,1), '%', '%', upper(#filters[].value#))</isEqual>
+				<isEqual property="filters[].element" compareValue="contractNumber">a.contract_number like upper(#filters[].value#)</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="accNum">a.account_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">a.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accType">a.account_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">a.status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="contractNumber">c.contract_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(i.name) $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend="ORDER BY ">a.account_number ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<parameterMap class="java.util.Map" id="get-all-accounts-cur-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-account-ext-cur"/>
+        <parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="first_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap> 
+	
+	<procedure id="get-all-accounts-cur" 
+		parameterMap="get-all-accounts-cur-map">
+		{ call acc_ui_account_search_pkg.get_ref_cur(
+			o_ref_cur		=> ?
+            , i_row_count 	=> ?
+			, i_first_row 	=> ?
+			, i_last_row	=> ?
+			, i_tab_name	=> ?
+			, i_param_tab	=> ?
+			, i_sorting_tab	=> ?
+		)}
+	</procedure>
+	
+	<parameterMap class="java.util.Map" id="get-all-accounts-cur-count-map">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap> 
+	
+	<procedure id="get-all-accounts-cur-count" 
+		parameterMap="get-all-accounts-cur-count-map">
+		{ call acc_ui_account_search_pkg.get_row_count(
+			o_row_count		=> ?
+			, i_tab_name	=> ?
+			, i_param_tab	=> ?
+		)}
+	</procedure>
+
+	<select id="get-acq-accounts-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT a.*
+		FROM
+			acq_ui_account_vw a
+			, ost_ui_institution_sys_vw i
+			, prd_ui_customer_vw cu			
+		WHERE 
+			a.inst_id = i.id
+			AND a.customer_id = cu.id
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="agentId">a.agent_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accType">a.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">reverse(a.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">reverse(a.customer_number) like decode(substr(#filters[].value#,1,1), '%', reverse(upper(substr(#filters[].value#,2)))||'%', '%')
+				and a.customer_number like decode(substr(#filters[].value#,1,1), '%', '%', upper(#filters[].value#))</isEqual>
+			<isEqual property="filters[].element" compareValue="contractNumber">a.contract_number like upper(#filters[].value#)</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-accounts-by-object"
+			parameterClass="qparams"
+			resultMap="mapping-account" >
+		SELECT	  a.id
+				, a.account_type
+				, a.account_number
+				, a.currency
+				, a.inst_id
+				, a.agent_id
+				, a.status
+				, a.balance
+				, c.product_id
+				, c.product_type
+				, a.contract_id
+				, a.split_hash
+				, a.customer_id
+				, i.name inst_name
+				, ag.name agent_name
+				, c.contract_number
+				, null as customer_type
+				, null as agent_number
+		FROM acc_ui_account_vs_aval_vw a
+	            , ost_ui_institution_sys_vw i
+	            , ost_ui_agent_vw ag
+	            , prd_ui_contract_vw c
+		WHERE a.id IN (
+			SELECT account_id FROM acc_ui_account_object_vw
+	        <iterate prepend="WHERE" conjunction="AND" property="filters">
+	            <isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+	            <isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+	        </iterate>
+		)
+		AND a.contract_id = c.id(+)
+		AND a.inst_id = i.id
+		AND a.agent_id = ag.id(+)
+        <iterate prepend="AND" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">
+				i.lang = #filters[].value#
+				AND ag.lang(+) = #filters[].value#
+			</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap  id="mapping-balance"
+                class="ru.bpc.sv2.accounts.Balance">
+        <result property="id" column="id" />
+        <result property="splitHash" column="split_hash" />
+        <result property="accountId" column="account_id" />
+        <result property="balanceNumber" column="balance_number" />
+        <result property="balanceType" column="balance_type" />
+        <result property="balance" column="balance" javaType="java.math.BigDecimal"/>
+        <result property="roundingBalance" column="rounding_balance" javaType="java.math.BigDecimal"/>
+        <result property="currency" column="currency" />
+        <result property="entryCount" column="entry_count" />
+        <result property="status" column="status" />
+        <result property="instId" column="inst_id" />
+        <result property="openDate" column="open_date"/>
+        <result property="closeDate" column="close_date"/>             
+	</resultMap>
+	
+	<select id="get-balances" 
+			parameterClass="qparams"
+			resultMap="mapping-balance" >
+		<include refid="limitationOpen"/>
+		SELECT	  b.id
+				, b.account_id
+				, b.balance_number
+				, b.balance_type
+				, b.balance
+				, b.rounding_balance
+				, b.currency
+				, b.entry_count
+				, b.inst_id
+				, b.status
+				, b.split_hash
+				, b.open_date
+				, b.close_date						
+		FROM 
+			acc_ui_balance_vw b			
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="accountId">b.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">b.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">b.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">b.balance_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">b.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="balanceNumber">b.balance_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">b.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="openDateFrom">trunc(b.open_date) <![CDATA[<=]]> #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="closeDateTo">trunc(b.close_date) >= #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="number">b.balance_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="currency">b.currency $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="type">b.balance_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">b.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="balance">b.balance $sorting[].direction$</isEqual>			
+				<isEqual property="sorting[].property" compareValue="openDate">b.open_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="closeDate">b.close_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="balanceType">b.balance_type $sorting[].direction$</isEqual>			
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">b.balance_number ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-balances-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT b.*
+		FROM acc_ui_balance_vw b
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="accountId">b.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">b.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">b.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">b.balance_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">b.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="balanceNumber">b.balance_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">b.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="openDateFrom">trunc(b.open_date) <![CDATA[<=]]> #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="closeDateTo">trunc(b.close_date) >= #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-iso-account-type"
+                class="ru.bpc.sv2.accounts.IsoAccountType"  >
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="accountType" column="account_type"/>
+        <result property="instId" column="inst_id"/>
+        <result property="isoType" column="iso_type"/>
+        <result property="priority" column="priority"/>
+	</resultMap>
+
+    <select id="get-iso-account-types"
+    		parameterClass="qparams"
+    		resultMap="mapping-iso-account-type">
+        SELECT 	  iat.id
+        		, iat.seqnum
+        		, iat.account_type
+        		, iat.inst_id
+        		, iat.iso_type
+        		, iat.priority
+        FROM 
+        	acc_ui_iso_account_type_vw iat
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">iat.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">iat.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="isoType">iat.iso_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">iat.inst_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">iat.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="isoType">iat.iso_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="priority">iat.priority $sorting[].direction$</isEqual>
+            </isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY iat.priority
+		</isEmpty>
+    </select>
+
+    <select id="get-iso-account-types-count"
+     		parameterClass="qparams"
+    		resultClass="int">
+        SELECT 
+        	count(*)
+        FROM 
+        	acc_ui_iso_account_type_vw
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="isoType">iso_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+		</iterate>
+    </select>
+
+	<procedure id="add-iso-account-type"
+    		parameterClass="ru.bpc.sv2.accounts.IsoAccountType">
+    	{call ACC_UI_ACCOUNT_TYPE_PKG.add_iso_type(
+				  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_account_type	=> #accountType#
+				, i_inst_id			=> #instId#
+				, i_iso_type		=> #isoType#
+				, i_priority		=> #priority#
+				)}
+    </procedure>
+
+	<procedure id="modify-iso-account-type"
+    		parameterClass="ru.bpc.sv2.accounts.IsoAccountType">
+    	{call ACC_UI_ACCOUNT_TYPE_PKG.modify_iso_type(
+				  i_id				=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_priority		=> #priority#
+				)}
+	</procedure>
+
+	<procedure id="remove-iso-account-type"
+    		parameterClass="ru.bpc.sv2.accounts.IsoAccountType">
+    	{call ACC_UI_ACCOUNT_TYPE_PKG.remove_iso_type(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+    
+     <select	id="get-transactions"
+    		parameterClass="qparams"
+    		resultClass="ru.bpc.sv2.accounts.Transaction">
+    	<include refid="paginatedOpen"/>
+			SELECT	  acc.transaction_id transactionId
+			        , acc.macros_id macrosId
+			        , acc.amount
+			        , acc.currency
+			        , acc.debit_account_id as debitAccountId
+			        , acc.debit_posting_date as debitPostingDate
+			        , acc.debit_account_type as debitAccountType
+			        , acc.credit_account_id as creditAccountId
+			        , acc.credit_posting_date as creditPostingDate
+			        , acc.credit_account_type as creditAccountType
+			        , acc.transaction_type as transType
+			        , acc.debit_balance as debitBalance
+			        , acc.debit_balance_type as debitBalanceType
+			        , acc.credit_balance as creditBalance
+			        , acc.credit_balance_type as creditBalanceType
+			FROM acc_ui_transaction_vw acc
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="accountId">
+					(
+						acc.debit_account_id = #filters[].value#
+						OR acc.credit_account_id = #filters[].value#
+					)	
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="balanceTypes">
+					(
+						acc.debit_balance_type in (
+							<iterate conjunction="," property="filters[].valueList">
+								#filters[].valueList[]#
+							</iterate>
+						)
+						OR acc.credit_balance_type in (
+							<iterate conjunction="," property="filters[].valueList">
+								#filters[].valueList[]#
+							</iterate>
+						)
+					)		
+				</isEqual>					
+			</iterate>			
+		<include refid="paginatedClose"/>
+    </select>
+
+    <select	id="get-transactions-count"
+    		parameterClass="qparams"
+    		resultClass="int">
+    	<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM acc_ui_transaction_vw acc
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="accountId">
+					(
+						acc.debit_account_id = #filters[].value#
+						OR acc.credit_account_id = #filters[].value#
+					)	
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="balanceTypes">
+					(
+						acc.debit_balance_type in (
+							<iterate conjunction="," property="filters[].valueList">
+								#filters[].valueList[]#
+							</iterate>
+						)
+						OR acc.credit_balance_type in (
+							<iterate conjunction="," property="filters[].valueList">
+								#filters[].valueList[]#
+							</iterate>
+						)
+					)
+				</isEqual>					
+			</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+    <resultMap  id="mapping-entry"
+                class="ru.bpc.sv2.accounts.Entry">
+        <result property="id" column="id"/>
+        <result property="macrosId" column="macros_id"/>
+        <result property="bunchId" column="bunch_id"/>
+        <result property="transactionId" column="transaction_id"/>
+        <result property="transactionType" column="transaction_type"/>
+        <result property="accountId" column="account_id"/>
+        <result property="amount" column="amount" javaType="java.math.BigDecimal"/>
+        <result property="currency" column="currency"/>
+        <result property="balanceType" column="balance_type"/>
+        <result property="balanceImpact" column="balance_impact"/>
+        <result property="balance" column="balance" javaType="java.math.BigDecimal"/>
+        <result property="postingDate" column="posting_date" javaType="java.util.Date"/>
+        <result property="postingOrder" column="posting_order"/>
+        <result property="sttlDay" column="sttl_day"/>
+        <result property="sttlDate" column="sttl_date"/>
+        <result property="operationDate" column="oper_date" javaType="java.util.Date"/>
+        <result property="operationType" column="oper_type"/>
+        <result property="merchantName" column="merchant_name"/>
+        <result property="merchantStreet" column="merchant_street"/>
+        <result property="merchantCity" column="merchant_city"/>
+        <result property="merchantCountry" column="merchant_country"/>        
+		<result property="feeType" column="amount_purpose"/>
+		<result property="status" column="status"/>
+		<result property="unholdDate" column="unhold_date" javaType="java.util.Date"/>
+		<result property="hostDate" column="host_date" javaType="java.util.Date"/>
+	</resultMap>
+	
+    <select	id="get-entries"
+    		parameterClass="qparams"
+    		resultMap="mapping-entry">
+    	<include refid="paginatedOpen"/>
+			SELECT
+				e.id	 
+				, e.macros_id
+				, e.bunch_id
+				, e.transaction_id
+				, e.transaction_type
+				, e.account_id
+				, e.amount
+				, e.currency
+				, e.balance_type
+				, e.balance_impact
+				, e.balance
+				, e.posting_date
+				, e.posting_order
+				, e.sttl_day
+				, e.amount_purpose
+				, e.sttl_date
+				, e.macros_type_id
+				, e.oper_date
+				, e.oper_type
+				, e.merchant_name
+				, e.merchant_street
+				, e.merchant_city
+				, e.merchant_country
+				, e.msg_type
+				, e.status
+				, e.unhold_date
+				, e.host_date
+			FROM 
+				acc_ui_entry_vw e
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="accountId">e.account_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="balanceTypes">
+					e.balance_type in (
+						<iterate conjunction="," property="filters[].valueList">
+							#filters[].valueList[]#
+						</iterate>
+					)						
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="operationDateFrom">e.host_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="operationDateTo">e.host_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="transactionType">e.transaction_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operationType">e.oper_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operationDate">e.oper_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="unholdDate">e.unhold_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="hostDate">e.host_date $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">e.posting_date DESC, e.posting_order DESC</isEmpty>
+		<include refid="paginatedClose"/>
+    </select>
+
+    <select	id="get-entries-count"
+    		parameterClass="qparams"
+    		resultClass="int">
+    	<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM acc_ui_entry_vw e
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="accountId">e.account_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="balanceTypes">
+					e.balance_type in (
+						<iterate conjunction="," property="filters[].valueList">
+							#filters[].valueList[]#
+						</iterate>
+					)						
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="operationDateFrom">e.host_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="operationDateTo">e.host_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+    </select>
+
+	<resultMap id="mapping-account-algorithm" class="ru.bpc.sv2.accounts.AccountAlgorithm">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="checkAvailBalance" column="check_aval_balance" nullValue="false"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-account-algorithms" parameterClass="qparams" resultMap="mapping-account-algorithm">
+		<include refid="paginatedOpen"/>
+			select id
+			     , seqnum
+			     , check_aval_balance
+			     , description
+			     , lang
+			  from acc_ui_selection_vw
+			<iterate prepend=" where " conjunction=" and " property="filters">
+				<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(description) like #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend=" order by " conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">description $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting">order by id asc</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-account-algorithms-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *					
+		FROM acc_ui_selection_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(description) LIKE #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>    
+	</select>
+
+	<procedure id="add-account-algorithm" parameterClass="ru.bpc.sv2.accounts.AccountAlgorithm">
+		{call acc_ui_selection_pkg.add_selection(
+			  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_check_aval_balance	=> #checkAvailBalance#
+			, i_lang				=> #lang#
+			, i_description			=> #description#
+		)}
+	 </procedure>
+
+	<procedure id="modify-account-algorithm" parameterClass="ru.bpc.sv2.accounts.AccountAlgorithm">
+		{call acc_ui_selection_pkg.modify_selection(
+			  i_id					=> #id#
+			, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_check_aval_balance	=> #checkAvailBalance#
+			, i_lang				=> #lang#
+			, i_description			=> #description#
+		)}
+	</procedure>
+
+	<procedure id="remove-account-algorithm" parameterClass="ru.bpc.sv2.accounts.AccountAlgorithm">
+		{call acc_ui_selection_pkg.remove_selection(
+			  i_id					=> #id#
+			, i_seqnum				=> #seqNum#
+		)}
+	</procedure>
+
+    <resultMap  id="mapping-account-algorithm-step"
+                class="ru.bpc.sv2.accounts.AccountAlgorithmStep">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="algoId" column="selection_id"/>
+		<result property="execOrder" column="exec_order"/>
+		<result property="step" column="step"/>
+	</resultMap>
+	
+	<select id="get-account-algorithm-steps"
+			parameterClass="qparams"
+			resultMap="mapping-account-algorithm-step">
+		<include refid="limitationOpen"/>
+		SELECT 	  id
+				, seqnum
+				, selection_id
+				, exec_order
+				, step
+		FROM  acc_ui_selection_step_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="algoId">selection_id = #filters[].value#</isEqual>
+		</iterate>
+        <iterate prepend="ORDER BY " conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="execOrder">exec_order $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="step">step $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">exec_order ASC</isEmpty>
+		<include refid="limitationClose"/>    
+	</select>
+	
+	<select id="get-account-algorithm-steps-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *					
+		FROM acc_ui_selection_step_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="algoId">selection_id = #filters[].value#</isEqual>
+		</iterate>	
+		<include refid="limitationClose"/>    
+	</select>
+	
+	<procedure id="add-account-algorithm-step"
+    		parameterClass="ru.bpc.sv2.accounts.AccountAlgorithmStep">
+    	{call ACC_UI_SELECTION_PKG.add_selection_step(
+		    	  o_id           => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum       => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_selection_id => #algoId#									    			
+				, i_exec_order   => #execOrder#
+				, i_step         => #step#
+		    	)}
+    </procedure>
+
+    <procedure id="modify-account-algorithm-step"
+    		parameterClass="ru.bpc.sv2.accounts.AccountAlgorithmStep">
+    	{call ACC_UI_SELECTION_PKG.modify_selection_step(
+    			  i_id           => #id#
+				, io_seqnum      => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_selection_id => #algoId#									    			
+				, i_exec_order   => #execOrder#
+				, i_step         => #step#
+		    	)}	
+    </procedure>
+    
+    <procedure id="remove-account-algorithm-step"
+    		parameterClass="ru.bpc.sv2.accounts.AccountAlgorithmStep">
+    	{call ACC_UI_SELECTION_PKG.remove_selection_step(
+				  i_id           => #id#
+				, i_seqnum       => #seqNum#
+				)}
+    </procedure>
+
+
+	<resultMap  id="mapping-selection-priority" class="ru.bpc.sv2.accounts.SelectionPriority">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="operType" column="oper_type"/>
+		<result property="accountType" column="account_type"/>
+		<result property="accountStatus" column="account_status"/>
+		<result property="accountCurrency" column="account_currency"/>
+		<result property="priority" column="priority"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="partyType" column="party_type"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="modifierId" column="mod_id"/>
+		<result property="modifierName" column="mod_name"/>
+	</resultMap>
+
+	<select id="get-selection-priorities" parameterClass="qparams" resultMap="mapping-selection-priority">
+		<include refid="paginatedOpen"/>
+			select a.id
+			     , a.seqnum
+			     , a.oper_type
+			     , a.account_type
+			     , a.account_status
+			     , a.account_currency
+			     , a.priority
+			     , a.inst_id
+			     , a.party_type
+			     , i.name as inst_name
+			     , a.msg_type
+			     , a.mod_id
+			     , a.mod_name
+			  from acc_ui_selection_priority_vw a
+			     , ost_ui_institution_sys_vw i
+			 where decode(a.inst_id, '%', -1, a.inst_id) = i.id(+)
+			   and i.lang(+) = com_ui_user_env_pkg.get_user_lang
+			   and a.lang(+) = com_ui_user_env_pkg.get_user_lang
+			<iterate prepend=" and " conjunction=" and " property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operType">a.oper_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountType">a.account_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountStatus">a.account_status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="priority">a.priority = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="partyType">a.party_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="msgType">a.msg_type = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend=" order by " conjunction=" , " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="auto">
+					<isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operType">a.oper_order $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accountType">a.account_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accountStatus">a.account_status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="priority">a.priority $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instId">a.inst_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="partyType">a.party_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="msgType">a.msg_type $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" order by ">a.id asc</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-selection-priorities-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+			select *
+			  from acc_ui_selection_priority_vw a
+			     , ost_ui_institution_sys_vw i
+			 where decode(a.inst_id, '%', -1, a.inst_id) = i.id(+)
+			   and i.lang(+) = com_ui_user_env_pkg.get_user_lang
+			   and a.lang(+) = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend=" and " conjunction=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">a.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">a.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountStatus">a.account_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">a.priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="partyType">a.party_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">a.msg_type = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-selection-priority" parameterClass="ru.bpc.sv2.accounts.SelectionPriority">
+		{call acc_ui_selection_priority_pkg.add(
+			  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_priority			=> #priority#
+			, i_inst_id				=> #instId#
+			, i_oper_type			=> #operType#
+			, i_account_type		=> #accountType#
+			, i_account_status		=> #accountStatus#
+			, i_account_currency	=> #accountCurrency#
+			, i_party_type			=> #partyType#
+			, i_msg_type			=> #msgType#
+			, i_mod_id				=> #modifierId#
+		)}
+	</procedure>
+
+	<procedure id="modify-selection-priority" parameterClass="ru.bpc.sv2.accounts.SelectionPriority">
+		{call acc_ui_selection_priority_pkg.modify(
+			  i_id					=> #id#
+			, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_priority			=> #priority#
+			, i_inst_id				=> #instId#
+			, i_oper_type			=> #operType#
+			, i_account_type		=> #accountType#
+			, i_account_status		=> #accountStatus#
+			, i_account_currency	=> #accountCurrency#
+			, i_party_type			=> #partyType#
+			, i_msg_type			=> #msgType#
+			, i_mod_id				=> #modifierId#
+		)}
+	</procedure>
+
+	<procedure id="remove-selection-priority" parameterClass="ru.bpc.sv2.accounts.SelectionPriority">
+		{call acc_ui_selection_priority_pkg.delete(
+			  i_id					=> #id#
+			, i_seqnum				=> #seqNum#
+		)}
+	</procedure>
+
+    <resultMap  id="mapping-account-info"
+                class="ru.bpc.sv2.accounts.Account">
+        <result property="id" column="id" />
+        <result property="accountType" column="account_type" />
+        <result property="accountNumber" column="account_number" />
+        <result property="balance" column="balance" />
+        <result property="currency" column="currency" />
+        <result property="instId" column="inst_id" />
+        <result property="agentId" column="agent_id" />
+        <result property="status" column="status" />
+        <result property="contractId" column="contract_id"/>
+       	<result property="splitHash" column="split_hash" />
+       	<result property="customerId" column="customer_id"/>       	
+	</resultMap>
+	
+    <select id="get-account-info"
+			parameterClass="java.lang.String"
+			resultMap="mapping-account-info" >
+		SELECT	  a.id
+				, a.account_type
+				, a.account_number
+				, a.currency
+				, a.inst_id
+				, a.agent_id
+				, a.status
+				, a.balance
+				, a.contract_id
+				, a.split_hash
+				, a.customer_id				
+		FROM acc_ui_account_vs_aval_vw a
+		WHERE a.account_number = #value#
+	</select>
+	
+	<resultMap  id="map-balance-update-macros"
+                class="ru.bpc.sv2.accounts.BalanceType"  >
+        <result property="balanceType" column="balance_type" />
+	</resultMap>
+	
+	<select id="get-balance-update-macros"
+			parameterClass="qparams"
+			resultMap="map-balance-update-macros" >
+		select balance_type
+		  from acc_ui_account_vw a
+		     , acc_ui_balance_type_vw b
+		 where b.account_type = a.account_type
+		   and b.inst_id = a.inst_id
+		   and b.update_macros_type is not null
+		   <iterate prepend="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			</iterate>
+	</select>
+
+	<select id="get-accounts-by-card-number" parameterClass="java.util.Map" resultClass="java.lang.String" >
+		  select account_number
+		    from acc_ui_account_object_vw
+		   where entity_type = 'ENTTCARD'
+		     and object_id in (select id
+		                         from iss_ui_card_vw
+		                        where card_number like #cardNumber#)
+		     and lang = #lang#
+		order by account_number desc
+	</select>
+
+	<select id="get-accounts-by-card-id" parameterClass="java.util.Map" resultMap="mapping-account">
+		select id
+		     , account_type
+		     , account_number
+		     , currency
+		     , inst_id
+		     , null as inst_name
+		     , agent_id
+		     , null as agent_name
+		     , null as agent_number
+		     , status
+		     , contract_id
+		     , customer_id
+		     , split_hash
+		     , contract_number
+		     , product_id
+		     , customer_type
+		     , product_type
+		     , balance
+		  from iss_ui_account_vw
+		 where id in (select account_id
+		                from acc_ui_account_object_vw
+		               where entity_type = 'ENTTCARD'
+		                 and object_id = #cardId#)
+	</select>
+
+	<procedure id="restructure-to-dpp" parameterClass="ru.bpc.sv2.credit.DppCalculation">
+		{call crd_ui_account_info_pkg.restructure_to_dpp(
+			  i_account_id         => #accountId#
+			, i_fee_id             => #feeId#
+			, i_eff_date           => #settlementDate#
+			, i_dpp_algorithm      => #calcAlgorithm#
+			, i_instalments_count  => #instalmentCount#
+		)}
+	</procedure>
+
+	<select id="get-priority-accounts" parameterClass="qparams" resultClass="ru.bpc.sv2.accounts.PriorityAccount">
+		<include refid="paginatedOpen"/>
+		select id
+			 , file_date 		as fileDate
+			 , customer_number	as customerNumber
+			 , account_number	as accountNumber
+			 , account_balance	as accountBalance
+			 , customer_balance as customerBalance
+			 , agent_number 	as agentNumber
+			 , product_number	as productNumber
+			 , priority_flag	as priorityFlag
+		from cst_ui_bsm_prior_acc_detail_vw
+		<iterate prepend="where" conjunction="and" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fileDateFrom">trunc(file_date) >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fileDateTo">trunc(file_date) &lt;= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">upper(customer_number) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">upper(account_number) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="agentNumber">upper(agent_number) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="productNumber">upper(product_number) like upper(#filters[].value#)</isEqual>
+		</iterate>
+		<isEmpty property="sorting">order by id asc</isEmpty>
+		<iterate prepend="order by" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="auto">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="fileDate">file_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="customerNumber">customer_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="accountNumber">account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="accountBalance">account_balance $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="customerBalance">customer_balance $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="agentNumber">agent_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="productNumber">product_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="priorityFlag">priority_flag $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-priority-accounts-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+		select *
+		from cst_ui_bsm_prior_acc_detail_vw
+		<iterate prepend="where" conjunction="and" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fileDateFrom">trunc(file_date) >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fileDateTo">trunc(file_date) &lt;= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">upper(customer_number) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">upper(account_number) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="agentNumber">upper(agent_number) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="productNumber">upper(product_number) like upper(#filters[].value#)</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+</sqlMap>

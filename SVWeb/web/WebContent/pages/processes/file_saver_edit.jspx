@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<f:view id="fileSaverEditView">
+    <ui:composition>
+        <script type="text/javascript">//<!--
+        oldValue["fileSaverEditForm"] = "#{MbFileSavers.newFileSaver.lang}";
+
+        function checkParameterFields() {
+            var checked = true;
+
+            var source = document.getElementById('fileSaverEditForm:baseSource').value;
+            if (jQuery.trim(source) == "") {
+                document.getElementById('fileSaverEditForm:baseSourceError').style.display = "inline";
+                checked = false;
+            }
+
+            var paramShortDesc = document.getElementById('fileSaverEditForm:paramShortDesc').value;
+            if (jQuery.trim(paramShortDesc) == "") {
+                document.getElementById('fileSaverEditForm:paramShortDescError').style.display = "inline";
+                checked = false;
+            }
+
+            return checked;
+        }
+
+        //-->
+        </script>
+        <rich:modalPanel id="file_saver_modal_panel" autosized="true" minWidth="100" minHeight="50"
+                         rendered="#{usession.inRole['ADD_FILE_SAVER'] or usession.inRole['MODIFY_FILE_SAVER']}">
+            <f:facet name="header">
+                <h:panelGroup id="file_saver_modal_header">
+                    <h:outputText value="#{lblPrc.new_file_saver}" rendered="#{MbFileSavers.newMode}"/>
+                    <h:outputText value="#{lblPrc.edit_file_saver}" rendered="#{MbFileSavers.editMode}"/>
+                </h:panelGroup>
+            </f:facet>
+            <f:facet name="controls">
+            </f:facet>
+
+            <h:form id="fileSaverEditForm">
+                <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                    <h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+                                 columnClasses="firstColModal, width250">
+                        <h:outputLabel for="lang" value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+                        <h:selectOneMenu id="lang" value="#{MbFileSavers.newFileSaver.lang}"
+                                         rendered="#{MbFileSavers.newMode}">
+                            <f:selectItems value="#{MbFileSavers.languages}"/>
+                        </h:selectOneMenu>
+                        <h:selectOneMenu id="editLang" value="#{MbFileSavers.newFileSaver.lang}"
+                                         rendered="#{MbFileSavers.editMode}"
+                                         onchange="document.getElementById('fileSaverEditView:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('fileSaverEditView:confirmPanel')}.show()">
+                            <f:selectItems value="#{MbFileSavers.languages}"/>
+                        </h:selectOneMenu>
+
+                        <h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+                        <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+                            <h:inputText id="paramShortDesc" value="#{MbFileSavers.newFileSaver.name}"
+                                         maxlength="200"
+                                         label="#{lblCommon.name}"
+                                         onblur="hideErrorField(this)">
+                                <f:validateLength minimum="3"/>
+                                <a4j:support event="onchange" reRender="paramShortDescErr" limitToList="true"/>
+                            </h:inputText>
+                            <rich:message id="paramShortDescErr" for="paramShortDesc" styleClass="errorMarker"/>
+                            <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                            id="paramShortDescError" style="display:none;">
+                                <f:param name="fieldName" value="#{lblCommon.name}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+
+                        <h:outputLabel value="* #{lblPrc.base_source}: " title="#{lblPrc.base_source}"/>
+                        <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+                            <h:inputText id="baseSource"
+                                         maxlength="200"
+                                         value="#{MbFileSavers.newFileSaver.baseSource}"
+                                         label="#{lblPrc.base_source}"
+                                         onblur="hideErrorField(this)">
+                            </h:inputText>
+                            <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                            id="baseSourceError" style="display:none;">
+                                <f:param name="fieldName" value="#{lblPrc.source}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+
+                        <h:outputLabel value="#{lblPrc.post_source}: " title="#{lblPrc.post_source}"/>
+                        <h:inputText id="postSource"
+                                     maxlength="200"
+                                     value="#{MbFileSavers.newFileSaver.postSource}"
+                                     label="#{lblPrc.post_source}">
+                        </h:inputText>
+
+                        <h:outputLabel value="#{lblPrc.is_parallel}:" title="#{lblPrc.is_parallel}"/>
+                        <h:selectBooleanCheckbox value="#{MbFileSavers.newFileSaver.parallel}"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                        <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                            <h:outputText/>
+                            <bre:taggedCommandButton
+                                    value="#{lblForm.save}" type="submit"
+                                    reRender="#{rerenderList}"
+                                    action="#{MbFileSavers.save}"
+                                    onclick="if (!checkParameterFields()) return false; disableModalPanelBtns(this)"
+                                    oncomplete="returnFormFields(); enableModalPanelBtns(this);
+                                                if (#{usession.noErrorResponse})
+                                                    #{rich:component('file_saver_modal_panel')}.hide()"/>
+                            <bre:taggedCommandButton
+                                    value="#{lblForm.cancel}"
+                                    action="#{MbFileSavers.close}" immediate="true"
+                                    oncomplete="#{rich:component('file_saver_modal_panel')}.hide()"
+                                    reRender="fileSaverEditForm">
+                                <f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                            </bre:taggedCommandButton>
+                        </h:panelGrid>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+        </rich:modalPanel>
+
+
+        <ui:include src="/pages/utils/langConfirmPanel.jspx">
+            <ui:param name="backingBean" value="#{MbFileSavers}"/>
+            <ui:param name="rerenderList" value="fileSaverEditForm:paramShortDesc"/>
+            <ui:param name="editElem" value="fileSaverEditForm:editLang"/>
+            <ui:param name="newValue" value="#{MbFileSavers.newFileSaver.lang}"/>
+            <ui:param name="subviewId" value="fileSaverEditView"/>
+            <ui:param name="formName" value="fileSaverEditForm"/>
+        </ui:include>
+    </ui:composition>
+</f:view>
+</html>

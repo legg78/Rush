@@ -1,0 +1,551 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	xmlns:o="http://openfaces.org/">
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:param name="pageHelp" value="invoices_reports.htm" />
+	<ui:param name="pageHelpModalAdd" value="report_add.htm" />
+	<ui:param name="pageHelpModalEdit" value="report_edit.htm" />
+	<ui:param name="showHelpModal" value="true" />
+	
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+		<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm"/>
+		<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+		
+		<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+		<a4j:loadScript src="/js/stretch.js" />
+
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblRpt.reports}" />
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+		
+		<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('reportsSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 };
+			 function validateNumberValue(field, e) {
+				var isValid = numbersOnly(field, e, false);
+				togleErrorMsg(!isValid);
+				return isValid;
+			 };
+			 function togleErrorMsg(isShow) {
+				 if(isShow)
+					document.getElementById('reportsSearchForm:idFilterErr').style.display = 'inline';
+				else 
+					document.getElementById('reportsSearchForm:idFilterErr').style.display = 'none';
+			 };
+			 function blurField(field) {
+				if(field.value!='')  
+					togleErrorMsg(parseInt(field.value) != field.value);
+			 };
+			//]]>
+			</script>
+			
+		<h:form id="reportsSearchForm" onkeypress="handleEnter(event)">
+			<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"
+				onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+				zindex="1000" inputClass="hidden" buttonClass="hidden" />
+
+			<script>
+				#{rich:component('reportsSearchForm:calendar')}.customExpand=customExpand;
+			</script>
+
+			<a4j:jsFunction name="setTabName" reRender="err_ajax, #{MbReportsSearch.tabName}"
+				limitToList="true" ajaxSingle="true" eventsQueue="queue">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbReportsSearch.tabName}" />
+			</a4j:jsFunction>
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+						<h:panelGroup styleClass="search_block_left" layout="block">
+							<h:panelGrid styleClass="fw" columns="2"
+								columnClasses="top ,link-cont">
+								<h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+									columns="4"
+									columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+									<h:outputLabel for="instId" value="#{lblCommon.institution}: "
+										title="#{lblCommon.institution}" />
+									<h:selectOneMenu id="instId"
+										value="#{MbReportsSearch.filter.instId}">
+										<f:selectItem itemValue="" />
+										<f:selectItems value="#{MbReportsSearch.institutions}" />
+									</h:selectOneMenu>
+
+									<h:outputLabel for="idFilter" value="#{lblCommon.id}: "
+										title="#{lblCommon.id}" />
+									<h:panelGrid columns="2" cellspacing="0" cellpadding="0" width="100%">
+										<h:inputText id="idFilter" 
+													 value="#{MbReportsSearch.filter.id}"
+													 validatorMessage="#{lblMsg.pos_number}"
+													 onkeypress="if(!validateNumberValue(this, event)) return false;"
+													 onblur="blurField(this);" />
+										<h:outputFormat value="#{lblMsg.pos_number}"
+														styleClass="errorMarker" id="idFilterErr"	style="display:none;">
+											<f:param name="fieldName" value="#{lblCommon.id}" />
+										</h:outputFormat>									
+									</h:panelGrid>
+
+									<h:outputLabel for="typeFilter" value="#{lblRpt.source_type}: "
+										title="#{lblRpt.source_type}" />
+									<h:selectOneMenu id="typeFilter"
+										value="#{MbReportsSearch.filter.sourceType}">
+										<f:selectItem itemValue="" />
+										<f:selectItems value="#{MbReportsSearch.sourceTypes}" />
+									</h:selectOneMenu>
+
+									<h:outputLabel for="nameFilter" value="#{lblCommon.name}: "
+										title="#{lblCommon.name}" />
+									<h:inputText id="nameFilter"
+										value="#{MbReportsSearch.filter.name}" />
+
+									<h:outputLabel for="tagFilter" value="#{lblRpt.tag}: "
+										title="#{lblRpt.tag}" />
+									<h:selectOneMenu id="tagFilter"
+										value="#{MbReportsSearch.tagIdFilter}">
+										<f:selectItem itemValue="" />
+										<f:selectItems value="#{MbReportsSearch.tags}" />
+									</h:selectOneMenu>
+
+								</h:panelGrid>
+								<h:panelGrid columns="1">
+									<bre:taggedCommandButton action="#{MbReportsSearch.search}"
+										reRender="reportsTable, dsreports, pagesNum, reportsBtnForm:btnPanel, detailsTab, parametersTab, templatesTab, rolesTab, tagsTab, entitiesTab"
+										image="/_img/icon_search.png" type="submit"
+										value="#{lblForm.search}" style="width:85px;"
+										id="searchBtn"
+										onclick="disableModalPanelBtns(this);"
+										oncomplete="enableModalPanelBtns(this);" 
+										eventsQueue="queue"/>
+									<h:panelGroup styleClass="link-clear" layout="block">
+										<h:graphicImage url="/_img/icon_clear.png" />
+										<a4j:commandLink value="#{lblForm.clear_all}"
+											action="#{MbReportsSearch.clearFilter}"
+											reRender="reportsSearchForm, reportsForm, reportsBtnForm, details">
+										</a4j:commandLink>
+									</h:panelGroup>
+								</h:panelGrid>
+							</h:panelGrid>
+							<a4j:outputPanel ajaxRendered="true">
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</a4j:outputPanel>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<h:form id="reportsForm">
+			<a4j:jsFunction name="changeSelection" eventsQueue="queue"
+					reRender="reportsBtnForm:btnPanel, #{MbReportsSearch.tabName}"
+					/>
+
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+					<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+					<rich:extendedDataTable id="reportsTable"
+							styleClass="res-table" headerClass="res-table-header"
+							rowClasses=",odd" selectedClass="res-table-selected" var="item"
+							value="#{MbReportsSearch.dataModel}"
+							selection="#{MbReportsSearch.itemSelection}"
+							rows="#{MbReportsSearch.rowsNum}" height="255px"
+							selectionMode="single" width="100%" enableContextMenu="true"
+							onselectionchange="changeSelection();"
+							noDataLabel="#{MbReportsSearch.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+							reRender="detailsTab, parametersTab, templatesTab, rolesTab, tagsTab, entitiesTab">
+							
+
+						<rich:column id="nodeId" sortBy="#{'id'}" width="10%" label="#{lblCommon.id}">
+							<f:facet name="header">
+								<h:panelGroup>
+									<a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+								</h:panelGroup>
+							</f:facet>
+							<h:outputText value="#{item.id}" title="#{item.id}" />
+						</rich:column>
+
+						<rich:column id="nodeName" sortBy="#{'name'}" width="25%" label="#{lblCommon.name}">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.name}" />
+							</f:facet>
+							<h:outputText value="#{item.name}" title="#{item.name}"
+								styleClass="treeTableText" />
+						</rich:column>
+
+						<rich:column id="nodeInstName" sortBy="#{'instName'}" label="#{lblCommon.institution}"
+							width="25%">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.institution}" />
+							</f:facet>
+							<bm:entityDisplay  entityId="#{item.instId}"
+										value="#{item.instName}"
+										styleClass="treeTableText"/>
+						</rich:column>
+
+						<rich:column id="tags" width="25%" label="#{lblRpt.tags}" sortBy="#{'tags'}">
+							<f:facet name="header">
+								<h:outputText value="#{lblRpt.tags}" />
+							</f:facet>
+							<h:outputText value="#{item.tagsLabel}" title="#{item.tagsLabel}"
+								styleClass="treeTableText" />
+						</rich:column>
+					</rich:extendedDataTable>
+					</h:panelGroup>
+					<a4j:outputPanel ajaxRendered="true">
+						<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+						<h:panelGroup styleClass="collapse-vert" layout="block" />
+					</a4j:outputPanel>
+				</h:panelGroup>
+			</h:panelGroup>
+        </h:form>
+
+        <h:form id="reportsBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="5"
+							columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount">
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}"
+								title="#{lblCommon.rows_per_page}" />
+							<h:selectOneMenu id="rows_num" value="#{MbReportsSearch.rowsNum}"
+									styleClass="row_per_page">
+								<a4j:support event="onchange" limitToList="true"
+										reRender="reportsTable, dsreports, pagesNum, reportsBtnForm:btnPanel, detailsTab, parametersTab, templatesTab,
+												rolesTab, tagsTab, entitiesTab, err_ajax"/>
+								<f:selectItems value="#{CommonUtils.rowNumsList}" />
+							</h:selectOneMenu>
+
+							<rich:datascroller maxPages="10" fastControls="hide"
+									pagesVar="pages" styleClass="res-datascroller" 
+									id="dsreports" for="reportsTable" 
+									reRender="detailsTab, parametersTab, templatesTab, rolesTab, tagsTab, entitiesTab">
+								<f:facet name="first">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="first_disabled">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="last">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="last_disabled">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="previous_disabled">
+									<h:outputText value="#{lblCommon.prev}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="next">
+									<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="next_disabled">
+									<h:outputText value="#{lblCommon.next}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="pages">
+								</f:facet>
+							</rich:datascroller>
+
+							<h:panelGroup id="pagesNum">
+								<h:outputText styleClass="strongClass" value="#{pages} " />
+								<h:outputText value=" #{lblCommon.pages}" />
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbReportsSearch.dataModel.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+							</h:panelGroup>
+							
+							 <h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbReportsSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbReportsSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGrid id="btnPanel" columns="6" styleClass="buttons_block">
+						<bre:taggedCommandButton id="addBtn"
+							reRender="rpt_report_modal_panel,viewXmlForm"
+							value="#{lblForm.add}"
+							oncomplete="#{rich:component('rpt_report_modal_panel')}.show()"
+							action="#{MbReportsSearch.add}"
+							rendered="#{usession.inRole['ADD_REPORT']}"
+							image="/images/create_doc.gif" />
+						<bre:taggedCommandButton id="editBtn"
+							reRender="rpt_report_modal_panel,viewXmlForm"
+							value="#{lblForm.edit}" action="#{MbReportsSearch.edit}"
+							oncomplete="#{rich:component('rpt_report_modal_panel')}.show()"
+							disabled="#{MbReportsSearch.activeItem.id == null}"
+							rendered="#{usession.inRole['MODIFY_REPORT']}"
+							image="/images/edit.gif" />
+						<bre:taggedCommandButton id="deleteBtn"
+							value="#{lblForm.delete}"
+							oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()"
+							disabled="#{MbReportsSearch.activeItem.id == null}"
+							rendered="#{usession.inRole['REMOVE_REPORT']}"
+							image="/images/delete.gif" />
+						<bre:taggedCommandButton id="runBtn"
+							reRender="rpt_report_run_modal_div, rpt_report_run_modal_btns" value="#{lblRpt.run}"
+							oncomplete="#{rich:component('rpt_report_run_modal_panel')}.show()"
+							action="#{MbReportsSearch.run}" ajaxSingle="true"
+							disabled="#{MbReportsSearch.activeItem.id == null or MbReportsSearch.activeItem.isNotification}"
+							rendered="#{usession.inRole['RUN_REPORT']}" />
+						<bre:taggedCommandButton id="compileReports"
+							rendered="#{usession.inRole['MODIFY_REPORT_PARAMETER']}"
+							value="#{lblRpt.compile_all_reports}"
+							oncomplete="alert('#{lblMsg.templates_compiled}: #{MbReportsSearch.successfullyCompiled}');"
+							action="#{MbReportsSearch.compileUncompiledReports}" ajaxSingle="true"
+							/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbReportsSearch.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbReportsSearch.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content"
+				selectedTab="#{MbReportsSearch.tabName}">
+
+				<rich:tab label="Details" name="detailsTab" onlabelclick="setTabName('detailsTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+						<h:panelGroup id="detailsTab" layout="block">
+							<ui:include src="/pages/reports/report_details.jspx"/>
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('parametersTab')" label="Parameters"
+					rendered="#{usession.inRole['VIEW_REPORT_PARAMETERS']}"
+					style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.parameters}"
+								title="#{lblCommon.parameters}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="parametersTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/reports/list_report_parameters_bottom.jspx">
+							<ui:param name="isSimple"
+								value="#{MbReportsSearch.activeItem.simple}"/>
+							<ui:param name="isXml" value="#{MbReportsSearch.activeItem.xml}"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('imagesTab')" label="#{lblRpt.images}"
+						  rendered="#{usession.inRole['VIEW_REPORT_BANNER']}"
+						  style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblRpt.images}" title="#{lblRpt.images}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="imagesTab" layout="block"
+								  styleClass="carddata-wrapper"
+								  style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/reports/list_report_images_bottom.jspx"/>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('outParametersTab')" label="#{lblRpt.output_parameters}"
+					rendered="#{usession.inRole['VIEW_REPORT_PARAMETERS']}"
+					style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblRpt.output_parameters}"
+								title="#{lblRpt.output_parameters}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="outParametersTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/reports/list_report_out_parameters_bottom.jspx">
+							<ui:param name="isSimple"
+								value="#{MbReportsSearch.activeItem.simple}"/>
+							<ui:param name="isXml" value="#{MbReportsSearch.activeItem.xml}"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('templatesTab')" label="Templates"
+					rendered="#{usession.inRole['VIEW_REPORT_TEMPLATE']}"
+					style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblRpt.templates}"
+								title="#{lblRpt.templates}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="templatesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/reports/list_report_templates_bottom.jspx"/>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Roles" onlabelclick="setTabName('rolesTab')"
+					rendered="#{usession.inRole['VIEW_ROLES_RPT']}"
+					ontabenter="setTabName('rolesTab')" name="rolesTab"
+					style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblRpt.roles}" title="#{lblRpt.roles}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="rolesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/reports/reportRolesBottomList.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Tags" name="tagsTab" style="height:100%;" onlabelclick="setTabName('tagsTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblRpt.tags}" title="#{lblRpt.tags}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="tagsTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/reports/reportTagsBottom.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab ontabenter="storeTab('entitiesTab')" label="Entities"
+					style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAcc.entities}" title="#{lblAcc.entities}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="entitiesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/reports/list_report_entities_bottom.jspx"/>
+					</h:panelGroup>
+				</rich:tab>
+
+			</rich:tabPanel>
+		</h:panelGroup>
+
+
+		<ui:include src="/pages/reports/report_edit.jspx">
+			<ui:param name="rerenderList"
+				value="reportsTable, dsreports, pagesNum, btnPanel, detailsTab, parametersTab, templatesTab, rolesTab, tagsTab, entitiesTab"/>
+		</ui:include>
+
+		<ui:include src="/pages/reports/report_run_parameters.jspx">
+			<ui:param name="rerenderList" value="parametersTab"></ui:param>
+		</ui:include>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbReportsSearch}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="reportsTable, dsreports, pagesNum, btnPanel, detailsTab, templatesTab, parametersTab, rolesTab, tagsTab, entitiesTab"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteViewId"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script type="text/javascript">
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'reportsSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'reportsForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'reportsBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'reportDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'reportDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'reportParametersBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'mainTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'reportImagesBottomForm',
+                            TAB_FORM_WRAPPER_ID:    'reportImagesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'reportOutParametersBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'mainTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'reportTemplatesForm',
+                            TAB_FORM_WRAPPER_ID:    'templatesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'reportRolesBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'reportRolesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'reportTagsForm',
+                            TAB_FORM_WRAPPER_ID:    'reportTagsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'reportEntitiesForm',
+                            TAB_FORM_WRAPPER_ID:    'entitiesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+            updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>
+	</ui:define>
+</ui:composition>
+</html>

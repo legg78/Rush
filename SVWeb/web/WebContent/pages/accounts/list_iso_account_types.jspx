@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+		function uncheckCyclicLimitFlag() {
+			document.getElementById("attrModalForm:cyclicLimitSelector").checked = false;
+		}
+	
+		function checkIsoAccountFields() {
+			var checked = true;
+			
+			if (document.getElementById('isoAccountTypeDiv:newIsoType').value == "") {
+				document.getElementById('isoAccountTypeDiv:newIsoTypeError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//-->
+	</script>
+
+	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+	
+	<h:form id="isoTypesForm">
+		<a4j:region>
+			<h:panelGroup id="isoTypesTableWrapper" layout="block"
+				style="padding:0px;margin:0px;">
+				<rich:extendedDataTable id="isoTypesTable" var="item"
+					styleClass="res-table" headerClass="res-table-header table-header-ext"
+					rowClasses=",odd" selectedClass="res-table-selected"
+					value="#{MbIsoAccountTypes.isoAccountTypes}"
+					selection="#{MbIsoAccountTypes.itemSelection}"
+					selectionMode="single" enableContextMenu="true"
+					tableState="#{MbIsoAccountTypes.tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+
+					<a4j:support event="onselectionchange" ignoreDupResponses="true"
+						reRender="isoTypesForm:isoTypeBtnBlock" />
+
+					<rich:column id="id" label="#{lblCommon.id}" title="ID" width="20%" sortBy="#{'id'}">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{item.id}" title="#{item.id}" />
+					</rich:column>
+
+					<rich:column id="iso_type" label="#{lblAcc.iso_type}" title="ISO Type" width="60%" sortBy="#{'isoType'}">
+						<f:facet name="header">
+							<h:outputText value="#{lblAcc.iso_type}"
+								title="#{lblAcc.iso_type}" />
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[item.isoType]}"
+							title="#{DictUtils.articles[item.isoType]}"
+							rendered="#{item.isoType != null and item.isoType != '%'}" />
+						<h:outputText value="#{item.isoType}" title="#{item.isoType}"
+							rendered="#{item.isoType == '%'}" />
+						<h:outputText value="" rendered="#{item.isoType == null}" />
+					</rich:column>
+
+					<rich:column id="priority" label="#{lblCommon.priority}" title="Priority" width="20%" sortBy="#{'priority'}"
+						sortOrder="ASCENDING">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.priority}"
+								title="#{lblCommon.priority}" />
+						</f:facet>
+						<h:outputText value="#{item.priority}" title="#{item.priority}" />
+					</rich:column>
+				</rich:extendedDataTable>
+			</h:panelGroup>
+		</a4j:region>
+
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	            <h:panelGrid id="isoTypeBtnBlock" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	            	<h:panelGroup>
+					<bre:taggedCommandButton id="createBalTypeBtn"
+                       		value="#{lblForm.add}"
+                       		reRender="isoAccountTypeHeader, isoAccountTypeDiv"
+                       		disabled="#{MbIsoAccountTypes.filter.accountType == null}"
+                       		image="/images/create_doc.gif"
+                       		action="#{MbIsoAccountTypes.add}"
+							oncomplete="#{rich:component('isoAccountTypePanel')}.show()"
+							/>
+					<bre:taggedCommandButton id="editBalTypeBtn"
+							reRender="isoAccountTypeHeader, isoAccountTypeDiv"
+							value="#{lblForm.edit}"
+							disabled="#{MbIsoAccountTypes.activeIsoAccountType == null}"
+							action="#{MbIsoAccountTypes.edit}"
+							oncomplete="#{rich:component('isoAccountTypePanel')}.show()"
+							image="/images/edit.gif"
+							/>
+					<bre:taggedCommandButton id="deleteBalTypeBtn"
+							value="#{lblForm.delete}"
+							disabled="#{MbIsoAccountTypes.activeIsoAccountType == null}"
+							image="/images/delete.gif"
+							oncomplete="#{rich:component('deleteIsoViewId:confirmPanel')}.show()"
+							/>
+				</h:panelGroup>
+				
+				<h:panelGroup>
+					<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+						onclick="saveIsoTableState();"/>
+					<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+						onclick="deleteIsoTableState();"/>
+					<a4j:queue name="tablestatequeue"/>
+					<a4j:jsFunction name="saveIsoTableState" action="#{MbIsoAccountTypes.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+					<a4j:jsFunction name="deleteIsoTableState" action="#{MbIsoAccountTypes.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+				</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="isoAccountTypePanel" autosized="true" minWidth="300" minHeight="100"
+			onshow="document.getElementById('isoAccountTypeDiv:newIsoType').focus()">
+	    <f:facet name="header">
+	    	<h:panelGroup id="isoAccountTypeHeader">
+			    <h:outputText value="#{lblAcc.new_dependence}" rendered="#{MbIsoAccountTypes.newMode}"/>
+			    <h:outputText value="#{lblAcc.edit_dependence}" rendered="#{MbIsoAccountTypes.editMode}"/>
+		    </h:panelGroup>
+        </f:facet>
+        <f:facet name="controls">
+   	    </f:facet>
+ 	    	<h:form id="isoAccountTypeDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal noWrap, width250, noWrap">
+					<h:outputLabel value="#{lblCommon.id}: " title="#{lblCommon.id}" rendered="#{MbIsoAccountTypes.editMode}"/>
+					<h:inputText disabled="true"  
+							value="#{MbIsoAccountTypes.newIsoAccountType.id}"
+							rendered="#{MbIsoAccountTypes.editMode}"
+							/>
+
+					<h:outputLabel value="#{lblAcc.account_type}: " title="#{lblAcc.account_type}"/>
+					<h:inputText id="newAccountType" 
+							value="#{DictUtils.articles[MbIsoAccountTypes.newIsoAccountType.accountType]}"
+							rendered="#{MbIsoAccountTypes.newIsoAccountType.accountType != null}" disabled="true"/>
+					<h:inputText id="newAccountTypeEmpty" 
+							value="" rendered="#{MbIsoAccountTypes.newIsoAccountType.accountType == null}"
+							disabled="true"/>
+					
+					<h:outputLabel value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+					<h:inputText id="instName" 
+							value="#{MbIsoAccountTypes.newIsoAccountType.instId} - #{MbIsoAccountTypes.instName}"
+							disabled="true"/>
+
+					<h:outputLabel value="* #{lblAcc.iso_type}: " title="#{lblAcc.iso_type}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu value="#{MbIsoAccountTypes.newIsoAccountType.isoType}"
+								id="newIsoType"
+								disabled="#{MbIsoAccountTypes.editMode}"
+								label="#{lblAcc.iso_type}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItem itemValue="%"/>
+							<f:selectItems value="#{MbIsoAccountTypes.isoTypes}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newIsoTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAcc.iso_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblCommon.priority}: " title="#{lblCommon.priority}"/>
+					<h:inputText id="newPriority" 
+							value="#{MbIsoAccountTypes.newIsoAccountType.priority}"
+							maxlength="4"
+							onkeypress="if (!numbersOnly(this, event)) return false;"
+							/>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                        <bre:taggedCommandButton
+                        		value="#{lblForm.save}" type="submit" action="#{MbIsoAccountTypes.save}"
+                        		reRender="isoTypesForm:isoTypesTable, isoTypesForm:isoTypeBtnBlock"
+                        		onclick="if (!checkIsoAccountFields()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('isoAccountTypePanel')}.hide()"
+	                       		/>
+                        <bre:taggedCommandButton
+	                       		value="#{lblForm.cancel}" action="#{MbIsoAccountTypes.close}" immediate="true"
+	                       		oncomplete="#{rich:component('isoAccountTypePanel')}.hide()"
+	                       		reRender="isoAccountTypeDiv">
+	                    	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                    </bre:taggedCommandButton>	
+		            </h:panelGrid>
+		         </h:panelGroup>
+	    	</h:panelGroup>
+		</h:form>		
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbIsoAccountTypes}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="isoTypesForm:isoTypesTable, isoTypesForm:isoTypeBtnBlock"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteIsoViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

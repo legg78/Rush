@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblAup" basename="ru.bpc.sv2.ui.bundles.Aup" />
+	<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common" />
+	
+   	<h:form id="schemesForm">
+   		<h:panelGroup id="schemesTableWrapper" layout="block" style="padding:0px;margin:0px;">
+		    <rich:extendedDataTable id="schemesTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd" 
+				selectedClass="res-table-selected" var="item"
+				value="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).objects}" height="220px"
+				selection="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).itemSelection}"
+				selectionMode="single" enableContextMenu="true"
+				tableState="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}" >
+	
+				<a4j:support event="onselectionchange" reRender="btnPanel" />
+	
+				<rich:column id="id" label="#{lblCommon.id}" title="Id" sortBy="#{'id'}" width="10%" rendered="false">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+					</f:facet>
+					<h:outputText value="#{item.id}" title="#{item.id}"/>
+				</rich:column>
+				
+				<rich:column id="scheme" label="#{lblAup.scheme}" sortBy="#{'scheme'}" width="40%">
+					<f:facet name="header">
+						<h:panelGroup>         
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblAup.scheme}" title="#{lblAup.scheme}" />
+						</h:panelGroup>
+					</f:facet>
+					<bm:entityDisplay entityId="#{item.schemeId}" 
+						value="#{item.schemeName}"/>
+				</rich:column>
+				
+				<rich:column id="entity_type" label="#{lblAup.entity_type}" sortBy="#{'entityType'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAup.entity_type}" title="#{lblAup.entity_type}" />
+					</f:facet>
+					<bm:entityDisplay description="#{DictUtils.articles[item.entityType]}" 
+						value="#{DictUtils.articles[item.entityType]}"/>
+				</rich:column>
+			
+				<rich:column id="start_date" label="#{lblAup.start_date}" sortBy="#{'startDate'}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAup.start_date}" title="#{lblAup.start_date}" />
+					</f:facet>
+					<h:outputText value="#{item.startDate}" title="#{item.startDate}" >
+						<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+					</h:outputText>
+				</rich:column>
+	
+				<rich:column id="end_date" label="#{lblAup.end_date}" sortBy="#{'endDate'}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAup.end_date}" title="#{lblAup.end_date}" />
+					</f:facet>
+					<h:outputText value="#{item.endDate}" title="#{item.endDate}">
+						<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+					</h:outputText>
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{schemeObjectBean==null}">
+	            <h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	            	<h:panelGroup>
+	            	<bre:taggedCommandButton id="addBtn"
+                      		reRender="scheme_modal_header, scheme_modal_div"
+                      		value="#{lblForm.add}"
+                   			oncomplete="#{rich:component('scheme_modal_panel')}.show()"
+                      		action="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).add}"
+                      		disabled="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).objectId == null}"
+                      		rendered="#{usession.inRole['ADD_SCHEME_OBJECT']}"
+                      		image="/images/create_doc.gif" />
+                    <bre:taggedCommandButton id="editBtn"
+							reRender="scheme_modal_header, scheme_modal_div"
+							action="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).edit}"
+							value="#{lblForm.edit}"
+							oncomplete="#{rich:component('scheme_modal_panel')}.show()"
+							disabled="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).activeObject == null}"
+							rendered="#{usession.inRole['ADD_SCHEME_OBJECT']}"
+							image="/images/edit.gif" />
+					<bre:taggedCommandButton id="removeBtn"
+							value="#{lblForm.delete}"
+							disabled="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).activeObject == null}"
+							rendered="#{usession.inRole['REMOVE_SCHEME_OBJECT']}"
+							image="/images/delete.gif" 
+							oncomplete="#{rich:component('deleteSchemeView:confirmPanel')}.show()"/>
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveSchemeTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteSchemeTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveSchemeTableState" action="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteSchemeTableState" action="#{(schemeObjectBean==null ? MbAupSchemeObjects : schemeObjectBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+				
+				
+			</h:panelGroup>
+	    </h:panelGroup>
+    </h:form>
+	
+	<ui:include src="/pages/aup/scheme_object_edit.jspx"/>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbAupSchemeObjects}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="schemesForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteSchemeView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+	
+</ui:composition>
+</html>

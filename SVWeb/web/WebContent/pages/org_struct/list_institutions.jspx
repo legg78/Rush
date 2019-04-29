@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+		<rich:hotKey key="F1" handler="window.open('/sv/pages/help/index.html?managing_institutions.htm', 'new')" />
+		<f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost"/>
+		<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net"/>
+		<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+		<f:loadBundle var="lblAup" basename="ru.bpc.sv2.ui.bundles.Aup"/>
+		<f:loadBundle var="lblMsg" basename="ru.bpc.sv2.ui.bundles.Msg"/>
+		<f:loadBundle var="lblFrp" basename="ru.bpc.sv2.ui.bundles.Frp"/>
+		
+		
+		<a4j:outputPanel ajaxRendered="true">
+			<o:loadBundle var="lblOstQ" basename="ru.bpc.sv2.ui.bundles.Ost"/>
+		</a4j:outputPanel>
+		<script type="text/javascript">
+//<!--	
+			function disablePanelBtns() {
+				if (document.getElementById("instForm:instAgentsBtn") != null) {
+					document.getElementById("instForm:instAgentsBtn").disabled = true;
+				}				
+			}
+
+			function enablePanelBtns() {
+				if (document.getElementById("instForm:instAgentsBtn") != null) {
+					document.getElementById("instForm:instAgentsBtn").disabled = false;
+				}
+			}
+			
+			//-->
+		</script>
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<!-- navigation bar -->
+        <bpct:navBar pageName="#{lblOst.institutions}"/>
+        
+        <script type="text/javascript">
+		//<![CDATA[
+		function handleEnter(event) {
+			 if (event.keyCode == 13) {
+				 document.getElementById('instSearchForm:searchBtn').click(); 
+				 return false; 
+			} 
+			return true;
+		 }	
+		//]]>
+		</script>
+        
+		<h:form id="instSearchForm" onkeypress="handleEnter(event)">			
+			
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+									
+									<h:outputLabel value="#{lblOst.inst_id}: " title="#{lblOst.inst_id}" />
+		                			<h:inputText value="#{MbInstitution.filter.idFilter}"/>
+
+		                			<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}" />
+		                			<h:inputText value="#{MbInstitution.filter.description}"/>
+
+									<h:outputLabel value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+		                			<h:inputText value="#{MbInstitution.filter.name}"/>
+
+		                			<h:outputLabel value="#{lblCommon.type}: " title="#{lblCommon.type}" />
+		                			<h:selectOneMenu value="#{MbInstitution.filter.type}">
+		                				<f:selectItems value="#{MbInstitution.types}"/>
+		                			</h:selectOneMenu>
+
+		                	</h:panelGrid>
+		                	<h:panelGrid columns="1" >
+		                		<bre:taggedCommandButton image="/_img/icon_search.png" type="submit"
+		                				value="#{lblForm.search}" style="width:85px;"
+		                				reRender="instForm:instTreeTable, instBtnForm:btnPanel, #{MbInstitution.tabName}"
+		                				id="searchBtn" 
+		                				action="#{MbInstitution.search}"
+		                				onclick="disableModalPanelBtns(this);"
+		                				oncomplete="enableModalPanelBtns(this);"
+		                				eventsQueue="queue">
+			                		<a4j:actionparam name="stateKeeper" value="false" assignTo="#{menu.keepState}"/>
+			                	</bre:taggedCommandButton>
+
+		                		<h:panelGroup styleClass="link-clear" layout="block"  >
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+		                					action="#{MbInstitution.clearFilter}"
+		                					reRender="instSearchForm, instForm, instBtnForm, details">
+		                			</a4j:commandLink>
+		                		</h:panelGroup>
+		                	</h:panelGrid>
+	                	</h:panelGrid>
+	                	<a4j:outputPanel ajaxRendered="true">
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>
+	                </h:panelGroup>
+	            </h:panelGroup>
+	            </h:panelGroup>
+            </h:panelGroup>
+		</h:form>
+		
+		<h:form id="instForm">
+			<!-- main body -->
+			<a4j:queue requestDelay="500"  ignoreDupResponses="true" id="queue" name="queue" onsubmit="disablePanelBtns();" oncomplete="enablePanelBtns();"/>
+	        <h:panelGroup styleClass="search_result_block" layout="block">
+	    		<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+					<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_tree_inner">
+		            <o:treeTable id="instTreeTable" var="inst" 
+			               sortColumnId="instId" expansionState="#{MbInstitution.expandLevel}"
+			               headerHorizSeparator="1px solid #D7DAC2"
+			               headerVertSeparator="1px solid #D7DAC2"
+			               headerSectionClass="res-tree-table-header"
+			               commonHeaderRowClass="res-tree-table-header"
+			               sortableHeaderClass="res-tree-table-header"
+			               sortedColumnHeaderClass="res-tree-table-header"
+			               sortableHeaderRolloverClass="res-tree-table-header"
+			               styleClass="res-tree-table"
+			               bodyOddRowClass="res-tree-table-row odd-tree-table"
+			               bodyRowClass="res-tree-table-row" headerRowClass="res-tree-table-header"
+			               verticalGridLines="1px solid #D7DAC2"
+			               cellpadding="0" cellspacing="0"	
+			               style="height: 255px" onmousedown="handleMouseClick(event)"
+                           preloadedNodes="all"
+			               >
+		               <bm:treeTableColumnMenu />
+									               
+						<o:scrolling/>
+						<f:facet name="noDataMessage">
+							  	<h:panelGroup>
+							       <h:outputText value="#{lblCommon['no_records_found']}" rendered="#{MbInstitution.searching}"/>
+							       <h:outputText value="#{lblCommon['enter_search_criteria_above']}" rendered="#{!MbInstitution.searching}"/>
+								</h:panelGroup>
+						</f:facet>
+			       		<o:dynamicTreeStructure nodeChildren="#{MbInstitution.nodeChildren}" 
+			       								nodeHasChildren="#{MbInstitution.nodeHasChildren}" 
+			       								nodeKey="#{inst.id}"/>
+
+					    <o:singleNodeSelection 
+					    		nodePath="#{MbInstitution.nodePath}"
+					          	nodeData="#{MbInstitution.node}"										          														
+		          				keyboardSupport="false" 
+		          				required ="true"
+		          				styleClass="treetable_selection"
+		          				>
+		          				 <a4j:support event="onchange" eventsQueue="queue" disableDefault="true"
+			                    	reRender="instForm:btnPanel,#{MbInstitution.tabName}" />
+		          		</o:singleNodeSelection>
+
+					    <o:treeColumn id="instName" sortingExpression="#{inst.name}" width="20%" onclick="return false;">
+					    	<f:facet name="header">
+					        	<a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommonQ.name}"/>
+								</a4j:outputPanel>
+					      	</f:facet>
+					      	<bm:entityDisplay  value="#{inst.name}"  description="#{inst.name}" styleClass="treeTableText"
+					      		bean="MbInstitution" contextType="ENTTINST"
+					      		/>
+					      	<h:outputText value=" 	&#160;" rendered="#{inst.name == null}" escape="true"/>
+					    </o:treeColumn>
+
+					    <o:column id="instId" sortingExpression="#{inst.id}" width="10%">
+					    	<f:facet name="header">
+					        	<h:outputText value="#{lblCommonQ.id}"/>
+					      	</f:facet>
+					      	<bm:entityDisplay entityId="#{inst.id}" description ="#{inst.id }" bean="MbInstitution" contextType="ENTTINST"
+					      		styleClass="res-tree-table-cell" rendered="true"/>
+					    </o:column>
+
+						<o:column id="instNumber" width="10%">
+							<f:facet name="header">
+								<h:outputText value="#{lblOstQ.inst_number}"/>
+							</f:facet>
+							<bm:entityDisplay entityId="#{inst.institutionNumber}" description ="#{inst.institutionNumber}" bean="MbInstitution" contextType="ENTTINST"
+											  styleClass="res-tree-table-cell" rendered="true"/>
+						</o:column>
+					    
+					    <o:column id="networkName" width="15%" styleClass="res-tree-table-cell">
+					      	<f:facet name="header">
+					        	<h:outputText value="#{lblOstQ.default_network}"/>
+					      	</f:facet>
+					      	<bm:entityDisplay entityId="#{inst.networkId}" value="#{inst.networkName}" bean="MbInstitution" contextType="ENTTINST"
+			                		entityName="ENTTNETW" showIcon="true" styleClass="res-tree-table-cell"/>					      
+					    </o:column>
+
+					    <o:column id="type" width="15%" styleClass="res-tree-table-cell">
+					    	<f:facet name="header">
+					        	<h:outputText value="#{lblCommonQ.type}"/>
+					      	</f:facet>
+					      	<bm:entityDisplay value="#{DictUtils.articles[inst.type]}" description ="#{DictUtils.articles[inst.type]}" 
+					      		styleClass="res-tree-table-cell" bean="MbInstitution" contextType="ENTTINST" />
+					    </o:column>
+
+						<o:column id="status" width="15%" styleClass="res-tree-table-cell">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.status}"/>
+							</f:facet>
+							<bm:entityDisplay value="#{DictUtils.articles[inst.status]}" description ="#{DictUtils.articles[inst.status]}"
+											  styleClass="res-tree-table-cell" bean="MbInstitution" contextType="ENTTINST" />
+						</o:column>
+
+					    <o:column id="instDesc" styleClass="res-tree-table-cell">
+					      	<f:facet name="header">
+					        	<h:outputText value="#{lblCommonQ.description}"/>
+					      	</f:facet>
+					      	<bm:entityDisplay value="#{inst.description}" description ="#{inst.description}" 
+					      		styleClass="res-tree-table-cell" bean="MbInstitution" contextType="ENTTINST" />							
+					    </o:column>
+					</o:treeTable>
+					</h:panelGroup>
+					<a4j:outputPanel ajaxRendered="true">
+						<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tree-tab" layout="block"/>
+		            	<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+				    	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+			    	</a4j:outputPanel>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="instBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+					<h:panelGrid styleClass="buttons_block" columns="4" id="btnPanel">
+	                	<bre:taggedCommandButton id="addInstBtn"
+	                    		value="#{lblForm.add}"
+	                    		reRender="instEditForm, instModalHeader"
+	                    		action="#{MbInstitution.addInstitution}" limitToList="true"
+								oncomplete="#{rich:component('instModalPanel')}.show()"
+								rendered="#{usession.inRole['ADD_INSTITUTION']}"
+								image="/images/create_doc.gif"
+	           					/>
+	                   	<bre:taggedCommandButton id="instAgentsBtn" eventsQueue="queue"  
+	                    		value="#{lblOst.agents}"
+	                    		action="#{MbInstitution.gotoAgents}"
+	                    		disabled="#{MbInstitution.node.id == null}"
+	                    		rendered="#{usession.inRole['VIEW_AGENT']}"/>
+	                   	<bre:taggedCommandButton id="editInstBtn"
+								value="#{lblForm.edit}" immediate="true" limitToList="true"
+								reRender="instEditForm, instModalHeader"
+								action="#{MbInstitution.editInstitution}"
+	                    		disabled="#{MbInstitution.node.id == null}"
+	                    		rendered="#{usession.inRole['MODIFY_INSTITUTION']}"
+								oncomplete="#{rich:component('instModalPanel')}.show()"
+								image="/images/edit.gif"
+                       			/>
+						<bre:taggedCommandButton id="deleteInstBtn"
+								rendered="#{usession.inRole['REMOVE_INSTITUTION']}"
+	                    		value="#{lblForm.delete}" 
+	                    		disabled="#{MbInstitution.node.id == null}"
+	                    		image="/images/delete.gif"
+								oncomplete="#{rich:component('deleteInstView:confirmPanel')}.show()"/>
+					</h:panelGrid>
+                </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<!-- Tabs -->
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNext" requestDelay="500" />
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                            requestDelay="500" reRender="#{MbInstitution.rerenderList}">
+                <a4j:actionparam name="tabName" assignTo="#{MbInstitution.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" rendered="#{usession.inRole['VIEW_INSTITUTION']}" layout="block" id="workplacePanel">
+			<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell" style="overflow: visible;"
+		    		activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    		contentClass="tab-content" selectedTab="#{MbInstitution.tabName}">
+				
+				<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab" >
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+        				</h:panelGroup>
+        			</f:facet>
+
+					<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/org_struct/instDetails.jspx" />
+						<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+				</rich:tab>
+
+			    <rich:tab ontabenter="storeTab('flexibleFieldsTab')" label="Additional" name="flexibleFieldsTab" style="height:100%;" rendered="#{usession.inRole['VIEW_FLEXIBLE_DATA']}">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+        				</h:panelGroup>
+        			</f:facet>
+
+					<h:panelGroup id="flexibleFieldsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       						<ui:include src="/pages/common/flexible/flexFieldsTableBottom.jspx">
+       							<ui:param name="parentPriv" value="#{usession.inRole['ADD_INSTITUTION'] or usession.inRole['MODIFY_INSTITUTION']}"/>
+       							
+       						</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+
+			    <rich:tab ontabenter="storeTab('glAccountsTab')" label="Accounts" name="glAccountsTab" style="height:100%;" rendered="#{usession.inRole['VIEW_TAB_GL_ACCOUNT']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.accounts}" title="#{lblCommon.accounts}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="glAccountsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       						<ui:include src="/pages/accounts/list_gl_accounts_bottom.jspx"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+  	
+			    <rich:tab ontabenter="storeTab('addressesTab')" label="Addresses" name="addressesTab" style="height:100%;" rendered="#{usession.inRole['VIEW_ADDRESS']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.addresses}" title="#{lblCommon.addresses}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="addressesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/common/address/list_addresses.jspx">
+							<ui:param name="parentPriv" value="#{usession.inRole['ADD_INSTITUTION'] or usession.inRole['MODIFY_INSTITUTION']}"/>
+						</ui:include>
+					</h:panelGroup>
+			    </rich:tab>
+    
+       			<rich:tab ontabenter="storeTab('contactsTab')" label="Contacts" name="contactsTab" style="height:100%;" rendered="#{usession.inRole['VIEW_CONTACT']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.contacts}" title="#{lblCommon.contacts}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+
+       				<h:panelGroup id="contactsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+        				<ui:include src="/pages/contacts/contactsTableBottom.jspx">
+        					<ui:param name="parentPriv" value="#{usession.inRole['ADD_INSTITUTION'] or usession.inRole['MODIFY_INSTITUTION']}"/>
+        				</ui:include>
+       				</h:panelGroup>
+
+       			</rich:tab>
+   
+       			<rich:tab ontabenter="storeTab('attributesTab')" label="Limits" name="limitsTab" rendered="false" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.limits}" title="#{lblCommon.limits}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="det_lmt" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+
+       				</h:panelGroup>
+       			</rich:tab>
+
+       			<rich:tab ontabenter="storeTab('instFeesTab')" label="Fees" name="instFeesTab" rendered="false" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.fees}" title="#{lblCommon.fees}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="instFeesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+
+       				</h:panelGroup>
+       			</rich:tab>
+
+				<rich:tab ontabenter="storeTab('networksTab')" label="#{lblCommon.networks}" name="networksTab" style="height:100%;" rendered="#{usession.inRole['VIEW_TAB_NETWORK_MEMBER']}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.networks}"
+								title="#{lblCommon.networks}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup layout="block" id="networksTab"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/net/list_net_members.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('settingParamsTab')" label="Settings" name="settingParamsTab" rendered="#{usession.inRole['VIEW_SETTING_PARAM']}" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.settings}" title="#{lblCommon.settings}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="settingParamsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+   						<ui:include src="/pages/settings/list_settings_bottom.jspx" >
+   							<ui:param name="roleToUnblock" value="MODIFY_INST_PARAMETER"></ui:param>
+   						</ui:include>
+					</h:panelGroup>
+       			</rich:tab>
+       			
+       			<rich:tab ontabenter="storeTab('notesTab')" label="Notes" name="notesTab" style="height:100%;" rendered="#{usession.inRole['VIEW_NOTE']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       						<ui:include src="/pages/notes/list_notes_bottom.jspx"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+       			
+       			<rich:tab ontabenter="storeTab('schemesTab')" label="Schemes" name="schemesTab" style="height:100%;" rendered="#{usession.inRole['VIEW_TAB_SCHEME_OBJECT']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblAup.schemes}" title="#{lblAup.schemes}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="schemesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/aup/list_scheme_object.jspx"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+       			
+       			<rich:tab ontabenter="storeTab('associationTab')" label="Association" name="associationTab" style="height:100%;" rendered="#{usession.inRole['VIEW_TAB_CUSTOMERS']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblPrd.association}" title="#{lblPrd.association}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="associationTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/products/customersListBottom.jspx">
+							<ui:param name="activeItem" value="#{MbInstitution.node.id}"></ui:param>
+						</ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+       			
+			    <rich:tab ontabenter="storeTab('agentsTab')" label="Agents" name="agentsTab" style="height:100%;" rendered="#{usession.inRole['VIEW_TAB_AGENT']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblOst.agents}" title="#{lblOst.agents}" />
+						</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="agentsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+   						<ui:include src="/pages/org_struct/agentsBottom.jspx" />
+					</h:panelGroup>
+       			</rich:tab>
+       			
+       			<rich:tab ontabenter="storeTab('attributesTab')" label="Attributes" name="attributesTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblPrd.service_terms}" title="#{lblPrd.service_terms}" />
+						</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="attributesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+   						<ui:include src="/pages/products/attributes/list_object_attributes.jspx" />
+					</h:panelGroup>
+       			</rich:tab>
+
+				<rich:tab ontabenter="storeTab('suitesTab')" label="Suites" name="suitesTab" style="height:100%;"
+						  rendered="#{usession.inRole['VIEW_TAB_SUITE']}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblFrp.suites}" title="#{lblFrp.suites}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="suitesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/fraud/list_fraud_object.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('templatesTab')" label="Templates" name="templatesTab" style="height:100%;"
+						  rendered="#{usession.inRole['VIEW_TAB_PMO_TEMPLATE']}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblPmo.templates}" title="#{lblPmo.templates}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="templatesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/pmo/list_pmo_templates_bottom.jspx">
+							<ui:param name="isInstitution" value="true"></ui:param>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+ 			
+		    </rich:tabPanel>
+		</h:panelGroup>
+
+		<ui:include src="/pages/org_struct/editInst.jspx">
+			<ui:param name="rerenderList" value="instForm:instTreeTable, instBtnForm:btnPanel, #{MbInstitution.tabName}"></ui:param>
+		</ui:include>
+
+		<rich:modalPanel id="messagePanel" autosized="true" minWidth="200" minHeight="100">
+	      	<f:facet name="header">
+	        	<h:outputText value="Message" />
+	        </f:facet>
+	  	    <f:facet name="controls">
+	      	</f:facet>
+			<h:form>
+	           	<div style="width:100%;text-align:right">
+				<a4j:commandLink value="Close" onclick="#{rich:component('messagePanel')}.hide()"/>
+				</div>
+	        </h:form>
+		</rich:modalPanel>
+		<a4j:keepAlive beanName="MbInstitution"></a4j:keepAlive>
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbInstitution}"/>
+			<ui:param name="yesAction" value="removeInstitution"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="instForm:instTreeTable, instBtnForm:btnPanel, #{MbInstitution.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteInstView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel"¸ layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+		
+
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'instSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'instForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'instBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'instDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'instDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'flexDataForm',
+	                                    TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'glAccBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'mainTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'addressesBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'addressesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'contactsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomContactsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS  + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'contactDatasForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomContactDatasTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS  + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'netMembersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'membersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'settingsBottomForm',
+	                                    TAB_FORM_WRAPPER_ID:    'settingsTreeTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'notesBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'schemesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'schemesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'bottomCustomerForm',
+	                                    TAB_FORM_WRAPPER_ID:    'customerTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'agentsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'agentsTreeTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'fraudObjectsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'fraudObjectsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+										TAB_FORM_ID: 'attrsTreeForm',
+										TAB_FORM_WRAPPER_ID: 'attrsTreeTableWrapper',
+										CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+										}, {
+										TAB_FORM_ID: 'attrValuesForm',
+										TAB_FORM_WRAPPER_ID: 'attrValuesTableWrapper',
+										CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+										}, {
+										TAB_FORM_ID: 'templatesInlineForm',
+										TAB_FORM_WRAPPER_ID: 'templatesTableWrapper',
+										CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+										}]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>
+    </ui:define>
+</ui:composition>
+</html>

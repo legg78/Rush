@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<h:form id="bottomPrivsForm">
+		<a4j:queue size="2" requestDelay="500" ignoreDupResponses="true"/>
+		<h:panelGroup layout="block" style="margin:0px;padding:0px;"
+			id="bottomPrivsTableWrapper">
+			<rich:extendedDataTable enableContextMenu="true"
+				tableState="#{MbRolePrivilegesSearch.tableState}"
+				id="bottomPrivsTable" var="item"
+				value="#{MbRolePrivilegesSearch.privs}"
+				selection="#{MbRolePrivilegesSearch.privSelection}"
+				style="position: relative;" rowClasses=",odd"
+				headerClass="res-table-header table-header-ext" selectedClass="res-table-selected"
+				styleClass="res-table" selectionMode="multi"
+				noDataLabel="#{lblCommon['no_records_found']}">
+				<a4j:support event="onselectionchange" requestDelay="500"
+					reRender="bottomPrivsBtns" />
+
+				<rich:column title="Inherited" label="Inherited" 
+					width="5%" style="padding:0;text-align: center">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<h:outputText value="#{lblAcm.inherited}" title="#{lblAcm.inherited}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:graphicImage value="/images/arrow-down-green.png"
+						rendered="#{!MbRolePrivilegesSearch.directPrivilege}"
+						title="#{MbRolePrivilegesSearch.inheritedText}">
+					</h:graphicImage>
+				</rich:column>
+
+				<rich:column title="Description" label="Description" id="shortDesc" width="50%"
+					sortBy="#{'shortDesc'}" sortExpression="ASCENDING">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.shortDesc}" />
+				</rich:column>
+				
+				<rich:column title="Limitation" label="Limitation" id="limitation" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcm.limitation}" title="#{lblAcm.limitation}" />
+					</f:facet>
+					<h:outputText value="#{item.limitationLabel}" />
+				</rich:column>
+
+				<rich:column title="Filter limitation" label="Filter limitation" id="filter_limitation" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcm.filter_limitation}" title="#{lblAcm.filter_limitation}" />
+					</f:facet>
+					<h:outputText value="#{item.filterLimitationLabel}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" style="padding-right:9px">
+               	<h:panelGrid id="bottomPrivsBtns" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+						<bre:taggedCommandButton value="#{lblForm.add}"
+							id="acm_role_priv_add_btn"
+                            action="#{MbRolePrivilegesSearch.prepareData}"
+                            oncomplete="#{rich:component('privilegeSelectionModalPanel')}.show()"
+                            reRender="privilegeSelectionModalPanel"
+							disabled="#{roles.activeRole == null}"
+							rendered="#{usession.inRole['ADD_PRIV_TO_ROLE']}"
+							image="/images/create_doc.gif" />
+						<bre:taggedCommandButton value="#{lblForm.delete}"
+							id="acm_role_priv_delete_btn"
+							disabled="#{MbRolePrivilegesSearch.activePriv == null or !MbRolePrivilegesSearch.selectedPrivilegeDirect}"
+							rendered="#{usession.inRole['REMOVE_PRIV_FROM_ROLE']}"
+							oncomplete="#{rich:component('deletePrivViewId:confirmPanel')}.show()"
+							image="/images/delete.gif" />
+						<bre:taggedCommandButton value="#{lblAcm.set_limitation}"
+							id="setLimitationBtn" reRender="setLimitationMdPanel"
+							action="#{MbRolePrivilegesSearch.createPrivLimitation}"
+							oncomplete="#{rich:component('setLimitationMdPanel')}.show()"
+							disabled="#{MbRolePrivilegesSearch.activePriv == null}"
+							rendered="#{usession.inRole['REMOVE_PRIV_FROM_ROLE']}"
+							image="/images/create_doc.gif" />
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveTableState" action="#{MbRolePrivilegesSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteTableState" action="#{MbRolePrivilegesSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="setLimitationMdPanel" autosized="true"
+		minWidth="100" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="#{lblAcm.set_limitations}" />
+		</f:facet>
+		<h:form id="setLimitationMdPanelForm">
+			<h:panelGroup styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					<h:outputLabel for="id" value="#{lblAcm.limitation_result}" title="#{lblAcm.limitation_result}" />
+					<h:panelGrid columns="1">
+						<h:selectOneMenu id="id"
+							label="#{lblAcm.limitation}" value="#{MbRolePrivilegesSearch.activePriv.limitationId}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbRolePrivilegesSearch.privsLimitationResult}" />
+						</h:selectOneMenu>
+					</h:panelGrid>
+
+					<h:outputLabel for="id" value="#{lblAcm.limitation_filter}" title="#{lblAcm.limitation_filter}" />
+					<h:panelGrid columns="1">
+						<h:selectOneMenu id="filter_id"
+						                 label="#{lblAcm.limitation}" value="#{MbRolePrivilegesSearch.activePriv.filterLimitationId}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbRolePrivilegesSearch.privsLimitationFilter}" />
+						</h:selectOneMenu>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+					
+						<h:outputText />
+						
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							reRender="bottomPrivsTable, bottomPrivsBtns"
+							action="#{MbRolePrivilegesSearch.savePrivLimitation}"
+							oncomplete="if (#{usession.noErrorResponse}) {#{rich:component('setLimitationMdPanel')}.hide()}" />
+						
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbRolePrivilegesSearch.resetPrivLimitation}" immediate="true"
+							oncomplete="#{rich:component('setLimitationMdPanel')}.hide()"
+							>
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+						
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+    <ui:include src="/pages/administrative/roles_management/privilegeSelectionModalPanel.jspx" />
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbRolePrivilegesSearch}"/>
+		<ui:param name="yesAction" value="deleteSelectedPrivsFromRole"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="acm_role_priv_delete_btn, bottomPrivsTable"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deletePrivViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+	
+</ui:composition>
+</html>

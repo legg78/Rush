@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App" />
+		<a4j:loadScript src="/js/stretch.js" />
+		<h:panelGroup rendered="#{usession.inRole['VIEW_APPLICATION_ELEMENT']}">
+
+			<!-- navigation bar -->
+			<bpct:navBar pageName="#{lblApp.application_elements}" />
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+			
+			<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('elementsSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			
+			<h:form id="elementsSearchForm" onkeypress="handleEnter(event)">
+				<!-- search panel -->
+				<h:panelGroup styleClass="search_block" layout="block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+							<h:panelGroup styleClass="search_block_left" layout="block">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses="top ,link-cont">
+									<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+										columnClasses="firstCol,secondCol,firstCol,secondCol">
+										<h:outputLabel value="#{lblApp.element_type}:" title="#{lblApp.element_type}" />
+										<h:selectOneMenu id="elementSelector"
+											value="#{MbApplicationElements.filter.elementType}">
+											<f:selectItem itemValue="" />
+											<f:selectItems value="#{MbApplicationElements.elementTypes}" />
+										</h:selectOneMenu>
+
+										<h:outputLabel value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+										<h:inputText value="#{MbApplicationElements.filter.name}" />
+
+										<h:outputLabel value="#{lblCommon.entity_type}:" title="#{lblCommon.entity_type}" />
+										<h:selectOneMenu id="entityTypeSelector"
+											value="#{MbApplicationElements.filter.entityType}">
+											<f:selectItem itemValue="" />
+											<f:selectItems value="#{MbApplicationElements.entityTypes}" />
+										</h:selectOneMenu>
+										
+										<h:outputLabel value="#{lblCommon.system_name}: " title="#{lblCommon.system_name}" />
+										<h:inputText value="#{MbApplicationElements.filter.systemName}" />
+									</h:panelGrid>
+									<h:panelGrid columns="1">
+										<bre:taggedCommandButton action="#{MbApplicationElements.search}"
+											reRender="elementsForm:elementsTable, elementsBtnForm:schemesDs,
+													elementsBtnForm:pagesNum, elementsBtnForm:btnPanel, detailsTab"
+											image="/_img/icon_search.png" type="submit" value="#{lblForm.search}"
+											style="width:85px;"
+											id="searchBtn"
+											onclick="disableModalPanelBtns(this);"
+											oncomplete="enableModalPanelBtns(this);"
+											eventsQueue="queue"/>
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+												action="#{MbApplicationElements.clearFilter}"
+												reRender="elementsSearchForm, elementsForm, elementsBtnForm, details">
+											</a4j:commandLink>
+										</h:panelGroup>
+									</h:panelGrid>
+								</h:panelGrid>
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+			<h:form id="elementsForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+					<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+						<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+						<rich:extendedDataTable id="elementsTable" var="item"
+							tableState="#{MbApplicationElements.tableState}"
+							value="#{MbApplicationElements.elements}"
+							selection="#{MbApplicationElements.itemSelection}"
+							rows="#{MbApplicationElements.rowsNum}" height="255px"
+							selectionMode="single" rowClasses=",odd"
+							headerClass="res-table-header" selectedClass="res-table-selected"
+							styleClass="res-table" enableContextMenu="true"
+							noDataLabel="#{MbApplicationElements.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="detailsTab, elementsBtnForm:btnPanel">
+
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="detailsTab, elementsBtnForm:btnPanel" />
+
+							<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="10%">
+								<f:facet name="header">
+									<a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+								</f:facet>
+								<h:outputText value="#{item.id}" />
+							</rich:column>
+
+							<rich:column id="name" label="#{lblCommon.name}" sortBy="#{'label'}" width="20%" sortOrder="ASCENDING">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.name}" />
+								</f:facet>
+								<h:outputText value="#{item.name}" title="#{item.name}"/>
+							</rich:column>
+
+							<rich:column id="element_type" label="#{lblApp.element_type}" sortBy="#{'elementType'}" width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblApp.element_type}" />
+								</f:facet>
+								<h:outputText value="#{item.elementType}" title="#{item.elementType}"/>
+							</rich:column>
+							
+							<rich:column id="default_value" label="#{lblApp.default_value}" width="20%">
+								<f:facet name="header">
+									<h:outputText value="#{lblApp.default_value}" />
+								</f:facet>
+								<h:outputText value="#{item.valueV}" title="#{item.valueV}" rendered="#{item.char}"/>
+								
+								<h:outputText value="#{item.valueN}" title="#{item.valueN}" rendered="#{item.number}">
+									<bm:convertNumberNew minFractionDigits="0" groupingUsed="false"/>
+								</h:outputText>
+								
+								<h:outputText value="#{item.valueD}" title="#{item.valueD}" rendered="#{item.date}">
+									<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+								</h:outputText>
+							</rich:column>
+							
+							<rich:column id="entity_type" label="#{lblCommon.entity_type}" sortBy="#{'entityType'}" width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.entity_type}" />
+								</f:facet>
+								<h:outputText value="#{DictUtils.articles[item.entityType]}"
+											title="#{DictUtils.articles[item.entityType]}"
+											rendered="#{item.entityType != null}" />
+								<h:outputText value="" title="" rendered="#{item.entityType == null}" />
+							</rich:column>
+							
+						</rich:extendedDataTable>
+						</h:panelGroup>
+						<a4j:outputPanel ajaxRendered="true">
+					    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+						    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+					    </a4j:outputPanel>
+				    </h:panelGroup>
+				</h:panelGroup>
+            </h:form>
+
+            <h:form id="elementsBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="5"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+								<h:selectOneMenu id="rows_num" value="#{MbApplicationElements.rowsNum}"
+									styleClass="row_per_page">
+									<a4j:support event="onchange" reRender="elementsTable, schemesDs, pagesNum, detailsTab, elementsBtnForm:btnPanel" />
+									<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+								</h:selectOneMenu>
+								<rich:datascroller maxPages="10" fastControls="hide"
+									pagesVar="pages" styleClass="res-datascroller" id="schemesDs"
+									for="elementsTable" reRender="detailsTab, elementsBtnForm:btnPanel">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbApplicationElements.elements.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+								
+								<h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbApplicationElements.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbApplicationElements.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+
+						<h:panelGrid id="btnPanel" columns="4" styleClass="itempanel">
+							<bre:taggedCommandButton id="addBtn"
+								reRender="elementModalHeader, elementModalDiv"
+								value="#{lblForm.add}"
+								oncomplete="#{rich:component('elementModalPanel')}.show()"
+								action="#{MbApplicationElements.add}"
+								rendered="#{usession.inRole['ADD_APPLICATION_ELEMENT']}"
+								image="/images/create_doc.gif" />
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+			<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+				<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content">
+
+					<rich:tab label="#{lblCommon.details}" name="detailsTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+
+							<h:panelGroup id="detailsTab" layout="block" >
+								<ui:include src="/pages/app/app_element_details.jspx" />
+								<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+							</h:panelGroup>
+					</rich:tab>
+				</rich:tabPanel>
+			</h:panelGroup>
+			
+			<ui:include src="/pages/app/app_element_edit.jspx">
+				<ui:param name="rerenderList" 
+						value="elementsForm:elementsTable, detailsTab, 
+											elementsBtnForm:btnPanel"/>
+			</ui:include>
+			
+			<script type="text/javascript">
+				function updateHeight(){
+                    updateGridHeight();
+				}
+
+                layout =
+                {
+                    SEARCH_FORM_ID:                 'elementsSearchForm',
+                    SEARCH_RESULT_FORM_ID:          'elementsForm',
+                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                    SEARCH_RESULT_FOOTER_FORM_ID:   'elementsBtnForm',
+                    TAB_PANEL_ID:                   'workplacePanel',
+
+                    TAB_DATA:      [{
+                        TAB_FORM_ID:            'elementDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'elementDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }]
+                };
+
+				updateHeight();
+                jQuery(window).resize(updateHeight);
+			</script>			
+		</h:panelGroup>
+	</ui:define>
+</ui:composition>
+</html>

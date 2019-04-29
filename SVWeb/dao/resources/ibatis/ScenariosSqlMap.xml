@@ -1,0 +1,436 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="scenarios">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>               
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<parameterMap  id="lang-id-param" class="java.util.Map">
+        <parameter property="id"/>
+        <parameter property="lang"/>
+	</parameterMap>
+
+	<resultMap  id="mapping-scenario"
+                class="ru.bpc.sv2.scenario.Scenario">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="description" column="description"/>
+        <result property="name" column="name"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+	
+	<select id="get-scenarios"
+		    parameterClass="qparams"
+		    resultMap="mapping-scenario">
+		<include refid="paginatedOpen"/>
+            SELECT    scn.id
+                    , scn.name
+                    , scn.seqnum
+                    , scn.description
+                    , scn.lang
+            FROM 
+            	asc_ui_scenario_vw scn
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">scn.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">scn.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(scn.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(scn.description) like #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">scn.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">scn.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">scn.description $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-scenarios-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			scn.id 
+		FROM 
+			asc_ui_scenario_vw scn
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">scn.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">scn.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(scn.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(scn.description) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-state"
+                class="ru.bpc.sv2.scenario.AuthState">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="description" column="description"/>
+        <result property="code" column="code"/>
+        <result property="lang" column="lang"/>
+        <result property="scenarioId" column="scenario_id"/>
+        <result property="stateType" column="state_type"/>
+	</resultMap>
+	
+	<select id="get-states"
+		    parameterClass="qparams"
+		    resultMap="mapping-state">
+		<include refid="paginatedOpen"/>
+			SELECT 	id
+					, code
+					, state_type
+					, scenario_id
+					, seqnum
+		            , description
+		            , lang
+		    FROM asc_ui_state_vw
+		    <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="scenarioId">scenario_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="stateType">state_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="code">code = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="code">code $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">description $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="stateType">state_type $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-states-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT * FROM asc_ui_state_vw
+	    <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="scenarioId">scenario_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="stateType">state_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="code">code = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-scenario"
+			parameterClass="ru.bpc.sv2.scenario.Scenario">
+    	{call ASC_UI_SCENARIO_PKG.add_scenario(
+				  o_scenario_id 	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_scenario_name	=> #name#
+				, i_lang			=> #lang#
+				, i_description		=> #description#
+				)}
+	</procedure>
+	
+	<procedure id="edit-scenario"
+			parameterClass="ru.bpc.sv2.scenario.Scenario">
+    	{call ASC_UI_SCENARIO_PKG.modify_scenario(	
+				  i_scenario_id		=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_scenario_name	=> #name#
+				, i_lang			=> #lang#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="delete-scenario"
+			parameterClass="ru.bpc.sv2.scenario.Scenario">
+    	{call ASC_UI_SCENARIO_PKG.remove_scenario(	
+				  i_scenario_id		=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+
+	<procedure id="add-state"
+			parameterClass="ru.bpc.sv2.scenario.AuthState">
+    	{call ASC_UI_SCENARIO_PKG.add_state(
+				  o_state_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_scenario_id => #scenarioId#
+				, i_state_code	=> #code#
+				, i_state_type	=> #stateType#
+				, i_lang		=> #lang#
+				, i_description	=> #description#
+				)}
+	</procedure>
+	
+	<procedure id="edit-state"
+			parameterClass="ru.bpc.sv2.scenario.AuthState">
+    	{call ASC_UI_SCENARIO_PKG.modify_state(
+				  i_state_id		=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_state_code		=> #code#
+				, i_lang			=> #lang#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="delete-state"
+			parameterClass="ru.bpc.sv2.scenario.AuthState">
+    	{call ASC_UI_SCENARIO_PKG.remove_state(
+				  i_state_id		=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+	
+	<resultMap  id="mapping-scenario-selection"
+                class="ru.bpc.sv2.scenario.ScenarioSelection">
+        <result property="id" column="id"/>
+        <result property="scenarioId" column="scenario_id"/>
+        <result property="modId" column="mod_id"/>
+        <result property="modName" column="mod_name"/>
+        <result property="description" column="description"/>
+        <result property="name" column="name"/>
+        <result property="lang" column="lang"/>
+        <result property="operType" column="oper_type"/>
+        <result property="reversal" column="is_reversal"/>
+        <result property="sttlType" column="sttl_type"/>
+        <result property="priority" column="priority"/>
+        <result property="msgType" column="msg_type"/>
+        <result property="operReason" column="oper_reason"/>
+        <result property="terminalType" column="terminal_type"/>
+	</resultMap>
+	
+	<select id="get-scenario-selections"
+		    parameterClass="qparams"
+		    resultMap="mapping-scenario-selection">
+		<include refid="paginatedOpen"/>
+            SELECT    s.id
+            		, s.scenario_id
+            		, s.mod_id
+            		, mod.name mod_name
+                    , s.name
+                    , s.description
+                    , s.lang
+                    , s.oper_type
+                    , s.is_reversal
+                    , s.sttl_type
+                    , s.priority
+                    , s.msg_type
+                    , s.oper_reason
+                    , s.terminal_type
+            FROM 
+            	ASC_UI_SCENARIO_SELECTION_VW s, RUL_UI_MOD_VW mod
+            WHERE 
+	            mod.lang(+) = s.lang
+	            AND mod.id(+) = s.mod_id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="scenarioId">s.scenario_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(s.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(s.description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operType">s.oper_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="msgType">s.msg_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operReason">s.oper_reason = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="terminalType">s.terminal_type = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">s.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="modName">mod.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">s.description $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operType">s.oper_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="reversal">s.is_reversal $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="sttlType">s.sttl_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="priority">s.priority $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="msgType">s.msg_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operReason">s.oper_reason $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="terminalType">s.terminal_type $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-scenario-selections-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			s.id 
+		FROM 
+			ASC_UI_SCENARIO_SELECTION_VW s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="scenarioId">s.scenario_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(s.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(s.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">s.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operReason">s.oper_reason = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalType">s.terminal_type = #filters[].value#</isEqual>			
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-scenario-selection"
+			parameterClass="ru.bpc.sv2.scenario.ScenarioSelection">
+    	{call ASC_UI_SCENARIO_PKG.add_selection(
+				o_id           		=> #id,jdbcType=NUMERIC,mode=OUT#
+  				, i_scenario_id     => #scenarioId#
+  				, i_mod_id			=> #modId#
+  				, i_oper_type		=> #operType#
+  				, i_is_reversal		=> #reversal#
+  				, i_sttl_type		=> #sttlType#
+  				, i_priority		=> #priority#
+  				, i_msg_type		=> #msgType#
+  				, i_terminal_type 	=> #terminalType#
+  				, i_oper_reason		=> #operReason#
+				)}
+	</procedure>
+
+	<procedure id="delete-scenario-selection"
+			parameterClass="ru.bpc.sv2.scenario.ScenarioSelection">
+    	{call ASC_UI_SCENARIO_PKG.remove_selection(	
+				  i_id	=> #id#
+				)}
+	</procedure>
+	
+	<select id="get-scn-by-lang-id"
+		    parameterMap="lang-id-param"
+		    resultMap="mapping-scenario">
+		SELECT 	id
+				, name
+				, seqnum
+	            , description
+	            , lang
+	    FROM asc_ui_scenario_vw
+	    WHERE id = ? AND lang = ?
+	</select>
+
+	<resultMap  id="mapping-param"
+                class="ru.bpc.sv2.scenario.AuthParam">
+        <result property="stateId" column="state_id"/>
+        <result property="paramId" column="param_id"/>
+        <result property="scenarioId" column="scenario_id"/>
+        <result property="systemName" column="param_name"/>
+        <result property="valueV" column="value_v" />
+        <result property="valueN" column="value_n" />
+        <result property="valueD" column="value_d" />
+        <result property="lovValue" column="lov_value" />
+        <result property="displayOrder" column="display_order"/>
+        <result property="dataType" column="data_type"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="parameterRole" column="parameter_role"/>
+        <result property="lang" column="lang"/>
+        <result property="description" column="param_description"/>
+	</resultMap>
+
+	<select id="get-params"
+		    parameterClass="qparams"
+		    resultMap="mapping-param">
+		<include refid="limitationOpen"/>
+		SELECT 	  sp.state_id
+				, sp.param_id
+				, sp.param_name
+				, sp.scenario_id
+                , param_char_value value_v
+				, param_number_value value_n
+				, param_date_value value_d  
+				, param_lov_value lov_value  
+	            , sp.display_order
+	            , sp.data_type
+	            , sp.lov_id
+	            , sp.description AS parameter_role
+	            , sp.lang
+	            , p.description AS param_description
+	    FROM asc_ui_state_parameter_vw sp, asc_ui_parameter_vw p 
+	    WHERE sp.lang = com_ui_user_env_pkg.get_user_lang
+	    	AND p.lang = com_ui_user_env_pkg.get_user_lang
+	    	AND sp.param_id = p.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="stateId">sp.state_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">sp.param_id = #filters[].value#</isEqual>
+		</iterate>
+		ORDER BY sp.display_order
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-params-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT * 
+		FROM asc_ui_state_parameter_vw sp, asc_ui_parameter_vw p 
+	    WHERE sp.lang = com_ui_user_env_pkg.get_user_lang
+	    	AND p.lang = com_ui_user_env_pkg.get_user_lang
+	    	AND sp.param_id = p.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="stateId">sp.state_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">sp.param_id = #filters[].value#</isEqual>
+		</iterate>
+		ORDER BY sp.display_order
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="set-param_v"
+			parameterClass="ru.bpc.sv2.scenario.AuthParam">
+    	{call ASC_UI_SCENARIO_PKG.add_state_param_value(
+				  i_state_id		=> #stateId#
+				, i_parameter_id	=> #paramId#
+				, i_value_char		=> #valueV#
+				, i_seqnum			=> #stateSeqNum#)}
+	</procedure>
+	
+	<procedure id="set-param_n"
+			parameterClass="ru.bpc.sv2.scenario.AuthParam">
+    	{call ASC_UI_SCENARIO_PKG.add_state_param_value(
+				  i_state_id		=> #stateId#
+				, i_parameter_id	=> #paramId#
+				, i_value_num		=> #valueN#
+				, i_seqnum			=> #stateSeqNum#)}
+	</procedure>
+	
+	<procedure id="set-param_d"
+			parameterClass="ru.bpc.sv2.scenario.AuthParam">
+    	{call ASC_UI_SCENARIO_PKG.add_state_param_value(
+				  i_state_id		=> #stateId#
+				, i_parameter_id	=> #paramId#
+				, i_value_date		=> #valueD#
+				, i_seqnum			=> #stateSeqNum#)}
+	</procedure>
+</sqlMap>

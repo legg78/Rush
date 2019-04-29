@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<!--
+		function uncheckCyclicLimitFlag() {
+			document.getElementById("attrModalForm:cyclicLimitSelector").checked = false;
+		}
+	
+		function uncheckServiceFeeSelectorFlag() {
+			document.getElementById("attrModalForm:serviceFeeSelector").checked = false;
+		}
+	
+		function checkAttributeFields() {
+			var checked = true;
+			checked = checkField('attrModalForm:newName');
+			checked = checkField('attrModalForm:newServiceType') && checked;
+			checked = checkField('attrModalForm:newAttrType') && checked;
+			checked = checkField('attrModalForm:newDefLevel') && checked;
+			checked = checkField('attrModalForm:newLabel') && checked;
+			checked = checkField('attrModalForm:newDisplayOrder') && checked;
+			return checked;
+		}
+		//-->
+	</script>
+
+	<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+	<f:loadBundle var="lblPrc" basename="ru.bpc.sv2.ui.bundles.Process"/>
+	
+	<rich:modalPanel id="attrModalPanel" autosized="true" minWidth="200" minHeight="100"
+			rendered="#{usession.inRole['MODIFY_ATTRIBUTE'] or usession.inRole['ADD_ATTRIBUTE']}"
+			onshow="actualHelp.setModeHelp('#{MbAttributes.newMode}')"
+			onhide="actualHelp.setHelp('#{pageHelp}')">
+      	<f:facet name="header">
+      		<h:panelGroup id="attrModalHeader">
+	        	<h:outputText value="#{lblPrd.edit_service_term}" rendered="#{MbAttributes.editMode}"/>
+	        	<h:outputText value="#{lblPrd.new_service_term}" rendered="#{MbAttributes.newMode}"/>
+	        </h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+  	    	<h:panelGroup id="attrModalControl" rendered="#{showHelpModal}">
+  	    	    <h:graphicImage value="/_img/icon_modal_help.png" style="cursor:pointer" 
+	   	        			onclick="showHelp(actualHelp.getURL())" width="15px" />
+			</h:panelGroup>
+      	</f:facet>
+      	<h:panelGroup id="attrModalDiv">
+      		<h:form id="attrModalForm">
+      			<script type="text/javascript">//<!--
+					oldValue["attrModalForm"] = "#{MbAttributes.newNode.lang}";
+				//-->
+				</script>
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+			        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250" cellpadding="0" cellspacing="0">
+						<h:outputLabel value="#{lblCommon.id}: " rendered="#{MbAttributes.editMode}"/>
+						<h:inputText disabled="true"
+								value="#{MbAttributes.newNode.id}"
+								rendered="#{MbAttributes.editMode}"
+								/>
+			
+						<h:outputLabel value="* #{lblCommon.system_name}: " title="#{lblCommon.system_name}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:inputText id="newName" maxlength="200"
+									value="#{MbAttributes.newNode.name}"
+									label="#{lblCommon.system_name}"
+									disabled="#{MbAttributes.editMode}"
+									onblur="hideErrorField(this)"/>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newNameError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.system_name}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						
+						<h:outputLabel value="* #{lblPrd.service_type}: " title="#{lblPrd.service_type}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<a4j:region>
+								<h:selectOneMenu id="newServiceType" 
+										value="#{MbAttributes.newNode.serviceTypeId}"
+										disabled="#{MbAttributes.editMode or MbAttributes.disableServiceType}"
+										label="#{lblPrd.service_type}"
+										onblur="hideErrorField(this)">
+									<a4j:support event="onchange" reRender="newServiceTypeError, newParentId"
+											limitToList="true" ajaxSingle="true"/>
+									<f:selectItem itemValue=""/>
+							    	<f:selectItems value="#{MbAttributes.services}"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newServiceTypeError" style="display:none;">
+									<f:param name="fieldName" value="#{lblPrd.service_type}"/>
+								</h:outputFormat>
+							</a4j:region>
+							
+						</h:panelGrid>
+
+						<h:outputLabel value="#{lblCommon.parent}: " title="#{lblCommon.parent}"/>
+						<h:selectOneMenu label="#{lblCommon.parent}"
+								id="newParentId" 
+								value="#{MbAttributes.newNode.parentId}"
+								>
+							<f:selectItem itemValue=""/>
+					    	<f:selectItems value="#{MbAttributes.attributeGroups}"/>
+						</h:selectOneMenu>
+
+						<h:outputLabel value="* #{lblPrd.service_term_type}: " title="#{lblPrd.service_term_type}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="newAttrType" 
+									value="#{MbAttributes.newNode.entityType}"
+									disabled="#{MbAttributes.editMode}"
+									label="#{lblPrd.service_term_type}"
+									onblur="hideErrorField(this)">
+								<a4j:support event="onchange" 
+										reRender="newAttrTypeError,
+												  newLov, newLovLabel,
+												  postingMethodGroup, postingMethodlabel,
+												  counterAlgorithmGroup, counterAlgorithmLabel,
+												  newCyclic, newCyclicLabel,
+												  newUseLimit, newUseLimitLabel,
+												  newCyclicLimit, newCyclicLimitLabel,
+												  newDefLevelLabel, newDefLevelPanel,
+												  newServiceFeeLabel,newServiceFee,
+												  newCCSDlabel, newCCSD,
+												  newCCDTlabel, newCCDT,
+												  newIsRepeatedLabel, newIsRepeated,
+												  lengthTypeMandatoryLabel, lengthTypeMandatory,
+												  newLimitUsagelabel, newLimitUsage,
+												  newModuleCodeLabel, newModuleCode"
+										limitToList="true" ajaxSingle="true"/>
+								<f:selectItem itemValue=""/>
+						    	<f:selectItems value="#{MbAttributes.attributeTypes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newAttrTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblPrd.service_term_type}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						
+						<h:panelGroup id="postingMethodlabel">
+							<h:outputLabel for="postingMethod" value="#{lblFcl.post_method}: " 
+								title="#{lblFcl.post_method}" rendered="#{MbAttributes.newLimit and MbAttributes.newMode}"/>
+							</h:panelGroup>
+						<h:panelGroup id="postingMethodGroup">
+							<h:selectOneMenu id="postingMethod" rendered="#{MbAttributes.newLimit and MbAttributes.newMode}"
+										value="#{MbAttributes.newNode.postMethod}"
+										label="#{lblFcl.post_method}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbAttributes.postMethods}" />
+							</h:selectOneMenu>
+						</h:panelGroup>
+						
+						<h:panelGroup id="counterAlgorithmLabel">
+							<h:outputLabel for="counterAlgorithm" value="#{lblFcl.counter_algorithm}: " 
+								title="#{lblFcl.counter_algorithm}" rendered="#{MbAttributes.newLimit}"/>
+							</h:panelGroup>
+						<h:panelGroup id="counterAlgorithmGroup">
+							<h:selectOneMenu id="counterAlgorithm" rendered="#{MbAttributes.newLimit}"
+										value="#{MbAttributes.newNode.counterAlgorithm}"
+										label="#{lblFcl.counter_algorithm}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbAttributes.counterAlgorithms}" />
+							</h:selectOneMenu>
+						</h:panelGroup>
+
+						<a4j:outputPanel id="newLovLabel">
+							<h:outputLabel value="#{lblCommon.lov}: " title="#{lblCommon.lov}"
+									rendered="#{MbAttributes.lovAppliable}"/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newLov">
+							<h:selectOneMenu label="#{lblCommon.lov}"
+									value="#{MbAttributes.newNode.lovId}"
+									rendered="#{MbAttributes.lovAppliable}"
+									disabled="#{MbAttributes.editMode}"
+									>
+								<f:selectItem itemValue=""/>
+						    	<f:selectItems value="#{MbAttributes.lovs}"/>
+							</h:selectOneMenu>
+						</a4j:outputPanel>
+
+						<a4j:outputPanel id="newDefLevelLabel">
+							<h:outputLabel value="* #{lblPrd.def_level}: " 
+									rendered="#{!MbAttributes.newAttrGroup}"/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newDefLevelPanel">
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+								<h:selectOneMenu id="newDefLevel" 
+										value="#{MbAttributes.newNode.definitionLevel}"
+										rendered="#{!MbAttributes.newAttrGroup}"
+										disabled="#{MbAttributes.editMode}"
+										label="#{lblPrd.def_level}"
+										onblur="hideErrorField(this)">
+									<a4j:support event="onchange" reRender="newDefLevelError"
+											limitToList="true" ajaxSingle="true"/>
+									<f:selectItem itemValue=""/>
+							    	<f:selectItems value="#{MbAttributes.defLevels}"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newDefLevelError" style="display:none;">
+									<f:param name="fieldName" value="#{lblPrd.def_level}"/>
+								</h:outputFormat>
+							</h:panelGrid>
+						</a4j:outputPanel>
+
+						<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+						<h:selectOneMenu id="newLang" value="#{MbAttributes.newNode.lang}" rendered="#{MbAttributes.newMode}">
+						    <f:selectItems value="#{MbAttributes.languages}"/>
+						</h:selectOneMenu>
+						<h:selectOneMenu id="editLang" value="#{MbAttributes.newNode.lang}"
+								rendered="#{MbAttributes.editMode}"
+								onchange="document.getElementById('attribute:confirmPanelForm:newValue').value = this.value;
+										  #{rich:component('attribute:confirmPanel')}.show()">
+							<f:selectItems value="#{MbAttributes.languages}"/>
+						</h:selectOneMenu>
+						
+						<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:inputText id="newLabel" maxlength="200"
+									value="#{MbAttributes.newNode.label}"
+									label="#{lblCommon.name}"
+									onblur="hideErrorField(this)"/>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newLabelError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.name}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+						<h:inputTextarea id="newDesc" value="#{MbAttributes.newNode.description}"
+							rows="5" cols="150" 
+							onkeypress="if (!limitText(event,this,2000)) return false;" 
+	            					label="#{lblCommon.description}">
+			            	<f:validateLength maximum="2000" />
+				        </h:inputTextarea>
+
+						<h:outputLabel value="* #{lblCommon.display_order}: " title="#{lblCommon.display_order}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:inputText id="newDisplayOrder" 
+									value="#{MbAttributes.newNode.displayOrder}"
+									label="#{lblCommon.display_order}"
+									converterMessage="#{lblMsg.integer_only}"
+									onkeypress="if (!numbersOnly(this, event)) return false;"
+									maxlength="4" minlength="2"
+									onblur="hideErrorField(this)">
+								<f:validateLongRange minimum="1" maximum="9999"/>
+								<a4j:support event="onchange" reRender="newDisplayOrderErr" limitToList="true"/>
+							</h:inputText>
+							<rich:message for="newDisplayOrder" id="newDisplayOrderErr" styleClass="errorMarker"/>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newDisplayOrderError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.display_order}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel value="#{lblPrd.visible}: " title="#{lblPrd.visible}" />
+						<h:selectBooleanCheckbox value="#{MbAttributes.newNode.visible}"/>
+
+                        <a4j:outputPanel id="newModuleCodeLabel">
+						    <h:outputLabel value="#{lblCommon.module_code}: " title="#{lblCommon.module_code}"
+							    		   rendered="#{MbAttributes.newMode}"/>
+					    </a4j:outputPanel>
+						<a4j:outputPanel id="newModuleCode">
+							<h:selectOneMenu value="#{MbAttributes.newNode.moduleCode}"
+											 disabled="#{!MbAttributes.newMode}"
+											 rendered="#{MbAttributes.newMode}"
+											 label="#{lblCommon.module_code}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbDictionary.moduleCodes}"/>
+							</h:selectOneMenu>
+						</a4j:outputPanel>
+
+						<a4j:outputPanel id="lengthTypeMandatoryLabel">
+							<h:outputLabel value="#{lblPrd.length_type_is_mandatory}: "
+										   title="#{lblPrd.length_type_is_mandatory}"
+										   rendered="#{MbAttributes.newFee}"/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="lengthTypeMandatory">
+							<h:selectBooleanCheckbox value="#{MbAttributes.newNode.lengthTypeMandatory}"
+													 readonly="#{!MbAttributes.newMode}"
+													 disabled="#{!MbAttributes.newMode}"
+													 rendered="#{MbAttributes.newFee}">
+								<a4j:support event="onclick" ajaxSingle="true" limitToList="true"/>
+							</h:selectBooleanCheckbox>
+						</a4j:outputPanel>
+
+						<a4j:outputPanel id="newCyclicLabel">
+							<h:outputLabel value="#{lblRul.cyclic}: " title="#{lblRul.cyclic}"
+									rendered="#{MbAttributes.newFee || MbAttributes.newLimit}"
+									/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newCyclic">
+							<h:selectBooleanCheckbox 
+									value="#{MbAttributes.newNode.cyclic}"
+									rendered="#{MbAttributes.newFee || MbAttributes.newLimit}"
+									disabled="#{MbAttributes.editMode}">
+									
+									<a4j:support event="onclick" reRender="serviceFeeSelector" 
+										ajaxSingle="true" limitToList="true"
+										oncomplete="uncheckServiceFeeSelectorFlag()"/>
+							</h:selectBooleanCheckbox>
+									
+						</a4j:outputPanel>
+						
+						<a4j:outputPanel id="newServiceFeeLabel">
+							<h:outputLabel  value="#{lblPrd.service_fee}: " title="#{lblPrd.service_fee}"
+									rendered="#{MbAttributes.newFee}"
+									/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newServiceFee">
+							<h:selectBooleanCheckbox 
+									id="serviceFeeSelector"
+									value="#{MbAttributes.newNode.serviceFee}"
+									rendered="#{MbAttributes.newFee}"
+									disabled="#{MbAttributes.editMode or not MbAttributes.newNode.cyclic}"
+									/>
+									
+						</a4j:outputPanel>
+						
+						<a4j:outputPanel id="newUseLimitLabel">
+							<h:outputLabel  value="#{lblRul.use_limit}: " title="#{lblRul.use_limit}"
+									rendered="#{MbAttributes.newFee}"
+									/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newUseLimit">
+							<h:selectBooleanCheckbox id="useLimit"
+									value="#{MbAttributes.newNode.useLimit}"
+									rendered="#{MbAttributes.newFee}"
+									disabled="#{MbAttributes.editMode}"
+									valueChangeListener="#{MbAttributes.changeUseLimit}"
+									>
+								<a4j:support event="onclick" reRender="cyclicLimitSelector" 
+										ajaxSingle="true" limitToList="true"
+										oncomplete="uncheckCyclicLimitFlag()"/>
+							</h:selectBooleanCheckbox>
+						</a4j:outputPanel>
+
+						<a4j:outputPanel id="newCyclicLimitLabel">
+							<h:outputLabel  value="#{lblRul.cyclic_limit}: " title="#{lblRul.cyclic_limit}"
+									rendered="#{MbAttributes.newFee}"
+									/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newCyclicLimit">
+							<h:selectBooleanCheckbox 
+									id="cyclicLimitSelector"
+									value="#{MbAttributes.newNode.cyclicLimit}"
+									rendered="#{MbAttributes.newFee}"
+									disabled="#{MbAttributes.editMode or not MbAttributes.newNode.useLimit}"/>
+						</a4j:outputPanel>
+						
+						<a4j:outputPanel id="newIsRepeatedLabel">
+						<h:outputLabel value="#{lblPrc.repeat}" title="#{lblPrc.repeat}" 
+							rendered="#{MbAttributes.newCycle}"/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newIsRepeated" >
+						<h:selectBooleanCheckbox value="#{MbAttributes.newNode.repeating}"
+							rendered="#{MbAttributes.newCycle}"/>												
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newCCSDlabel" >
+						<h:outputLabel value="#{lblRul.cycle_calc_start_date}" title="#{lblRul.cycle_calc_start_date}" 
+							rendered="#{MbAttributes.newCycle or MbAttributes.newLimit or MbAttributes.newFee}"/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newCCSD" >
+						<h:selectOneMenu value="#{MbAttributes.newNode.cycleCalcStartDate}" disabled="#{!MbAttributes.newMode}"
+							rendered="#{MbAttributes.newCycle or MbAttributes.newLimit or MbAttributes.newFee}">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbAttributes.cycleCalcStartDates}"/>
+						</h:selectOneMenu>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newCCDTlabel" >
+						<h:outputLabel value="#{lblRul.cycle_calc_date_type}" title="#{lblRul.cycle_calc_date_type}" 
+							rendered="#{MbAttributes.newCycle or MbAttributes.newLimit or MbAttributes.newFee}"/>
+						</a4j:outputPanel>
+						<a4j:outputPanel id="newCCDT" >
+						<h:selectOneMenu value="#{MbAttributes.newNode.cycleCalcDateType}" disabled="#{!MbAttributes.newMode}"
+							rendered="#{MbAttributes.newCycle or MbAttributes.newLimit or MbAttributes.newFee}">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbAttributes.cycleCalcDateTypes}"/>
+						</h:selectOneMenu>
+						</a4j:outputPanel>
+
+                        <a4j:outputPanel id="newLimitUsagelabel" >
+                            <h:outputLabel value="#{lblRul.limit_usage}" title="#{lblRul.limit_usage}"
+                                           rendered="#{MbAttributes.newLimit}"/>
+                        </a4j:outputPanel>
+                        <a4j:outputPanel id="newLimitUsage" >
+                        <h:selectOneMenu value="#{MbAttributes.newNode.limitUsage}" disabled="#{!MbAttributes.newMode}"
+                                         rendered="#{MbAttributes.newLimit}">
+                            <f:selectItem itemValue=""/>
+                            <f:selectItems value="#{MbAttributes.limitUsages}"/>
+                        </h:selectOneMenu>
+                        </a4j:outputPanel>
+				    </h:panelGrid>
+				</h:panelGroup>
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+							<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+									action="#{MbAttributes.save}"
+									reRender="${rerenderList}"
+									onclick="if (!checkAttributeFields()) return false; disableModalPanelBtns(this)"
+									oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('attrModalPanel')}.hide()"
+									/>
+		                	<bre:taggedCommandButton value="#{lblForm.cancel}" 
+			                       	action="#{MbAttributes.cancel}"
+			                       	immediate="true" limitToList="true"
+			                       	oncomplete="#{rich:component('attrModalPanel')}.hide()"
+		                       		reRender="attrModalForm">
+		                       	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                       </bre:taggedCommandButton>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+      	    </h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+    	<ui:param name="backingBean" value="#{MbAttributes}"/>
+    	<ui:param name="rerenderList" value="attrModalForm:newLabel, attrModalForm:newDesc"/>
+    	<ui:param name="editElem" value="attrModalForm:editLang"/>
+    	<ui:param name="newValue" value="#{MbAttributes.newNode.lang}"/>
+    	<ui:param name="subviewId" value="attribute"/>
+    	<ui:param name="formName" value="attrModalForm" />
+    </ui:include>
+</ui:composition>
+</html>

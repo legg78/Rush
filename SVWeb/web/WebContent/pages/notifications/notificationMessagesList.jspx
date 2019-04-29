@@ -1,0 +1,652 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:fmt="http://www.bpc.ru/el/formatter"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+	<f:loadBundle var="lblNtf" basename="ru.bpc.sv2.ui.bundles.Ntf"/>
+	<f:loadBundle var="lblEvt" basename="ru.bpc.sv2.ui.bundles.Evt"/>
+	<link rel="stylesheet" type="text/css" href="#{facesContext.externalContext.requestContextPath}/css/stretch.css" />
+	<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/stretch.js" />
+	<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+		
+		<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"  timeZone="#{CommonUtils.timeZone}"
+		onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"
+		inputClass="hidden" buttonClass="hidden"/>
+		
+		<script>
+			#{rich:component('calendar')}.customExpand=customExpand;
+		</script>
+	
+	
+	 <bpct:navBar pageName="#{lblNtf.notifications}"/>
+        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+        
+        <script type="text/javascript">
+		//<![CDATA[
+	    var colorOk = "#FFFFFF";
+    	var colorMandatory = "#FF5555";
+    	
+		function handleEnter(event) {
+						 if (event.keyCode == 13) {
+							 document.getElementById('ntfMessageSearchForm:searchBtn').click(); 
+							 return false; 
+						} 
+						return true;
+					 }
+		
+		function checkMessageFields(){
+			allOk();
+			
+			result = true;
+			
+			instId = document.getElementById('ntfMessageSearchForm:instId').value;
+			dateFrom = document.getElementById('ntfMessageSearchForm:dateFrom').value;
+			
+			if (instId == null || instId ==""){
+				result &= false;
+				document.getElementById("ntfMessageSearchForm:instId").style.backgroundColor = colorMandatory;
+			}
+			if (dateFrom == null || dateFrom ==""){
+				result &= false;
+				document.getElementById("ntfMessageSearchForm:dateFrom").style.backgroundColor = colorMandatory;
+			}
+			result &= checkData();
+			return result;
+		}
+		
+		var MONTH_NAMES=new Array('January','February','March','April','May','June','July','August','September','October','November','December','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec');
+		var DAY_NAMES=new Array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sun','Mon','Tue','Wed','Thu','Fri','Sat');
+		
+		function checkData(){
+     	   var to = document.getElementById("ntfMessageSearchForm:dateTo").value;
+     	   var from = document.getElementById("ntfMessageSearchForm:dateFrom").value;
+     	   if (to == ""){
+					dateTo = new Date();
+				}else{
+					dateTo = parseDate(to);
+				}
+				if (from == ""){
+					document.getElementById("ntfMessageSearchForm:dateFrom").style.backgroundColor = colorMandatory;
+					return false;
+				}
+				var dateFrom = parseDate(from);
+				if (!dateFrom) {
+                    alert('#{lblMsg.check_date_format}');
+                }
+				var dif = (dateTo.getTime() - dateFrom.getTime())/ (1000 * 60 * 60 * 24);
+				if (dif < 0){
+					document.getElementById("ntfMessageSearchForm:dateTo").style.backgroundColor = colorMandatory;
+					document.getElementById("ntfMessageSearchForm:dateFrom").style.backgroundColor = colorMandatory;
+					return false;
+				}
+				return true;
+        }
+		 function allOk(){
+				document.getElementById("ntfMessageSearchForm:dateTo").style.backgroundColor = colorOk;
+				document.getElementById("ntfMessageSearchForm:dateFrom").style.backgroundColor = colorOk;
+				document.getElementById("ntfMessageSearchForm:instId").style.backgroundColor = colorOk;
+			}
+        function parseDate(val) {
+				var preferEuro=!((arguments.length==2)?arguments[1]:false);
+				
+				generalFormats=new Array('y-M-d','MMM d, y','MMM d,y','y-MMM-d','d-MMM-y','MMM d', 'y.M.d');
+				monthFirst=new Array('M/d/y','M-d-y','M.d.y','MMM-d','M/d','M-d');
+				dateFirst =new Array('d/M/y','d-M-y','d.M.y','d-MMM','d/M','d-M');
+				var checkList=new Array('generalFormats',preferEuro?'dateFirst':'monthFirst',preferEuro?'monthFirst':'dateFirst');
+				var d=null;
+				for (var i=0; i<checkList.length; i++) {
+					var l=window[checkList[i]];
+					for (var j=0; j<l.length; j++) {
+						d=getDateFromFormat(val,l[j]);
+						if (d!=0) { return new Date(d); }
+						}
+					}
+				return null;
+				}
+			
+			function getDateFromFormat(val,format) {
+				val=val+"";
+				format=format+"";
+				var i_val=0;
+				var i_format=0;
+				var c="";
+				var token="";
+				var token2="";
+				var x,y;
+				var now=new Date();
+				var year=now.getYear();
+				var month=now.getMonth()+1;
+				var date=1;
+				var hh=now.getHours();
+				var mm=now.getMinutes();
+				var ss=now.getSeconds();
+				var ampm="";
+				
+				while (i_format < format.length) {
+					// Get next token from format string
+					c=format.charAt(i_format);
+					token="";
+					while ((format.charAt(i_format)==c) && (i_format < format.length)) {
+						token += format.charAt(i_format++);
+						}
+					// Extract contents of value based on format token
+					if (token=="yyyy" || token=="yy" || token=="y") {
+						if (token=="yyyy") { x=4;y=4; }
+						if (token=="yy")   { x=2;y=2; }
+						if (token=="y")    { x=2;y=4; }
+						year=_getInt(val,i_val,x,y);
+						if (year==null) { return 0; }
+						i_val += year.length;
+						if (year.length==2) {
+							if (year > 70) { year=1900+(year-0); }
+							else { year=2000+(year-0); }
+							}
+						}
+					else if (token=="MMM"||token=="NNN"){
+						month=0;
+						for (var i=0; i<MONTH_NAMES.length; i++) {
+							var month_name=MONTH_NAMES[i];
+							if (val.substring(i_val,i_val+month_name.length).toLowerCase()==month_name.toLowerCase()) {
+								if (token=="MMM"||(token=="NNN"&&i>11)) {
+									month=i+1;
+									if (month>12) { month -= 12; }
+									i_val += month_name.length;
+									break;
+									}
+								}
+							}
+						if ((month < 1)||(month>12)){return 0;}
+						}
+					else if (token=="EE"||token=="E"){
+						for (var i=0; i<DAY_NAMES.length; i++) {
+							var day_name=DAY_NAMES[i];
+							if (val.substring(i_val,i_val+day_name.length).toLowerCase()==day_name.toLowerCase()) {
+								i_val += day_name.length;
+								break;
+								}
+							}
+						}
+					else if (token=="MM"||token=="M") {
+						month=_getInt(val,i_val,token.length,2);
+						if(month==null||(month<1)||(month>12)){return 0;}
+						i_val+=month.length;}
+					else if (token=="dd"||token=="d") {
+						date=_getInt(val,i_val,token.length,2);
+						if(date==null||(date<1)||(date>31)){return 0;}
+						i_val+=date.length;}
+					else if (token=="hh"||token=="h") {
+						hh=_getInt(val,i_val,token.length,2);
+						if(hh==null||(hh<1)||(hh>12)){return 0;}
+						i_val+=hh.length;}
+					else if (token=="HH"||token=="H") {
+						hh=_getInt(val,i_val,token.length,2);
+						if(hh==null||(hh<0)||(hh>23)){return 0;}
+						i_val+=hh.length;}
+					else if (token=="KK"||token=="K") {
+						hh=_getInt(val,i_val,token.length,2);
+						if(hh==null||(hh<0)||(hh>11)){return 0;}
+						i_val+=hh.length;}
+					else if (token=="kk"||token=="k") {
+						hh=_getInt(val,i_val,token.length,2);
+						if(hh==null||(hh<1)||(hh>24)){return 0;}
+						i_val+=hh.length;hh--;}
+					else if (token=="mm"||token=="m") {
+						mm=_getInt(val,i_val,token.length,2);
+						if(mm==null||(mm<0)||(mm>59)){return 0;}
+						i_val+=mm.length;}
+					else if (token=="ss"||token=="s") {
+						ss=_getInt(val,i_val,token.length,2);
+						if(ss==null||(ss<0)||(ss>59)){return 0;}
+						i_val+=ss.length;}
+					else if (token=="a") {
+						if (val.substring(i_val,i_val+2).toLowerCase()=="am") {ampm="AM";}
+						else if (val.substring(i_val,i_val+2).toLowerCase()=="pm") {ampm="PM";}
+						else {return 0;}
+						i_val+=2;}
+					else {
+						if (val.substring(i_val,i_val+token.length)!=token) {return 0;}
+						else {i_val+=token.length;}
+						}
+					}
+				// If there are any trailing characters left in the value, it doesn't match
+				if (i_val != val.length) { return 0; }
+				// Is date valid for month?
+				if (month==2) {
+					// Check for leap year
+					if ( ( (year%4==0)&&(year%100 != 0) ) || (year%400==0) ) { // leap year
+						if (date > 29){ return 0; }
+						}
+					else { if (date > 28) { return 0; } }
+					}
+				if ((month==4)||(month==6)||(month==9)||(month==11)) {
+					if (date > 30) { return 0; }
+					}
+				// Correct hours value
+				if (hh<12 && ampm=="PM") { hh=hh-0+12; }
+				else if (hh>11 && ampm=="AM") { hh-=12; }
+				var newdate=new Date(year,month-1,date,hh,mm,ss);
+				return newdate.getTime();
+				}
+			
+			function _isInteger(val) {
+				var digits="1234567890";
+				for (var i=0; i < val.length; i++) {
+					if (digits.indexOf(val.charAt(i))==-1) { return false; }
+					}
+				return true;
+				}
+			function _getInt(str,i,minlength,maxlength) {
+				for (var x=maxlength; x>=minlength; x--) {
+					var token=str.substring(i,i+x);
+					if (token.length < minlength) { return null; }
+					if (_isInteger(token)) { return token; }
+					}
+				return null;
+				}
+			
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('debtsSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+		//]]>
+		</script>
+    	<h:form id="ntfMessageSearchForm" onkeypress="handleEnter(event)">
+    		<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+		                	
+		                		<h:outputLabel value="#{lblCommon.institution}:" title="#{lblCommon.institution}" />
+					   			<h:selectOneMenu id="instId" 
+					      						value="#{MbNotificationMessage.filter.instId}">
+					   				<f:selectItem itemValue=""/>
+					   				<a4j:support event="onchange" reRender="event_type"/>
+					   				<f:selectItems value="#{MbNotificationMessage.institutions}"/>
+					   			</h:selectOneMenu>
+					   			
+					   			<h:outputLabel value="#{lblIss.account_number}:" title="#{lblIss.account_number}"/>
+					   			<h:inputText value="#{MbNotificationMessage.filter.accountNumber}"/>
+					   			
+					   			<h:outputLabel value="#{lblIss.card_number}:" title="#{lblIss.card_number}"/>
+					   			<h:inputText value="#{MbNotificationMessage.filter.cardNumber}"/>
+		                	
+	                			<h:outputLabel value="#{lblNtf.channel}:" title="#{lblNtf.channel}" />
+	                			<h:selectOneMenu id="channelId" 
+					      						value="#{MbNotificationMessage.filter.channelId}">
+					   				<f:selectItem itemValue=""/>
+					   				<f:selectItems value="#{MbNotificationMessage.channelNames}"/>
+					   			</h:selectOneMenu>
+
+		            			<h:outputLabel value="#{lblNtf.delivery_address}: " title="#{lblNtf.delivery_address}" />
+		            			<h:inputText value="#{MbNotificationMessage.filter.deliveryAddress}"/>
+		            			
+                                <h:outputLabel value="#{lblNtf.is_delivered}: " title="#{lblNtf.is_delivered}" />
+                                <h:selectOneMenu id="delivered"
+                                                 value="#{MbNotificationMessage.filter.delivered}">
+                                    <f:selectItem itemValue=""/>
+                                    <f:selectItems value="#{MbNotificationMessage.delivered}"/>
+                                </h:selectOneMenu>
+                                    
+		            			<h:outputLabel for="dateFrom" value="#{lblCommon.eff_date_from}: " title="#{lblCommon.eff_date_from}" />
+		            			<h:panelGroup>
+	                				<h:inputText id="dateFrom" style="max-width:225px"
+	                						value="#{MbNotificationMessage.dateFrom}"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('ntfMessageSearchForm:dateFrom')}, #{rich:element('ntfMessageSearchForm:dateFromBtn')});">
+										<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+									</h:inputText>
+									<h:graphicImage
+											value="/images/calendar.gif"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('ntfMessageSearchForm:dateFrom')}, #{rich:element('ntfMessageSearchForm:dateFromBtn')});"
+											id="dateFromBtn" />	
+	                			</h:panelGroup>
+	
+		            			<h:outputLabel for="dateTo" value="#{lblCommon.eff_date_to}: " title="#{lblCommon.eff_date_to}" />
+		            			<h:panelGroup>
+	                				<h:inputText id="dateTo" style="max-width:225px"
+	                						value="#{MbNotificationMessage.dateTo}"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('ntfMessageSearchForm:dateTo')}, #{rich:element('ntfMessageSearchForm:dateToBtn')});">
+										<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+									</h:inputText>
+									<h:graphicImage
+											value="/images/calendar.gif"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('ntfMessageSearchForm:dateTo')}, #{rich:element('ntfMessageSearchForm:dateToBtn')});"
+											id="dateToBtn" />	
+	                			</h:panelGroup>
+		            			
+                                <h:outputLabel for="deliveryDateFrom" value="#{lblNtf.delivery_time_from}: " title="#{lblNtf.delivery_time_from}" />
+                                <h:panelGroup>
+                                    <h:inputText id="deliveryDateFrom" style="max-width:225px"
+                                                 value="#{MbNotificationMessage.deliveryDateFrom}"
+                                                 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('ntfMessageSearchForm:deliveryDateFrom')}, #{rich:element('ntfMessageSearchForm:deliveryDateFromBtn')});">
+                                        <f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+                                    </h:inputText>
+                                    <h:graphicImage
+                                            value="/images/calendar.gif"
+                                            onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('ntfMessageSearchForm:deliveryDateFrom')}, #{rich:element('ntfMessageSearchForm:deliveryDateFromBtn')});"
+                                            id="deliveryDateFromBtn" />
+                                </h:panelGroup>
+
+                                <h:outputLabel for="deliveryDateTo" value="#{lblNtf.delivery_time_to}: " title="#{lblNtf.delivery_time_to}" />
+                                <h:panelGroup>
+                                    <h:inputText id="deliveryDateTo" style="max-width:225px"
+                                                 value="#{MbNotificationMessage.deliveryDateTo}"
+                                                 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('ntfMessageSearchForm:deliveryDateTo')}, #{rich:element('ntfMessageSearchForm:deliveryDateToBtn')});">
+                                        <f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+                                    </h:inputText>
+                                    <h:graphicImage
+                                            value="/images/calendar.gif"
+                                            onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('ntfMessageSearchForm:deliveryDateTo')}, #{rich:element('ntfMessageSearchForm:deliveryDateToBtn')});"
+                                            id="deliveryDateToBtn" />
+                                </h:panelGroup>
+					   			
+					   			<h:outputLabel value="#{lblCommon.event_type}: " title="#{lblCommon.event_type}" />
+		            			<h:selectOneMenu id="event_type" 
+					      						value="#{MbNotificationMessage.filter.eventType}">
+					   				<f:selectItem itemValue=""/>
+					   				<f:selectItems value="#{MbNotificationMessage.eventTypes}"/>
+					   			</h:selectOneMenu>
+		            			
+		            			<h:outputLabel value="#{lblNtf.urgency_level}: " title="#{lblNtf.urgency_level}" />
+		            			<h:inputText value="#{MbNotificationMessage.filter.urgencyLevel}" 
+		            				onkeypress="if (!numbersOnly(this, event)) return false;"/>
+								
+		            			<h:inputText style="display:none" 
+		            					value="IE hack for 'Enter' hit when there's only one input field 
+		            							on form. Stick it to the bottom to not to break layout"/>
+                			</h:panelGrid>
+	                		<h:panelGrid columns="1">
+		                		<bre:taggedCommandButton
+			                			action="#{MbNotificationMessage.search}"
+	        							reRender="ntfMessageForm:notificationsTable, ntfMessageBtnForm:notificationsDs, 
+	        									ntfMessageBtnForm:pagesNum, ntfMessageBtnForm:btnPanel, detailsTab"
+	        							id="searchBtn"		
+	                					image="/_img/icon_search.png" type="submit"
+	                					value="#{lblForm.search}" style="width:85px;"
+	                					onclick="if (!checkMessageFields()) {return false;} disableModalPanelBtns(this);"
+	                					oncomplete="enableModalPanelBtns(this);"
+	                					eventsQueue="queue"/>
+	                			<h:panelGroup styleClass="link-clear" layout="block">
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+						        			action="#{MbNotificationMessage.clearFilter}"
+						        			reRender="ntfMessageSearchForm, ntfMessageForm, ntfMessageBtnForm, details">
+						        	</a4j:commandLink>
+	            	    		</h:panelGroup>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+	               			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+	               			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+               			</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+    	</h:form>
+    	
+    	<h:form id="ntfMessageForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		    		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="notificationsTable"
+							var="item"
+							tableState="#{MbNotificationMessage.tableState}"
+							value="#{MbNotificationMessage.notifications}"
+							selection="#{MbNotificationMessage.itemSelection}"
+							rows="#{MbNotificationMessage.rowsNum}"
+							height="255px"
+							selectionMode="single"
+							rowClasses=",odd"
+							headerClass="res-table-header"
+							selectedClass="res-table-selected"
+							styleClass="res-table"
+							enableContextMenu="true"
+							noDataLabel="#{MbNotificationMessage.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="detailsTab,  ntfMessageBtnForm:btnPanel">
+			
+						<a4j:support event="onselectionchange" eventsQueue="queue" oncomplete="updateHeight()"
+								reRender="detailsTab,  ntfMessageBtnForm:btnPanel" />
+			
+						<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="5%" sortOrder="ASCENDING">
+			                <f:facet name="header">
+			                   	<a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+								</a4j:outputPanel>
+			                </f:facet>
+			               	<h:outputText value="#{item.id}" title="#{item.id}"/>
+						</rich:column>
+			
+						<rich:column id="name" label="#{lblNtf.channel}" sortBy="#{'channel_id'}" width="20%">
+			                   <f:facet name="header">
+			                   	<h:outputText value="#{lblNtf.channel}" title="#{lblNtf.channel}" />
+			                   </f:facet>
+			               	<h:outputText value="#{item.channelId} - #{item.channelName}" 
+			               		title="#{item.channelId} - #{item.channelName}"/>
+						</rich:column>
+						
+				        <rich:column id="deliveryAddress" label="#{lblNtf.delivery_address}" 
+				        sortBy="#{'delivery_address'}" width="10%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblNtf.delivery_address}" title="#{lblNtf.delivery_address}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.deliveryAddress}" 
+			               		title="#{item.deliveryAddress}"/>
+				        </rich:column>
+
+				        <rich:column id="deliveryTime" label="#{lblNtf.delivery_time}" sortBy="#{'delivery_date'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblNtf.delivery_time}" title="#{lblNtf.delivery_time}"/>
+			                </f:facet>
+			                <h:outputText value="#{fmt:formatDate(item.deliveryDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}" 
+			               		title="#{fmt:formatDate(item.deliveryDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"/>
+				        </rich:column>
+				        
+				        <rich:column id="effectiveDate" label="#{lblCommon.eff_date}" sortBy="#{'eff_date'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.eff_date}" title="#{lblCommon.eff_date}"/>
+			                </f:facet>
+			                <h:outputText value="#{fmt:formatDate(item.effDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}" 
+			               		title="#{fmt:formatDate(item.effDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"/>
+				        </rich:column>
+
+				        <rich:column id="messageStatus" label="#{lblCommon.status}" sortBy="#{'message_status'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+			                </f:facet>
+							<h:outputText value="#{DictUtils.articles[item.messageStatus]}" title="#{DictUtils.articles[item.messageStatus]}" />
+				        </rich:column>
+				        
+				        <rich:column id="inst" label="#{lblCommon.institution}" sortBy="#{'inst_id'}" width="10%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.instId} - #{item.instName}" 
+			               		title="#{item.instId} - #{item.instName}"/>
+				        </rich:column>
+				        
+				        <rich:column id="urgencyLevel" label="#{lblNtf.urgency_level}" sortBy="#{'urgency_level'}" >
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblNtf.urgency_level}" title="#{lblNtf.urgency_level}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.urgencyLevel}" 
+			               		title="#{item.urgencyLevel}"/>
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+	</h:form>
+	<h:form id="ntfMessageBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="5"
+							columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+							<h:selectOneMenu id="rows_num" value="#{MbNotificationMessage.rowsNum}"
+								styleClass="row_per_page">
+								<a4j:support event="onchange"
+									reRender="notificationsTable, notificationsDs, pagesNum, detailsTab,  ntfMessageBtnForm:btnPanel" />
+								<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+							</h:selectOneMenu>
+
+							<rich:datascroller maxPages="10" fastControls="hide"
+								pagesVar="pages" styleClass="res-datascroller"
+								id="notificationsDs" for="notificationsTable"
+								reRender="detailsTab,  ntfMessageBtnForm:btnPanel">
+								<f:facet name="first">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="first_disabled">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="last">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="last_disabled">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="previous_disabled">
+									<h:outputText value="#{lblCommon.prev}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="next">
+									<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="next_disabled">
+									<h:outputText value="#{lblCommon.next}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="pages">
+								</f:facet>
+							</rich:datascroller>
+
+							<h:panelGroup id="pagesNum">
+								<h:outputText styleClass="strongClass" value="#{pages} " />
+								<h:outputText value=" #{lblCommon.pages}" />
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbNotificationMessage.notifications.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+							</h:panelGroup>
+							
+							<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbNotificationMessage.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbNotificationMessage.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGrid id="btnPanel" columns="4" styleClass="itempanel">
+					 <bre:taggedCommandButton id="btn_edit"
+                        		value="#{lblEvt.change_status}"
+                        		action="#{MbNotificationMessage.changeStatus}"
+                        		disabled="#{MbNotificationMessage.disable}"
+                        		rendered="#{(usession.inRole['MODIFY_NOTIF_MESSAGE_STATUS'])}"
+                        		reRender="ntfMessageForm, btnPanel"
+                        		image="/images/edit.gif"
+                        		/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+	    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content" selectedTab="#{MbNotifications.tabName}">
+
+				<rich:tab ontabenter="storeTab('detailsTab')" label="#{lblCommon.details}" name="detailsTab">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+      					<h:panelGroup id="detailsTab" layout="block">
+      						<ui:include src="/pages/notifications/notificationMessageDetails.jspx"></ui:include>
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+      					</h:panelGroup>
+			    </rich:tab>
+
+		    </rich:tabPanel>
+        </h:panelGroup>
+		
+
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.css" style and "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel"¸ layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+		
+			updateHeight();
+			
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'ntfMessageSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'ntfMessageForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'ntfMessageBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'notificationMessageDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'notificationMessageDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>
+
+	</ui:define>
+</ui:composition>
+</html>

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="deliveries">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+        SELECT *
+        FROM (
+    </sql>
+
+    <sql id="limitationOpenCount">
+        SELECT count(*)
+        FROM (
+    </sql>
+
+    <sql id="limitationClose">
+        ) q
+        <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+
+    <sql id="paginatedOpen">
+        SELECT *
+        FROM(
+        SELECT a.*, rownum r
+        FROM(
+        <include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+        <include refid="limitationClose"/>
+        ) a
+        WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+        )
+        WHERE r >= (#range.start# + 1)
+    </sql>
+
+    <resultMap  id="mapping-delivery"
+                class="ru.bpc.sv2.deliveries.Delivery">
+        <result property="deliveryRefNum" column="delivery_ref_number"/>
+        <result property="deliveryStatus" column="delivery_status"/>
+        <result property="id" column="id"/>
+        <result property="splitHash" column="split_hash"/>
+        <result property="cardId" column="card_id"/>
+        <result property="seqNum" column="seq_number"/>
+        <result property="state" column="state"/>
+        <result property="regDate" column="reg_date"/>
+        <result property="issDate" column="iss_date"/>
+        <result property="startDate" column="start_date"/>
+        <result property="expDate" column="expir_date"/>
+        <result property="cardholderName" column="cardholder_name"/>
+        <result property="companyName" column="company_name"/>
+        <result property="pinRequest" column="pin_request"/>
+        <result property="pinMailerRequest" column="pin_mailer_request"/>
+        <result property="embossingRequest" column="embossing_request"/>
+        <result property="status" column="status"/>
+        <result property="persoPriority" column="perso_priority"/>
+        <result property="binId" column="bin_id"/>
+        <result property="agentId" column="agent_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="blankTypeId" column="blank_type_id"/>
+        <result property="deliveryChannel" column="delivery_channel"/>
+        <result property="precedingCardInstanceId" column="preceding_card_instance_id"/>
+        <result property="reissueReason" column="reissue_reason"/>
+        <result property="reissueDate" column="reissue_date"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="cardUID" column="card_uid"/>
+        <result property="cardMask" column="card_mask"/>
+        <result property="cardNumber" column="card_number"/>
+        <result property="cardTypeId" column="card_type_id"/>
+    </resultMap>
+
+    <select id="get-deliveries"
+            parameterClass="qparams"
+            resultMap="mapping-delivery" >
+        <include refid="paginatedOpen"/>
+        SELECT	  d.delivery_ref_number
+        , d.delivery_status
+        , d.id
+        , d.split_hash
+        , d.card_id
+        , d.seq_number
+        , d.state
+        , d.reg_date
+        , d.iss_date
+        , d.start_date
+        , d.expir_date
+        , d.cardholder_name
+        , d.company_name
+        , d.pin_request
+        , d.pin_mailer_request
+        , d.embossing_request
+        , d.status
+        , d.perso_priority
+        , d.bin_id
+        , d.agent_id
+        , d.inst_id
+        , d.blank_type_id
+        , d.delivery_channel
+        , d.preceding_card_instance_id
+        , d.reissue_reason
+        , d.reissue_date
+        , d.session_id
+        , d.card_uid
+        , c.card_mask
+        , c.card_number
+        , c.card_type_id
+        FROM
+                iss_ui_card_instance_vw d, iss_ui_card_vw c
+        WHERE
+            d.card_id = c.id(+)
+        <iterate prepend=" AND " conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="cardNumber">c.card_number like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">d.inst_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="agentId">d.agent_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="deliveryRefNum">d.delivery_ref_number like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="deliveryStatus">d.delivery_status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="dateFrom">d.reg_date >= trunc(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="dateTo">d.reg_date <![CDATA[<=]]> trunc(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="cardTypeId">
+                c.card_type_id in (
+                    select id
+                    from net_card_type t
+                    start with id = #filters[].value#
+                    connect by prior id = parent_type_id
+                )
+            </isEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-deliveries-count"
+            parameterClass="qparams"
+            resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+            d.id
+        FROM
+            iss_ui_card_instance_vw d, iss_ui_card_vw c
+        WHERE
+            d.card_id = c.id(+)
+        <iterate prepend=" AND " conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="cardNumber">c.card_number like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">d.inst_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="agentId">d.agent_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="deliveryRefNum">d.delivery_ref_number like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="deliveryStatus">d.delivery_status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="dateFrom">d.reg_date >= trunc(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="dateTo">d.reg_date <![CDATA[<=]]> trunc(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="cardTypeId">
+                c.card_type_id in (
+                    select id
+                    from net_card_type t
+                    start with id = #filters[].value#
+                    connect by prior id = parent_type_id
+                )
+            </isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <resultMap  id="mapping-delivery-amount"
+                class="ru.bpc.sv2.deliveries.DeliveryAmount">
+        <result property="deliveryStatus" column="delivery_status"/>
+        <result property="amount" column="amount"/>
+    </resultMap>
+
+
+    <select id="get-statistics"
+            parameterClass="qparams"
+            resultMap="mapping-delivery-amount">
+        <include refid="limitationOpen"/>
+        SELECT *
+        FROM (
+            SELECT a.DELIVERY_STATUS
+            , count(*) as amount
+            FROM
+                iss_ui_card_instance_vw a
+            <iterate prepend=" WHERE " conjunction="AND" property="filters">
+                <isEqual property="filters[].element" compareValue="deliveryRefNum">a.delivery_ref_number = #filters[].value#</isEqual>
+            </iterate>
+            GROUP BY
+                a.delivery_status
+        )
+        WHERE
+            delivery_status is not null
+        <include refid="limitationClose"/>
+    </select>
+
+    <parameterMap class="java.util.Map" id="modify-delivery-status-map">
+        <parameter property="instanceIdList" jdbcType="NUM_TAB_TPT" typeName="PRC_SESSION_FILE_RECNUM_TAB" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="IN" />
+        <parameter property="deliveryStatus" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="eventDate" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="modify-delivery-status"
+               parameterMap="modify-delivery-status-map">
+        { call iss_ui_card_instance_pkg.modify_delivery_status(
+        i_card_instance_id_tab		=> ?
+        , i_delivery_status 	=> ?
+        , i_event_date => ?
+        )}
+    </procedure>
+
+    <parameterMap class="java.util.Map" id="update-delivery-ref-number-map">
+        <parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMBER" mode="IN"/>
+        <parameter property="agentId" javaType="java.lang.Integer" jdbcType="NUMBER" mode="IN"/>
+        <parameter property="cardTypeId" javaType="java.lang.Integer" jdbcType="NUMBER" mode="IN"/>
+        <parameter property="instanceIdList" jdbcType="NUM_TAB_TPT" typeName="PRC_SESSION_FILE_RECNUM_TAB" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="IN" />
+        <parameter property="deliveryRefNum" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="update-delivery-ref-number"
+               parameterMap="update-delivery-ref-number-map">
+        { call iss_ui_card_instance_pkg.update_delivery_ref_number(
+        i_inst_id                   => ?
+        , i_agent_id		            => ?
+        , i_card_type_id 		        => ?
+        , i_card_instance_id_tab		=> ?
+        , i_delivery_ref_number	        => ?
+        )}
+    </procedure>
+
+</sqlMap>

@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net"/>
+	
+	<script type="text/javascript">//<![CDATA[			
+		function checkMemberFields() {
+			var checked = true;
+			
+			if (document.getElementById('memberEditForm:newMember')
+					&& document.getElementById('memberEditForm:newMember').value == "") {
+				document.getElementById('memberEditForm:newMemberError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('memberEditForm:newNetwork')
+					&& document.getElementById('memberEditForm:newNetwork').value == "") {
+				document.getElementById('memberEditForm:newNetworkError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('memberEditForm:likeHost').checked){
+				
+				if (document.getElementById('memberEditForm:newHostName').value == "") {
+					document.getElementById('memberEditForm:newHostNameError').style.display = "inline";
+					checked = false;
+				}
+				
+				if (document.getElementById('memberEditForm:newHostOwner')
+						&& document.getElementById('memberEditForm:newHostOwner').value == "") {
+					document.getElementById('memberEditForm:newHostOwnerError').style.display = "inline";
+					checked = false;
+				}	
+			}
+			
+			return checked;
+		}
+		
+		//]]>
+	</script>
+
+	<h:form id="netMembersForm">
+		<h:panelGroup id="membersTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="membersTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{(networksBean==null ? MbNetworkMembers : networksBean).members}"
+				selection="#{(networksBean==null ? MbNetworkMembers : networksBean).itemSelection}" height="220px"
+				rows="0" enableContextMenu="true"
+				tableState="#{(networksBean==null ? MbNetworkMembers : networksBean).tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="netMembersForm:btnPanel" />
+
+				<rich:column id="default" label="#{lblCommon.default}" title="Default" width="5%" style="text-align: center;">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.default}"
+								title="#{lblCommon.default}" />							
+						</a4j:outputPanel>
+					</f:facet>
+					<h:selectBooleanCheckbox value="#{item.default}" disabled="true" />
+				</rich:column>
+
+				<rich:column id="institution" label="#{lblCommon.institution}" title="Institution" sortBy="#{'instName'}" width="20%"
+					rendered="#{!(networksBean==null ? MbNetworkMembers : networksBean).showNetworks}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.institution}"
+							title="#{lblCommon.institution}" />
+					</f:facet>
+					<bm:entityDisplay value="#{item.instName}" description="#{item.instName}" 
+					      		/>
+				</rich:column>
+
+				<rich:column id="network" label="#{lblNet.network}" title="Network" sortBy="#{'networkName'}" width="20%"
+					rendered="#{(networksBean==null ? MbNetworkMembers : networksBean).showNetworks}">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.network}" title="#{lblNet.network}" />
+					</f:facet>
+					<bm:entityDisplay entityId="#{item.networkId}" value="#{item.networkName}"
+			                		entityName="ENTTNETW" showIcon="true"/>
+				</rich:column>
+
+				<rich:column id="host" label="#{lblNet.host_desc}" title="#{lblNet.host_desc}" sortBy="#{'hostName'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.host_desc}" title="#{lblNet.host_desc}" />
+					</f:facet>
+					<bm:entityDisplay value="#{item.hostName}" description="#{item.hostName}" 
+					      		/>
+				</rich:column>
+
+				<rich:column id="auth_if" label="#{lblNet.auth_if}" title="Authorization interface"
+					sortBy="#{'onlineStdName'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.auth_if}" title="#{lblNet.auth_if}" />
+					</f:facet>
+					<bm:entityDisplay value="#{item.onlineStdName}" description="#{item.onlineStdName}" 
+					      		/>
+				</rich:column>
+
+				<rich:column id="clearing_if" label="#{lblNet.clearing_if}"  title="Clearing interface" sortBy="#{'offlineStdName'}"
+					width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.clearing_if}"
+							title="#{lblNet.clearing_if}" />
+					</f:facet>
+					<bm:entityDisplay value="#{item.offlineStdName}" description="#{item.offlineStdName}" 
+					      		/>
+				</rich:column>
+
+				<rich:column id="participantType" label="#{lblNet.participant_type}"
+					sortBy="#{'participantType'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.participant_type}"
+							title="#{lblNet.participant_type}" />
+					</f:facet>
+					<bm:entityDisplay value="#{DictUtils.articles[item.participantType]}" 
+						description="#{DictUtils.articles[item.participantType]}"/>
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons" rendered="#{networksBean==null}">
+
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						rendered="#{usession.inRole['ADD_NETWORK_MEMBER_INST']}"
+						reRender="netMemberModalDiv" value="#{lblForm.add}"
+						oncomplete="#{rich:component('netMemberModalPanel')}.show()"
+						action="#{(networksBean==null ? MbNetworkMembers : networksBean).add}"
+						disabled="#{(networksBean==null ? MbNetworkMembers : networksBean).networkId == null and (networksBean==null ? MbNetworkMembers : networksBean).filter.instId == null}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+						rendered="#{usession.inRole['MODIFY_NETWORK_MEMBER_INST']}"
+						value="#{lblForm.delete}"
+						disabled="#{(networksBean==null ? MbNetworkMembers : networksBean).activeMember == null || (networksBean==null ? MbNetworkMembers : networksBean).activeMember.default}"
+						image="/images/delete.gif" 
+						oncomplete="#{rich:component('deleteMemberView:confirmPanel')}.show()"/>
+					<bre:taggedCommandButton id="hostsBtn" value="#{lblForm.hosts}"
+						action="#{(networksBean==null ? MbNetworkMembers : networksBean).gotoHosts}"
+						rendered="#{(networksBean==null ? MbNetworkMembers : networksBean).networkId != null}">
+						<a4j:actionparam assignTo="#{(networksBean==null ? MbNetworkMembers : networksBean).pageName}"
+							value="#{parentPageName}" />
+					</bre:taggedCommandButton>
+					</h:panelGroup>
+					
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveMemberTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteMemberTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveMemberTableState" action="#{(networksBean==null ? MbNetworkMembers : networksBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteMemberTableState" action="#{(networksBean==null ? MbNetworkMembers : networksBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="netMemberModalPanel" autosized="true" minWidth="300" minHeight="50">
+ 	    <f:facet name="header">
+ 	    	<h:panelGroup>
+			    <h:outputText value="#{lblNet.new_member}" rendered="#{!MbNetworkMembers.showNetworks}"/>
+			    <h:outputText value="#{lblNet.add_network}" rendered="#{MbNetworkMembers.showNetworks}"/>
+ 	    	</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:panelGroup id="netMemberModalDiv">
+      		<h:form id="memberEditForm">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+						<h:outputLabel value="* #{lblCommon.institution}" rendered="#{!MbNetworkMembers.showNetworks}" title="#{lblCommon.institution}"/>
+						<h:panelGrid cellpadding="0" cellspacing="0" rendered="#{!MbNetworkMembers.showNetworks}">
+							<h:selectOneMenu id="newMember"
+									value="#{MbNetworkMembers.newMember.instId}"
+									label="#{lblCommon.institution}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+							    <f:selectItems value="#{MbNetworkMembers.institutions}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newMemberError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.institution}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						
+						<h:outputLabel value="* #{lblNet.network}" rendered="#{MbNetworkMembers.showNetworks}" title="#{lblNet.network}"/>
+						<h:panelGrid cellpadding="0" cellspacing="0" rendered="#{MbNetworkMembers.showNetworks}">
+							<h:selectOneMenu id="newNetwork"
+									value="#{MbNetworkMembers.newMember.networkId}"
+									label="#{lblNet.network}"
+									onblur="hideErrorField(this)">
+								<a4j:support event="onchange"
+									reRender="newHostOwner" limitToList="true"
+									ajaxSingle="true" />
+								<f:selectItem itemValue=""/>
+							    <f:selectItems value="#{MbNetworkMembers.networks}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newNetworkError" style="display:none;">
+								<f:param name="fieldName" value="#{lblNet.network}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel  value="#{lblNet.reg_as_host}" title="#{lblNet.reg_as_host}"/>
+						<h:selectBooleanCheckbox value="#{MbNetworkMembers.likeHost}" id="likeHost" 
+							title="#{lblNet.reg_as_host}">
+							<a4j:support event="onchange" reRender="hostLang, editLang, newHostName, 
+								editHostOwner, newHostOwner, newHostAuthIf, newHostClearingIf, status, newPartyType, newHostNameLabel"/>
+						</h:selectBooleanCheckbox>	
+						
+						<h:outputLabel value="#{lblNet.participant_type}" title="#{lblNet.participant_type}"/>
+						<h:selectOneMenu id="newPartyType" value="#{MbNetworkMembers.newMember.participantType}"
+							disabled="#{!MbNetworkMembers.likeHost}">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbNetworkMembers.participantTypes}"/>
+						</h:selectOneMenu>
+							
+						<h:outputLabel value="#{lblCommon.language}: "
+							title="#{lblCommon.language}" />
+						<h:selectOneMenu id="hostLang" value="#{MbNetworkMembers.newMember.lang}"
+							disabled="#{!MbNetworkMembers.likeHost}"
+							rendered="#{MbNetworkMembers.newMode}">
+							<f:selectItems value="#{MbNetworkMembers.languages}" />
+						</h:selectOneMenu>
+						<h:selectOneMenu id="editLang" value="#{MbNetworkMembers.newMember.lang}"
+							rendered="#{MbNetworkMembers.editMode}"
+							disabled="#{!MbNetworkMembers.likeHost}"
+							onchange="document.getElementById('host:confirmPanelForm:newValue').value = this.value;
+										#{rich:component('host:confirmPanel')}.show()">
+							<f:selectItems value="#{MbNetworkMembers.languages}" />
+						</h:selectOneMenu>
+						<h:panelGroup id="newHostNameLabel">
+							<h:outputLabel value="* #{lblNet.host_desc}: "
+								title="#{lblNet.host_desc}" rendered="#{MbNetworkMembers.likeHost}" />
+							<h:outputLabel value="#{lblNet.host_desc}: "
+								title="#{lblNet.host_desc}" rendered="#{!MbNetworkMembers.likeHost}" />
+						</h:panelGroup>
+						<h:panelGrid cellpadding="0" cellspacing="0">
+							<h:inputText id="newHostName" value="#{MbNetworkMembers.newMember.hostName}"
+								maxlength="2000" label="#{lblNet.host_desc}"
+								onblur="hideErrorField(this)" disabled="#{!MbNetworkMembers.likeHost}">
+								<f:validateLength minimum="3" />
+								<a4j:support event="onchange" reRender="newHostNameErr"
+									limitToList="true" ajaxSingle="true" />
+							</h:inputText>
+							<rich:message for="newHostName" id="newHostNameErr"
+								styleClass="errorMarker" />
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newHostNameError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.description}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+	
+						<h:outputLabel value="* #{lblNet.host_owner}: "
+							title="#{lblNet.host_owner}" rendered="#{MbNetworkMembers.showNetworks}"/>
+						<h:panelGrid cellpadding="0" cellspacing="0"
+							rendered="#{MbNetworkMembers.editMode}">
+							<h:selectOneMenu id="editHostOwner" disabled="true"
+								value="#{MbNetworkMembers.newMember.instId}" required="true"
+								label="#{lblNet.host_owner}">
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbNetworkMembers.hostOwners}" />
+								<a4j:support event="onchange" reRender="editHostOwnerErr"
+									limitToList="true" ajaxSingle="true" />
+							</h:selectOneMenu>
+							<rich:message for="editHostOwner" id="editHostOwnerErr"
+								styleClass="errorMarker" />
+						</h:panelGrid>
+						<h:panelGrid cellpadding="0" cellspacing="0"
+							rendered="#{MbNetworkMembers.newMode and MbNetworkMembers.showNetworks}">
+							<h:selectOneMenu id="newHostOwner" value="#{MbNetworkMembers.newMember.id}"
+								label="#{lblNet.host_owner}"
+								onblur="hideErrorField(this)"
+								disabled="#{!MbNetworkMembers.likeHost}">
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbNetworkMembers.hostOwners}" />
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newHostOwnerError" style="display:none;">
+								<f:param name="fieldName" value="#{lblNet.host_owner}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+	
+						<h:outputLabel value="#{lblNet.auth_if}: "
+							title="#{lblNet.auth_if}" />
+						<h:selectOneMenu id="newHostAuthIf"
+							value="#{MbNetworkMembers.newMember.onlineStdId}"
+							disabled="#{!MbNetworkMembers.likeHost}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbNetworkMembers.onlineStandards}" />
+						</h:selectOneMenu>
+						<h:outputLabel value="" />
+						<h:outputText
+							value="#{lblNet.online_or_offline_standard_must_be_defined}"
+							style="font-size: x-small;font-style:italic" />
+	
+						<h:outputLabel value="#{lblNet.clearing_if}: "
+							title="#{lblNet.clearing_if}" />
+						<h:selectOneMenu id="newHostClearingIf"
+							value="#{MbNetworkMembers.newMember.offlineStdId}"
+							disabled="#{!MbNetworkMembers.likeHost}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbNetworkMembers.offlineStandards}" />
+						</h:selectOneMenu>
+						<h:outputLabel value="" />
+						<h:outputText
+							value="#{lblNet.online_or_offline_standard_must_be_defined}"
+							style="font-size: x-small;font-style:italic" />
+	
+						<h:outputLabel value="#{lblCommon.status}: " title="#{lblCommon.status}" />
+						<h:selectOneMenu id="status" value="#{MbNetworkMembers.newMember.status}"
+							disabled="#{!MbNetworkMembers.likeHost}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbNetworkMembers.statuses}"/>
+						</h:selectOneMenu>	
+						
+					</h:panelGrid>
+				</h:panelGroup>
+
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+                        	<bre:taggedCommandButton
+                        			value="#{lblForm.save}" type="submit" action="#{MbNetworkMembers.save}"
+                        			onclick="if (!checkMemberFields()) return false; disableModalPanelBtns(this)"
+                        			oncomplete="enableModalPanelBtns(this);if (#{usession.noErrorResponse}) #{rich:component('netMemberModalPanel')}.hide()"
+                        			reRender="netMembersForm"
+	                        		/>
+                        	<bre:taggedCommandButton
+	                        		value="#{lblForm.cancel}" 
+	                        		action="#{MbNetworkMembers.cancel}" immediate="true"
+	                        		oncomplete="#{rich:component('netMemberModalPanel')}.hide()"
+	                        		/>
+			    		</h:panelGrid>
+			    	</h:panelGroup>
+			    </h:panelGroup>
+                <script>updateHeight();</script>
+			</h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbNetworkMembers}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="netMembersForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteMemberView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

@@ -1,0 +1,372 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+		<ui:define name="navigatableContent">
+		<a4j:loadScript src="/js/stretch.js" />
+		<style type="text/css">
+			.leftAligned {
+				text-align: left;
+			}
+		</style>
+		
+		<f:loadBundle var="lblFrp" basename="ru.bpc.sv2.ui.bundles.Frp"/>
+		
+		<h:panelGroup rendered="#{usession.inRole['VIEW_MATRIX']}">
+		
+			<!-- navigation bar -->
+	        <bpct:navBar pageName="#{lblFrp.matrices}"/>
+	        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+	        
+	        <script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('matricesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			    
+	    	<h:form id="matricesSearchForm" onkeypress="handleEnter(event)">			
+	
+				<!-- search panel -->
+				<h:panelGroup styleClass="search_block" layout="block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+		                <h:panelGroup styleClass="search_block_left" layout="block">
+		                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+			                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+			            			<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+									<h:selectOneMenu id="instId" value="#{MbMatrices.filter.instId}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbMatrices.institutions}"/>
+									</h:selectOneMenu>
+
+			            			<h:outputLabel for="label" value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+									<h:inputText id="label" value="#{MbMatrices.filter.label}"/>
+	
+			            			<h:inputText style="display:none" 
+			            					value="IE hack for 'Enter' hit when there's only one input field 
+			            							on form. Stick it to the bottom to not to break layout"/>
+	                			</h:panelGrid>
+		                		<h:panelGrid columns="1">
+			                		<bre:taggedCommandButton
+				                			action="#{MbMatrices.search}"
+		        							reRender="matricesTable, dsRules, pagesNum, matricesBtnForm:btnPanel, #{MbMatrices.tabName}"
+		        							id="searchBtn"
+		                					image="/_img/icon_search.png" type="submit"
+		                					value="#{lblForm.search}" style="width:85px;"
+		                					onclick="disableModalPanelBtns(this);"
+		                					oncomplete="enableModalPanelBtns(this);"
+		                					eventsQueue="queue"/>
+		                			<h:panelGroup styleClass="link-clear" layout="block">
+			                			<h:graphicImage url="/_img/icon_clear.png"/>
+			                			<a4j:commandLink value="#{lblForm.clear_all}"	
+							        			action="#{MbMatrices.clearFilter}"
+							        			reRender="matricesSearchForm, matricesForm, matricesBtnForm, #{MbMatrices.tabName}">
+							        	</a4j:commandLink>
+		            	    		</h:panelGroup>
+		                		</h:panelGrid>
+		                	</h:panelGrid>
+		                	<a4j:outputPanel ajaxRendered="true">
+				               	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+			    	           	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+		    	           	</a4j:outputPanel>
+	    	           	</h:panelGroup>
+	               	</h:panelGroup>
+	               	</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<h:form id="matricesForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+			    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+			    		<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+					    <rich:extendedDataTable
+								id="matricesTable"
+								tableState="#{MbMatrices.tableState}"
+								styleClass="res-table"
+								headerClass="res-table-header"
+								rowClasses=",odd"
+								selectedClass="res-table-selected"
+								var="item"
+								value="#{MbMatrices.matrices}"
+								selection="#{MbMatrices.itemSelection}"
+								rows="#{MbMatrices.rowsNum}"
+								height="200px"
+								selectionMode="single"
+								width="100%"
+								enableContextMenu="true"
+								noDataLabel="#{MbMatrices.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+								reRender="matricesBtnForm:btnPanel, #{MbMatrices.tabName}">
+	
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+									reRender="matricesBtnForm:btnPanel, #{MbMatrices.tabName}"/>
+	
+					        <rich:column id="id" label="#{lblCommon.id}" title="ID" sortBy="#{'id'}" width="7%">
+								<f:facet name="header">
+				                    <a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+				                </f:facet>
+				                <h:outputText value="#{item.id}" title="#{item.id}"/>
+					        </rich:column>
+
+					        <rich:column id="name" label="#{lblCommon.name}" title="Label" sortBy="#{'label'}" width="20%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.label}" title="#{item.label}"/>
+					        </rich:column>
+	
+					        <rich:column id="institution" label="#{lblCommon.institution}" title="Institution" sortBy="#{'instName'}" width="20%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}"/>
+				                </f:facet>
+				                <bm:entityDisplay  entityId="#{item.instId}"
+									value="#{item.instName}"/>
+					        </rich:column>
+
+					        <rich:column id="matrix_type" label="#{lblFrp.matrix_type}" title="Matrix type" sortBy="#{'matrixType'}" width="20%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblFrp.matrix_type}" title="#{lblFrp.matrix_type}"/>
+				                </f:facet>
+				                <h:outputText value="#{DictUtils.articles[item.matrixType]}"
+				                		title="#{DictUtils.articles[item.matrixType]}"
+				                		rendered="#{item.matrixType != null}" />
+				                <h:outputText value="" title="" rendered="#{item.matrixType == null}" />
+					        </rich:column>
+	
+					        <rich:column id="x_scale" label="#{lblFrp.x_scale}" title="X scale" sortBy="#{'xScale'}" width="15%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblFrp.x_scale}" title="#{lblFrp.x_scale}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.xScaleDesc}" title="#{item.xScaleDesc}"/>
+					        </rich:column>
+
+					        <rich:column id="y_scale" label="#{lblFrp.y_scale}" title="Y scale" sortBy="#{'yScale'}" width="15%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblFrp.y_scale}" title="#{lblFrp.y_scale}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.yScaleDesc}" title="#{item.yScaleDesc}"/>
+					        </rich:column>
+					    </rich:extendedDataTable>
+					    </h:panelGroup>
+					    <a4j:outputPanel ajaxRendered="true">
+					    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+						    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+					    </a4j:outputPanel>
+				    </h:panelGroup>
+				</h:panelGroup>
+				</h:form>
+				<h:form id="matricesBtnForm">
+			    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+			        	<h:panelGroup layout="block" styleClass="table_tools">
+				        	<h:panelGrid styleClass="fw field-cont" columns="5"
+				        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+					        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+								<h:selectOneMenu id="rows_num" value="#{MbMatrices.rowsNum}" styleClass="row_per_page" >
+									<a4j:support event="onchange" reRender="matricesTable, dsRules, pagesNum, matricesBtnForm:btnPanel, #{MbMatrices.tabName}"/>
+	                        		<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+			                    </h:selectOneMenu>
+	
+			                    <rich:datascroller maxPages="10" fastControls="hide"
+			                    		pagesVar="pages" styleClass="res-datascroller"
+					                    id="dsRules" for="matricesTable"
+					                    reRender="matricesBtnForm:btnPanel, #{MbMatrices.tabName}">
+					            	<f:facet name="first">
+					                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+					                <f:facet name="first_disabled">
+					                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="last">
+					                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="last_disabled">
+					                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="previous_disabled">
+					                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="next">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="next_disabled">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="pages">
+					                </f:facet>
+								</rich:datascroller>
+	
+			                    <h:panelGroup id="pagesNum">
+			                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+			                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbMatrices.matrices.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+			                    </h:panelGroup>
+			                    
+			                    <h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbMatrices.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbMatrices.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+	
+			            <h:panelGrid id="btnPanel" columns="5" styleClass="buttons_block">
+					    	<bre:taggedCommandButton id="addBtn"
+		                      		reRender="matrixModalHeader, matrixModalDiv"
+		                      		value="#{lblForm.add}"
+	                    			oncomplete="#{rich:component('matrixModalPanel')}.show()"
+		                      		action="#{MbMatrices.add}"
+		                      		image="/images/create_doc.gif"
+		                      		rendered="#{usession.inRole['ADD_MATRIX']}"
+		                      		/>
+							<bre:taggedCommandButton id="editBtn"
+		                      		reRender="matrixModalHeader, matrixModalDiv"
+		                      		value="#{lblForm.edit}"
+		                      		action="#{MbMatrices.edit}"
+	                    			oncomplete="#{rich:component('matrixModalPanel')}.show()"
+		                      		disabled="#{MbMatrices.activeMatrix == null}"
+		                      		image="/images/edit.gif"
+		                      		rendered="#{usession.inRole['MODIFY_MATRIX']}"
+		                      		/>
+							<bre:taggedCommandButton id="deleteBtn"
+		                      		value="#{lblForm.delete}"
+		                      		oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()"
+		                      		disabled="#{MbMatrices.activeMatrix == null}"
+		                      		image="/images/delete.gif"
+		                      		rendered="#{usession.inRole['REMOVE_MATRIX']}"
+		                      		/>
+							<rich:spacer width="20px"/>
+							<bre:taggedCommandButton id="generateBtn"
+		                      		value="#{lblFrp.generate_package}"
+		                      		action="#{MbMatrices.generatePackage}"
+		                      		rendered="#{usession.inRole['GENERATE_PACKAGE']}"
+		                      		/>
+						</h:panelGrid>
+					</h:panelGroup>
+			    </h:panelGroup>
+		    </h:form>
+		    
+		    <h:form>
+                <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbMatrices.tabName}">
+                    <a4j:actionparam name="tabName" assignTo="#{MbMatrices.tabName}" />
+                </a4j:jsFunction>
+            </h:form>
+
+			<h:panelGroup styleClass="workplace" layout="block"
+				id="workplacePanel">
+				<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content" selectedTab="#{MbMatrices.tabName}">
+
+					<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}"
+									title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup layout="block" id="detailsTab">
+							<ui:include src="/pages/fraud/matrixDetails.jspx" />
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab ontabenter="storeTab('valuesTab')" label="Values" name="valuesTab" style="height:100%;">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.values}"
+									title="#{lblCommon.values}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup id="valuesTab" layout="block"
+							styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include src="/pages/fraud/matrixValuesMatrix.jspx"></ui:include>
+						</h:panelGroup>
+					</rich:tab>
+				</rich:tabPanel>
+			</h:panelGroup>
+
+			<ui:include src="/pages/fraud/matrixEdit.jspx">
+				<ui:param name="rerenderList" value="matricesTable, dsRules, pagesNum, matricesBtnForm:btnPanel, #{MbMatrices.tabName}"></ui:param>
+			</ui:include>
+		</h:panelGroup>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbMatrices}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="matricesTable, dsRules, pagesNum, matricesBtnForm:btnPanel, #{MbMatrices.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteViewId"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_MATRIX']}" style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+		</h:panelGroup>
+		
+		<script>
+		//<![CDATA[
+		function updateHeight(){
+        updateGridHeight();
+	    }
+	
+	    layout =
+	            {
+	                SEARCH_FORM_ID:                 'matricesSearchForm',
+	                SEARCH_RESULT_FORM_ID:          'matricesForm',
+	                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                SEARCH_RESULT_FOOTER_FORM_ID:   'matricesBtnForm',
+	                TAB_PANEL_ID:                   'workplacePanel',
+	
+	                TAB_DATA:      [{
+	                                TAB_FORM_ID:            'matrixDetailsForm',
+	                                TAB_FORM_WRAPPER_ID:    'matrixDetailsWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                },
+	                                {
+	                                TAB_FORM_ID:            'matrixValuesBtmForm',
+	                                TAB_FORM_WRAPPER_ID:    'matrixValuesTableWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                }]
+	
+	            };
+	    jQuery(window).resize(updateHeight);
+		
+		updateHeight();
+		//]]>
+		</script>		
+    </ui:define>
+</ui:composition>
+</html>

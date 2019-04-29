@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:c="http://java.sun.com/jstl/core">
+	<ui:composition>
+		<f:subview id="#{empty subviewId ? 'contextPanelView' : subviewId}">
+		
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+		<h:form id="contextForm">
+			<a4j:jsFunction name="refreshContextTab" eventsQueue="queue"
+				requestDelay="500" limitToList="true" ajaxSingle="true"
+				reRender="#{MbAgentContext.tabName}, contextForm, err_ajax"
+				action="#{MbAgentContext.loadCurrentTab}"
+				oncomplete="updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}'); ">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbAgentContext.tabName}" />
+			</a4j:jsFunction>
+
+			<a4j:jsFunction name="setContextTabName" reRender="contextForm, err_ajax"
+				limitToList="true" ajaxSingle="true"
+				oncomplete="updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}'); ">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbAgentContext.tabName}" />
+			</a4j:jsFunction>
+		</h:form>
+		
+		<h:panelGroup styleClass="workplace"
+			rendered="#{usession.inRole['VIEW_AGENT']}" layout="block"
+			id="workplacePanel">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content">
+				<rich:tab label="#{lblCommon.details}" name="detailsContextTab" onlabelclick="selectContextTab('detailsContextTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block" id="detailsContextTabLabel">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="detailsContextTab" layout="block">
+						<ui:include src="/pages/org_struct/agentDetails.jspx">
+							<ui:param name="detailsBean" value="#{MbAgentContext}"/>
+						</ui:include>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Accounts" name="accountsContextTab" style="height:100%;" onlabelclick="selectContextTab('accountsContextTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.accounts}"
+								title="#{lblCommon.accounts}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="accountsContextTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/accounts/list_gl_accounts_bottom.jspx">
+							<ui:param name="glAccountsBean" value="#{MbGLAccountsContextSearch}"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Addresses" name="addressesContextTab" style="height:100%;" onlabelclick="selectContextTab('addressesContextTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblCommon.addresses}"
+								title="#{lblCommon.addresses}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="addressesContextTab"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/common/address/list_addresses.jspx">
+							<ui:param name="parentPriv" value="#{usession.inRole['ADD_AGENT'] or usession.inRole['MODIFY_AGENT']}"/>
+							<ui:param name="addressesBean" value="#{MbAddressesContextSearch}"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Contacts" name="contactsContextTab" style="height:100%;" onlabelclick="selectContextTab('contactsContextTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.contacts}"
+								title="#{lblCommon.contacts}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup layout="block" id="contactsContextTab"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/contacts/contactsTableBottom.jspx">
+							<ui:param name="parentPriv" value="#{usession.inRole['ADD_AGENT'] or usession.inRole['MODIFY_AGENT']}"/>
+							<ui:param name="contactsTableBean" value="#{MbContactContextSearch}"/>
+	        				<ui:param name="contactsDataBean" value="#{MbContactDataContextSearch}"/>
+						</ui:include>
+					</h:panelGroup>
+
+				</rich:tab>
+
+				<rich:tab label="Settings" name="settingParamsContextTab"
+					rendered="#{usession.inRole['VIEW_AGENT_PARAMETER']}"
+					style="height:100%;" onlabelclick="selectContextTab('settingParamsContextTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.settings}"
+								title="#{lblCommon.settings}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="settingParamsContextTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/settings/list_settings_bottom.jspx">
+							<ui:param name="roleToUnblock" value="MODIFY_AGENT_PARAMETER"></ui:param>
+							<ui:param name="settingsBean" value="#{MbSettingParamsContextSearch}"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Notes" name="notesContextTab" style="height:100%;" onlabelclick="selectContextTab('notesContextTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="notesContextTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/notes/list_notes_bottom.jspx">
+							<ui:param name="notesBean" value="#{MbNotesContextSearch}"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Schemes" name="schemesContextTab" style="height:100%;" onlabelclick="selectContextTab('schemesContextTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAup.schemes}" title="#{lblAup.schemes}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="schemesContextTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/aup/list_scheme_object.jspx">
+							<ui:param name="schemeBean" value="#{MbAupSchemeObjectsContext}"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Association" name="associationContextTab" style="height:100%;" onlabelclick="selectContextTab('associationContextTab')">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblPrd.association}" title="#{lblPrd.association}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="associationContextTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/context/customersListBottom.jspx">
+							<ui:param name="customersBean" value="#{MbCustomersBottomContext}" />
+						</ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+
+			</rich:tabPanel>
+		</h:panelGroup>
+		
+		<script>
+			//<![CDATA[
+				
+				updateContextHeight("#{empty subviewId ? 'contextPanelView' : subviewId}");
+				makeScrollableTabs('contextMenuModalPanel\\:accountDetailsModalPanel\\:detailsContext');
+			//]]>
+			</script>
+		</f:subview>
+	</ui:composition>
+</html>

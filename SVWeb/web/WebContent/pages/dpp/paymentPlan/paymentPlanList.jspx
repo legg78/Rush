@@ -1,0 +1,730 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+		<a4j:loadScript src="/js/stretch.js" />
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+		
+		<h:panelGroup rendered="#{usession.inRole['VIEW_DPP_PAYMENT_PLAN']}">
+
+            <f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd" />
+			<f:loadBundle var="lblDpp" basename="ru.bpc.sv2.ui.bundles.Dpp" />
+			<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss" />
+
+			<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+			<script type="text/javascript">
+			//<![CDATA[
+var MONTH_NAMES=new Array('January','February','March','April','May','June','July','August','September','October','November','December','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec');
+var DAY_NAMES=new Array('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sun','Mon','Tue','Wed','Thu','Fri','Sat');			           
+			           var colorOk = "#FFFFFF";
+					   var colorMandatory = "#FF5555";
+                        function checkFields(){
+                            var cardNumberId = 'paymentPlanSearchForm:cardNumber';
+                            var accountNumberId = 'paymentPlanSearchForm:accountNumber';
+
+                            var cardNumber = document.getElementById(cardNumberId).value;
+                            var accountNumber = document.getElementById(accountNumberId).value;
+
+                            if (cardNumber) cardNumber = cardNumber.replace(/[ \s\t]/g, '');
+                            if (accountNumber) accountNumber = accountNumber.replace(/[ \s\t]/g, '');
+
+                            var arr = [], value = null;
+
+                            allOk();
+
+                            if (cardNumber == '' && accountNumber == '') {
+                                document.getElementById(cardNumberId).style.backgroundColor = colorMandatory;
+                                document.getElementById(accountNumberId).style.backgroundColor = colorMandatory;
+                                return true;
+                            }
+
+                            value = app.checkMaskValue(cardNumber, {errorMessage: '#{lblCrd.card_number}: #{lblMsg.number_mask_invalid}'});
+                            if (value) {
+                                arr.push(value);
+                                document.getElementById(cardNumberId).style.backgroundColor = colorMandatory;
+                            }
+
+                            value = app.checkMaskValue(accountNumber, {errorMessage: '#{lblCrd.account_number}: #{lblMsg.number_mask_invalid}'});
+                            if (value) {
+                                arr.push(value);
+                                document.getElementById(accountNumberId).style.backgroundColor = colorMandatory;
+                            } else {
+                                if (accountNumber.length >= 4 && cardNumber == '' && !checkDate()) {
+                                    arr.push('#{lblMsg.check_date_format}');
+                                    document.getElementById(accountNumberId).style.backgroundColor = colorMandatory;
+                                }
+                            }
+
+                            if (arr.length == 0) {
+                                return false;
+                            }
+
+                            app.showWarning(arr.join('<br>'));
+
+                            return true;
+                        }
+			           function allOk(){
+							document.getElementById("paymentPlanSearchForm:cardNumber").style.backgroundColor = colorOk;
+							document.getElementById("paymentPlanSearchForm:accountNumber").style.backgroundColor = colorOk;
+						}
+			           function checkDate(){
+			        	   var to = document.getElementById("paymentPlanSearchForm:dateTo").value;
+			        	   var from = document.getElementById("paymentPlanSearchForm:dateFrom").value;
+			        	   if (to == ""){
+								dateTo = new Date();
+							}else{
+								dateTo = parseDate(to);
+							}
+							if (from == ""){
+								document.getElementById("paymentPlanSearchForm:dateFrom").style.backgroundColor = colorMandatory;
+								return false;
+							}
+							var dateFrom = parseDate(from);
+							var dif = (dateTo.getTime() - dateFrom.getTime())/ (1000 * 60 * 60 * 24);
+							if (dif < 0){
+								document.getElementById("paymentPlanSearchForm:dateTo").style.backgroundColor = colorMandatory;
+								document.getElementById("paymentPlanSearchForm:dateFrom").style.backgroundColor = colorMandatory;
+								return false;
+							}
+							allOk();
+							return true;
+			           }
+			           
+			           function parseDate(val) {
+							var preferEuro=!((arguments.length==2)?arguments[1]:false);
+							
+							generalFormats=new Array('y-M-d','MMM d, y','MMM d,y','y-MMM-d','d-MMM-y','MMM d', 'y.M.d');
+							monthFirst=new Array('M/d/y','M-d-y','M.d.y','MMM-d','M/d','M-d');
+							dateFirst =new Array('d/M/y','d-M-y','d.M.y','d-MMM','d/M','d-M');
+							var checkList=new Array('generalFormats',preferEuro?'dateFirst':'monthFirst',preferEuro?'monthFirst':'dateFirst');
+							var d=null;
+							for (var i=0; i<checkList.length; i++) {
+								var l=window[checkList[i]];
+								for (var j=0; j<l.length; j++) {
+									d=getDateFromFormat(val,l[j]);
+									if (d!=0) { return new Date(d); }
+									}
+								}
+							return null;
+							}
+						
+						function getDateFromFormat(val,format) {
+							val=val+"";
+							format=format+"";
+							var i_val=0;
+							var i_format=0;
+							var c="";
+							var token="";
+							var token2="";
+							var x,y;
+							var now=new Date();
+							var year=now.getYear();
+							var month=now.getMonth()+1;
+							var date=1;
+							var hh=now.getHours();
+							var mm=now.getMinutes();
+							var ss=now.getSeconds();
+							var ampm="";
+							
+							while (i_format < format.length) {
+								// Get next token from format string
+								c=format.charAt(i_format);
+								token="";
+								while ((format.charAt(i_format)==c) && (i_format < format.length)) {
+									token += format.charAt(i_format++);
+									}
+								// Extract contents of value based on format token
+								if (token=="yyyy" || token=="yy" || token=="y") {
+									if (token=="yyyy") { x=4;y=4; }
+									if (token=="yy")   { x=2;y=2; }
+									if (token=="y")    { x=2;y=4; }
+									year=_getInt(val,i_val,x,y);
+									if (year==null) { return 0; }
+									i_val += year.length;
+									if (year.length==2) {
+										if (year > 70) { year=1900+(year-0); }
+										else { year=2000+(year-0); }
+										}
+									}
+								else if (token=="MMM"||token=="NNN"){
+									month=0;
+									for (var i=0; i<MONTH_NAMES.length; i++) {
+										var month_name=MONTH_NAMES[i];
+										if (val.substring(i_val,i_val+month_name.length).toLowerCase()==month_name.toLowerCase()) {
+											if (token=="MMM"||(token=="NNN"&&i>11)) {
+												month=i+1;
+												if (month>12) { month -= 12; }
+												i_val += month_name.length;
+												break;
+												}
+											}
+										}
+									if ((month < 1)||(month>12)){return 0;}
+									}
+								else if (token=="EE"||token=="E"){
+									for (var i=0; i<DAY_NAMES.length; i++) {
+										var day_name=DAY_NAMES[i];
+										if (val.substring(i_val,i_val+day_name.length).toLowerCase()==day_name.toLowerCase()) {
+											i_val += day_name.length;
+											break;
+											}
+										}
+									}
+								else if (token=="MM"||token=="M") {
+									month=_getInt(val,i_val,token.length,2);
+									if(month==null||(month<1)||(month>12)){return 0;}
+									i_val+=month.length;}
+								else if (token=="dd"||token=="d") {
+									date=_getInt(val,i_val,token.length,2);
+									if(date==null||(date<1)||(date>31)){return 0;}
+									i_val+=date.length;}
+								else if (token=="hh"||token=="h") {
+									hh=_getInt(val,i_val,token.length,2);
+									if(hh==null||(hh<1)||(hh>12)){return 0;}
+									i_val+=hh.length;}
+								else if (token=="HH"||token=="H") {
+									hh=_getInt(val,i_val,token.length,2);
+									if(hh==null||(hh<0)||(hh>23)){return 0;}
+									i_val+=hh.length;}
+								else if (token=="KK"||token=="K") {
+									hh=_getInt(val,i_val,token.length,2);
+									if(hh==null||(hh<0)||(hh>11)){return 0;}
+									i_val+=hh.length;}
+								else if (token=="kk"||token=="k") {
+									hh=_getInt(val,i_val,token.length,2);
+									if(hh==null||(hh<1)||(hh>24)){return 0;}
+									i_val+=hh.length;hh--;}
+								else if (token=="mm"||token=="m") {
+									mm=_getInt(val,i_val,token.length,2);
+									if(mm==null||(mm<0)||(mm>59)){return 0;}
+									i_val+=mm.length;}
+								else if (token=="ss"||token=="s") {
+									ss=_getInt(val,i_val,token.length,2);
+									if(ss==null||(ss<0)||(ss>59)){return 0;}
+									i_val+=ss.length;}
+								else if (token=="a") {
+									if (val.substring(i_val,i_val+2).toLowerCase()=="am") {ampm="AM";}
+									else if (val.substring(i_val,i_val+2).toLowerCase()=="pm") {ampm="PM";}
+									else {return 0;}
+									i_val+=2;}
+								else {
+									if (val.substring(i_val,i_val+token.length)!=token) {return 0;}
+									else {i_val+=token.length;}
+									}
+								}
+							// If there are any trailing characters left in the value, it doesn't match
+							if (i_val != val.length) { return 0; }
+							// Is date valid for month?
+							if (month==2) {
+								// Check for leap year
+								if ( ( (year%4==0)&&(year%100 != 0) ) || (year%400==0) ) { // leap year
+									if (date > 29){ return 0; }
+									}
+								else { if (date > 28) { return 0; } }
+								}
+							if ((month==4)||(month==6)||(month==9)||(month==11)) {
+								if (date > 30) { return 0; }
+								}
+							// Correct hours value
+							if (hh<12 && ampm=="PM") { hh=hh-0+12; }
+							else if (hh>11 && ampm=="AM") { hh-=12; }
+							var newdate=new Date(year,month-1,date,hh,mm,ss);
+							return newdate.getTime();
+							}
+						
+						function _isInteger(val) {
+							var digits="1234567890";
+							for (var i=0; i < val.length; i++) {
+								if (digits.indexOf(val.charAt(i))==-1) { return false; }
+								}
+							return true;
+							}
+						function _getInt(str,i,minlength,maxlength) {
+							for (var x=maxlength; x>=minlength; x--) {
+								var token=str.substring(i,i+x);
+								if (token.length < minlength) { return null; }
+								if (_isInteger(token)) { return token; }
+								}
+							return null;
+							}
+						
+						function handleEnter(event) {
+							 if (event.keyCode == 13) {
+								 document.getElementById('paymentPlanSearchForm:searchBtn').click(); 
+								 return false; 
+							} 
+							return true;
+						 }	
+			//]]>
+			</script>           
+
+			<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"
+				onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+				zindex="1000" inputClass="hidden" buttonClass="hidden" />
+
+			<script>
+				#{rich:component('calendar')}.customExpand=customExpand;
+			</script>
+
+			<!-- navigation bar -->
+			<bpct:navBar pageName="#{lblDpp.payment_plan}" />
+
+			<!-- search panel -->
+			<h:form id="paymentPlanSearchForm" onkeypress="handleEnter(event)">
+
+				<h:panelGroup layout="block" styleClass="search_block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+							<h:panelGroup layout="block" styleClass="search_block_left">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses="top ,link-cont">
+
+									<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+										columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+										<h:outputLabel for="cardNumber" value="#{lblDpp.card_number}:" title="#{lblDpp.card_number}" />
+										<h:inputText id="cardNumber"
+											value="#{MbDppPaymentPlan.filter.cardNumber}" />
+
+										<h:outputLabel for="accountNumber" title="#{lblDpp.account_number}" 
+											value="#{lblDpp.account_number}:" />
+										<h:inputText id="accountNumber"
+											value="#{MbDppPaymentPlan.filter.accountNumber}" />
+
+										<h:outputLabel for="operId" value="#{lblDpp.oper_id}:" title="#{lblDpp.oper_id}" />
+										<h:inputText id="operId"
+											value="#{MbDppPaymentPlan.filter.operId}" />
+
+										<h:outputText value="#{lblCommon.date_from }:" title="#{lblCommon.date_from}" />
+										<h:panelGroup>
+											<h:inputText id="dateFrom" style="max-width:225px"
+												value="#{MbDppPaymentPlan.filter.dateFrom}"
+												onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateFrom')}, #{rich:element('dateFromBtn')});">
+
+												<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+											</h:inputText>
+											<h:graphicImage
+												value="/images/calendar.gif"
+												onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateFrom')}, #{rich:element('dateFromBtn')});"
+												id="dateFromBtn" />
+										</h:panelGroup>
+										
+										<h:outputLabel for="status" value="#{lblCommon.status}:" title="#{lblCommon.status}" />
+										<h:selectOneMenu id="status"
+											value="#{MbDppPaymentPlan.filter.status}">
+											<f:selectItems
+												value="#{MbDppPaymentPlan.paymentPlanStatuses}" />
+										</h:selectOneMenu>
+
+										<h:outputText value="#{lblCommon.date_to}:" title="#{lblCommon.date_to}" />
+										<h:panelGroup>
+											<h:inputText id="dateTo" style="max-width:225px"
+												value="#{MbDppPaymentPlan.filter.dateTo}"
+												onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateTo')}, #{rich:element('dateFromBtn')});">
+												<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+											</h:inputText>
+											<h:graphicImage
+												value="/images/calendar.gif"
+												onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateTo')}, #{rich:element('dateToBtn')});"
+												id="dateToBtn" />
+										</h:panelGroup>
+										
+									</h:panelGrid>
+
+									<h:panelGrid columns="1">
+										<h:panelGroup styleClass="stdButton">
+											<bre:taggedCommandButton action="#{MbDppPaymentPlan.search}"
+												reRender="#{MbDppPaymentPlan.rerenderList}"
+												image="/_img/icon_search.png" type="submit" value="#{lblForm.search}"
+												id="searchBtn"
+												onclick="if (checkFields()){ return false; } disableModalPanelBtns(this);"
+												oncomplete="if(#{MbDppPaymentPlan.needOpenSelectObjectDialog}) {Richfaces.showModalPanel('#{MbIssSelectObject.modalId}');} updateHeight();enableModalPanelBtns(this);"
+												eventsQueue="queue"
+												style="width:85px;"/>
+
+										</h:panelGroup>
+
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+												action="#{MbDppPaymentPlan.clearFilter}"
+												reRender="paymentPlanSearchForm, paymentPlanForm, #{MbDppPaymentPlan.tabName}">
+											</a4j:commandLink>
+										</h:panelGroup>
+									</h:panelGrid>
+
+								</h:panelGrid>
+								<a4j:outputPanel ajaxRendered="true">
+									<h:graphicImage url="/_img/hd_searchblock.gif"
+										styleClass="hd-searchblock" />
+									<h:panelGroup styleClass="collapse-vert" layout="block" />
+								</a4j:outputPanel>
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+	
+			<h:form id="paymentPlanForm">
+				<!-- result panel -->
+				<h:panelGroup styleClass="search_result_block" layout="block">
+					<h:panelGroup styleClass="search_result_block_left fix-ff"
+						layout="block">
+						<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+						<rich:extendedDataTable id="paymentPlanTable"
+							tableState="#{MbDppPaymentPlan.tableState}"
+							styleClass="res-table" headerClass="res-table-header"
+							rowClasses=",odd" selectedClass="res-table-selected" var="item"
+							value="#{MbDppPaymentPlan.dataModel}"
+							selection="#{MbDppPaymentPlan.itemSelection}"
+							rows="#{MbDppPaymentPlan.rowsNum}" selectionMode="single"
+							width="100%" height="255px" enableContextMenu="true"
+							noDataLabel="#{MbDppPaymentPlan.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+							reRender="#{MbDppPaymentPlan.tabName}, accelerateBtn, deleteBtn">
+
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+								limitToList="true"
+								reRender="#{MbDppPaymentPlan.tabName}, accelerateBtn, deleteBtn" />
+
+							<rich:column id="account_number" label="#{lblDpp.account_number}" title="AccountNumber" sortBy="#{'accountNumber'}"
+								width="12%">
+								<f:facet name="header">
+									<a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblDpp.account_number}"
+											title="#{lblDpp.account_number}" />
+									</a4j:outputPanel>
+								</f:facet>
+								<h:outputText value="#{item.accountNumber}" title="#{item.accountNumber}"/>
+							</rich:column>
+
+							<rich:column id="oper_id" label="#{lblDpp.oper_id}" title="OperationId" sortBy="#{'operId'}" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblDpp.oper_id}"
+										title="#{lblDpp.oper_id}" />
+								</f:facet>
+								<h:outputText value="#{item.operId}" title="#{item.operId}"/>
+							</rich:column>
+
+							<rich:column id="oper_date" label="#{lblDpp.oper_date}" title="Operation date" sortBy="#{'operDate'}"
+								width="12%">
+								<f:facet name="header">
+									<h:outputText value="#{lblDpp.oper_date}"
+										title="#{lblDpp.oper_date}" />
+								</f:facet>
+								<h:outputText value="#{item.operDate}">
+									<f:convertDateTime pattern="#{usession.datePattern}"
+										timeZone="#{CommonUtils.timeZone}" />
+								</h:outputText>
+							</rich:column>
+
+							<rich:column id="oper_amount" label="#{lblDpp.oper_amount}" title="OperationAmount"
+								width="15%" style="text-align: right">
+								<f:facet name="header">
+									<h:outputText value="#{lblDpp.oper_amount}"
+										title="#{lblDpp.oper_amount}" />
+								</f:facet>
+								<h:outputText value="#{item.operAmount}" converter="bpc.CurrencyConverter">
+									<f:attribute name="exponent" value="#{CurrencyUtils.currencyObjectsMap[item.operCurrency].exponent}" />
+								</h:outputText>
+								<h:outputText value="#{CurrencyUtils.currencyShortNamesMap[item.operCurrency]}" 
+			                		title="#{CurrencyUtils.currencyMap[item.operCurrency]}" style="padding-left:5px;"/>
+							</rich:column>
+
+							<rich:column id="oper_desc" label="#{lblDpp.oper_desc}" title="OperationDescription" sortBy="#{'operDesc'}"
+								width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblDpp.oper_desc}"
+										title="#{lblDpp.oper_desc}" />
+								</f:facet>
+								<h:outputText value="#{item.operDesc}" title="#{item.operType} - #{item.operDesc}"
+										rendered="#{item.operType != null}" />
+								<h:outputText value="#{item.operDesc}" title="#{item.operDesc}"
+										rendered="#{item.operType == null}" />
+							</rich:column>
+
+							<rich:column id="status" label="#{lblCommon.status}" title="Status" sortBy="#{'status'}" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}" />
+								</f:facet>
+								<h:outputText
+									value="#{DictUtils.articles[item.status]}"
+									rendered="#{item.status != null }" 
+									title="#{DictUtils.articles[item.status]}"/>
+								<h:outputText value="" rendered="#{item.status == null }" />
+							</rich:column>
+
+							<rich:column id="instalment_total" label="#{lblDpp.installment_total}" title="InstalmentTotal"
+								sortBy="#{'instalmentTotal'}" width="12%">
+								<f:facet name="header">
+									<h:outputText value="#{lblDpp.installment_total}"
+										title="#{lblDpp.installment_total}" />
+								</f:facet>
+								<h:outputText value="#{item.instalmentTotal}" />
+							</rich:column>
+
+							<rich:column id="next_instalment_date" label="#{lblDpp.next_installment_date}" title="Next instalments date"
+								sortBy="#{'nextInstalmentDate'}" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblDpp.next_installment_date}"
+										title="#{lblDpp.oper_date}" />
+								</f:facet>
+								<h:outputText value="#{item.nextInstalmentDate}">
+									<f:convertDateTime pattern="#{usession.datePattern}"
+										timeZone="#{CommonUtils.timeZone}" />
+								</h:outputText>
+							</rich:column>
+
+						</rich:extendedDataTable>
+						</h:panelGroup>
+						<a4j:outputPanel ajaxRendered="true">
+							<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+							<h:graphicImage url="/_img/hd_searchblock.gif"
+								styleClass="hd-searchblock" />
+							<h:panelGroup styleClass="collapse-vert table-collapse-vert"
+								layout="block" />
+						</a4j:outputPanel>
+					</h:panelGroup>
+				</h:panelGroup>
+
+			</h:form>
+
+			<!-- navigation -->
+			<h:form id="paymentPlanBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="5"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+
+								<h:selectOneMenu id="rows_num"
+									value="#{MbDppPaymentPlan.rowsNum}" styleClass="row_per_page">
+									<a4j:support event="onchange"
+										reRender="paymentPlanBtnForm, #{MbDppPaymentPlan.tabName}" />
+									<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+								</h:selectOneMenu>
+
+								<rich:datascroller maxPages="10" fastControls="hide"
+									pagesVar="pages" styleClass="res-datascroller" id="dspayments"
+									for="paymentPlanTable"
+									reRender="#{MbDppPaymentPlan.tabName}, accelerateBtn, deleteBtn"
+									pageIndexVar="pageIndex">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbDppPaymentPlan.dataModel.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+								
+								<h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbDppPaymentPlan.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbDppPaymentPlan.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+
+						<h:panelGrid styleClass="buttons_block" id="btns_limit"
+							columns="6">
+							<bre:taggedCommandButton id="registerBtn"
+													 value="#{lblDpp.register}"
+													 reRender="operationSelectionModalPanelForm"
+													 image="/images/create_doc.gif"
+													 oncomplete="#{rich:component('operationSelectionModalPanel')}.show()"
+													 disabled="#{MbRegisterDppPaymentPlan.disableRegisterDpp}"/>
+
+							<bre:taggedCommandButton id="accelerateBtn"
+													 image="/images/edit.gif"
+													 value="#{lblIss.modify}"
+													 action="#{MbDppPaymentPlan.createAcceleratingDpp}"
+													 reRender="dppAccelerationModalPanelForm"
+													 oncomplete="#{rich:component('dppAccelerationModalPanel')}.show()"
+													 disabled="#{MbModifyDppPaymentPlan.actionDisabled}" />
+
+							<bre:taggedCommandButton id="deleteBtn"
+								value="#{lblForm.delete}"
+								disabled="#{MbDeleteDppPaymentPlan.disableDeleteDpp}"
+								image="/images/delete.gif"
+								onclick="if ('#{MbDeleteDppPaymentPlan.makerCheckerAction.showConfirmation}' == 'true') {
+								    Richfaces.showModalPanel('deletePlanView:modal');
+								    return false;
+								}"
+								action="#{MbDeleteDppPaymentPlan.makerCheckerAction.doAction}"/>
+						</h:panelGrid>
+
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+            <h:form>
+                <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbDppPaymentPlan.tabName}">
+                    <a4j:actionparam name="tabName" assignTo="#{MbDppPaymentPlan.tabName}" />
+                </a4j:jsFunction>
+            </h:form>
+
+			<!-- workspace -->
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+				<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content"
+					selectedTab="detailsTab">
+
+					<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}"
+									title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup >
+							<h:panelGroup id="detailsTab" layout="block">
+								<ui:include src="/pages/dpp/paymentPlan/paymentPlanDetails.jspx"></ui:include>
+								<h:panelGroup layout="block"
+									styleClass="bottom_search_result_block_buttons"/>							
+							</h:panelGroup>
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab ontabenter="storeTab('instalmentsTab')" label="Instalments" name="instalmentsTab" style="height:100%;">
+						<a4j:support event="onclick" ajaxSingle="true" limitToList="true" reRender="#{MbDppPaymentPlan.tabName}">
+	       					<a4j:actionparam value="instalmentsTab" assignTo="#{MbDppPaymentPlan.tabName}"/>
+	       				</a4j:support>
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblDpp.installments_tab}"
+									title="#{lblDpp.installments_tab}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="instalmentsTab" layout="block"
+							styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include
+								src="/pages/dpp/paymentPlan/paymentPlanInstalments.jspx"></ui:include>
+												
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab ontabenter="storeTab('attributesTab')" label="Attributes" name="attributesTab" style="height:100%;">
+
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblDpp.attributes_tab}"
+									title="#{lblDpp.attributes_tab}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="attributesTab" layout="block"
+							styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include
+								src="/pages/dpp/paymentPlan/paymentPlanAttributes.jspx"></ui:include>
+						</h:panelGroup>
+					</rich:tab>
+
+				</rich:tabPanel>
+			</h:panelGroup>
+
+			<ui:include src="/pages/dpp/paymentPlan/operationSelection.jspx"/>
+
+			<ui:include src="/pages/dpp/paymentPlan/dppRegistractionModalPanel.jspx"/>
+
+			<ui:include src="/pages/dpp/paymentPlan/dppAccelerationModalPanel.jspx"/>
+		</h:panelGroup>
+
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_DPP_PAYMENT_PLAN']}"
+			style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}"
+				style="font-size: 5em" />
+		</h:panelGroup>
+		
+		<ui:include src="/pages/utils/makerCheckerPanel.jspx">
+			<ui:param name="makerCheckerActionBean" value="#{MbDeleteDppPaymentPlan.makerCheckerAction}"/>
+			<ui:param name="rerenderList" value="paymentPlanSearchForm"/>
+			<ui:param name="subviewId" value="deletePlanView"/>
+		</ui:include>
+		
+		<script type="text/javascript">
+		
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'paymentPlanSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'paymentPlanForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'paymentPlanBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'paymentPlanDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'paymentPlanDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'paymentPlanInstalmentsForm',
+                            TAB_FORM_WRAPPER_ID:    'paymentPlanInstalmentsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'attrsTreeTableForm',
+                            TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>
+
+        <ui:include src="/pages/issuing/iss_com_select_object.jspx"/>
+	</ui:define>
+</ui:composition>
+
+</html>

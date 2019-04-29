@@ -1,0 +1,3921 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+		PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+		"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="operations">
+
+	<!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+	<sql id="limitationOpen">
+		SELECT *
+		FROM (
+	</sql>
+
+	<sql id="limitationOpenCount">
+		SELECT count(*)
+		FROM (
+	</sql>
+
+	<sql id="limitationClose">
+		) q
+		<isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+	</sql>
+
+	<sql id="paginatedOpen">
+		SELECT *
+		FROM(
+		SELECT a.*, rownum r
+		FROM(
+		<include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedClose">
+		<include refid="limitationClose"/>
+		) a
+		WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+		)
+		WHERE r >= (#range.start# + 1)
+	</sql>
+
+	<sql id="paginatedInternalRownumOpen">
+		SELECT *
+		FROM(
+		SELECT a.*
+		FROM(
+		<include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedInternalRownumClose">
+		<include refid="limitationClose"/>
+		) a
+		WHERE a.rn <![CDATA[<]]>= (#range.end# + 1)
+		)
+		WHERE rn >= (#range.start# + 1)
+	</sql>
+
+	<resultMap class="ru.bpc.sv2.operations.Rule" id="mapping-rule">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="procStage" column="proc_stage"/>
+		<result property="sttlType" column="sttl_type"/>
+		<result property="operType" column="oper_type"/>
+		<result property="operReason" column="oper_reason"/>
+		<result property="reversal" column="is_reversal"/>
+		<result property="issInstId" column="iss_inst_id"/>
+		<result property="acqInstId" column="acq_inst_id"/>
+		<result property="terminalType" column="terminal_type"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="accountCurrency" column="account_currency"/>
+		<result property="sttlCurrency" column="sttl_currency"/>
+		<result property="modId" column="mod_id"/>
+		<result property="modName" column="mod_name"/>
+		<result property="ruleSetId" column="rule_set_id"/>
+		<result property="execOrder" column="exec_order"/>
+		<result property="ruleSetName" column="rule_set_name"/>
+		<result property="issInstName" column="iss_inst_name"/>
+		<result property="acqInstName" column="acq_inst_name"/>
+	</resultMap>
+
+	<select id="get-rules"
+			parameterClass="qparams"
+			resultMap="mapping-rule">
+		<include refid="paginatedOpen"/>
+		SELECT
+		r.id
+		, r.seqnum
+		, r.msg_type
+		, r.proc_stage
+		, r.sttl_type
+		, r.oper_type
+		, r.oper_reason
+		, r.is_reversal
+		, r.iss_inst_id
+		, r.acq_inst_id
+		, r.terminal_type
+		, r.oper_currency
+		, r.account_currency
+		, r.sttl_currency
+		, r.mod_id
+		, r.rule_set_id
+		, r.exec_order
+		, rs.name as rule_set_name
+		, iss.name as iss_inst_name
+		, acq.name as acq_inst_name
+		, m.name as mod_name
+		FROM
+		opr_ui_rule_selection_vw r
+		, rul_ui_rule_set_vw rs
+		, ost_ui_institution_vw iss
+		, ost_ui_institution_vw acq
+		, rul_ui_mod_vw m
+		WHERE
+		r.rule_set_id = rs.id(+)
+		AND r.mod_id = m.id(+)
+		AND decode(r.iss_inst_id, '%' , -1, r.iss_inst_id)  = iss.id(+)
+		AND decode(r.acq_inst_id, '%', -1, r.acq_inst_id) = acq.id(+)
+		<iterate prepend="AND" conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				rs.lang(+) = #filters[].value#
+				AND iss.lang(+) = #filters[].value#
+				AND acq.lang(+) = #filters[].value#
+				AND m.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">r.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">r.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlType">r.sttl_type like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reversal">r.is_reversal = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procStage">r.proc_stage = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="rule_set_id">r.rule_set_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">r.id $sorting[].direction$, r.exec_order ASC</isEqual>
+				<isEqual property="sorting[].property" compareValue="execOrder">r.exec_order $sorting[].direction$, r.exec_order ASC</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">r.oper_type $sorting[].direction$, r.exec_order ASC</isEqual>
+				<isEqual property="sorting[].property" compareValue="msgType">r.msg_type $sorting[].direction$, r.exec_order ASC</isEqual>
+				<isEqual property="sorting[].property" compareValue="sttlType">r.sttl_type $sorting[].direction$, r.exec_order ASC</isEqual>
+				<isEqual property="sorting[].property" compareValue="ruleSet">rule_set_name $sorting[].direction$, r.exec_order ASC</isEqual>
+				<isEqual property="sorting[].property" compareValue="reversal">r.is_reversal $sorting[].direction$, r.exec_order ASC</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">r.exec_order ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-rules-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		r.*
+		FROM
+		opr_ui_rule_selection_vw r, rul_ui_rule_set_vw rs
+		WHERE
+		r.rule_set_id = rs.id(+)
+		<iterate prepend=" AND " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				rs.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">r.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">r.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlType">r.sttl_type like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reversal">r.is_reversal = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procStage">r.proc_stage = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="rule_set_id">r.rule_set_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-rule"
+			   parameterClass="ru.bpc.sv2.operations.Rule">
+		{call OPR_UI_RULE_SELECTION_PKG.add(
+		o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_msg_type			=> #msgType#
+		, i_proc_stage			=> #procStage#
+		, i_sttl_type			=> #sttlType#
+		, i_oper_type			=> #operType#
+		, i_oper_reason			=> #operReason#
+		, i_is_reversal			=> #reversal#
+		, i_iss_inst_id			=> #issInstId#
+		, i_acq_inst_id			=> #acqInstId#
+		, i_terminal_type		=> #terminalType#
+		, i_oper_currency		=> #operCurrency#
+		, i_account_currency	=> #accountCurrency#
+		, i_sttl_currency		=> #sttlCurrency#
+		, i_mod_id				=> #modId#
+		, i_rule_set_id			=> #ruleSetId#
+		, i_exec_order			=> #execOrder#
+		)}
+	</procedure>
+
+	<procedure id="modify-rule"
+			   parameterClass="ru.bpc.sv2.operations.Rule">
+		{call OPR_UI_RULE_SELECTION_PKG.modify(
+		i_id					=> #id#
+		, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_msg_type			=> #msgType#
+		, i_proc_stage			=> #procStage#
+		, i_sttl_type			=> #sttlType#
+		, i_oper_type			=> #operType#
+		, i_oper_reason			=> #operReason#
+		, i_is_reversal			=> #reversal#
+		, i_iss_inst_id			=> #issInstId#
+		, i_acq_inst_id			=> #acqInstId#
+		, i_terminal_type		=> #terminalType#
+		, i_oper_currency		=> #operCurrency#
+		, i_account_currency	=> #accountCurrency#
+		, i_sttl_currency		=> #sttlCurrency#
+		, i_mod_id				=> #modId#
+		, i_rule_set_id			=> #ruleSetId#
+		, i_exec_order			=> #execOrder#
+		)}
+	</procedure>
+
+	<procedure id="remove-rule"
+			   parameterClass="ru.bpc.sv2.operations.Rule">
+		{call OPR_UI_RULE_SELECTION_PKG.remove(
+		i_id					=> #id#
+		, i_seqnum				=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="mapping-operation-light">
+		<result property="id" column="id"/>
+		<result property="sessionId" column="session_id"/>
+		<result property="isReversal" column="is_reversal" javaType="boolean" jdbcType="NUMBER"/>
+		<result property="originalId" column="original_id"/>
+		<result property="operType" column="oper_type"/>
+		<result property="operReason" column="oper_reason"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="status" column="status"/>
+		<result property="statusReason" column="status_reason"/>
+		<result property="sttlType" column="sttl_type"/>
+		<result property="sttlAmount" column="sttl_amount"/>
+		<result property="sttlCurrency" column="sttl_currency"/>
+		<result property="acqInstBin" column="acq_inst_bin"/>
+		<result property="forwInstBin" column="forw_inst_bin"/>
+		<result property="terminalNumber" column="terminal_number"/>
+		<result property="merchantNumber" column="merchant_number"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantStreet" column="merchant_street"/>
+		<result property="merchantCity" column="merchant_city"/>
+		<result property="merchantRegion" column="merchant_region"/>
+		<result property="merchantCountry" column="merchant_country"/>
+		<result property="merchantPostCode" column="merchant_postcode"/>
+		<result property="mccCode" column="mcc"/>
+		<result property="originatorRefnum" column="originator_refnum"/>
+		<result property="networkRefnum" column="network_refnum"/>
+		<result property="operCount" column="oper_count"/>
+		<result property="operRequestAmount" column="oper_request_amount"/>
+		<result property="operAmountAlgorithm" column="oper_amount_algorithm"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="operCashbackAmount" column="oper_cashback_amount"/>
+		<result property="operReplacementAmount" column="oper_replacement_amount"/>
+		<result property="operSurchargeAmount" column="oper_surcharge_amount"/>
+		<result property="operDate" column="oper_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="hostDate" column="host_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="unholdDate" column="unhold_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="matchStatus" column="match_status"/>
+		<result property="matchId" column="match_id"/>
+		<result property="disputeId" column="dispute_id"/>
+		<result property="paymentOrderId" column="payment_order_id"/>
+		<result property="paymentHostId" column="payment_host_id"/>
+		<result property="forcedProcessing" column="forced_processing" javaType="boolean" jdbcType="NUMBER"/>
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="mapping-operation" extends="mapping-operation-light">
+		<result property="mccName" column="mcc_name"/>
+		<result property="paymentHostName" column="payment_host_name"/>
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="mapping-operation-reversal-exists" extends="mapping-operation">
+		<result property="isReversalExists" column="reversal_exists" javaType="boolean" jdbcType="NUMBER"/>
+		<result property="clientIdType" column="client_id_type"/>
+		<result property="clientIdValue" column="client_id_value"/>
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.operations.ReasonMapping" id="mapping-reason-mapping">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum" />
+		<result property="operType" column="oper_type"/>
+		<result property="reasonDict" column="reason_dict"/>
+	</resultMap>
+
+	<sql id="operations-select-light">
+		SELECT	  op.id
+		, op.session_id
+		, op.is_reversal
+		, op.original_id
+		, op.oper_type
+		, op.oper_reason
+		, op.msg_type
+		, op.status
+		, op.status_reason
+		, op.sttl_type
+		, op.sttl_amount
+		, op.sttl_currency
+		, op.acq_inst_bin
+		, op.forw_inst_bin
+		, op.terminal_number
+		, op.merchant_number
+		, op.merchant_name
+		, op.merchant_street
+		, op.merchant_city
+		, op.merchant_region
+		, op.merchant_country
+		, op.merchant_postcode
+		, op.mcc
+		, op.originator_refnum
+		, op.network_refnum
+		, op.oper_count
+		, op.oper_request_amount
+		, op.oper_amount_algorithm
+		, op.oper_amount
+		, op.oper_currency
+		, op.oper_cashback_amount
+		, op.oper_replacement_amount
+		, op.oper_surcharge_amount
+		, op.oper_date
+		, op.host_date
+		, op.unhold_date
+		, op.match_status
+		, op.match_id
+		, op.dispute_id
+		, op.payment_order_id
+		, op.payment_host_id
+		, op.forced_processing
+		, rownum rn
+	</sql>
+
+	<sql id="operations-select">
+		<include refid="operations-select-light"/>
+		, mcc.name mcc_name
+		, h.description AS payment_host_name
+	</sql>
+
+	<select	id="get-operations"
+			   parameterClass="qparams"
+			   resultMap="mapping-operation-reversal-exists">
+		select x.*
+		, opr_api_reversal_pkg.reversal_exists(i_id => x.id) reversal_exists
+		, p.client_id_type
+		, decode(p.client_id_type, 'CITPACCT',p.account_number, 'CITPCARD', p.card_mask) client_id_value
+		from (
+		<include refid="paginatedInternalRownumOpen"/>
+		<include refid="operations-select"/>
+		FROM opr_ui_operation_vw op
+		, com_ui_mcc_vw mcc
+		, net_ui_host_vw h
+		WHERE
+		op.mcc = mcc.mcc(+)
+		AND op.payment_host_id = h.id(+)
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">op.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				mcc.lang(+) = #filters[].value# AND h.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateFrom">
+				trunc(op.host_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id >= com_api_id_pkg.get_from_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateTo">
+				trunc(op.host_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id <![CDATA[<=]]> com_api_id_pkg.get_till_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalNumber">op.terminal_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantNumber">op.merchant_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transactionId">
+				op.id IN (
+				SELECT m.object_id FROM acc_ui_macros_vw m
+				WHERE m.entity_type = 'ENTTOPER'
+				AND id IN (
+				SELECT t.macros_id FROM acc_ui_transaction_vw t
+				WHERE t.transaction_id LIKE #filters[].value#
+				)
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="authId">
+				op.id IN (
+				SELECT a.id FROM aut_ui_auth_vw a
+				WHERE a.id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="reversalExists">
+				opr_api_reversal_pkg.reversal_exists(i_id => op.id) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(op.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(op.oper_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="isReversal">op.is_reversal = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paymentOrderId">op.payment_order_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">op.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">op.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="matchId">op.match_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="statusReason">op.status_reason = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="applId">op.id in (select object_id from app_ui_object_vw where appl_id=#filters[].value#)</isEqual>
+		</iterate>
+		<iterate open="AND op.id IN (SELECT p.oper_id FROM opr_participant p WHERE "
+				 close=")" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="participantType">p.participant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">reverse(p.card_mask) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="cardId">p.card_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">p.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantId">p.merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">p.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantCustomerId">p.customer_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting" >
+			<isNotEqual property="sorting[].direction" compareValue="AUTO" close=", op.id DESC">
+				<isEqual property="sorting[].property" compareValue="id">op.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="amount">op.oper_amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="time">op.host_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operDate">op.oper_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">op.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reversal">op.is_reversal $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">op.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="statusReason">op.status_reason $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="terminalNumber">op.terminal_number $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">op.id ASC</isEmpty>
+		<include refid="paginatedInternalRownumClose"/>
+		) x
+		, opr_ui_participant_vw p
+		where 1=1
+		and x.id = p.oper_id(+)
+		and p.participant_type(+) = 'PRTYISS'
+	</select>
+
+	<select	id="get-operations-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT op.*
+		FROM opr_ui_operation_vw op
+		WHERE 1 = 1
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">op.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateFrom">
+				trunc(op.host_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id >= com_api_id_pkg.get_from_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateTo">
+				trunc(op.host_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id <![CDATA[<=]]> com_api_id_pkg.get_till_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalNumber">op.terminal_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantNumber">op.merchant_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transactionId">
+				op.id IN (
+				SELECT m.object_id FROM acc_ui_macros_vw m
+				WHERE m.entity_type = 'ENTTOPER'
+				AND id IN (
+				SELECT t.macros_id FROM acc_ui_transaction_vw t
+				WHERE t.transaction_id LIKE #filters[].value#
+				)
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="authId">
+				op.id IN (
+				SELECT a.id FROM aut_ui_auth_vw a
+				WHERE a.id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="reversalExists">
+				opr_api_reversal_pkg.reversal_exists(i_id => op.id) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(op.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(op.oper_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="isReversal">op.is_reversal = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paymentOrderId">op.payment_order_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">op.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">op.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="matchId">op.match_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="statusReason">op.status_reason = #filters[].value#</isEqual>
+		</iterate>
+		<iterate open="AND op.id IN (SELECT p.oper_id FROM opr_participant p WHERE "
+				 close=")" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="participantType">p.participant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">reverse(p.card_mask) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="cardId">p.card_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">p.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantId">p.merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">p.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantCustomerId">p.customer_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select	id="get-operations-by-document"
+			   parameterClass="qparams"
+			   resultMap="mapping-operation-reversal-exists">
+		select x.*
+		, opr_api_reversal_pkg.reversal_exists(i_id => x.id) reversal_exists
+		, p.client_id_type
+		, decode(p.client_id_type, 'CITPACCT',p.account_number, 'CITPCARD', p.card_mask) client_id_value
+		from (
+		<include refid="paginatedOpen"/>
+		<include refid="operations-select"/>
+		FROM opr_ui_operation_vw op
+		, com_ui_mcc_vw mcc
+		, net_ui_host_vw h
+		WHERE
+		op.mcc = mcc.mcc(+)
+		AND op.payment_host_id = h.id(+)
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				mcc.lang(+) = #filters[].value# AND h.lang(+) = #filters[].value#
+			</isEqual>
+		</iterate>
+		AND op.id IN (
+		SELECT m.object_id FROM acc_ui_macros_vw m
+		WHERE m.entity_type = 'ENTTOPER'
+		AND id IN (
+		SELECT t.macros_id
+		FROM
+		acc_ui_transaction_vw t
+		, rpt_ui_document_vw d
+		WHERE
+		t.transaction_id = d.OBJECT_ID and d.ENTITY_TYPE = 'ENTTTRSC'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="documentNumber">d.document_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentType">d.document_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentDate">trunc(d.document_date) = trunc(#filters[].value#)</isEqual>
+		</iterate>
+		)
+		)
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting" >
+			<isNotEqual property="sorting[].direction" compareValue="AUTO" close=", op.id DESC">
+				<isEqual property="sorting[].property" compareValue="id">op.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="amount">op.oper_amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="time">op.host_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operDate">op.oper_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">op.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reversal">op.is_reversal $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">op.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="statusReason">op.status_reason $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="terminalNumber">op.terminal_number $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY op.id DESC</isEmpty>
+		<include refid="paginatedClose"/>
+		) x
+		, opr_ui_participant_vw p
+		where 1=1
+		and x.id = p.oper_id(+)
+		and p.participant_type(+) = 'PRTYISS'
+		ORDER BY x.rn
+	</select>
+
+	<select	id="get-operations-by-document-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT op.*
+		FROM opr_ui_operation_vw op
+		WHERE op.id IN (
+		SELECT m.object_id FROM acc_ui_macros_vw m
+		WHERE m.entity_type = 'ENTTOPER'
+		AND id IN (
+		SELECT t.macros_id
+		FROM
+		acc_ui_transaction_vw t
+		, rpt_ui_document_vw d
+		WHERE
+		t.transaction_id = d.OBJECT_ID and d.ENTITY_TYPE = 'ENTTTRSC'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="documentNumber">d.document_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentType">d.document_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentDate">trunc(d.document_date) = trunc(#filters[].value#)</isEqual>
+		</iterate>
+		)
+		)
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+
+		<include refid="limitationClose"/>
+	</select>
+
+	<select	id="get-operations-by-participant"
+			   parameterClass="qparams"
+			   resultMap="mapping-operation-reversal-exists">
+		select x.*
+		, opr_api_reversal_pkg.reversal_exists(i_id => x.id) reversal_exists
+		, p.client_id_type
+		, decode(p.client_id_type, 'CITPACCT',p.account_number, 'CITPCARD', p.card_mask) client_id_value
+		from (
+		<include refid="paginatedOpen"/>
+		<include refid="operations-select"/>
+		FROM opr_ui_operation_vw op
+		, com_ui_mcc_vw mcc
+		, net_ui_host_vw h
+		WHERE
+		op.mcc = mcc.mcc(+)
+		AND op.payment_host_id = h.id(+)
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				mcc.lang(+) = #filters[].value# AND h.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="reversal">op.is_reversal = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reversalExists">
+				opr_api_reversal_pkg.reversal_exists(i_id => op.id) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="matchStatus">op.match_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="matchStatusOrNull">(op.match_status = #filters[].value# or op.match_status is NULL)</isEqual>
+			<isEqual property="filters[].element" compareValue="status">op.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">op.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgTypes">
+				<isNotEmpty property="filters[].valueList">
+					op.msg_type in (
+					<iterate conjunction="," property="filters[].valueList">
+						#filters[].valueList[]#
+					</iterate>
+					)
+				</isNotEmpty>
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="statuses">
+				op.status in (
+				<iterate conjunction="," property="filters[].valueList">
+					#filters[].valueList[]#
+				</iterate>
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">op.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateFrom">
+				trunc(op.host_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id >= com_api_id_pkg.get_from_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateTo">
+				trunc(op.host_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id <![CDATA[<=]]> com_api_id_pkg.get_till_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(op.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(op.oper_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>
+		AND op.id IN (
+		SELECT p.oper_id FROM opr_ui_participant_vw p
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="participantType">p.participant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantTypeNot">p.participant_type != #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">reverse(p.card_mask) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">
+				p.card_hash = COM_API_HASH_PKG.GET_CARD_HASH(#filters[].value#)
+				and p.card_number = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="cardId">p.card_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">p.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">reverse(p.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantId">p.merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">p.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantCustomerId">p.customer_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="clientIdType">p.client_id_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="clientIdValue">p.client_id_value = #filters[].value#</isEqual>
+		</iterate>
+		)
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">op.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="amount">op.oper_amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="time">op.host_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operDate">op.oper_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">op.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reversal">op.is_reversal $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">op.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="statusReason">op.status_reason $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="terminalNumber">op.terminal_number $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY op.id DESC</isEmpty>
+		<include refid="paginatedClose"/>
+		) x
+		, opr_ui_participant_vw p
+		where 1=1
+		and x.id = p.oper_id(+)
+		and p.participant_type(+) = 'PRTYISS'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="reversalExists">
+				opr_api_reversal_pkg.reversal_exists(i_id => x.id) = #filters[].value#
+			</isEqual>
+		</iterate>
+	</select>
+
+	<select	id="get-operations-by-participant-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT op.*
+		FROM opr_ui_operation_vw op
+		WHERE 1=1
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="reversal">op.is_reversal = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reversalExists">
+				opr_api_reversal_pkg.reversal_exists(i_id => op.id) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="matchStatus">op.match_status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="matchStatusOrNull">(op.match_status = #filters[].value# or op.match_status is NULL)</isEqual>
+			<isEqual property="filters[].element" compareValue="status">op.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">op.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgTypes">
+				<isNotEmpty property="filters[].valueList">
+					op.msg_type in (
+					<iterate conjunction="," property="filters[].valueList">
+						#filters[].valueList[]#
+					</iterate>
+					)
+				</isNotEmpty>
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="statuses">
+				op.status in (
+				<iterate conjunction="," property="filters[].valueList">
+					#filters[].valueList[]#
+				</iterate>
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">op.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateFrom">
+				trunc(op.host_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id >= com_api_id_pkg.get_from_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateTo">
+				trunc(op.host_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id <![CDATA[<=]]> com_api_id_pkg.get_till_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="reversalExists">
+				opr_api_reversal_pkg.reversal_exists(i_id => op.id) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(op.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(op.oper_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>
+		and op.id IN (
+		SELECT p.oper_id FROM opr_participant p
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="participantType">p.participant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantTypeNot">p.participant_type != #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">reverse(p.card_mask) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">
+				p.card_hash = COM_API_HASH_PKG.GET_CARD_HASH(#filters[].value#)
+				and p.card_number = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="cardId">p.card_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">p.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">reverse(p.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantId">p.merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">p.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantCustomerId">p.customer_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="clientIdType">p.client_id_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="clientIdValue">p.client_id_value = #filters[].value#</isEqual>
+		</iterate>
+		)
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="mapping-atm-operations-by-participant">
+		<result property="id" column="id"/>
+		<result property="operDate" column="oper_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="operType" column="oper_type"/>
+		<result property="clientIdType" column="client_id_type"/>
+		<result property="clientIdValue" column="client_id_value"/>
+		<result property="condition" column="condition"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="status" column="status"/>
+	</resultMap>
+
+	<select	id="get-atm-operations-by-participant"
+			   parameterClass="qparams"
+			   resultMap="mapping-atm-operations-by-participant">
+		<include refid="paginatedOpen"/>
+		SELECT op.id
+		, op.oper_date
+		, op.oper_type
+		, op.client_id_type
+		, p.card_mask AS client_id_value
+		, op.condition
+		, op.oper_currency
+		, op.oper_amount
+		, op.status
+		FROM atm_ui_operation_vw op, opr_ui_participant_vw p
+		WHERE (1=1)
+		AND op.id = p.oper_id
+		AND (op.client_id_type = p.client_id_type OR op.client_id_type IS NULL)
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">op.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">op.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">op.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateFrom">
+				trunc(op.host_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id >= com_api_id_pkg.get_from_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateTo">
+				trunc(op.host_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id <![CDATA[<=]]> com_api_id_pkg.get_till_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(op.oper_date) >=
+				TO_DATE(#filters[].value#,
+				'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(op.oper_date) <![CDATA[<=]]>
+				TO_DATE(#filters[].value#,
+				'DD.MM.YYYY')</isEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY op.id DESC</isEmpty>
+		<include refid="paginatedClose"/>
+
+	</select>
+
+	<select	id="get-atm-operations-by-participant-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT op.*
+		from atm_ui_operation_vw op
+		WHERE (1=1)
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">op.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">op.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">op.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateFrom">
+				trunc(op.host_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id >= com_api_id_pkg.get_from_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateTo">
+				trunc(op.host_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND op.id <![CDATA[<=]]> com_api_id_pkg.get_till_id(TO_DATE(#filters[].value#, 'DD.MM.YYYY'))
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(op.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(op.oper_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+
+
+
+
+	<select	id="get-operations-by-pmo"
+			   parameterClass="qparams"
+			   resultMap="mapping-operation-reversal-exists">
+		select x.*
+		, opr_api_reversal_pkg.reversal_exists(i_id => x.id) reversal_exists
+		, p.client_id_type
+		, decode(p.client_id_type, 'CITPACCT',p.account_number, 'CITPCARD', p.card_mask) client_id_value
+		from (
+		<include refid="paginatedOpen"/>
+		<include refid="operations-select"/>
+		FROM opr_ui_operation_vw op
+		, com_ui_mcc_vw mcc
+		, pmo_ui_order_vw o
+		, net_ui_host_vw h
+		WHERE
+		op.mcc = mcc.mcc(+)
+		AND op.payment_host_id = h.id(+)
+		AND op.payment_order_id = o.id
+		AND mcc.lang(+) = #lang#
+		AND h.lang(+) = #lang#
+		AND o.lang = #lang#
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">o.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">o.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">o.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="purposeId">o.purpose_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">
+				o.id in (
+				select oper_id from opr_ui_participant_vw
+				where customer_number = upper(#filters[].value#)
+				and participant_type = 'PRTYISS';
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="recieverCustomerNumber">
+				o.id in (
+				select oper_id from opr_ui_participant_vw
+				where customer_number = upper(#filters[].value#)
+				and participant_type = 'PRTYDST';
+				)
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting" >
+			<isNotEqual property="sorting[].direction" compareValue="AUTO" close=", op.id DESC">
+				<isEqual property="sorting[].property" compareValue="id">op.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="amount">op.oper_amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="time">op.host_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operDate">op.oper_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">op.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reversal">op.is_reversal $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">op.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="statusReason">op.status_reason $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="terminalNumber">op.terminal_number $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY op.id DESC</isEmpty>
+		<include refid="paginatedClose"/>
+		) x
+		, opr_ui_participant_vw p
+		where 1=1
+		and x.id = p.oper_id(+)
+		and p.participant_type(+) = 'PRTYISS'
+		ORDER BY x.rn
+	</select>
+
+	<select	id="get-operations-by-pmo-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT op.*
+		FROM opr_ui_operation_vw op
+		, pmo_ui_order_vw o
+		WHERE
+		op.payment_order_id = o.id
+		AND o.lang = #lang#
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">o.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">o.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">o.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="purposeId">o.purpose_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">
+				o.id in (
+				select oper_id from opr_ui_participant_vw
+				where customer_number = upper(#filters[].value#)
+				and participant_type = 'PRTYISS'
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="recieverCustomerNumber">
+				o.id in (
+				select oper_id from opr_ui_participant_vw
+				where customer_number = upper(#filters[].value#)
+				and participant_type = 'PRTYDST'
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select	id="get-transactions-by-oper"
+			   parameterClass="qparams"
+			   resultClass="ru.bpc.sv2.accounts.Transaction">
+		SELECT	  t.transaction_id AS transactionId
+		, t.macros_id AS macrosId
+		, t.bunch_id AS bunchId
+		, t.debit_account_id AS debitAccountId
+		, t.debit_account_number AS debitAccountNumber
+		, t.debit_balance AS debitBalance
+		, t.debit_balance_type AS debitBalanceType
+		, t.debit_amount AS debitAmount
+		, t.debit_amount_currency AS debitCurrency
+		, t.debit_posting_date AS debitPostingDate
+		, t.debit_sttl_date AS debitSttlDate
+		, t.debit_sttl_day AS debitSttlDay
+		, t.debit_account_type AS debitAccountType
+		, t.debit_status AS debitStatus
+		, t.credit_account_id AS creditAccountId
+		, t.credit_account_number AS creditAccountNumber
+		, t.credit_balance AS creditBalance
+		, t.credit_balance_type AS creditBalanceType
+		, t.credit_amount AS creditAmount
+		, t.credit_amount_currency AS creditCurrency
+		, t.credit_posting_date AS creditPostingDate
+		, t.credit_sttl_date AS creditSttlDate
+		, t.credit_sttl_day AS creditSttlDay
+		, t.credit_account_type AS creditAccountType
+		, t.credit_status AS creditStatus
+		, t.transaction_type AS transType
+		, t.amount_purpose AS amountPurpose
+		, 'ENTTTRSC' AS entityType
+		, get_object_desc(i_entity_type => 'ENTTTRSC',i_object_id=>t.transaction_id) AS description
+		, get_object_desc(i_entity_type => 'ENTTMACR',i_object_id=>t.macros_id) AS macrosDescription
+		, get_object_desc(i_entity_type => 'ENTTBNCH',i_object_id=>t.bunch_id) AS bunchDescription
+		FROM
+		(
+		with e as (
+		select
+		id
+		, macros_id
+		, bunch_id
+		, transaction_id
+		, transaction_type
+		, account_id
+		, amount
+		, currency
+		, balance_type
+		, balance_impact
+		, posting_date
+		, row_number() over (partition by account_id, balance_type order by posting_date, posting_order nulls last, id) as posting_order
+		, case balance when null then null else balance - amount end balance
+		, sttl_day
+		, sttl_date
+		, status
+		, amount_purpose
+		, entity_type
+		, object_id
+		from (select
+		e1.id
+		, e1.macros_id
+		, e1.bunch_id
+		, e1.transaction_id
+		, e1.transaction_type
+		, e1.account_id
+		, e1.amount
+		, e1.balance
+		, e1.currency
+		, e1.balance_type
+		, e1.balance_impact
+		, e1.posting_date
+		, e1.posting_order
+		, e1.sttl_day
+		, e1.sttl_date
+		, e1.status
+		, e1.amount_purpose
+		, e1.entity_type
+		, e1.object_id
+		from
+		acc_ui_entry_vw e1
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="entityType">e1.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">e1.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transactionId">e1.transaction_id LIKE #filters[].value#</isEqual>
+		</iterate>
+		union all
+		select
+		eb.id
+		, eb.macros_id
+		, eb.bunch_id
+		, eb.transaction_id
+		, eb.transaction_type
+		, nvl(eb.dest_account_id, eb.account_id)
+		, eb.amount
+		, null balance
+		, eb.currency
+		, eb.balance_type
+		, eb.balance_impact
+		, eb.posting_date
+		, null as posting_order
+		, null sttl_day
+		, null sttl_date
+		, eb.status
+		, m2.amount_purpose
+		, m2.entity_type
+		, m2.object_id
+		from
+		acc_entry_buffer eb
+		, acc_account a
+		, acc_macros m2
+		where
+		eb.macros_id = m2.id
+		and a.id             = eb.account_id
+		and eb.status        = 'BUSTBUFF'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="entityType">m2.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">m2.object_id = #filters[].value#</isEqual>
+		</iterate>
+		)
+		)
+		select
+		e.macros_id
+		, e.entity_type
+		, e.object_id
+		, e.bunch_id
+		, e.transaction_id
+		, e.transaction_type
+		, e.amount_purpose
+		, min(decode(e.balance_impact, -1, e.id, null))             debit_entry_id
+		, min(decode(e.balance_impact, -1, e.account_id, null))     debit_account_id
+		, min(decode(e.balance_impact, -1, nvl(b.balance_number, a.account_number), null)) debit_account_number
+		, min(decode(e.balance_impact, -1, a.account_type, null))   debit_account_type
+		, min(decode(e.balance_impact, -1, e.balance_type, null))   debit_balance_type
+		, min(decode(e.balance_impact, -1, e.amount, null))         debit_amount
+		, min(decode(e.balance_impact, -1, e.currency, null))       debit_amount_currency
+		, min(decode(e.balance_impact, -1, e.balance, null))        debit_balance
+		, min(decode(e.balance_impact, -1, e.posting_date, null))   debit_posting_date
+		, min(decode(e.balance_impact, -1, e.posting_order, null))  debit_posting_order
+		, min(decode(e.balance_impact, -1, e.sttl_day, null))       debit_sttl_day
+		, min(decode(e.balance_impact, -1, e.sttl_date, null))      debit_sttl_date
+		, min(decode(e.balance_impact, -1, e.status, null))         debit_status
+		, min(decode(e.balance_impact,  1, e.id, null))             credit_entry_id
+		, min(decode(e.balance_impact,  1, e.account_id, null))     credit_account_id
+		, min(decode(e.balance_impact,  1, nvl(b.balance_number, a.account_number), null))  credit_account_number
+		, min(decode(e.balance_impact,  1, a.account_type, null))   credit_account_type
+		, min(decode(e.balance_impact,  1, e.balance_type, null))   credit_balance_type
+		, min(decode(e.balance_impact,  1, e.amount, null))         credit_amount
+		, min(decode(e.balance_impact,  1, e.currency, null))       credit_amount_currency
+		, min(decode(e.balance_impact,  1, e.balance, null))        credit_balance
+		, min(decode(e.balance_impact,  1, e.posting_date, null))   credit_posting_date
+		, min(decode(e.balance_impact,  1, e.posting_order, null))  credit_posting_order
+		, min(decode(e.balance_impact,  1, e.sttl_day, null))       credit_sttl_day
+		, min(decode(e.balance_impact,  1, e.sttl_date, null))      credit_sttl_date
+		, min(decode(e.balance_impact,  1, e.status, null))         credit_status
+		from
+		e
+		, acc_account a
+		, acc_balance b
+		where
+		e.account_id = a.id
+		and a.id = b.account_id
+		and e.balance_type = b.balance_type
+		group by
+		e.macros_id
+		, e.entity_type
+		, e.object_id
+		, e.bunch_id
+		, e.transaction_id
+		, e.transaction_type
+		, e.amount_purpose
+		) t
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="macrosId">t.macros_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="bunchId">t.bunch_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="transactionId">t.transaction_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="id">t.transaction_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="description">upper(description) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="debitAccount">t.debit_account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="debitBalanceType">t.debit_balance_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="debitAmount">t.debit_amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="creditAccount">t.credit_account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="creditBalanceType">t.credit_balance_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="creditAmount">t.credit_amount $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY t.transaction_id
+		</isEmpty>
+	</select>
+
+	<select	id="get-transactions-count-by-oper"
+			   parameterClass="qparams"
+			   resultClass="int">
+		SELECT count(*)
+		FROM
+		(
+		with e as (
+		select
+		id
+		, macros_id
+		, bunch_id
+		, transaction_id
+		, transaction_type
+		, account_id
+		, amount
+		, currency
+		, balance_type
+		, balance_impact
+		, posting_date
+		, row_number() over (partition by account_id, balance_type order by posting_date, posting_order nulls last, id) as posting_order
+		, case balance when null then null else balance - amount end balance
+		, sttl_day
+		, sttl_date
+		, status
+		, amount_purpose
+		, entity_type
+		, object_id
+		from (select
+		e1.id
+		, e1.macros_id
+		, e1.bunch_id
+		, e1.transaction_id
+		, e1.transaction_type
+		, e1.account_id
+		, e1.amount
+		, e1.balance
+		, e1.currency
+		, e1.balance_type
+		, e1.balance_impact
+		, e1.posting_date
+		, e1.posting_order
+		, e1.sttl_day
+		, e1.sttl_date
+		, e1.status
+		, e1.amount_purpose
+		, e1.entity_type
+		, e1.object_id
+		from
+		acc_ui_entry_vw e1
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="entityType">e1.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">e1.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transactionId">e1.transaction_id LIKE #filters[].value#</isEqual>
+		</iterate>
+		union all
+		select
+		eb.id
+		, eb.macros_id
+		, eb.bunch_id
+		, eb.transaction_id
+		, eb.transaction_type
+		, nvl(eb.dest_account_id, eb.account_id)
+		, eb.amount
+		, null balance
+		, eb.currency
+		, eb.balance_type
+		, eb.balance_impact
+		, eb.posting_date
+		, null as posting_order
+		, null sttl_day
+		, null sttl_date
+		, eb.status
+		, m2.amount_purpose
+		, m2.entity_type
+		, m2.object_id
+		from
+		acc_entry_buffer eb
+		, acc_account a
+		, acc_macros m2
+		where
+		eb.macros_id = m2.id
+		and a.id             = eb.account_id
+		and eb.status        = 'BUSTBUFF'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="entityType">m2.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">m2.object_id = #filters[].value#</isEqual>
+		</iterate>
+		)
+		)
+		select
+		e.macros_id
+		, e.entity_type
+		, e.object_id
+		, e.bunch_id
+		, e.transaction_id
+		, e.transaction_type
+		, e.amount_purpose
+		, min(decode(e.balance_impact, -1, e.id, null))             debit_entry_id
+		, min(decode(e.balance_impact, -1, e.account_id, null))     debit_account_id
+		, min(decode(e.balance_impact, -1, nvl(b.balance_number, a.account_number), null)) debit_account_number
+		, min(decode(e.balance_impact, -1, a.account_type, null))   debit_account_type
+		, min(decode(e.balance_impact, -1, e.balance_type, null))   debit_balance_type
+		, min(decode(e.balance_impact, -1, e.amount, null))         debit_amount
+		, min(decode(e.balance_impact, -1, e.currency, null))       debit_amount_currency
+		, min(decode(e.balance_impact, -1, e.balance, null))        debit_balance
+		, min(decode(e.balance_impact, -1, e.posting_date, null))   debit_posting_date
+		, min(decode(e.balance_impact, -1, e.posting_order, null))  debit_posting_order
+		, min(decode(e.balance_impact, -1, e.sttl_day, null))       debit_sttl_day
+		, min(decode(e.balance_impact, -1, e.sttl_date, null))      debit_sttl_date
+		, min(decode(e.balance_impact, -1, e.status, null))         debit_status
+		, min(decode(e.balance_impact,  1, e.id, null))             credit_entry_id
+		, min(decode(e.balance_impact,  1, e.account_id, null))     credit_account_id
+		, min(decode(e.balance_impact,  1, nvl(b.balance_number, a.account_number), null))  credit_account_number
+		, min(decode(e.balance_impact,  1, a.account_type, null))   credit_account_type
+		, min(decode(e.balance_impact,  1, e.balance_type, null))   credit_balance_type
+		, min(decode(e.balance_impact,  1, e.amount, null))         credit_amount
+		, min(decode(e.balance_impact,  1, e.currency, null))       credit_amount_currency
+		, min(decode(e.balance_impact,  1, e.balance, null))        credit_balance
+		, min(decode(e.balance_impact,  1, e.posting_date, null))   credit_posting_date
+		, min(decode(e.balance_impact,  1, e.posting_order, null))  credit_posting_order
+		, min(decode(e.balance_impact,  1, e.sttl_day, null))       credit_sttl_day
+		, min(decode(e.balance_impact,  1, e.sttl_date, null))      credit_sttl_date
+		, min(decode(e.balance_impact,  1, e.status, null))         credit_status
+		from
+		e
+		, acc_account a
+		, acc_balance b
+		where
+		e.account_id = a.id
+		and a.id = b.account_id
+		and e.balance_type = b.balance_type
+		group by
+		e.macros_id
+		, e.entity_type
+		, e.object_id
+		, e.bunch_id
+		, e.transaction_id
+		, e.transaction_type
+		, e.amount_purpose
+		) t
+	</select>
+
+	<select	id="get-balance-for-account"
+			   parameterClass="long"
+			   resultClass="double">
+		SELECT balance FROM acc_ui_account_vw WHERE account_number = #value#
+	</select>
+
+	<resultMap class="ru.bpc.sv2.operations.MatchLevel" id="mapping-match-level">
+		<result property="id" column="id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="priority" column="priority"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="name"/>
+		<result property="lang" column="lang"/>
+		<result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<select	id="get-match-levels"
+			   parameterClass="qparams"
+			   resultMap="mapping-match-level">
+		<include refid="paginatedOpen"/>
+		SELECT	  m.id
+		, m.inst_id
+		, m.priority
+		, m.seqnum
+		, m.name
+		, m.lang
+		, i.name inst_name
+		FROM opr_ui_match_level_vw m, ost_ui_institution_sys_vw i
+		WHERE m.inst_id = i.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">m.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(m.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				m.lang = #filters[].value# AND i.lang(+) = #filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">m.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="priority">m.priority $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">upper(m.name) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY m.priority
+		</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select	id="get-match-levels-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM opr_ui_match_level_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-match-level"
+			   parameterClass="ru.bpc.sv2.operations.MatchLevel">
+		{call OPR_UI_MATCH_PKG.add_match_level(
+		o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_inst_id		=> #instId#
+		, i_lang		=> #lang#
+		, i_name		=> #name#
+		, i_priority	=> #priority#
+		)}
+	</procedure>
+
+	<procedure id="modify-match-level"
+			   parameterClass="ru.bpc.sv2.operations.MatchLevel">
+		{call OPR_UI_MATCH_PKG.modify_match_level(
+		i_id			=> #id#
+		, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_lang		=> #lang#
+		, i_name		=> #name#
+		, i_priority	=> #priority#
+		)}
+	</procedure>
+
+	<procedure id="remove-match-level"
+			   parameterClass="ru.bpc.sv2.operations.MatchLevel">
+		{call OPR_UI_MATCH_PKG.remove_match_level(
+		i_id			=> #id#
+		, i_seqnum		=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.MatchCondition" id="mapping-match-conditions">
+		<result property="id" column="id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="name"/>
+		<result property="lang" column="lang"/>
+		<result property="condition" column="condition"/>
+		<result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<select	id="get-match-conditions"
+			   parameterClass="qparams"
+			   resultMap="mapping-match-conditions">
+		<include refid="paginatedOpen"/>
+		SELECT	  m.id
+		, m.inst_id
+		, m.seqnum
+		, m.name
+		, m.lang
+		, m.condition
+		, i.name inst_name
+		FROM opr_ui_match_condition_vw m, ost_ui_institution_sys_vw i
+		WHERE m.inst_id = i.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">m.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">m.inst_id IN (9999, #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(m.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				m.lang = #filters[].value# AND i.lang(+) = #filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">m.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">upper(m.name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="condition">upper(m.condition) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY m.name
+		</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select	id="get-match-conditions-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM opr_ui_match_condition_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id IN (9999, #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-match-condition"
+			   parameterClass="ru.bpc.sv2.operations.MatchCondition">
+		{call OPR_UI_MATCH_PKG.add_match_condition(
+		o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_inst_id		=> #instId#
+		, i_lang		=> #lang#
+		, i_name		=> #name#
+		, i_condition	=> #condition#
+		)}
+	</procedure>
+
+	<procedure id="modify-match-condition"
+			   parameterClass="ru.bpc.sv2.operations.MatchCondition">
+		{call OPR_UI_MATCH_PKG.modify_match_condition(
+		i_id			=> #id#
+		, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_lang		=> #lang#
+		, i_name		=> #name#
+		, i_condition	=> #condition#
+		)}
+	</procedure>
+
+	<procedure id="remove-match-condition"
+			   parameterClass="ru.bpc.sv2.operations.MatchCondition">
+		{call OPR_UI_MATCH_PKG.remove_match_condition(
+		i_id			=> #id#
+		, i_seqnum		=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.MatchLevelCondition" id="mapping-match-lvl-conditions">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="levelId" column="level_id"/>
+		<result property="conditionId" column="condition_id"/>
+		<result property="conditionName" column="name"/>
+		<result property="conditionCondition" column="condition"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+
+	<select	id="get-match-level-conditions"
+			   parameterClass="qparams"
+			   resultMap="mapping-match-lvl-conditions">
+		<include refid="paginatedOpen"/>
+		SELECT	  mlc.id
+		, mlc.seqnum
+		, mlc.level_id
+		, mlc.condition_id
+		, m.name
+		, m.condition
+		, m.lang
+		FROM opr_ui_match_condition_vw m, opr_ui_match_lvl_condition_vw mlc
+		WHERE m.id = mlc.condition_id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="levelId">mlc.level_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">mlc.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">upper(m.name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="condition">upper(m.condition) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY m.name
+		</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select	id="get-match-level-conditions-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM opr_ui_match_lvl_condition_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="levelId">level_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="include-condition-in-level"
+			   parameterClass="ru.bpc.sv2.operations.MatchLevelCondition">
+		{call OPR_UI_MATCH_PKG.include_condition_in_level(
+		o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_level_id		=> #levelId#
+		, i_condition_id	=> #conditionId#
+		)}
+	</procedure>
+
+	<procedure id="remove-condition-from-level"
+			   parameterClass="ru.bpc.sv2.operations.MatchLevelCondition">
+		{call OPR_UI_MATCH_PKG.remove_condition_from_level(
+		i_id				=> #id#
+		, i_seqnum			=> #seqNum#
+		)}
+	</procedure>
+
+	<procedure id="add-adjusment"
+			   parameterClass="ru.bpc.sv2.operations.incoming.Operation">
+		{call opr_api_create_pkg.create_operation(
+		io_oper_id                => #id,jdbcType=NUMERIC,mode=OUT#
+		, i_session_id              => #sessionId#
+		, i_is_reversal             => #reversal#
+		, i_original_id             => #originalId#
+		, i_oper_type               => #operType#
+		, i_oper_reason             => #operReason#
+		, i_msg_type                => #msgType#
+		, i_status                  => #status#
+		, i_status_reason           => #statusReason#
+		, i_sttl_type               => #sttlType#
+		, i_terminal_type           => #terminalType#
+		, i_acq_inst_bin            => #acqInstBin#
+		, i_forw_inst_bin           => #forwInstBin#
+		, i_merchant_number         => #merchantNumber#
+		, i_terminal_number         => #terminalNumber#
+		, i_merchant_name           => #merchantName#
+		, i_merchant_street         => #merchantStreet#
+		, i_merchant_city           => #merchantCity#
+		, i_merchant_region         => #merchantRegion#
+		, i_merchant_country        => #merchantCountryCode#
+		, i_merchant_postcode       => #merchantPostCode#
+		, i_mcc                     => #mccCode#
+		, i_originator_refnum       => #refnum#
+		, i_network_refnum          => #networkRefnum#
+		, i_oper_count              => #operCount#
+		, i_oper_request_amount     => #operationRequestAmount#
+		, i_oper_amount_algorithm 	=> 'OALG0010'
+		, i_oper_amount             => #operationAmount#
+		, i_oper_currency           => #operationCurrency#
+		, i_oper_cashback_amount    => #operationCashbackAmount#
+		, i_oper_replacement_amount => #operationReplacementAmount#
+		, i_oper_surcharge_amount   => #operationSurchargeAmount#
+		, i_oper_date               => #operationDate#
+		, i_host_date               => #sourceHostDate#
+		, i_match_status            => #matchStatus#
+		, i_sttl_amount             => #sttlAmount#
+		, i_sttl_currency           => #sttlCurrency#
+		, i_dispute_id              => #disputeId#
+		, i_payment_order_id		=> NULL
+		, i_payment_host_id			=> NULL
+		, i_forced_processing		=> NULL
+		)}
+	</procedure>
+
+	<procedure id="add-participant"
+			   parameterClass="ru.bpc.sv2.operations.incoming.Operation">
+		{call opr_api_create_pkg.add_participant(
+			  i_oper_id				=> #id#
+			, i_msg_type			=> #msgType#
+			, i_oper_type			=> #operType#
+			, i_participant_type	=> #participantType#
+			, i_host_date			=> #sourceHostDate#
+			, i_client_id_type		=> #clientIdType#
+			, i_client_id_value		=> #clientIdValue#
+			, i_inst_id				=> #issInstId#
+			, i_network_id			=> #issNetworkId#
+			, i_card_inst_id		=> #cardInstId#
+			, i_card_network_id		=> #cardNetworkId#
+			, i_card_id				=> #cardId#
+			, i_card_instance_id	=> #cardInstanceId#
+			, i_card_type_id		=> #cardTypeId#
+			, i_card_number 		=> #cardNumber#
+			, i_card_mask			=> #cardMask#
+			, i_card_hash			=> #cardHash#
+			, i_card_seq_number		=> #cardSeqNumber#
+			, i_card_expir_date		=> #cardExpirationDate#
+			, i_card_country		=> #cardCountry#
+			, i_customer_id			=> #customerId#
+			, i_account_id			=> #accountId#
+			, i_account_type		=> #accountType#
+			, i_account_number		=> #accountNumber#
+			, i_account_amount		=> #accountAmount#
+			, i_account_currency	=> #accountCurrency#
+			, i_split_hash			=> #splitHash#
+			, i_without_checks		=> 1
+			, i_merchant_number		=> #merchantNumber#
+			, i_merchant_id			=> #merchantId#
+		)}
+	</procedure>
+
+	<procedure id="edit-operation"
+			   parameterClass="ru.bpc.sv2.operations.incoming.Operation">
+		{call opr_ui_operation_pkg.modify_operation(
+		o_id						=> #id,jdbcType=NUMERIC,mode=OUT#
+		, i_split_hash				=> #splitHash#
+		, i_session_id				=> #sessionId#
+		, i_is_reversal				=> #reversal#
+		, i_original_id				=> #originalId#
+		, i_oper_type				=> #operType#
+		, i_oper_reason				=> #operReason#
+		, i_msg_type				=> #msgType#
+		, i_status					=> #status#
+		, i_status_reason			=> #statusReason#
+		, i_sttl_type				=> #sttlType#
+		, i_acq_inst_id				=> #acqInstId#
+		, i_acq_network_id			=> #acqNetworkId#
+		, i_split_hash_acq			=> #splitHashAcq#
+		, i_terminal_type			=> #terminalType#
+		, i_acq_inst_bin			=> #acqInstBin#
+		, i_forw_inst_bin			=> #forwInstBin#
+		, i_merchant_id				=> #merchantId#
+		, i_merchant_number			=> #merchantNumber#
+		, i_terminal_id				=> #terminalId#
+		, i_terminal_number			=> #terminalNumber#
+		, i_merchant_name			=> #merchantName#
+		, i_merchant_street			=> #merchantStreet#
+		, i_merchant_city			=> #merchantCity#
+		, i_merchant_region			=> #merchantRegion#
+		, i_merchant_country		=> #merchantCountryCode#
+		, i_merchant_postcode		=> #merchantPostCode#
+		, i_mcc						=> #mccCode#
+		, i_refnum					=> #refnum#
+		, i_network_refnum			=> #networkRefnum#
+		, i_auth_code				=> #authCode#
+		, i_oper_request_amount		=> #operationRequestAmount#
+		, i_oper_amount				=> #operationAmount#
+		, i_oper_currency			=> #operationCurrency#
+		, i_oper_cashback_amount	=> #operationCashbackAmount#
+		, i_oper_replacement_amount	=> #operationReplacementAmount#
+		, i_oper_surcharge_amount	=> #operationSurchargeAmount#
+		, i_oper_date				=> #operationDate#
+		, i_host_date				=> #sourceHostDate#
+		, i_iss_inst_id				=> #issInstId#
+		, i_iss_network_id			=> #issNetworkId#
+		, i_split_hash_iss			=> #splitHashIss#
+		, i_card_inst_id			=> #cardInstId#
+		, i_card_network_id			=> #cardNetworkId#
+		, i_card_number				=> #cardNumber#
+		, i_card_id					=> #cardId#
+		, i_card_type_id			=> #cardTypeId#
+		, i_card_mask				=> #cardMask#
+		, i_card_hash				=> #cardHash#
+		, i_card_seq_number			=> #cardSeqNumber#
+		, i_card_expir_date			=> #cardExpirationDate#
+		, i_card_country			=> #cardCountry#
+		, i_account_type			=> #accountType#
+		, i_account_number			=> #accountNumber#
+		, i_account_amount			=> #accountAmount#
+		, i_account_currency		=> #accountCurrency#
+		, i_match_status			=> #matchStatus#
+		, i_auth_id					=> #authId#
+		, i_sttl_amount				=> #sttlAmount#
+		, i_sttl_currency			=> #sttlCurrency#
+		, i_dispute_id				=> #disputeId#
+		)}
+	</procedure>
+
+	<resultMap id="mapping-check" class="ru.bpc.sv2.operations.Check">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="checkGroupId" column="check_group_id"/>
+		<result property="checkType" column="check_type"/>
+		<result property="execOrder" column="exec_order"/>
+		<result property="checkGroupName" column="check_group_name"/>
+	</resultMap>
+
+	<select id="get-checks"
+			parameterClass="qparams"
+			resultMap="mapping-check">
+		<include refid="limitationOpen"/>
+		SELECT
+		c.id
+		, c.seqnum
+		, c.check_group_id
+		, c.check_type
+		, c.exec_order
+		, cg.name AS check_group_name
+		FROM opr_ui_check_vw c, opr_ui_check_group_vw cg
+		WHERE c.check_group_id = cg.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="checkGroupId">c.check_group_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="checkType">c.check_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">cg.lang(+) = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="checkType">c.check_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="execOrder">c.exec_order $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="groupName">upper(cg.name) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY c.id ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-checks-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT c.*
+		FROM opr_ui_check_vw c
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="checkGroupId">c.check_group_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="checkType">c.check_type = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-check"
+			   parameterClass="ru.bpc.sv2.operations.Check">
+		{call OPR_UI_CHECK_PKG.add_check(
+		o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_check_group_id	=> #checkGroupId#
+		, i_check_type		=> #checkType#
+		, i_exec_order		=> #execOrder#
+		)}
+	</procedure>
+
+	<procedure id="modify-check"
+			   parameterClass="ru.bpc.sv2.operations.Check">
+		{call OPR_UI_CHECK_PKG.modify_check(
+		i_id				=> #id#
+		, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_check_group_id	=> #checkGroupId#
+		, i_check_type		=> #checkType#
+		, i_exec_order		=> #execOrder#
+		)}
+	</procedure>
+
+	<procedure id="remove-check"
+			   parameterClass="ru.bpc.sv2.operations.Check">
+		{call OPR_UI_CHECK_PKG.remove_check(
+		i_id				=> #id#
+		, i_seqnum			=> #seqNum#
+		)}
+	</procedure>
+
+
+	<resultMap id="mapping-check-group" class="ru.bpc.sv2.operations.CheckGroup">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="name"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-check-groups"
+			parameterClass="qparams"
+			resultMap="mapping-check-group">
+		<include refid="paginatedOpen"/>
+		SELECT
+		cg.id
+		, cg.seqnum
+		, cg.name
+		, cg.description
+		, cg.lang
+		FROM opr_ui_check_group_vw cg
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">cg.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(cg.name)  $filters[].condition$ #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">cg.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">upper(cg.name) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY upper(cg.name) ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-check-groups-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT cg.*
+		FROM opr_ui_check_group_vw cg
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">cg.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(cg.name)  $filters[].condition$ #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">cg.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-check-group"
+			   parameterClass="ru.bpc.sv2.operations.CheckGroup">
+		{call OPR_UI_CHECK_PKG.add_check_group(
+		o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_lang		=> #lang#
+		, i_name		=> #name#
+		, i_description	=> #description#
+		)}
+	</procedure>
+
+	<procedure id="modify-check-group"
+			   parameterClass="ru.bpc.sv2.operations.CheckGroup">
+		{call OPR_UI_CHECK_PKG.modify_check_group(
+		i_id			=> #id#
+		, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_lang		=> #lang#
+		, i_name		=> #name#
+		, i_description	=> #description#
+		)}
+	</procedure>
+
+	<procedure id="remove-check-group"
+			   parameterClass="ru.bpc.sv2.operations.CheckGroup">
+		{call OPR_UI_CHECK_PKG.remove_check_group(
+		i_id			=> #id#
+		, i_seqnum		=> #seqNum#
+		)}
+	</procedure>
+
+
+	<resultMap id="mapping-check-selection" class="ru.bpc.sv2.operations.CheckSelection">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="operType" column="oper_type"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="partyType" column="party_type"/>
+		<result property="instId" column="inst_id"/>
+		<result property="networkId" column="network_id"/>
+		<result property="checkGroupId" column="check_group_id"/>
+		<result property="execOrder" column="exec_order"/>
+		<result property="checkGroupName" column="check_group_name"/>
+		<result property="instName" column="inst_name"/>
+		<result property="networkName" column="network_name"/>
+	</resultMap>
+
+	<select id="get-check-selections"
+			parameterClass="qparams"
+			resultMap="mapping-check-selection">
+		<include refid="paginatedOpen"/>
+		SELECT
+		cs.id
+		, cs.seqnum
+		, cs.oper_type
+		, cs.msg_type
+		, cs.party_type
+		, cs.inst_id
+		, cs.network_id
+		, cs.check_group_id
+		, cs.exec_order
+		, cg.name AS check_group_name
+		, i.name AS inst_name
+		, n.name AS network_name
+		FROM opr_check_selection cs, opr_ui_check_group_vw cg,
+		ost_ui_institution_sys_vw i, net_ui_network_vw n
+		WHERE cs.check_group_id = cg.id(+)
+		AND decode(cs.inst_id, '%' , -1, cs.inst_id) = i.id(+)
+		AND decode(cs.network_id, '%' , -1, cs.network_id) = n.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">cs.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="checkGroupId">cs.check_group_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">#filters[].value# LIKE cs.oper_type</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">cs.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="partyTypeEq">cs.party_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="partyTypeLike">cs.party_type LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">cs.inst_id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="networkId">cs.network_id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				cg.lang(+) = #filters[].value#
+				AND i.lang(+) = #filters[].value#
+				AND n.lang(+) = #filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">cs.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">cs.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="msgType">cs.msg_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="partyType">cs.party_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="execOrder">cs.exec_order $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="groupName">upper(check_group_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="networkName">upper(network_name) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY cs.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-check-selections-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT cs.*
+		FROM opr_check_selection cs
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">cs.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="checkGroupId">cs.check_group_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">#filters[].value# LIKE cs.oper_type</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">cs.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="partyTypeEq">cs.party_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="partyTypeLike">cs.party_type LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">cs.inst_id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="networkId">cs.network_id LIKE #filters[].value#</isEqual>
+
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-check-selection"
+			   parameterClass="ru.bpc.sv2.operations.CheckSelection">
+		{call OPR_UI_CHECK_PKG.add_check_selection(
+		o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_oper_type		=> #operType#
+		, i_msg_type		=> #msgType#
+		, i_party_type		=> #partyType#
+		, i_inst_id			=> #instId#
+		, i_network_id		=> #networkId#
+		, i_check_group_id	=> #checkGroupId#
+		, i_exec_order		=> #execOrder#
+		)}
+	</procedure>
+
+	<procedure id="modify-check-selection"
+			   parameterClass="ru.bpc.sv2.operations.CheckSelection">
+		{call OPR_UI_CHECK_PKG.modify_check_selection(
+		i_id				=> #id#
+		, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_oper_type		=> #operType#
+		, i_msg_type		=> #msgType#
+		, i_party_type		=> #partyType#
+		, i_inst_id			=> #instId#
+		, i_network_id		=> #networkId#
+		, i_check_group_id	=> #checkGroupId#
+		, i_exec_order		=> #execOrder#
+		)}
+	</procedure>
+
+	<procedure id="remove-check-selection"
+			   parameterClass="ru.bpc.sv2.operations.CheckSelection">
+		{call OPR_UI_CHECK_PKG.remove_check_selection(
+		i_id				=> #id#
+		, i_seqnum			=> #seqNum#
+		)}
+	</procedure>
+
+
+	<resultMap id="mapping-entity-oper-type" class="ru.bpc.sv2.operations.EntityOperType">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="instId" column="inst_id"/>
+		<result property="entityType" column="entity_type"/>
+		<result property="operType" column="oper_type"/>
+		<result property="invokeMethod" column="invoke_method"/>
+		<result property="reasonLovId" column="reason_lov_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="reasonLovName" column="reason_lov_name"/>
+		<result property="wizardId" column="wizard_id"/>
+		<result property="wizardName" column="wizard_name"/>
+		<result property="lang" column="lang"/>
+		<result property="name" column="name"/>
+		<result property="objectType" column="object_type"/>
+	</resultMap>
+
+	<select id="get-entity-oper-types"
+			parameterClass="qparams"
+			resultMap="mapping-entity-oper-type">
+		<include refid="paginatedOpen"/>
+		SELECT
+		ot.id
+		, ot.seqnum
+		, ot.inst_id
+		, ot.entity_type
+		, ot.oper_type
+		, ot.invoke_method
+		, ot.reason_lov_id
+		, ot.wizard_id
+		, get_text (
+		i_table_name => 'gui_wizard'
+		, i_column_name => 'name'
+		, i_object_id => ot.wizard_id
+		, i_lang => ot.lang
+		) wizard_name
+		, ot.lang
+		, ot.name
+		, i.name AS inst_name
+		, l.name AS reason_lov_name
+		, ot.object_type
+		FROM opr_ui_entity_oper_type_vw ot, ost_ui_institution_sys_vw i,
+		com_ui_lov_vw l
+		WHERE ot.inst_id = i.id(+)
+		AND ot.reason_lov_id = l.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ot.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">ot.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">ot.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">ot.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="invokeMethod">upper(ot.invoke_method) = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				i.lang(+) = #filters[].value#
+				AND l.lang(+) = #filters[].value#
+				AND ot.lang(+) = #filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">ot.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">ot.entity_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">ot.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="invoke_method">upper(ot.invoke_method) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instId">ot.inst_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reasonLovName">l.name $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY ot.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-entity-oper-types-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT ot.*
+		FROM opr_ui_entity_oper_type_vw ot
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ot.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">ot.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">ot.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">ot.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="invokeMethod">upper(ot.invoke_method) = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">ot.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-entity-oper-type"
+			   parameterClass="ru.bpc.sv2.operations.EntityOperType">
+		{call OPR_UI_ENTITY_OPER_TYPE_PKG.add_entity_oper_type(
+		o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_inst_id			=> #instId#
+		, i_entity_type		=> #entityType#
+		, i_oper_type		=> #operType#
+		, i_invoke_method	=> #invokeMethod#
+		, i_reason_lov_id	=> #reasonLovId#
+		, i_object_type		=> #objectType#
+		, i_wizard_id		=> #wizardId#
+		, i_lang			=> #lang#
+		, i_name			=> #name#
+		)}
+	</procedure>
+
+	<procedure id="modify-entity-oper-type"
+			   parameterClass="ru.bpc.sv2.operations.EntityOperType">
+		{call OPR_UI_ENTITY_OPER_TYPE_PKG.modify_entity_oper_type(
+		i_id				=> #id#
+		, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_inst_id			=> #instId#
+		, i_entity_type		=> #entityType#
+		, i_oper_type		=> #operType#
+		, i_invoke_method	=> #invokeMethod#
+		, i_reason_lov_id	=> #reasonLovId#
+		, i_object_type		=> #objectType#
+		, i_wizard_id		=> #wizardId#
+		, i_lang			=> #lang#
+		, i_name			=> #name#
+		)}
+	</procedure>
+
+	<procedure id="remove-entity-oper-type"
+			   parameterClass="ru.bpc.sv2.operations.EntityOperType">
+		{call OPR_UI_ENTITY_OPER_TYPE_PKG.remove_entity_oper_type(
+		i_id				=> #id#
+		, i_seqnum			=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap id="mapping-transactions-by-oper-hier" class="ru.bpc.sv2.accounts.Transaction">
+		<result property="longId" column="id"/>
+		<result property="entityType" column="entity_type"/>
+		<result property="description" column="description"/>
+		<result property="debitAccountNumber" column="debit_account_number"/>
+		<result property="debitBalanceType" column="debit_balance_type"/>
+		<result property="creditAccountNumber" column="credit_account_number"/>
+		<result property="creditBalanceType" column="credit_balance_type"/>
+		<result property="debitAmount" column="debit_amount"/>
+		<result property="creditAmount" column="credit_amount"/>
+		<result property="debitCurrency" column="debit_currency"/>
+		<result property="creditCurrency" column="credit_currency"/>
+		<result property="level" column="level"/>
+		<result property="isLeaf" javaType="boolean" column="is_leaf"/>
+		<result property="transType" column="trans_type"/>
+		<result property="creditStatus" column="credit_status"/>
+		<result property="debitStatus" column="debit_status"/>
+	</resultMap>
+
+	<select	id="get-transactions-by-oper-hier"
+			   parameterClass="qparams"
+			   resultMap="mapping-transactions-by-oper-hier">
+		SELECT
+		x.*
+		, level
+		, CONNECT_BY_ISLEAF is_leaf
+		FROM (
+		SELECT
+		m.id id
+		, null parent_id
+		, 'ENTTMACR' entity_type
+		, get_object_desc(i_entity_type => 'ENTTMACR',i_object_id=>m.id) description
+		, null debit_account_number
+		, null debit_balance_type
+		, null credit_account_number
+		, null credit_balance_type
+		, null debit_amount
+		, null credit_amount
+		, null debit_currency
+		, null credit_currency
+		, null trans_type
+		FROM acc_ui_macros_vw m
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="entityType">m.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">m.object_id = #filters[].value#</isEqual>
+		</iterate>
+		UNION ALL
+		SELECT
+		b.id id
+		, macros_id parent_id
+		, 'ENTTBNCH' entity_type
+		, get_object_desc(i_entity_type => 'ENTTBNCH',i_object_id=>b.id) description
+		, null debit_account_number
+		, null debit_balance_type
+		, null credit_account_number
+		, null credit_balance_type
+		, null debit_amount
+		, null credit_amount
+		, null debit_currency
+		, null credit_currency
+		, null trans_type
+		FROM acc_ui_bunch_vw b
+		UNION ALL
+		SELECT
+		t.transaction_id id
+		, bunch_id parent_id
+		, 'ENTTTRSC' entity_type
+		, get_object_desc(i_entity_type => 'ENTTTRSC',i_object_id=>t.transaction_id) description
+		, t.debit_account_number
+		, t.debit_balance_type
+		, t.credit_account_number
+		, t.credit_balance_type
+		, t.debit_amount
+		, t.credit_amount
+		, t.debit_amount_currency AS debit_currency
+		, t.credit_amount_currency AS credit_currency
+		, t.transaction_type AS trans_type
+		, t.credit_status
+		, t.debit_status
+		FROM acc_ui_transaction_vw t
+		) x
+		START WITH x.entity_type = 'ENTTMACR' and parent_id is NULL
+		CONNECT BY
+		PRIOR x.id = x.parent_id
+		AND (PRIOR x.entity_type = 'ENTTMACR' and x.entity_type = 'ENTTBNCH'
+		OR PRIOR x.entity_type = 'ENTTBNCH' and x.entity_type = 'ENTTTRSC')
+	</select>
+
+	<resultMap class="ru.bpc.sv2.operations.Participant" id="mapping-participant">
+		<result property="operId" column="oper_id"/>
+		<result property="participantType" column="participant_type"/>
+		<result property="instId" column="inst_id"/>
+		<result property="networkId" column="network_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="clientIdType" column="client_id_type"/>
+		<result property="clientIdValue" column="client_id_value"/>
+		<result property="customerId" column="customer_id"/>
+		<result property="customerName" column="customer_name"/>
+		<result property="authCode" column="auth_code"/>
+		<result property="cardId" column="card_id"/>
+		<result property="cardInstanceId" column="card_instance_id"/>
+		<result property="cardTypeId" column="card_type_id"/>
+		<result property="cardMask" column="card_mask"/>
+		<result property="cardHash" column="card_hash"/>
+		<result property="cardSeqNumber" column="card_seq_number"/>
+		<result property="cardExpirDate" column="card_expir_date"/>
+		<result property="cardServiceCode" column="card_service_code"/>
+		<result property="cardCountry" column="card_country"/>
+		<result property="cardNetworkId" column="card_network_id"/>
+		<result property="cardInstId" column="card_inst_id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="accountType" column="account_type"/>
+		<result property="accountNumber" column="account_number"/>
+		<result property="accountAmount" column="account_amount"/>
+		<result property="accountCurrency" column="account_currency"/>
+		<result property="merchantId" column="merchant_id"/>
+		<result property="terminalId" column="terminal_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="cardInstName" column="card_inst_name"/>
+		<result property="networkName" column="network_name"/>
+		<result property="cardNetworkName" column="card_network_name"/>
+		<result property="cardTypeName" column="card_type_name"/>
+		<result property="cardNumber" column="card_number"/>
+		<result property="cardToken" column="card_token"/>
+	</resultMap>
+
+	<select id="get-participants"
+			parameterClass="qparams"
+			resultMap="mapping-participant">
+		<include refid="paginatedOpen"/>
+		SELECT
+		p.oper_id
+		, p.participant_type
+		, p.inst_id
+		, p.network_id
+		, p.split_hash
+		, p.client_id_type
+		, p.client_id_value
+		, p.customer_id
+		, get_object_desc(i_object_id => p.customer_id, i_entity_type => 'ENTTCUST') customer_name
+		, p.auth_code
+		, p.card_id
+		, p.card_instance_id
+		, p.card_type_id
+		, p.card_mask
+		, p.card_hash
+		, p.card_seq_number
+		, p.card_expir_date
+		, p.card_service_code
+		, p.card_country
+		, p.card_network_id
+		, p.card_inst_id
+		, p.account_id
+		, p.account_type
+		, p.account_number
+		, p.account_amount
+		, p.account_currency
+		, p.merchant_id
+		, p.terminal_id
+		, i1.name AS inst_name
+		, i2.name AS card_inst_name
+		, n1.name AS network_name
+		, n2.name AS card_network_name
+		, ct.name AS card_type_name
+		, p.card_number
+		, p.card_token
+		FROM
+		(
+			SELECT
+			p.oper_id
+			, p.participant_type
+			, p.inst_id
+			, p.network_id
+			, p.split_hash
+			, p.client_id_type
+			, p.client_id_value
+			, p.customer_id
+			, p.auth_code
+			, p.card_id
+			, p.card_instance_id
+			, p.card_type_id
+			, iss_api_card_pkg.get_card_mask(i_card_number => r.card_number) as card_mask
+			, p.card_hash
+			, p.card_seq_number
+			, p.card_expir_date
+			, p.card_service_code
+			, p.card_country
+			, p.card_network_id
+			, p.card_inst_id
+			, p.account_id
+			, p.account_type
+			, p.account_number
+			, p.account_amount
+			, p.account_currency
+			, p.merchant_id
+			, p.terminal_id
+			, iss_api_token_pkg.decode_card_number(i_card_number => r.card_number) as card_number
+			, aup_api_tag_pkg.get_tag_value(i_auth_id => p.oper_id, i_tag_id => 8753) as card_token
+			FROM
+			opr_participant p
+			, opr_card r
+			WHERE r.oper_id(+) = p.oper_id
+			AND r.participant_type(+) = p.participant_type
+		) p
+		, (
+			SELECT a.id
+			, get_text('ost_institution', 'name', a.id, b.lang) name
+			, b.lang
+			FROM ost_institution a
+			, com_language_vw b
+		) i1
+		, (
+			SELECT a.id
+			, get_text('ost_institution', 'name', a.id, b.lang) name
+			, b.lang
+			FROM ost_institution a
+			, com_language_vw b
+		) i2
+		, (
+			SELECT n.id
+			, get_text (
+				i_table_name    => 'net_network'
+				, i_column_name => 'name'
+				, i_object_id   => n.id
+				, i_lang        => l.lang
+			) as name
+			, l.lang
+			FROM
+			net_network n
+			, com_language_vw l
+		) n1
+		, (
+			SELECT n.id
+			, get_text (
+				i_table_name    => 'net_network'
+				, i_column_name => 'name'
+				, i_object_id   => n.id
+				, i_lang        => l.lang
+			) as name
+			, l.lang
+			FROM
+			net_network n
+			, com_language_vw l
+		) n2
+		, net_ui_card_type_vw ct
+		WHERE p.inst_id = i1.id
+		AND p.card_inst_id = i2.id(+)
+		AND p.network_id = n1.id(+)
+		AND p.card_network_id = n2.id(+)
+		AND p.card_type_id = ct.id(+)
+		<iterate prepend="AND" conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="operId">p.oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				i1.lang = #filters[].value# AND i2.lang(+) = #filters[].value#
+				AND n1.lang(+) = #filters[].value# AND n2.lang(+) = #filters[].value#
+				AND ct.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">p.participant_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="operId">p.oper_id $sorting[].direction$ ASC</isEqual>
+				<isEqual property="sorting[].property" compareValue="participantType">p.participant_type $sorting[].direction$ ASC</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY p.oper_id, p.participant_type ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-participants-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT p.id
+		FROM opr_participant_vw p,
+			(
+				SELECT a.id
+				, get_text('ost_institution', 'name', a.id, b.lang) name
+				, b.lang
+				FROM ost_institution a
+				, com_language_vw b
+			) i
+		WHERE p.inst_id = i.id
+		<iterate prepend="AND" conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="operId">p.oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">p.participant_type = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select	id="get-operations-light"
+			   parameterClass="qparams"
+			   resultMap="mapping-operation-light">
+		<include refid="paginatedOpen"/>
+		<include refid="operations-select-light"/>
+		FROM opr_ui_operation_vw op
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">op.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateFrom">trunc(op.host_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateTo">trunc(op.host_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalNumber">op.terminal_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantNumber">op.merchant_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="transactionId">
+				op.id IN (
+				SELECT m.object_id FROM acc_ui_macros_vw m
+				WHERE m.entity_type = 'ENTTOPER'
+				AND id IN (
+				SELECT t.macros_id FROM acc_ui_transaction_vw t
+				WHERE t.transaction_id LIKE #filters[].value#
+				)
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="authId">
+				op.id IN (
+				SELECT a.id FROM aut_ui_auth_vw a
+				WHERE a.id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">trunc(op.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">trunc(op.oper_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="isReversal">op.is_reversal = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paymentOrderId">op.payment_order_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">op.status = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<resultMap  id="mapping-participant-type"
+				class="ru.bpc.sv2.operations.ParticipantType"  >
+		<result property="id" column="id" />
+		<result property="operType" column="oper_type" />
+		<result property="participantType" column="participant_type" />
+	</resultMap>
+
+	<select id="get-participant-types"
+			parameterClass="qparams" resultMap="mapping-participant-type">
+		<include refid="paginatedOpen" />
+		SELECT
+		ptv.id
+		,ptv.oper_type
+		,ptv.participant_type
+		FROM
+		opr_ui_participant_type_vw ptv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ptv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">ptv.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">ptv.participant_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">ptv.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">ptv.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="participantType">ptv.participant_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose" />
+	</select>
+
+	<select id="get-participant-types-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+		count(ptv.id)
+		FROM
+		opr_ui_participant_type_vw ptv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ptv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">ptv.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">ptv.participant_type = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<procedure id="add-participant-type"
+			   parameterClass="ru.bpc.sv2.operations.ParticipantType">
+		{call opr_ui_participant_type_pkg.add_participant_type(
+		o_id					=> #id,mode=OUT,jdbcType=NUMERIC#
+		, i_oper_type			=> #operType#
+		, i_participant_type	=> #participantType#
+		)}
+	</procedure>
+
+	<procedure id="remove-participant-type"
+			   parameterClass="ru.bpc.sv2.operations.ParticipantType">
+		{call opr_ui_participant_type_pkg.remove_participant_type(
+		i_id					=> #id#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-technical-message"
+				class="ru.bpc.sv2.operations.TechnicalMessage"  >
+		<result property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="type" column="tech_msg_type" />
+		<result property="operId" column="oper_id" />
+		<result property="techId" column="tech_id" />
+		<result property="viewName" column="view_name" />
+		<result property="lang" column="lang" />
+	</resultMap>
+
+	<select id="get-technical-messages"
+			parameterClass="qparams" resultMap="mapping-technical-message">
+		SELECT
+		oper_id id
+		, oper_id
+		, tech_id
+		, tech_msg_type
+		, view_name
+		, lang
+		, name
+		FROM
+		opr_ui_message_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">tech_msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-technical-messages-count"
+			parameterClass="qparams" resultClass="int">
+		SELECT
+		count(*)
+		FROM
+		opr_ui_message_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">tech_msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<resultMap  id="mapping-technical-message-detail"
+				class="ru.bpc.sv2.operations.TechnicalMessageDetail"  >
+		<result property="id" column="id" />
+		<result property="name" column="name" />
+		<result property="valueV" column="column_char_value" />
+		<result property="valueN" column="column_number_value" />
+		<result property="valueD" column="column_date_value" />
+		<result property="dataType" column="data_type" />
+		<result property="columnOrder" column="column_order"/>
+		<result property="operId" column="oper_id" />
+		<result property="lang" column="lang" />
+		<result property="lovId" column="lov_id" />
+		<result property="dictCode" column="dict_code" />
+		<result property="columnLevel" column="column_level" />
+		<result property="techId" column="tech_id" />
+	</resultMap>
+
+	<select id="get-technical-message-details"
+			parameterClass="qparams"
+			resultMap="mapping-technical-message-detail">
+		SELECT
+		oper_id id
+		, name
+		, column_char_value
+		, column_number_value
+		, column_date_value
+		, decode(data_type, 'NUMBER', 'DTTPNMBR', 'VARCHAR2', 'DTTPCHAR', 'DATE', 'DTTPDATE',data_type) data_type
+		, column_order
+		, oper_id
+		, lang
+		, column_level
+		, lov_id
+		, dict_code
+		, tech_id
+		FROM
+		<iterate property="filters">
+			<isEqual property="filters[].element" compareValue="viewName">$filters[].value$</isEqual>
+		</iterate>
+
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="techId">tech_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="notemptyValues">(TRIM(lov_id) is not null or TRIM(decode(data_type, 'VARCHAR2', column_char_value, 'NUMBER', to_char(column_number_value), 'DATE', to_char(column_date_value), column_char_value)) is not null)</isEqual>
+
+		</iterate>
+
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY column_order ASC</isEmpty>
+	</select>
+
+	<select id="get-technical-message-details-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+		count(*)
+		FROM
+		<iterate property="filters">
+			<isEqual property="filters[].element" compareValue="viewName">$filters[].value$</isEqual>
+		</iterate>
+
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="techId">tech_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="notemptyValues">(TRIM(lov_id) is not null or TRIM(decode(data_type, 'VARCHAR2', column_char_value, 'NUMBER', to_char(column_number_value), 'DATE', to_char(column_date_value), column_char_value)) is not null)</isEqual>
+		</iterate>
+	</select>
+
+	<select id="get-parent-operation"
+			parameterClass="qparams" resultClass="long">
+		SELECT min(oo.id)
+		FROM opr_ui_operation_vw oo
+		CONNECT BY PRIOR original_id = id
+		<iterate prepend="START WITH" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="mapping-operation-hier" extends="mapping-operation">
+		<result property="level" column="op_level"/>
+		<result property="disputeAllowed" column="is_dispute_allowed"/>
+		<result property="documentsUnloaded" column="is_document_upunloaded" jdbcType="VARCHAR" javaType="java.lang.Boolean" typeHandler="ru.bpc.sv2.utils.VarcharToBooleanTypeHandler"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="associated-operations-map">
+		<parameter property="operId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="matchId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+	</parameterMap>
+
+	<select	id="get-associated-operations-pipelined"
+			   parameterMap="associated-operations-map"
+			   resultMap="mapping-operation-hier">
+
+		<include refid="operations-select-light"/>
+		, op.mcc_name
+		, op.payment_host_name
+		, op.op_level
+		, op.is_dispute_allowed
+		, com_api_flexible_data_pkg.get_flexible_value(
+			  i_field_name	=> 'IS_DOCUMENT_UPUNLOADED'
+			, i_entity_type	=> 'ENTTOPER'
+			, i_object_id	=> op.id
+		  ) as is_document_upunloaded
+		FROM (SELECT t.oper_id id, t.*
+				FROM (table(cast(dsp_ui_dispute_search_pkg.get_dispute_info(i_oper_id => ?
+						, i_match_id => ?
+						, i_lang => ?) as dsp_ui_dispute_info_tpt))) t
+				ORDER BY rn
+		) op
+	</select>
+
+	<select	id="get-associated-operations-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT op.*
+		FROM opr_ui_operation_vw op
+		CONNECT BY PRIOR op.id = op.original_id
+		<iterate prepend="START WITH" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">op.id = #filters[].value#</isEqual>
+		</iterate>
+		UNION
+		SELECT op.*
+		FROM opr_ui_operation_vw op
+		WHERE dispute_id in (
+		SELECT dispute_id
+		FROM opr_ui_operation_vw oo
+		CONNECT BY PRIOR id = original_id
+		<iterate prepend="START WITH" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">id = #filters[].value#</isEqual>
+		</iterate>
+		)
+		AND original_id IS NULL
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap  id="mapping-entity-oper-type-bundle"
+				class="ru.bpc.sv2.operations.EntityOperTypeBundle"  >
+		<result property="id" column="id" />
+		<result property="seqnum" column="seqnum" />
+		<result property="instId" column="inst_id" />
+		<result property="entityType" column="entity_type" />
+		<result property="operType" column="oper_type" />
+		<result property="invokeMethod" column="invoke_method" />
+		<result property="reasonLovId" column="reason_lov_id" />
+		<result property="objectType" column="object_type" />
+		<result property="wizardId" column="wizard_id" />
+		<result property="operTypeName" column="oper_type_name" />
+		<result property="lang" column="lang" />
+		<result property="name" column="name" />
+	</resultMap>
+
+	<select id="get-entity-oper-type-bundle"
+			parameterClass="qparams" resultMap="mapping-entity-oper-type-bundle">
+		SELECT DISTINCT
+		eotv.id
+		,eotv.seqnum
+		,eotv.inst_id
+		,eotv.entity_type
+		,eotv.oper_type
+		,eotv.invoke_method
+		,eotv.reason_lov_id
+		,eotv.object_type
+		,eotv.wizard_id
+		,eotv.oper_type_name
+		,eotv.lang
+		,nvl(eotv.name, w.name) name
+		FROM
+		opr_cu_oper_type_vw eotv
+		, gui_ui_wizard_vw w
+		where eotv.wizard_id = w.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">eotv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">eotv.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">eotv.inst_id in (9999, #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">eotv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">(eotv.oper_type = #filters[].value# or (#filters[].value# is null and eotv.oper_type is null))</isEqual>
+			<isEqual property="filters[].element" compareValue="invokeMethod">eotv.invoke_method = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reasonLovId">eotv.reason_lov_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectType">(eotv.object_type is null or eotv.object_type = #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="objectTypeOnly">eotv.object_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="wizardId">eotv.wizard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operTypeName">eotv.oper_type_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">eotv.lang = #filters[].value# and w.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">eotv.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="seqnum">eotv.seqnum $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instId">eotv.inst_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">eotv.entity_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">eotv.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="invokeMethod">eotv.invoke_method $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reasonLovId">eotv.reason_lov_id $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-entity-oper-type-bundle-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+		count(eotv.id)
+		FROM
+		opr_ui_entity_oper_type_vw eotv
+		, gui_ui_wizard_vw w
+		where eotv.wizard_id = w.id
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">eotv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">eotv.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">eotv.inst_id in (9999, #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">eotv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">eotv.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="invokeMethod">eotv.invoke_method = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reasonLovId">eotv.reason_lov_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectType">(eotv.object_type is null or eotv.object_type = #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="objectTypeOnly">eotv.object_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="wizardId">eotv.wizard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operTypeName">eotv.oper_type_name = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">eotv.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">eotv.lang = #filters[].value# and w.lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<parameterMap class="java.util.Map" id="process-operation-map">
+		<parameter property="operationId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="paramsTab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="process-operation"
+			   parameterMap="process-operation-map">
+		{call opr_api_process_pkg.process_operation(
+		i_operation_id	=> ?
+		, i_stage			=> 'PSTGCOMM'
+		, i_mask_error		=> NULL
+		, i_param_tab       => ?
+		)}
+	</procedure>
+
+	<select id="get-reason-mappings" parameterClass="qparams" resultMap="mapping-reason-mapping">
+		<include refid="paginatedOpen"/>
+		SELECT
+		rv.id
+		,rv.seqnum
+		,rv.oper_type
+		,'DICT' || rv.reason_dict as reason_dict
+		FROM
+		OPR_UI_REASON_VW rv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">rv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">rv.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reasonDict">rv.reason_dict = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">rv.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">rv.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reasonDict">rv.invoke_method $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-reason-mappings-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		rv.id
+		FROM
+		OPR_UI_REASON_VW rv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">rv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">rv.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reasonDict">rv.reason_dict = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-reason-mapping" parameterClass="ru.bpc.sv2.operations.ReasonMapping">
+		{call OPR_UI_REASON_PKG.add_reason(
+		o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_oper_type		=> #operType#
+		, i_reason_dict		=> #reasonDict#
+		)}
+	</procedure>
+
+	<procedure id="modify-reason-mapping" parameterClass="ru.bpc.sv2.operations.ReasonMapping">
+		{call OPR_UI_REASON_PKG.modify_reason(
+		i_id				=> #id#
+		, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_oper_type		=> #operType#
+		, i_reason_dict		=> #reasonDict#
+		)}
+	</procedure>
+
+	<procedure id="remove-reason-mapping" parameterClass="ru.bpc.sv2.operations.ReasonMapping">
+		{call OPR_UI_REASON_PKG.remove_reason(
+		i_id					=> #id#
+		, i_seqnum				=> #seqNum#
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="save-tag-map">
+		<parameter property="authId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="tags" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="save-tag"
+			   parameterMap="save-tag-map">
+		{call aup_api_tag_pkg.save_tag(
+		i_auth_id			=> ?
+		, i_tags			=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-oper-cur-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-operation-light-curs"/>
+		<parameter property="first_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="force_search" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="one_step_search" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="oper_id_tab" jdbcType="ARRAY" typeName="NUM_TAB_TPT" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="INOUT" />
+	</parameterMap>
+
+	<procedure id="get-oper-cur" parameterMap="get-oper-cur-map">
+		{call opr_ui_operation_search_pkg.get_ref_cur(
+			  o_ref_cur			=> ?
+			, i_first_row		=> ?
+			, i_last_row		=> ?
+			, i_tab_name		=> ?
+			, i_param_tab		=> ?
+			, i_sorting_tab		=> ?
+			, i_force_search	=> ?
+			, i_one_step_search	=> ?
+			, io_oper_id_tab	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-oper-cur-count-map">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="force_search" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="oper_id_tab" jdbcType="ARRAY" typeName="NUM_TAB_TPT" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="OUT" />
+	</parameterMap>
+
+	<procedure id="get-oper-cur-count"
+			   parameterMap="get-oper-cur-count-map">
+		{call opr_ui_operation_search_pkg.get_row_count(
+			  o_row_count		=> ?
+			, i_tab_name		=> ?
+			, i_param_tab		=> ?
+			, i_force_search	=> ?
+			, o_oper_id_tab		=> ?
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="mapping-operation-light-curs">
+		<result property="id" column="id"/>
+		<result property="sessionId" column="session_id"/>
+		<result property="isReversal" column="is_reversal" javaType="boolean" jdbcType="NUMBER"/>
+		<result property="originalId" column="original_id"/>
+		<result property="operType" column="oper_type"/>
+		<result property="operReason" column="oper_reason"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="status" column="status"/>
+		<result property="statusReason" column="status_reason"/>
+		<result property="sttlType" column="sttl_type"/>
+		<result property="sttlAmount" column="sttl_amount"/>
+		<result property="sttlCurrency" column="sttl_currency"/>
+		<result property="acqInstBin" column="acq_inst_bin"/>
+		<result property="forwInstBin" column="forw_inst_bin"/>
+		<result property="terminalNumber" column="terminal_number"/>
+		<result property="terminalType" column="terminal_type"/>
+		<result property="terminalTypeName" column="terminal_type_name"/>
+		<result property="merchantNumber" column="merchant_number"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantStreet" column="merchant_street"/>
+		<result property="merchantCity" column="merchant_city"/>
+		<result property="merchantRegion" column="merchant_region"/>
+		<result property="merchantCountry" column="merchant_country"/>
+		<result property="merchantPostCode" column="merchant_postcode"/>
+		<result property="mccCode" column="mcc"/>
+		<result property="originatorRefnum" column="originator_refnum"/>
+		<result property="networkRefnum" column="network_refnum"/>
+		<result property="operCount" column="oper_count"/>
+		<result property="operRequestAmount" column="oper_request_amount"/>
+		<result property="operAmountAlgorithm" column="oper_amount_algorithm"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="operCashbackAmount" column="oper_cashback_amount"/>
+		<result property="operReplacementAmount" column="oper_replacement_amount"/>
+		<result property="operSurchargeAmount" column="oper_surcharge_amount"/>
+		<result property="operDate" column="oper_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="hostDate" column="host_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="unholdDate" column="unhold_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="matchStatus" column="match_status"/>
+		<result property="disputeId" column="dispute_id"/>
+		<result property="paymentOrderId" column="payment_order_id"/>
+		<result property="paymentHostId" column="payment_host_id"/>
+		<result property="forcedProcessing" column="forced_processing" javaType="boolean" jdbcType="NUMBER"/>
+		<result property="mccName" column="mcc_name"/>
+		<result property="isReversalExists" column="reversal_exists" javaType="boolean" jdbcType="NUMBER"/>
+		<result property="clientIdType" column="client_id_type"/>
+		<result property="clientIdValue" column="client_id_value"/>
+		<result property="matchId" column="match_id"/>
+		<result property="authCode" column="auth_code"/>
+		<result property="issInstId" column="iss_inst_id"/>
+		<result property="issInstName" column="iss_inst_name"/>
+		<result property="issNetworkId" column="iss_network_id"/>
+		<result property="issNetworkName" column="iss_network_name"/>
+		<result property="cardNetworkId" column="card_network_id"/>
+		<result property="cardNetworkName" column="card_network_name"/>
+		<result property="acqInstId" column="acq_inst_id"/>
+		<result property="acqInstName" column="acq_inst_name"/>
+		<result property="acqNetworkId" column="acq_network_id"/>
+		<result property="acqNetworkName" column="acq_network_name"/>
+		<result property="externalAuthId" column="external_auth_id" />
+		<result property="cardMask" column="iss_card_number" />
+		<result property="cardToken" column="iss_card_token" />
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.operations.incoming.Operation" id="mapping-operations-by-terminal">
+		<result property="id" column="id" />
+		<result property="status" column="status"/>
+		<result property="cardNumber" column="card_number"/>
+		<result property="cardMask" column="card_mask"/>
+		<result property="operationAmount" column="oper_amount"/>
+		<result property="operationCurrency" column="oper_currency"/>
+		<result property="operationDate" column="oper_date"/>
+		<result property="operType" column="oper_type"/>
+	</resultMap>
+
+	<select	id="get-operations-by-terminal"
+			   parameterClass="qparams"
+			   resultMap="mapping-operations-by-terminal">
+		SELECT
+		o.id,
+		o.status,
+		o.card_number,
+		o.card_mask,
+		o.oper_amount,
+		o.oper_currency,
+		o.oper_date,
+		o.oper_type
+		FROM
+		opr_ui_acq_operation_vw o
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">o.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="oper_type">o.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="oper_date">trunc(o.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">o.id $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select	id="get-operations-by-terminal-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		o.id
+		FROM
+		opr_ui_acq_operation_vw o
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="terminalId">o.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="oper_type">o.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="oper_date">trunc(o.oper_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">o.id $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="modify-status"
+			   parameterClass="ru.bpc.sv2.operations.Operation">
+		{call OPR_UI_OPERATION_PKG.modify_status(
+		i_oper_id					=> #id#
+		, i_oper_status				=> #status#
+		, i_forced_processing       => #forcedProcessing#
+		)}
+	</procedure>
+
+	<select id="get-operations-stat" parameterClass="qparams"
+			resultClass="ru.bpc.sv2.operations.OperationStat">
+		select rownum, records, status, operType, operAmount, operCurrency, msgType, sttlType, reversal
+		from (
+		select count(*) records
+		<iterate property="filters">
+			<isEqual property="filters[].element" compareValue="groupByResult">
+				<iterate prepend="," conjunction="," property="filters[].valueList">
+					$filters[].valueList[]$
+				</iterate>
+			</isEqual>
+		</iterate>
+		from opr_ui_operation_vw op, evt_status_log sl
+		WHERE
+		op.id = sl.object_id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">sl.session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionFileId">op.incom_sess_file_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">op.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">op.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlType">op.sttl_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">op.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operCurrency">op.oper_currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">sl.entity_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate property="filters">
+			<isEqual property="filters[].element" compareValue="groupBy">
+				<iterate prepend="GROUP BY" conjunction="," property="filters[].valueList">
+					$filters[].valueList[]$
+				</iterate>
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="status">op.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="oper_type">op.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="sttl_type">op.sttl_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="msg_type">op.msg_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="oper_currency">op.oper_currency $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reversal">op.is_reversal $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		) x
+	</select>
+
+    <select id="get-entries-stat-logs"  parameterClass="qparams"
+            resultClass="ru.bpc.sv2.operations.EntryStat">
+        select t.*
+        , row_number() over(order by 1) as "rownum"
+        from (
+        select
+        nvl(sum(decode(balanceImpact, -1, 1, 0)), 0)        as countDebit
+        , nvl(sum(decode(balanceImpact,  1, 1, 0)), 0)        as countCredit
+        , nvl(sum(decode(balanceImpact, -1, amount, 0)), 0) as amountDebit
+        , nvl(sum(decode(balanceImpact,  1, amount, 0)), 0) as amountCredit
+        <iterate property="filters">
+            <isEqual property="filters[].element" compareValue="groupByResult">
+                <iterate prepend="," conjunction="," property="filters[].valueList">
+                    $filters[].valueList[]$
+                </iterate>
+            </isEqual>
+        </iterate>
+        from (
+        select /*+ ordered use_nl(sl, op, m, e, a) index(sl evt_status_log_session_id_ndx) index(op opr_operation_pk) index(m acc_macros_object_ndx) index(e acc_entry_macros_ndx) index(a acc_account_pk) */
+        e.balance_impact balanceImpact
+        , m.amount_purpose amountPurpose
+        , e.transaction_type transType
+        , a.account_type accountType
+        , e.balance_type balanceType
+        , e.currency currency
+        , e.amount amount
+        from evt_status_log sl
+        , opr_operation op
+        , acc_macros m
+        , acc_entry e
+        , acc_account a
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="sessionId">sl.session_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="status">op.status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="operType">op.oper_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="sttlType">op.sttl_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="msgType">op.msg_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="currency">op.oper_currency = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="reversal">op.is_reversal = #filters[].value#</isEqual>
+        </iterate>
+        and op.id = sl.object_id
+        and m.object_id   = op.id
+        and m.entity_type = 'ENTTOPER'
+        and e.macros_id   = m.id
+        and a.id = e.account_id
+        )
+
+        <iterate property="filters">
+            <isEqual property="filters[].element" compareValue="groupBy">
+                <iterate prepend="GROUP BY" conjunction="," property="filters[].valueList">
+                    $filters[].valueList[]$
+                </iterate>
+            </isEqual>
+        </iterate>
+
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="trans_type">transType $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="account_type">oper_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="balance_type">sttl_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="amount_purpose">msg_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="currency">oper_currency $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        ) t
+    </select>
+
+
+
+    <select id="get-entries-stat-files"  parameterClass="qparams"
+            resultClass="ru.bpc.sv2.operations.EntryStat">
+        select t.*
+        , row_number() over(order by 1) as "rownum"
+        from (
+        select
+        nvl(sum(decode(balanceImpact, -1, 1, 0)), 0)        as countDebit
+        , nvl(sum(decode(balanceImpact,  1, 1, 0)), 0)        as countCredit
+        , nvl(sum(decode(balanceImpact, -1, amount, 0)), 0) as amountDebit
+        , nvl(sum(decode(balanceImpact,  1, amount, 0)), 0) as amountCredit
+        <iterate property="filters">
+            <isEqual property="filters[].element" compareValue="groupByResult">
+                <iterate prepend="," conjunction="," property="filters[].valueList">
+                    $filters[].valueList[]$
+                </iterate>
+            </isEqual>
+        </iterate>
+        from (
+        select /*+ ordered use_nl(op, m, e, a) index(op opr_oper_session_id_ndx) index(m acc_macros_object_ndx) index(e acc_entry_macros_ndx) index(a acc_account_pk) */
+        e.balance_impact balanceImpact
+        , m.amount_purpose amountPurpose
+        , e.transaction_type transType
+        , a.account_type accountType
+        , e.balance_type balanceType
+        , e.currency currency
+        , e.amount amount
+        from opr_operation op
+        , acc_macros m
+        , acc_entry e
+        , acc_account a
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="sessionFileId">op.incom_sess_file_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="status">op.status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="operType">op.oper_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="sttlType">op.sttl_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="msgType">op.msg_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="currency">op.oper_currency = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="reversal">op.is_reversal = #filters[].value#</isEqual>
+        </iterate>
+        and m.object_id   = op.id
+        and m.entity_type = 'ENTTOPER'
+        and e.macros_id   = m.id
+        and a.id = e.account_id
+        )
+
+        <iterate property="filters">
+            <isEqual property="filters[].element" compareValue="groupBy">
+                <iterate prepend="GROUP BY" conjunction="," property="filters[].valueList">
+                    $filters[].valueList[]$
+                </iterate>
+            </isEqual>
+        </iterate>
+
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="trans_type">transType $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="account_type">oper_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="balance_type">sttl_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="amount_purpose">msg_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="currency">oper_currency $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        ) t
+    </select>
+
+	<parameterMap class="java.util.Map" id="change-operations-status-map">
+		<parameter property="sessionId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="sessionFileId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="hostDateFrom" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+		<parameter property="hostDateTo" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+		<parameter property="msgType" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="sttlType" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="reversal" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="operCurrency" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="operType" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="operStatus" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="newStatus" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="operId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="operReason" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="change-operations-status"
+			   parameterMap="change-operations-status-map">
+		{call opr_ui_operation_pkg.modify_statuses(
+		i_session_id          => ?
+		, i_incom_sess_file_id  => ?
+		, i_host_date_from      => ?
+		, i_host_date_to        => ?
+		, i_msg_type            => ?
+		, i_sttl_type           => ?
+		, i_is_reversal         => ?
+		, i_oper_currency       => ?
+		, i_oper_type           => ?
+		, i_oper_status         => ?
+		, i_new_status          => ?
+		, i_oper_id             => ?
+		, i_oper_reason			=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="match-operations-map">
+		<parameter property="origOperId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="presOperId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="match-operations"
+			   parameterMap="match-operations-map">
+		{call opr_ui_operation_pkg.match_operations(
+		i_orig_oper_id => ?
+		, i_pres_oper_id => ?
+		)}
+	</procedure>
+
+	<select id="get-participant-card-number"
+			parameterClass="qparams" resultClass="string">
+		select
+		card_number
+		from
+		opr_ui_participant_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">participant_type = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+
+	<parameterMap class="java.util.Map" id="match-reversal-operation-map">
+		<parameter property="origOperId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="reversalId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="match-reversal-operation"
+			   parameterMap="match-reversal-operation-map">
+		{call opr_ui_operation_pkg.match_operation_reversal(
+		i_orig_oper_id     => ?
+		, i_reversal_oper_id => ?
+		)}
+	</procedure>
+
+	<procedure id="perform-checks"
+			   parameterClass="ru.bpc.sv2.operations.Participant">
+		{call opr_ui_operation_pkg.perform_checks(
+		i_oper_id               => #operId#
+		, i_participant_type      => #participantType#
+		, o_network_id            => #networkId,jdbcType=NUMERIC,mode=OUT#
+		, o_inst_id               => #instId,jdbcType=NUMERIC,mode=OUT#
+		, o_card_inst_id          => #cardInstId,jdbcType=NUMERIC,mode=OUT#
+		, o_card_network_id       => #cardNetworkId,jdbcType=NUMERIC,mode=OUT#
+		, o_card_type_id          => #cardTypeId,jdbcType=NUMERIC,mode=OUT#
+		, o_card_mask             => #cardMask,jdbcType=VARCHAR,mode=OUT#
+		, o_card_hash             => #cardHash,jdbcType=NUMERIC,mode=OUT#
+		, o_card_seq_number       => #cardSeqNumber,jdbcType=NUMERIC,mode=OUT#
+		, o_card_expir_date       => #cardExpirDate,jdbcType=DATE,mode=OUT#
+		, o_card_service_code     => #cardServiceCode,jdbcType=VARCHAR,mode=OUT#
+		, o_card_country          => #cardCountry,jdbcType=VARCHAR,mode=OUT#
+		, o_account_id            => #accountId,jdbcType=NUMERIC,mode=OUT#
+		, o_customer_id           => #customerId,jdbcType=NUMERIC,mode=OUT#
+		, o_merchant_id           => #merchantId,jdbcType=NUMERIC,mode=OUT#
+		, o_terminal_id           => #terminalId,jdbcType=NUMERIC,mode=OUT#
+		, o_card_id               => #cardId,jdbcType=NUMERIC,mode=OUT#
+		, o_card_instance_id      => #cardInstanceId,jdbcType=NUMERIC,mode=OUT#
+		, o_split_hash            => #splitHash,jdbcType=NUMERIC,mode=OUT#
+		, o_customer_name         => #customerName,jdbcType=VARCHAR,mode=OUT#
+		, o_inst_name             => #instName,jdbcType=VARCHAR,mode=OUT#
+		, o_card_inst_name        => #cardInstName,jdbcType=VARCHAR,mode=OUT#
+		, o_network_name          => #networkName,jdbcType=VARCHAR,mode=OUT#
+		, o_card_network_name     => #cardNetworkName,jdbcType=VARCHAR,mode=OUT#
+		, o_card_type_name        => #cardTypeName,jdbcType=VARCHAR,mode=OUT#
+		, o_client_id_type        => #clientIdType,jdbcType=VARCHAR,mode=OUT#
+		, o_client_id_value       => #clientIdValue,jdbcType=VARCHAR,mode=OUT#
+		, o_account_type          => #accountType,jdbcType=VARCHAR,mode=OUT#
+		, o_account_amount        => #accountAmount,jdbcType=NUMERIC,mode=OUT#
+		, o_account_currency      => #accountCurrency,jdbcType=VARCHAR,mode=OUT#
+		, o_auth_code             => #authCode,jdbcType=VARCHAR,mode=OUT#
+		, o_card_number           => #cardNumber,jdbcType=VARCHAR,mode=OUT#
+		) }
+	</procedure>
+
+	<procedure id="update-participant"
+			   parameterClass="ru.bpc.sv2.operations.Participant">
+		{call opr_ui_operation_pkg.update_participant(
+		i_oper_id               => #operId#
+		, i_participant_type      => #participantType#
+		, i_network_id            => #networkId#
+		, i_inst_id               => #instId#
+		, i_card_inst_id          => #cardInstId#
+		, i_card_network_id       => #cardNetworkId#
+		, i_card_type_id          => #cardTypeId#
+		, i_card_mask             => #cardMask#
+		, i_card_hash             => #cardHash#
+		, i_card_seq_number       => #cardSeqNumber#
+		, i_card_expir_date       => #cardExpirDate#
+		, i_card_service_code     => #cardServiceCode#
+		, i_card_country          => #cardCountry#
+		, i_account_id            => #accountId#
+		, i_customer_id           => #customerId#
+		, i_merchant_id           => #merchantId#
+		, i_terminal_id           => #terminalId#
+		, i_card_id               => #cardId#
+		, i_card_instance_id      => #cardInstanceId#
+		, i_split_hash            => #splitHash#
+		) }
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-sttl-type-map">
+		<parameter property="sttl_type" jdbcType="VARCHAR" javaType="java.lang.String" mode="OUT"/>
+		<parameter property="iss_inst_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="acq_inst_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="card_inst_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="iss_network_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="acq_network_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="card_network_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="acq_inst_bin" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-sttl-type"
+			   parameterMap="get-sttl-type-map"
+			   resultClass="string">
+		{? = call net_ui_sttl_map_pkg.get_sttl_type(
+		i_iss_inst_id           => ?
+		, i_acq_inst_id           => ?
+		, i_card_inst_id          => ?
+		, i_iss_network_id        => ?
+		, i_acq_network_id        => ?
+		, i_card_network_id       => ?
+		, i_acq_inst_bin          => ?
+		)}
+	</procedure>
+
+
+
+	<procedure id="modify-sttl-type"
+			   parameterClass="ru.bpc.sv2.operations.Operation">
+		{call opr_ui_operation_pkg.modify_sttl_type(
+		i_oper_id               => #id#
+		, i_sttl_type             => #sttlType#
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="mapping-operation-acc-curs">
+		<result property="id" column="id"/>
+		<result property="isReversal" column="is_reversal" javaType="boolean" jdbcType="NUMBER"/>
+		<result property="operType" column="oper_type"/>
+		<result property="operReason" column="oper_reason"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="status" column="status"/>
+		<result property="statusReason" column="status_reason"/>
+		<result property="sttlType" column="sttl_type"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="hostDate" column="host_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+	</resultMap>
+
+
+	<parameterMap class="java.util.Map" id="get-oper-acc-cur-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-operation-acc-curs"/>
+		<parameter property="first_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-oper-acc-cur"
+			   parameterMap="get-oper-acc-cur-map">
+		{ call opr_ui_operation_search_pkg.get_opr_account_ref_cur(
+		o_ref_cur		=> ?
+		, i_first_row 	=> ?
+		, i_last_row	=> ?
+		, i_param_tab	=> ?
+		, i_sorting_tab	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-oper-acc-cur-count-map">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-oper-acc-cur-count"
+			   parameterMap="get-oper-acc-cur-count-map">
+		{ call opr_ui_operation_search_pkg.get_opr_account_row_count(
+		o_row_count		=> ?
+		, i_param_tab	=> ?
+		)}
+	</procedure>
+
+	<procedure id="mcw_api_fee_generate"
+			   parameterClass="java.util.Map">
+		{call mcw_api_fee_generate_pkg.gen_fee(
+		i_card_number  =>	#card_number,jdbcType=VARCHAR,javaType=java.lang.String,mode=IN#
+		, i_reason_code  =>	#reason_code,jdbcType=VARCHAR,javaType=java.lang.String,mode=IN#
+		, i_amount       =>	#amount,jdbcType=NUMERIC,javaType=java.math.BigDecimal,mode=IN#
+		, i_currency     =>	#currency,jdbcType=VARCHAR,javaType=java.lang.String,mode=IN#
+		, i_oper_date    => #oper_date,jdbcType=DATE,javaType=java.util.Date,mode=IN#
+		)}
+	</procedure>
+
+	<procedure id="vis_api_fee_generate"
+			   parameterClass="java.util.Map">
+		{call vis_api_fee_generate_pkg.gen_fee(
+		i_card_number  =>	#card_number,jdbcType=VARCHAR,javaType=java.lang.String,mode=IN#
+		, i_reason_code  =>	#reason_code,jdbcType=VARCHAR,javaType=java.lang.String,mode=IN#
+		, i_amount       =>	#amount,jdbcType=NUMERIC,javaType=java.math.BigDecimal,mode=IN#
+		, i_currency     =>	#currency,jdbcType=VARCHAR,javaType=java.lang.String,mode=IN#
+		, i_oper_date    => #oper_date,jdbcType=DATE,javaType=java.util.Date,mode=IN#
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.ProcStage" id="proc-stages-map">
+		<result property="id" column="id"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="sttlType" column="sttl_type"/>
+		<result property="operType" column="oper_type"/>
+		<result property="procStage" column="proc_stage"/>
+		<result property="execOrder" column="exec_order"/>
+		<result property="parentStage" column="parent_stage"/>
+		<result property="splitMethod" column="split_method"/>
+		<result property="status" column="status"/>
+		<result property="resultStatus" column="result_status"/>
+		<result property="name" column="name"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+		<result property="command" column="command"/>
+	</resultMap>
+
+	<select	id="get-proc-stages"
+			   parameterClass="qparams"
+			   resultMap="proc-stages-map">
+		<include refid="paginatedOpen"/>
+		select s.id
+		     , s.msg_type
+		     , s.sttl_type
+		     , s.oper_type
+		     , s.proc_stage
+		     , s.exec_order
+		     , s.parent_stage
+		     , s.split_method
+		     , s.status
+		     , s.result_status
+		     , s.name
+		     , s.description
+		     , s.lang
+		     , s.command
+		  from opr_ui_proc_stage_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">s.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlType">s.sttl_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">s.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procStage">s.proc_stage = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="parentStage">s.parent_stage = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="splitMethod">s.split_method = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">s.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">s.name like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="command">s.command = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="msgType">s.msg_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="sttlType">s.sttl_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">s.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="procStage">s.proc_stage $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="parentStage">s.parent_stage $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="splitMethod">s.split_method $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">s.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">upper(s.name) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="command">s.command $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY s.id
+		</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-proc-stages-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		s.*
+		from
+		opr_ui_proc_stage_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="msgType">s.msg_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlType">s.sttl_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">s.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procStage">s.proc_stage = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="parentStage">s.parent_stage = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="splitMethod">s.split_method = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">s.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">s.name like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="command">s.command = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-proc-stage" parameterClass="ru.bpc.sv2.operations.ProcStage">
+		{call opr_ui_proc_stage_pkg.add_proc_stage (
+			  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+			, i_msg_type		=> #msgType#
+			, i_sttl_type		=> #sttlType#
+			, i_oper_type		=> #operType#
+			, i_proc_stage		=> #procStage#
+			, i_exec_order		=> #execOrder#
+			, i_parent_stage	=> #parentStage#
+			, i_split_method	=> #splitMethod#
+			, i_status			=> #status#
+			, i_result_status	=> #resultStatus#
+			, i_lang			=> #lang#
+			, i_name			=> #name#
+			, i_description		=> #description#
+			, i_command			=> #command#
+		)}
+	</procedure>
+
+	<procedure id="modify-proc-stage" parameterClass="ru.bpc.sv2.operations.ProcStage">
+		{call opr_ui_proc_stage_pkg.modify_proc_stage (
+			  i_id				=> #id#
+			, i_msg_type		=> #msgType#
+			, i_sttl_type		=> #sttlType#
+			, i_oper_type		=> #operType#
+			, i_proc_stage		=> #procStage#
+			, i_exec_order		=> #execOrder#
+			, i_parent_stage	=> #parentStage#
+			, i_split_method	=> #splitMethod#
+			, i_status			=> #status#
+			, i_result_status	=> #resultStatus#
+			, i_lang			=> #lang#
+			, i_name			=> #name#
+			, i_description		=> #description#
+			, i_command			=> #command#
+		)}
+	</procedure>
+
+	<procedure id="remove-proc-stage" parameterClass="ru.bpc.sv2.operations.ProcStage">
+		{call opr_ui_proc_stage_pkg.remove_proc_stage (
+			i_id	=> #id#
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.PosBatch" id="mapping-pos-batches">
+		<result property="operId" column="oper_id" />
+		<result property="voucherNumber" column="voucher_number"/>
+		<result property="debitCredit" column="debit_credit"/>
+		<result property="transType" column="trans_type"/>
+		<result property="posDataCode" column="pos_data_code"/>
+		<result property="transStatus" column="trans_status"/>
+		<result property="addData" column="add_data"/>
+		<result property="emvData" column="emv_data"/>
+		<result property="serviceId" column="service_id"/>
+		<result property="paymentDetails" column="payment_details"/>
+		<result property="serviceProviderId" column="service_provider_id"/>
+		<result property="uniqueNumberPayment" column="unique_number_payment"/>
+		<result property="addAmounts" column="add_amounts"/>
+		<result property="svfeTraceNumber" column="svfe_trace_number"/>
+	</resultMap>
+
+	<select	id="get-pos-batches"
+			   parameterClass="qparams"
+			   resultMap="mapping-pos-batches">
+		SELECT oper_id
+		, voucher_number
+		, debit_credit
+		, trans_type
+		, pos_data_code
+		, trans_status
+		, add_data
+		, emv_data
+		, service_id
+		, payment_details
+		, service_provider_id
+		, unique_number_payment
+		, add_amounts
+		, svfe_trace_number
+		FROM opr_ui_pos_batch_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<parameterMap id="set-oper-stage-map" class="java.util.Map">
+		<parameter property="operId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="externalAuthId" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="isReversal" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="command" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="set-oper-stage" parameterMap="set-oper-stage-map">
+		{call opr_api_create_pkg.set_oper_stage(
+			  i_oper_id				=> ?
+			, i_external_auth_id	=> ?
+			, i_is_reversal			=> ?
+			, i_command				=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="unhold-operation-map" class="java.util.Map">
+		<parameter property="operId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="unholdReason" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="unhold-operation" parameterMap="unhold-operation-map">
+		{call aut_api_process_pkg.unhold(
+		 i_id               => ?
+		 , i_reason         => ?
+		)}
+	</procedure>
+
+    <parameterMap id="set-global-param-map" class="java.util.Map">
+        <parameter property="paramName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="paramValue" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="set-global-param" parameterMap="set-global-param-map">
+        {call opr_api_shared_data_pkg.set_param(
+        i_name               => ?
+        , i_value         => ?
+        )}
+    </procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.Stage" id="mapping-oper-stages">
+		<result property="operId" column="oper_id"/>
+		<result property="procStage" column="proc_stage"/>
+		<result property="procStageDesc" column="proc_stage_desc"/>
+		<result property="status" column="status"/>
+		<result property="statusDesc" column="status_desc"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+
+	<select	id="get-oper-stages"
+			   parameterClass="qparams"
+			   resultMap="mapping-oper-stages">
+		SELECT oper_id
+		, proc_stage
+		, proc_stage_desc
+		, status
+		, status_desc
+		, lang
+		FROM opr_ui_oper_stage_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="operId">oper_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="procStage">proc_stage $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">status $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select	id="get-oper-stages-count"
+			   parameterClass="qparams"
+			   resultClass="int">
+		SELECT
+		count(*)
+		FROM opr_ui_oper_stage_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="operId">oper_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap class="ru.bpc.sv2.operations.OperationUnpaidDebt" id="get-unpaid-debt-operations-cursor-map">
+		<result property="debtId" column="debt_id"/>
+		<result property="dppId" column="dpp_id"/>
+		<result property="operId" column="oper_id"/>
+		<result property="operDate" column="oper_date"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="operType" column="oper_type"/>
+		<result property="operTypeName" column="oper_type_name"/>
+		<result property="operReason" column="oper_reason"/>
+		<result property="operReasonName" column="oper_reason_name"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="msgTypeName" column="msg_type_name"/>
+		<result property="operStatus" column="oper_status"/>
+		<result property="operStatusName" column="oper_status_name"/>
+		<result property="installmentNumber" column="instalments"/>
+		<result property="installmentAmount" column="instalments_amount"/>
+		<result property="feeId" column="fee_id"/>
+		<result property="monthlyRate" column="month_rate_nominal"/>
+		<result property="interestAmount" column="interests_amount"/>
+		<result property="dppCurrency" column="dpp_currency"/>
+	</resultMap>
+
+	<parameterMap id="get-unpaid-debt-operations-count-map" class="java.util.Map">
+		<parameter property="count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-unpaid-debt-operations-count" parameterMap="get-unpaid-debt-operations-count-map">
+		{call crd_ui_debt_search_pkg.get_unpaid_dpp_details_count(
+			o_row_count     => ?
+		  , i_account_id    => ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-unpaid-debt-operations-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-unpaid-debt-operations-cursor-map"/>
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-unpaid-debt-operations" parameterMap="get-unpaid-debt-operations-map">
+		{call crd_ui_debt_search_pkg.get_unpaid_dpp_details(
+			o_ref_cur        => ?
+		  , i_acount_id      => ?
+		  , i_sorting_tab    => ?
+		)}
+	</procedure>
+
+	<parameterMap id="check-mad-aging-indebtedness-map" class="java.util.Map">
+		<parameter property="result" javaType="java.lang.Boolean" jdbcType="BIT" mode="OUT"/>
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="check-mad-aging-indebtedness" parameterMap="check-mad-aging-indebtedness-map">
+		{ ? = call crd_ui_overdue_pkg.check_mad_aging_indebtedness(
+			i_account_id    => ?
+		)}
+	</procedure>
+
+	<parameterMap id="perform-repayment-debt-operation-map" class="ru.bpc.sv2.operations.OperationUnpaidDebt">
+		<parameter property="dppId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="newCount" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="repaymentAmountView" javaType="java.math.BigDecimal" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="accelerationType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="perform-repayment-debt-operation" parameterMap="perform-repayment-debt-operation-map">
+		{call dpp_ui_payment_plan_pkg.accelerate_dpp(
+			i_dpp_id               => ?
+		  , i_new_count            => ?
+		  , i_payment_amount       => ?
+		  , i_acceleration_type    => ?
+		)}
+	</procedure>
+
+	<parameterMap id="process-pending-opr-map" class="java.util.Map">
+		<parameter property="i_exp_period" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="i_oper_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="process-pending-opr" parameterMap="process-pending-opr-map">
+		{ call cst_opr_processing_pkg.process_pending_opr(
+			i_exp_period => ?
+		  , i_oper_id    => ?
+		)}
+	</procedure>
+
+	<parameterMap id="set-forced-processing-flag-map" class="java.util.Map">
+		<parameter property="i_oper_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="set-forced-processing-flag" parameterMap="set-forced-processing-flag-map">
+		{ call cst_opr_rule_pkg.set_forced_processing_flag(
+			i_oper_id => ?
+			, i_forced_processing => 1
+			, i_reason_info => 'Forced processing operation with closed account, by manually refund to client'
+		)}
+	</procedure>
+
+    <parameterMap id="is-operation-exists-map" class="java.util.Map">
+        <parameter property="exist" jdbcType="NUMERIC" javaType="java.lang.Boolean" mode="OUT"/>
+        <parameter property="i_orig_oper_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="is-operation-exists" parameterMap="is-operation-exists-map">
+        { ? = call cst_opr_processing_pkg.is_operation_exists(
+            i_orig_oper_id => ?
+            , i_oper_type     => 'OPTP5002')}
+    </procedure>
+
+	<parameterMap id="recreate-operation-map" class="java.util.Map">
+		<parameter property="result_id" jdbcType="NUMERIC" javaType="java.lang.Long" mode="OUT"/>
+		<parameter property="i_oper_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="i_original_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="i_status" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="i_match_status" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="recreate-operation" parameterMap="recreate-operation-map">
+		{ ? = call cst_opr_processing_pkg.recreate_operation(
+		i_oper_id           => ?
+		, i_is_reversal       => 0
+		, i_original_id       => ?
+		, i_oper_type         => 'OPTP5002'
+		, i_status            => ?
+		, i_match_status      => ?
+		, i_forced_processing => 1
+		, i_process_name      => 'MANUALLY_REFUND'
+		)}
+	</procedure>
+	<parameterMap id="get-attr-value-number-map" class="java.util.Map">
+		<parameter property="result"            javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="entity_type"       javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="object_id"         javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="attr_name"         javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="inst_id"           javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="use_default_value" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="default_value"     javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-attr-value-number" parameterMap="get-attr-value-number-map">
+		{ ? = call prd_api_product_pkg.get_attr_value_number(
+			 i_entity_type       => ?
+			,i_object_id         => ?
+			,i_attr_name         => ?
+			,i_inst_id           => ?
+			,i_use_default_value => ?
+			,i_default_value     => ?
+		)}
+	</procedure>
+
+	<parameterMap id="get-fee-amount-map" class="java.util.Map">
+        <parameter property="result"            javaType="java.lang.Double"  jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="fee_id"            javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="base_amount"       javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="base_currency"     javaType="java.lang.String"  jdbcType="VARCHAR" mode="INOUT"/>
+		<parameter property="entity_type"       javaType="java.lang.String"  jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="object_id"         javaType="java.lang.Long"    jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-fee-amount" parameterMap="get-fee-amount-map">
+		{ ? = call fcl_api_fee_pkg.get_fee_amount(
+			 i_fee_id        => ?
+			,i_base_amount   => ?
+			,io_base_currency => ?
+			,i_entity_type   => ?
+			,i_object_id     => ?
+		)}
+	</procedure>
+
+    <parameterMap id="get-reversals-amount-map" class="java.util.Map">
+        <parameter property="result"      javaType="java.lang.Double" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="original_id" javaType="java.lang.Long"   jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="get-reversals-amount" parameterMap="get-reversals-amount-map">
+        { ? = call opr_api_reversal_pkg.get_reversals_amount(
+        i_original_id        => ?
+        )}
+    </procedure>
+
+</sqlMap>

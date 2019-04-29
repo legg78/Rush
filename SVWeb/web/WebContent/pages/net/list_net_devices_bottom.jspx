@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net"/>
+
+	<h:form id="netDevicesBtmForm">
+		<h:panelGroup id="devicesTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="devicesTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbNetworkDevicesSearch.netDevices}"
+				selection="#{MbNetworkDevicesSearch.itemSelection}" height="220px"
+				rows="0" enableContextMenu="true"
+				tableState="#{MbNetworkDevicesSearch.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="netDevicesBtmForm:btnsNetDevices" />
+
+				<rich:column id="connected" label="#{lblNet.connected}" title="#{lblNet.connected}" width="5%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.connected}" />
+					</f:facet>
+					<h:graphicImage url="/images/red-cross.png"
+						rendered="#{!item.connected}" style="text-align:center" title="#{lblNet.disconnected}" />
+					<h:graphicImage url="/images/green-tick.png"
+						rendered="#{item.connected}" style="text-align:center" title="#{lblNet.connected}" />
+				</rich:column>
+
+				<rich:column id="signedOn" label="#{lblNet.signed_on}" title="#{lblNet.signed_on}" width="5%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.signed_on}" />
+					</f:facet>
+					<h:graphicImage url="/images/red-cross.png"
+						rendered="#{!(item.connected and item.signedOn)}" style="text-align:center" title="#{lblNet.signed_off}" />
+					<h:graphicImage url="/images/green-tick.png"
+						rendered="#{item.connected and item.signedOn}" style="text-align:center" title="#{lblNet.signed_on}" />
+				</rich:column>
+
+				<rich:column id="id" label="#{lblCommon.id}" title="ID" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+					</f:facet>
+					<h:outputText value="#{item.id}" title="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="conn_name" label="#{lblNet.conn_name}" title="Connection name" sortBy="#{'caption'}"
+					width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.conn_name}"
+							title="#{lblNet.conn_name}" />
+					</f:facet>
+					<h:outputText value="#{item.caption}" title="#{item.caption}" />
+				</rich:column>
+
+				<rich:column id="protocol_type" label="#{lblNet.protocol_type}" title="Protocol type" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.protocol_type}"
+							title="#{lblNet.protocol_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.allArticlesDesc[item.commPlugin]}"
+						rendered="#{item.commPlugin != null }" />
+					<h:outputText value="" rendered="#{item.commPlugin == null }" />
+				</rich:column>
+
+				<rich:column id="address" label="#{lblNet.address}" title="Address" width="35%">
+					<f:facet name="header">
+						<h:outputText value="#{lblNet.address}" title="#{lblNet.address}" />
+					</f:facet>
+					<h:outputText value="#{item.address}" title="#{item.address}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+
+				<h:panelGrid id="btnsNetDevices" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn" value="#{lblForm.add}"
+						action="#{MbNetworkDevicesSearch.selectDevice}"
+						disabled="#{MbNetworkDevicesSearch.host == null 
+                      				or MbNetworkDevicesSearch.host.onlineStdId == null}"
+						image="/images/create_doc.gif">
+						<a4j:actionparam assignTo="#{MbNetworkDevicesSearch.pageName}"
+							value="#{parentPageName}" />
+					</bre:taggedCommandButton>
+					<bre:taggedCommandButton id="addDeviceBtn"
+						reRender="deviceModalHeader, deviceEditForm"
+						value="#{lblForm.create}"
+						oncomplete="#{rich:component('deviceModalPanel')}.show()"
+						action="#{MbNetworkDevicesSearch.add}"
+						disabled="#{MbNetworkDevicesSearch.host == null}"
+						rendered="#{usession.inRole['ADD_COMMUNIC_DEVICE']}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="editDeviceBtn"
+						rendered="#{usession.inRole['MODIFY_COMMUNIC_DEVICE']}"
+						value="#{lblForm.edit}"
+						reRender="deviceModalHeader, deviceEditForm"
+						oncomplete="#{rich:component('deviceModalPanel')}.show()"
+						action="#{MbNetworkDevicesSearch.edit}"
+						disabled="#{MbNetworkDevicesSearch.activeNetDevice == null}"
+						image="/images/edit.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						disabled="#{MbNetworkDevicesSearch.activeNetDevice == null}"
+						image="/images/delete.gif" 
+						oncomplete="#{rich:component('deleteDeviceView:confirmPanel')}.show()"/>
+					<bre:taggedCommandButton id="reloadBtn" value="#{lblForm.reload}" rendered="false"
+						action="#{MbNetworkDevicesSearch.reload}" />
+					<bre:taggedCommandButton id="configBtn"
+						value="#{lblForm.configure}"
+						action="#{MbNetworkDevicesSearch.gotoInterfacesConfig}"
+						disabled="#{MbNetworkDevicesSearch.activeNetDevice == null}" />
+					</h:panelGroup>
+					
+					<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveDeviceTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteDeviceTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveDeviceTableState" action="#{MbNetworkDevicesSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteDeviceTableState" action="#{MbNetworkDevicesSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+        <script>updateHeight();</script>
+	</h:form>
+
+	<ui:include src="/pages/communication/deviceEdit.jspx">
+		<ui:param name="rerenderList" value="netDevicesBtmForm"/>
+		<ui:param name="devicesBean" value="#{MbNetworkDevicesSearch}"/>
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbNetworkDevicesSearch}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="netDevicesBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteDeviceView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

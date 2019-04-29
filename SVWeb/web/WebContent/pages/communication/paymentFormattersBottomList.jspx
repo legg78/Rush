@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+
+<ui:composition>
+	<f:loadBundle var="lblPmo" basename="ru.bpc.sv2.ui.bundles.Pmo" />
+
+	<h:form id="purposeFormatterResultForm">
+		<h:panelGroup layout="block" style="margin:0px;padding:0px"
+			id="PmoPurposeFormatterTableWrapper">
+			<rich:extendedDataTable id="PmoPurposeFormatterTable"
+				styleClass="res-table" headerClass="res-table-header table-header-ext"
+				rowClasses=",odd" selectedClass="res-table-selected" var="item"
+				value="#{MbPmoPurposeFormatter.dataModel}"
+				selection="#{MbPmoPurposeFormatter.itemSelection}"
+				rows="#{MbPmoPurposeFormatter.rowsNum}"
+				selectionMode="single" enableContextMenu="true"
+				tableState="#{MbPmoPurposeFormatter.tableState}"
+				noDataLabel="#{MbPmoPurposeFormatter.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}">
+
+				<a4j:support event="onselectionchange" requestDelay="500"
+					reRender="btnPanel, purposeFormatterViewModalPanel"
+					limitToList="true" ajaxSingle="true" />
+
+				<rich:column id="id" label="Id" title="Id" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" title="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="purpose" label="Purpose label" title="Purpose label" sortBy="#{'purposeLabel'}"
+					width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPmo.purpose}" title="#{lblPmo.purpose}" />
+					</f:facet>
+					<h:outputText value="#{item.purposeLabel}"
+						title="#{item.purposeLabel}" />
+				</rich:column>
+
+				<rich:column id="mess_type" label="Mess Type" title="Mess Type" sortBy="#{'messType'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPmo.mess_type}"
+							title="#{lblPmo.mess_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.messType]}"
+						title="#{DictUtils.articles[item.messType]}"
+						rendered="#{item.messType != null }" />
+					<h:outputText value="" title=""
+						rendered="#{item.messType == null }" />
+				</rich:column>
+
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" style="padding-right:9px">
+               	<h:panelGrid styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	               	<h:panelGroup>
+						<bre:taggedCommandButton id="viewBtn" value="#{lblForm.view}"
+							onclick="#{rich:component('purposeFormatterViewModalPanel')}.show()"
+							disabled="#{MbPmoPurposeFormatter.activeItem == null}" />
+						<bre:taggedCommandButton id="addBtn"
+							reRender="purposeFormatterEditModalPanel" value="#{lblForm.add}"
+							disabled="#{MbPmoPurposeFormatter.standardId == null}"
+							oncomplete="#{rich:component('purposeFormatterEditModalPanel')}.show()"
+							action="#{MbPmoPurposeFormatter.createNewPurposeFormatter}"
+							image="/images/create_doc.gif"
+							rendered="#{usession.inRole['ADD_PURPOSE_FORMATTER']}" />
+						<bre:taggedCommandButton id="editBtn"
+							reRender="purposeFormatterEditModalPanel" value="#{lblForm.edit}"
+							action="#{MbPmoPurposeFormatter.editActivePurposeFormatter}"
+							oncomplete="#{rich:component('purposeFormatterEditModalPanel')}.show()"
+							disabled="#{MbPmoPurposeFormatter.activeItem == null}"
+							image="/images/edit.gif"
+							rendered="#{usession.inRole['MODIFY_PURPOSE_FORMATTER']}" />
+						<bre:taggedCommandButton id="deleteBtn"
+							value="#{lblForm.delete}"
+							oncomplete="#{rich:component('deletePaymentViewId:confirmPanel')}.show()"
+							disabled="#{MbPmoPurposeFormatter.activeItem == null}"
+							image="/images/delete.gif"
+							rendered="#{usession.inRole['REMOVE_PURPOSE_FORMATTER']}" />
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveTableState" action="#{MbPmoPurposeFormatter.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteTableState" action="#{MbPmoPurposeFormatter.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<ui:include src="/pages/communication/purposeFormatterEditModalPanel.jspx" />
+	
+	<ui:include src="/pages/communication/purposeFormatterViewModalPanel.jspx" />
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbPmoPurposeFormatter}"/>
+		<ui:param name="yesAction" value="deleteActivePurposeFormatter"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="purposeFormatterResultForm, purposeFormatterViewModalPanel"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deletePaymentViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+	
+</ui:composition>
+</html>

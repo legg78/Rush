@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<f:view>
+	<ui:composition>
+		<f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd" />
+		<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc" />
+
+		<h:form id="debtsListBottomForm">
+			<h:panelGroup id="debtsListBottomTableWrapper" layout="block"
+				style="padding:0px;margin:0px;">
+				<rich:extendedDataTable headerClass="res-table-header table-header-ext"
+					selectedClass="res-table-selected" styleClass="res-table"
+					rowClasses=",odd" id="mainTable" var="item"
+					value="#{MbCreditInvoiceDebtsSearch.debts}"
+					tableState="#{MbCreditInvoiceDebtsSearch.tableState}"
+					selection="#{MbCreditInvoiceDebtsSearch.itemSelection}" rows="0"
+					selectionMode="single" enableContextMenu="true"
+					noDataLabel="#{lblCommon['no_records_found']}">
+
+					<a4j:support event="onselectionchange" reRender="btnPanelInstances" />
+
+					<rich:column id="oper_date" label="#{lblCrd.oper_date}" title="Date" sortBy="#{'operDate'}" width="10%"
+						sortOrder="DESCENDING">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblCrd.oper_date}"
+									title="#{lblCrd.oper_date}" />								
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{item.operDate}">
+							<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+						</h:outputText>
+					</rich:column>
+
+					<rich:column id="macros_type" label="#{lblCrd.macros_type}" title="Type" width="20%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCrd.macros_type}"
+								title="#{lblCrd.macros_type}" />
+						</f:facet>
+						<h:outputText value="#{item.macrosTypeName}" title="#{item.macrosTypeName}"/>						
+					</rich:column>
+					
+					<rich:column id="amount_purpose" label="#{lblAcc.purpose}" title="Purpose"
+						width="8%">
+						<f:facet name="header">
+							<h:outputText value="#{lblAcc.purpose}" title="#{lblAcc.purpose}" />
+						</f:facet>
+						<h:outputText value="#{item.amountPurpose}" title="#{DictUtils.articles[item.amountPurpose]}"/>
+					</rich:column>
+
+					<rich:column id="amount" label="#{lblCrd.amount}" width="10%" style="text-align: right">
+						<f:facet name="header">
+							<h:outputText value="#{lblCrd.amount}" title="#{lblCrd.amount}" />
+						</f:facet>
+						<h:outputText value="#{item.amount}" title="#{item.amount}"
+							converter="bpc.CurrencyConverter">
+							<f:attribute name="exponent"
+								value="#{CurrencyUtils.currencyObjectsMap[item.currency].exponent}" />
+						</h:outputText>
+						<h:outputText
+							value="#{CurrencyUtils.currencyShortNamesMap[item.currency]}"
+							title="#{CurrencyUtils.currencyMap[item.currency]}"
+							style="padding-left:5px;" />
+					</rich:column>
+
+					<rich:column id="oper_type" label="#{lblCrd.oper_type}" title="Type" width="20%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCrd.oper_type}"
+								title="#{lblCrd.oper_type}" />
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[item.operType]}"
+							title="#{DictUtils.articles[item.operType]}"
+							rendered="#{item.operType != null}" />
+						<h:outputText value="" title=""
+							rendered="#{item.operType == null}" />
+					</rich:column>
+
+					<rich:column id="oper_amount" label="#{lblCrd.oper_amount}" width="10%" style="text-align: right">
+						<f:facet name="header">
+							<h:outputText value="#{lblCrd.oper_amount}"
+								title="#{lblCrd.oper_amount}" />
+						</f:facet>
+						<h:outputText value="#{item.operAmount}"
+							title="#{item.operAmount}" converter="bpc.CurrencyConverter">
+							<f:attribute name="exponent"
+								value="#{CurrencyUtils.currencyObjectsMap[item.operCurrency].exponent}" />
+						</h:outputText>
+						<h:outputText
+							value="#{CurrencyUtils.currencyShortNamesMap[item.operCurrency]}"
+							title="#{CurrencyUtils.currencyMap[item.operCurrency]}"
+							style="padding-left:5px;" />
+					</rich:column>
+
+					<rich:column id="card" label="#{lblCrd.card}" title="Card" width="12%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCrd.card}" title="#{lblCrd.card}" />
+						</f:facet>
+						<h:outputText value="#{item.cardNumber}"
+							title="#{item.cardNumber}" />
+					</rich:column>
+					
+					<f:facet name="footer">
+					</f:facet>
+				</rich:extendedDataTable>
+			</h:panelGroup>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid id="btnPanelInstances" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+						<h:panelGroup styleClass="stdButton">
+							<bre:taggedCommandButton id="viewBtn"
+								reRender="crd_invoice_debt_view_modal_div"
+								value="#{lblForm.view}" limitToList="true"
+								oncomplete="#{rich:component('crd_invoice_debt_view_modal_panel')}.show()"
+								disabled="#{MbCreditInvoiceDebtsSearch.activeInvoiceDebt == null}"
+								image="/images/create_doc.gif" />
+						</h:panelGroup>
+						<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveDebtTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteDebtTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveDebtTableState" action="#{MbCreditInvoiceDebtsSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteDebtTableState" action="#{MbCreditInvoiceDebtsSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<rich:modalPanel id="crd_invoice_debt_view_modal_panel"
+			autosized="true" minWidth="300" minHeight="100">
+			<f:facet name="header">
+				<h:outputText value="#{lblCrd.invoice_debt}" />
+			</f:facet>
+			<f:facet name="controls">
+			</f:facet>
+			<h:form id="crd_invoice_debt_view_modal_div">
+				<ui:include src="/pages/credit/invoices/invoiceDebtDetails.jspx"></ui:include>
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+							<h:outputText />
+							<h:panelGroup styleClass="stdButton">
+								<bre:taggedCommandButton limitToList="true"
+									value="#{lblForm.close}" immediate="true"
+									oncomplete="#{rich:component('crd_invoice_debt_view_modal_panel')}.hide()"
+									reRender="crd_invoice_debt_view_modal_div">
+									<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+								</bre:taggedCommandButton>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+	</ui:composition>
+</f:view>
+</html>

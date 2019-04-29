@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+
+	<!-- PARAMETERS -->
+	<!-- addBinField -->
+
+	<script>
+	//<![CDATA[
+		var rsaKeyEditModalPanel = {
+			checkKeyIndexFields : function() {
+				var result = false;
+				var authorityKeyIndexHex = document
+						.getElementById('rsaKeyEditModalPanelForm:authorityKeyIndexHex');
+				var authorityKeyIndexDec = document
+						.getElementById('rsaKeyEditModalPanelForm:authorityKeyIndexDec');
+				if (authorityKeyIndexHex == null || authorityKeyIndexDec == null) {
+					alert('An error occured! Check script in setCaIndexModalPanel.jspx!');
+					return result;
+				}
+				if (authorityKeyIndexHex.value != '' && authorityKeyIndexDec.value != '') {
+					document.getElementById('rsaKeyEditModalPanelForm:errMultiSelect').style.display = 'inline';
+					return result;
+				} else {
+					result = true;
+					return result;
+				}
+			},
+			hideErrors : function(){
+				document.getElementById('rsaKeyEditModalPanelForm:errMultiSelect').style.display = 'none';
+			}
+		};
+	//]]>
+	</script>
+
+	<rich:modalPanel id="rsaKeyEditModalPanel" autosized="true"
+		minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup id="rsaKeyEditModalPanelHeader">
+				<h:outputText value="#{lblSec.edit_rsa_key}"
+					rendered="#{MbRsaKey.editMode}" />
+				<h:outputText value="#{lblSec.new_rsa_key}"
+					rendered="#{MbRsaKey.newMode}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="rsaKeyEditModalPanelForm">
+			<script type="text/javascript">
+				//<!--
+				oldValue["rsaKeyEditModalPanelForm"] = "#{MbRsaKey.editingItem.lang}";
+				//-->
+			</script>
+		
+		
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata"
+					columnClasses="firstCol, width250">
+
+					<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu
+							value="#{MbRsaKey.editingItem.lang}"
+							rendered="#{MbRsaKey.newMode}">
+							<f:selectItems value="#{MbRsaKey.languages}" />
+						</h:selectOneMenu>
+						<h:selectOneMenu id="editLang"
+							value="#{MbRsaKey.editingItem.lang}"
+							rendered="#{MbRsaKey.editMode}"
+							onchange="document.getElementById('rsaKey:confirmPanelForm:newValue').value = this.value;
+											#{rich:component('rsaKey:confirmPanel')}.show()">
+							<f:selectItems value="#{MbRsaKey.languages}" />
+						</h:selectOneMenu>
+					</h:panelGrid>					
+
+					<h:outputLabel for="description" value="#{lblSec.description}:" />
+					<h:inputText id="description" label="#{lblSec.description}"
+						value="#{MbRsaKey.editingItem.description}">
+					</h:inputText>
+
+					<h:outputLabel for="binId" value="* #{lblSec.bin}:" rendered="#{addBinField }"/>
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0" rendered="#{addBinField }">
+						<h:selectOneMenu id="binId" label="#{lblSec.bin}"
+							value="#{MbRsaKey.editingItem.objectId}" required="true">
+							<f:selectItem valueItem="" />
+							<f:selectItems value="#{MbRsaKey.bins}" />
+							<a4j:support event="onchange" reRender="binIdErr, subjectId"
+								limitToList="true" ajaxSingle="true" action="#{MbRsaKey.updateSubject}" />
+						</h:selectOneMenu>
+						<rich:message for="binId" id="binIdErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>					
+
+					<h:outputLabel for="hsmDeviceId" value="* #{lblSec.hsm_device_id}:" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="hsmDeviceId" label="#{lblSec.hsm_device_id}"
+							value="#{MbRsaKey.editingItem.hsmDeviceId}" required="true">
+							<f:selectItem valueItem="" />
+							<f:selectItems value="#{MbRsaKey.hsms}" />
+							<a4j:support event="onchange" reRender="hsmDeviceIdErr"
+								limitToList="true" ajaxSingle="true" />
+						</h:selectOneMenu>
+						<rich:message for="hsmDeviceId" id="hsmDeviceIdErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:outputLabel for="keyIndex" value="* #{lblSec.key_index}:" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:inputText required="true" id="keyIndex"
+							label="#{lblSec.key_index}"
+							value="#{MbRsaKey.editingItem.keyIndex}" maxlength="3"
+							onkeypress="if (!numbersOnly(this, event)) return false; ">
+							<a4j:support event="onchange" reRender="keyIndexErr"
+								limitToList="true" ajaxSingle="true" />
+							<f:validateLongRange minimum="1" maximum="255"></f:validateLongRange>
+						</h:inputText>
+						<rich:message for="keyIndex" id="keyIndexErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:outputLabel for="modulusLength"
+						value="* #{lblSec.modulus_length}:" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:inputText required="true" id="modulusLength"
+							label="#{lblSec.modulus_length}"
+							value="#{MbRsaKey.editingItem.modulusLength}">
+							<a4j:support event="onchange" reRender="modulusLengthErr"
+								limitToList="true" ajaxSingle="true" />
+						</h:inputText>
+						<rich:message for="modulusLength" id="modulusLengthErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:outputLabel for="signAlgorithm"
+						value="* #{lblSec.sign_algorithm}:" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu required="true" id="signAlgorithm"
+							label="#{lblSec.sign_algorithm}"
+							value="#{MbRsaKey.editingItem.signAlgorithm}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbRsaKey.algorithms }" />
+							<a4j:support event="onchange" reRender="signAlgorithmErr"
+								limitToList="true" ajaxSingle="true" />
+						</h:selectOneMenu>
+						<rich:message for="signAlgorithm" id="signAlgorithmErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:outputLabel for="exponent" value="#{lblSec.exponent}:" />
+					<h:inputText required="true" id="exponent"
+						label="#{lblSec.exponent}"
+						value="#{MbRsaKey.editingItem.exponent}">
+					</h:inputText>
+
+
+
+					<h:outputLabel for="authorityId" value="* #{lblSec.authority_id}:" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="authorityId" label="#{lblSec.authority_id}"
+							value="#{MbRsaKey.editingItem.authorityId}" required="true">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbRsaKey.authorities}" />
+							<a4j:support event="onchange" reRender="authorityIdErr, visaServiceIdGroup, visaServiceId"
+								limitToList="true" ajaxSingle="true" />
+						</h:selectOneMenu>
+						<rich:message for="authorityId" id="authorityIdErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:outputLabel for="subjectId" value="* #{lblSec.subject_id}:" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:inputText required="true" id="subjectId"
+							label="#{lblSec.subject_id}"
+							value="#{MbRsaKey.editingItem.subjectId}">
+							<a4j:support event="onchange" reRender="subjectIdErr"
+								limitToList="true" ajaxSingle="true" />
+						</h:inputText>
+						<rich:message for="subjectId" id="subjectIdErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:outputLabel for="trackingNumber"
+						value="* #{lblSec.tracking_number}:" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:inputText required="true" id="trackingNumber"
+							label="#{lblSec.tracking_number}"
+							value="#{MbRsaKey.editingItem.trackingNumber}">
+							<a4j:support event="onchange" reRender="trackingNumberErr"
+								limitToList="true" ajaxSingle="true" />
+						</h:inputText>
+						<rich:message for="trackingNumber" id="trackingNumberErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:outputLabel for="expirDate" value="* #{lblSec.expir_date}:" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<rich:calendar buttonIcon="/images/calendar.gif" id="expirDate" label="#{lblSec.expir_date}"
+							value="#{MbRsaKey.editingItem.expirDate}" required="true" inputStyle="width:225px"
+							datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" zindex="1000"
+							>
+							<a4j:support event="onchanged" reRender="expirDateErr"
+								limitToList="true" ajaxSingle="true" />
+						</rich:calendar>
+						<rich:message for="expirDate" id="expirDateErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:panelGroup id="visaServiceIdGroup">
+						<h:outputLabel for="visaServiceId"
+							value="* #{lblSec.visa_service_id}:" rendered="#{MbRsaKey.editingItem.authorityId == 1002}"/>
+						<h:outputLabel for="visaServiceId"
+							value="#{lblSec.visa_service_id}:" rendered="#{MbRsaKey.editingItem.authorityId != 1002}"/>
+					</h:panelGroup>
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:inputText required="#{MbRsaKey.editingItem.authorityId == 1002}" id="visaServiceId"
+							label="#{lblSec.visa_service_id}"
+							value="#{MbRsaKey.editingItem.visaServiceId}">
+							<f:validateLength maximum="8" />
+							<a4j:support event="onchange" reRender="visaServiceIdErr"
+								limitToList="true" ajaxSingle="true" />
+						</h:inputText>
+						<rich:message for="visaServiceId" id="visaServiceIdErr"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+					
+					<h:outputLabel value="#{lblSec.authority_key_index}:" />
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:panelGroup layout="block" style="width:200px;">
+							<h:outputLabel value="Hex:" style="display:inline;padding:0 4px;" />
+							<h:inputText style="width:50px" id="authorityKeyIndexHex"
+								label="#{lblSec.authority_key_index}" onfocus="rsaKeyEditModalPanel.hideErrors();"
+								value="#{MbRsaKey.authorityKeyIndexHex}">
+							</h:inputText>
+							<h:outputLabel value="Dec:" style="display:inline;padding:0 4px;" />
+							<h:inputText style="width:50px" id="authorityKeyIndexDec" onfocus="rsaKeyEditModalPanel.hideErrors();"
+								label="#{lblSec.authority_key_index}"
+								value="#{MbRsaKey.editingItem.authorityKeyIndex}"
+								onkeypress="if (!numbersOnly(this, event)) return false; ">
+							</h:inputText>
+						</h:panelGroup>
+						<h:outputFormat value="#{lblSec.fill_only_one_field}" styleClass="errorMarker"
+							id="errMultiSelect" style="display:none;">
+							<f:param name="fieldName" value="#{lblSec.authority_key_index}" />
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+
+						<h:outputText />
+
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							action="#{MbRsaKey.saveEditingRsaKey}"
+							onclick="if (!rsaKeyEditModalPanel.checkKeyIndexFields()) {return false;} disableModalPanelBtns(this);"
+							oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) 
+			                   			#{rich:component('rsaKeyEditModalPanel')}.hide()"
+							reRender="${rerenderList}" />
+
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbRsaKey.resetEditingRsaKey}" immediate="true"
+							limitToList="true"
+							oncomplete="#{rich:component('rsaKeyEditModalPanel')}.hide()">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+			
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbRsaKey}" />
+		<ui:param name="rerenderList"
+			value="rsaKeyEditModalPanelForm" />
+		<ui:param name="editElem"
+			value="rsaKeyEditModalPanelForm:editLang" />
+		<ui:param name="newValue"
+			value="#{MbRsaKey.editingItem.lang}" />
+		<ui:param name="subviewId" value="rsaKey" />
+		<ui:param name="formName" value="rsaKeyEditModalPanelForm" />
+	</ui:include>
+		
+</ui:composition>
+</html>

@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+//<!-- 
+			function checkAttrScaleFields() {
+				var checked = true;
+				
+				if (document.getElementById('attrScaleModalForm:newInst').value == "") {
+					document.getElementById('attrScaleModalForm:newInstError').style.display = "inline";
+					checked = false;
+				}
+				
+				if (document.getElementById('attrScaleModalForm:newScale').value == "") {
+					document.getElementById('attrScaleModalForm:newScaleError').style.display = "inline";
+					checked = false;
+				}
+				
+				return checked;
+			}
+			
+		//-->
+		</script>
+
+	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+	
+   	<h:form id="attrScalesForm">
+		<h:panelGroup id="attrScalesTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="attrScalesTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbAttrScales.attrScales}"
+				selection="#{MbAttrScales.itemSelection}" rows="0"
+				enableContextMenu="true"
+				tableState="#{MbAttrScales.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" reRender="btnBlock" />
+
+				<rich:column id="id" label="#{lblCommon.id}" title="ID" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" title="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="scale" label="#{lblRul.scale}" title="Scale name" sortBy="#{'scaleName'}" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblRul.scale}" title="#{lblRul.scale}" />
+					</f:facet>
+					<h:outputText value="#{item.scaleName}" title="#{item.scaleName}" />
+				</rich:column>
+
+				<rich:column id="institution" label="#{lblCommon.institution}" title="Institution" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.institution}"
+							title="#{lblCommon.institution}" />
+					</f:facet>
+					<h:outputText value="#{item.instName}" title="#{item.instName}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+
+	            <h:panelGrid id="btnBlock" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	            	<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+							reRender="attrScaleModalDiv" value="#{lblForm.add}"
+							oncomplete="#{rich:component('attrScaleModalPanel')}.show()"
+							action="#{MbAttrScales.add}"
+							rendered="#{usession.inRole['ADD_ATTRIBUTE_SCALE']}"
+							disabled="#{MbAttrScales.attrId == null}"
+							image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+                      		value="#{lblForm.delete}"
+                      		rendered="#{usession.inRole['MODIFY_ATTRIBUTE_SCALE']}"
+                      		disabled="#{MbAttrScales.activeAttrScale == null}"
+                      		image="/images/delete.gif"
+                      		oncomplete="#{rich:component('deleteScaleView:confirmPanel')}.show()"/>
+                      </h:panelGroup>
+                      
+                      <h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveScaleTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteScaleTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveScaleTableState" action="#{MbAttrScales.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteScaleTableState" action="#{MbAttrScales.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+    </h:form>
+
+	<rich:modalPanel id="attrScaleModalPanel" autosized="true" 
+			minWidth="300" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="#{lblPrd.new_service_term_scale_relation}"/>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+			<h:form id="attrScaleModalForm">
+				<h:panelGroup id="attrScaleModalDiv" layout="block" styleClass="cardholderdata-wrapper">
+			        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+						<h:outputLabel value="#{lblPrd.service_term}: " title="#{lblPrd.service_term}"/>
+						<h:inputText readonly="true" value="#{MbAttrScales.attrName}"/>
+			
+						<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="newInst"
+									required="true" label="#{lblCommon.institution}"
+									value="#{MbAttrScales.newAttrScale.instId}"
+									onblur="hideErrorField(this)">
+								<a4j:support event="onchange" reRender="newScale" 
+										limitToList="true" ajaxSingle="true"/>
+								<f:selectItem itemValue=""/>
+						    	<f:selectItems value="#{MbAttributes.institutions}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newInstError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.institution}"/>
+								</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel value="* #{lblRul.scale}: " title="#{lblRul.scale}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="newScale" 
+									value="#{MbAttrScales.newAttrScale.scaleId}"
+									required="true" label="#{lblRul.scale}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+						    	<f:selectItems value="#{MbAttrScales.scales}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newScaleError" style="display:none;">
+								<f:param name="fieldName" value="#{lblRul.scale}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+				    </h:panelGrid>
+				</h:panelGroup>
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+							<h:outputText />
+							<bre:taggedCommandButton id="saveBtn" value="#{lblForm.save}" type="submit"
+									action="#{MbAttrScales.save}"
+									onclick="if (!checkAttrScaleFields()) return false; disableModalPanelBtns(this)"
+									oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('attrScaleModalPanel')}.hide()"
+									reRender="attrScalesForm"
+									/>
+							<bre:taggedCommandButton value="#{lblForm.cancel}"
+									action="#{MbAttrScales.cancel}" immediate="true"
+									oncomplete="#{rich:component('attrScaleModalPanel')}.hide()"
+									reRender="attrScaleModalDiv">
+								<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                       		</bre:taggedCommandButton>	
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>					
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbAttrScales}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="attrScalesForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteScaleView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>			
+	</ui:include>
+			
+</ui:composition>
+</html>

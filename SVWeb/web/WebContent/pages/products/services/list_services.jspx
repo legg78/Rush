@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:param name="pageHelp" value="services_browse.htm" />
+	<ui:param name="pageHelpModalAdd" value="service_create.htm" />
+	<ui:param name="pageHelpModalEdit" value="service_primary_parameters_edit.htm" />
+	<ui:param name="showHelpModal" value="true" />
+	
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+		<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<h:panelGroup rendered="#{usession.inRole['VIEW_SERVICES']}">
+		
+			<!-- navigation bar -->
+	        <bpct:navBar pageName="#{lblPrd.services}"/>
+	        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+			<bpct:filterBarModalPanels id="filterPanels"
+									   rerenderList="filtersTable, servicesForm:servicesTable, servicesBtnForm:servicesDs, servicesBtnForm:pagesNum, save_filter_panel_div, #{MbServices.tabName}"
+									   selectedFilter="#{MbServices.selectedSectionFilter}"
+									   sectionFilter="#{MbServices.sectionFilter}"
+									   sectionFilterModeEdit="#{MbServices.sectionFilterModeEdit}"
+									   searchAutomatically="#{MbServices.searchAutomatically}"
+									   sectionId="1659"
+									   beanName="MbServices"/>
+	        
+	        <script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('servicesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			  
+	    	<h:form id="servicesSearchForm" onkeypress="handleEnter(event)">			
+	
+				<!-- search panel -->
+				<h:panelGroup styleClass="search_block" layout="block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+		                <h:panelGroup styleClass="search_block_left" layout="block">
+		                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+			                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol" id="filtersTable">
+		                			<h:outputLabel value="#{lblCommon.institution}:" title="#{lblCommon.institution}" />
+					      			<h:selectOneMenu id="instSelector" 
+					      						value="#{MbServices.filter.instId}">
+					      				<f:selectItem itemValue=""/>
+					      				<f:selectItems value="#{MbServices.institutions}"/>
+					      			</h:selectOneMenu>
+	
+			            			<h:outputLabel value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+			            			<h:inputText id="labelFilter" value="#{MbServices.filter.label}"/>
+			            			
+			            			<h:outputLabel value="#{lblPrd.service_type}: " title="#{lblPrd.service_type}" />
+			            			<h:selectOneMenu id="servType" value="#{MbServices.filter.serviceTypeId}">
+										<f:selectItem itemValue=""/>
+					      				<f:selectItems value="#{MbServices.serviceTypes}"/>
+									</h:selectOneMenu>
+
+                                    <h:outputLabel value="#{lblCommon.service_number}: " title="#{lblCommon.service_number}" />
+                                    <h:inputText id="serviceNumber" value="#{MbServices.filter.serviceNumber}"/>
+	
+			            			<h:inputText style="display:none" 
+			            					value="IE hack for 'Enter' hit when there's only one input field 
+			            							on form. Stick it to the bottom to not to break layout"/>
+	                			</h:panelGrid>
+		                		<h:panelGrid columns="1">
+		                			<h:panelGroup styleClass="stdButton">
+				                		<bre:taggedCommandButton
+					                			action="#{MbServices.search}"
+			        							reRender="servicesTable, servicesDs, pagesNum, servicesBtnForm:btnPanel, #{MbServices.elemsToUpdate}"
+			        							id="searchBtn"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					onclick="disableModalPanelBtns(this);"
+			                					oncomplete="enableModalPanelBtns(this);"
+			                					eventsQueue="queue"/>
+	
+		                			</h:panelGroup>
+		                			<h:panelGroup styleClass="link-clear" layout="block">
+			                			<h:graphicImage url="/_img/icon_clear.png"/>
+			                			<a4j:commandLink value="#{lblForm.clear_all}"
+							        			action="#{MbServices.clearFilter}"
+							        			reRender="servicesSearchForm, servicesForm, 
+							        					servicesBtnForm, details">
+							        	</a4j:commandLink>
+		            	    		</h:panelGroup>
+									<h:panelGroup>
+										<bpct:filterBar sectionId="1659"/>
+									</h:panelGroup>
+		                		</h:panelGrid>
+		               		</h:panelGrid>
+		               		<a4j:outputPanel ajaxRendered="true">
+		               			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		               			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	               			</a4j:outputPanel>
+		               	</h:panelGroup>
+	               	</h:panelGroup>
+	               	</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+			<h:form id="servicesForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+					<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+						<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+						<rich:extendedDataTable id="servicesTable" var="item"
+							tableState="#{MbServices.tableState}"
+							value="#{MbServices.services}"
+							selection="#{MbServices.itemSelection}"
+							rows="#{MbServices.rowsNum}" height="255px"
+							selectionMode="single" rowClasses=",odd"
+							headerClass="res-table-header" selectedClass="res-table-selected"
+							styleClass="res-table" enableContextMenu="true"
+							noDataLabel="#{MbServices.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="servicesBtnForm:btnPanel, #{MbServices.elemsToUpdate}">
+
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="servicesBtnForm:btnPanel, #{MbServices.elemsToUpdate}" />
+
+							<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}"
+								width="10%">
+								<f:facet name="header">
+									<a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+								</f:facet>
+								<h:outputText value="#{item.id}" title="#{item.id}" />
+							</rich:column>
+
+							<rich:column id="name" label="#{lblCommon.name}"
+								sortBy="#{'label'}" width="30%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.name}"
+										title="#{lblCommon.name}" />
+								</f:facet>
+								<h:outputText value="#{item.label}" title="#{item.label}" />
+							</rich:column>
+
+                            <rich:column id="service_number" label="#{lblPrd.service_number}"
+                                         sortBy="#{'serviceNumber'}" width="30%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblPrd.service_number}"
+                                                  title="#{lblPrd.service_number}" />
+                                </f:facet>
+                                <h:outputText value="#{item.serviceNumber}" title="#{item.serviceNumber}" />
+                            </rich:column>
+
+							<rich:column id="service_type" label="#{lblPrd.service_type}"
+								sortBy="#{'type'}" width="20%">
+								<f:facet name="header">
+									<h:outputText value="#{lblPrd.service_type}"
+										title="#{lblPrd.service_type}" />
+								</f:facet>
+								<h:outputText value="#{item.serviceTypeName}"
+									title="#{item.serviceTypeName}" />
+							</rich:column>
+
+							<rich:column id="institution" label="#{lblCommon.institution}"
+								sortBy="#{'instName'}" width="25%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.institution}"
+										title="#{lblCommon.institution}" />
+								</f:facet>
+								<bm:entityDisplay  entityId="#{item.instId}"
+									value="#{item.instName}"/>
+							</rich:column>
+
+							<rich:column id="status" label="#{lblCommon.status}"
+								sortBy="#{'status'}" width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.status}"
+										title="#{lblCommon.status}" />
+								</f:facet>
+								<h:outputText value="#{DictUtils.articles[item.status]}"
+									title="#{DictUtils.articles[item.description]}" />
+							</rich:column>
+						</rich:extendedDataTable>
+						</h:panelGroup>
+						<a4j:outputPanel ajaxRendered="true">
+							<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+							<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+							<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block" />
+						</a4j:outputPanel>
+
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<h:form id="servicesBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="5"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+								<h:selectOneMenu id="rows_num" value="#{MbServices.rowsNum}"
+									styleClass="row_per_page">
+									<a4j:support event="onchange"
+										reRender="servicesTable, servicesDs, pagesNum, servicesBtnForm:btnPanel, #{MbServices.tabName}" />
+									<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+								</h:selectOneMenu>
+
+								<rich:datascroller maxPages="10" fastControls="hide"
+									pagesVar="pages" styleClass="res-datascroller" id="servicesDs"
+									for="servicesTable"
+									reRender="servicesBtnForm:btnPanel, #{MbServices.tabName}">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbServices.services.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+								
+								<h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbServices.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbServices.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+
+						<h:panelGrid id="btnPanel" columns="4" styleClass="itempanel">
+							<bre:taggedCommandButton id="addBtn"
+								reRender="serviceModalPanel"
+								value="#{lblForm.add}"
+								oncomplete="#{rich:component('serviceModalPanel')}.show()"
+								action="#{MbServices.add}"
+								rendered="#{usession.inRole['ADD_SERVICE']}"
+								image="/images/create_doc.gif" />
+							<bre:taggedCommandButton id="editBtn"
+								reRender="serviceModalPanel"
+								value="#{lblForm.edit}"
+								oncomplete="#{rich:component('serviceModalPanel')}.show()"
+								action="#{MbServices.edit}"
+								disabled="#{MbServices.activeService == null}"
+								rendered="#{usession.inRole['MODIFY_SERVICE']}"
+								image="/images/edit.gif" />
+							<bre:taggedCommandButton id="deleteBtn"
+								value="#{lblForm.delete}"
+								disabled="#{MbServices.activeService == null}"
+								rendered="#{usession.inRole['REMOVE_SERVICE']}"
+								image="/images/delete.gif" 
+								oncomplete="#{rich:component('deleteServiceView:confirmPanel')}.show()"/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+            <h:form>
+                <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                                requestDelay="500" reRender="#{MbServices.rerenderList}" >
+                    <a4j:actionparam name="tabName" assignTo="#{MbServices.tabName}" />
+                </a4j:jsFunction>
+
+                <a4j:jsFunction name="storeObjectTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                                requestDelay="500" reRender="attrsTreeForm:attrsTreeTable, attrsTreeForm:btnPanel, attrValues">
+                    <a4j:actionparam name="tabName" assignTo="#{MbServices.tabName}" />
+                    <a4j:actionparam name="attrsTabElems" assignTo="#{MbServices.attrsTabElems}" />
+                </a4j:jsFunction>
+            </h:form>
+
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+		    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+		    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    			contentClass="tab-content" selectedTab="#{MbServices.tabName}">
+	
+					<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+						<h:panelGroup id="detailsTab">
+	      					<h:panelGroup layout="block">
+	      						<ui:include src="/pages/products/services/service_details.jspx"/>
+								<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+	      					</h:panelGroup>
+	       				</h:panelGroup>
+				    </rich:tab>
+	
+					<rich:tab ontabenter="storeTab('productsTab')" label="Products" name="productsTab" style="height:100%;">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.products}" title="#{lblPrd.products}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+						<h:panelGroup id="productsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       					<ui:include src="/pages/products/services/serviceProductsListBottom.jspx">
+	       						<ui:param name="showButtons" value="false"/>
+	       					</ui:include>
+	       				</h:panelGroup>
+				    </rich:tab>
+				    
+				    <rich:tab ontabenter="storeTab('contractsTab')"  label="Contracts" name="contractsTab" rendered="false" style="height:100%;">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.contracts}" title="#{lblPrd.contracts}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+						<h:panelGroup id="contractsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       				</h:panelGroup>
+				    </rich:tab>
+	
+				    <rich:tab ontabenter="storeTab('objectsTab')"  label="Objects" name="objectsTab" rendered="false and #{usession.inRole['VIEW_SERVICE_OBJECTS']}" style="height:100%;">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.objects}" title="#{lblCommon.objects}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+						<h:panelGroup id="objectsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       				
+	       				</h:panelGroup>
+				    </rich:tab>
+	
+				    <rich:tab ontabenter="storeObjectTab('attributesTab','attrsTreeForm:attrsTreeTable, attrsTreeForm:btnPanel, attrValues') "
+                              label="Atributes" name="attributesTab" rendered="#{usession.inRole['VIEW_ATTRIBUTE_SERVICE']}" style="height:100%;">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.service_terms}" title="#{lblPrd.service_terms}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+						<h:panelGroup id="attributesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       					<ui:include src="/pages/products/attributes/list_object_attributes.jspx">
+	       					 <ui:param name="show_buttom_change_visibility" value="true"/>
+	       					</ui:include>
+	       				</h:panelGroup>
+				    </rich:tab>
+			    </rich:tabPanel>
+	        </h:panelGroup>
+	
+			<ui:include src="/pages/products/services/edit_service.jspx">
+				<ui:param name="rerenderList" 
+						value="servicesTable, servicesDs, pagesNum, servicesBtnForm:btnPanel, detailsTab, productsTab, 
+								attributesTab, contractsTab, objectsTab"/>
+			</ui:include>
+		</h:panelGroup>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbServices}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="servicesTable, servicesDs, pagesNum, servicesBtnForm:btnPanel, detailsTab, productsTab, attributesTab, contractsTab, objectsTab"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteServiceView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>			
+		</ui:include>
+		
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_SERVICES']}" style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+		</h:panelGroup>
+		
+		<script>
+			function updateHeight(){
+                updateGridHeight();
+            }
+
+            layout =
+            {
+                SEARCH_FORM_ID:                 'servicesSearchForm',
+                SEARCH_RESULT_FORM_ID:          'servicesForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID:   'servicesBtnForm',
+                TAB_PANEL_ID:                   'workplacePanel',
+
+                TAB_DATA:
+            [
+                {
+                    TAB_FORM_ID:            'serviceDetailsForm',
+                    TAB_FORM_WRAPPER_ID:    'serviceDetailsWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                }
+                , {
+                    TAB_FORM_ID:            'serviceProductsForm',
+                    TAB_FORM_WRAPPER_ID:    'serviceProductsTreeWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+                , {
+                    TAB_FORM_ID:            'attrsTreeForm',
+                    TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+                , {
+                    TAB_FORM_ID:            'attrValuesForm',
+                    TAB_FORM_WRAPPER_ID:    'attrValuesTableWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+
+            ]};
+
+            updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>		
+	</ui:define>
+</ui:composition>
+</html>

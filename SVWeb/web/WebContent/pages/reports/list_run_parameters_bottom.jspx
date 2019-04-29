@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt" />
+
+	<h:form id="reportParametersForm">
+		<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+			<h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable"
+				id="detailsData" columnClasses="firstCol,secondCol">
+				<h:outputLabel value="#{lblCommon.lang_selector}: "
+					title="#{lblCommon.lang_selector}" />
+				<h:selectOneMenu
+					disabled="#{MbReportRunParametersSearch.activeParameter == null}"
+					value="#{MbReportRunParametersSearch.curLang}"
+					valueChangeListener="#{MbReportRunParametersSearch.changeLanguage}">
+					<a4j:support event="onchange" reRender="mainTable"
+						limitToList="true" />
+					<f:selectItems value="#{MbReportRunParametersSearch.languages}" />
+				</h:selectOneMenu>
+			</h:panelGrid>
+		</h:panelGroup>
+		<h:panelGroup id="mainTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable headerClass="res-table-header table-header-ext"
+				selectedClass="res-table-selected" styleClass="res-table"
+				rowClasses=",odd" id="mainTable" var="item"
+				value="#{MbReportRunParametersSearch.parameters}"
+				selection="#{MbReportRunParametersSearch.itemSelection}" rows="0"
+				height="178px" selectionMode="single" enableContextMenu="true"
+				tableState="#{MbReportRunParametersSearch.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" reRender="btnPanelParameters" />
+
+				<rich:column id="id" label="#{lblCommon.id}" title="Id" sortBy="#{'id'}" width="15%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" title="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="name" label="#{lblCommon.name}" title="Name" sortBy="#{'name'}" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+					</f:facet>
+					<h:outputText value="#{item.name}" title="#{item.name}" />
+				</rich:column>
+
+				<rich:column id="value" label="#{lblCommon.value}" title="Value" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.value}"
+							title="#{lblCommon.value}" />
+					</f:facet>
+					<h:outputText value="#{item.lovValue}"
+						rendered="#{item.lovId != null}" />
+					<h:panelGroup rendered="#{item.lovId == null}">
+						<h:outputText rendered="#{item.char}" value="#{item.valueV}" />
+
+						<h:outputText rendered="#{item.number}" value="#{item.valueN}">
+							<bm:convertNumberNew minFractionDigits="0" groupingUsed="false" />
+						</h:outputText>
+
+						<h:outputText rendered="#{item.date}" value="#{item.valueD}">
+							<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+								timeZone="#{CommonUtils.timeZone}" />
+						</h:outputText>
+					</h:panelGroup>
+				</rich:column>
+
+				<rich:column id="data_type" label="#{lblCommon.data_type}" title="Data type" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.data_type}"
+							title="#{lblCommon.data_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.dataType]}"
+						title="#{DictUtils.articles[item.dataType]}" />
+				</rich:column>
+
+				<f:facet name="footer">
+				</f:facet>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid id="btnPanelParameters" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup></h:panelGroup>
+					<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveParameterTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteParameterTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveParameterTableState" action="#{MbReportRunParametersSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteParameterTableState" action="#{MbReportRunParametersSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="rpt_parameter_modal_panel" autosized="true"
+		minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup id="rpt_parameter_modal_header">
+				<h:outputText value="#{lblRpt.new_parameter}"
+					rendered="#{MbReportRunParametersSearch.newMode}" />
+				<h:outputText value="#{lblRpt.edit_parameter}"
+					rendered="#{MbReportRunParametersSearch.editMode}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="rpt_parameter_modal_div">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							action="#{MbReportRunParametersSearch.save}"
+							oncomplete="if (#{usession.noErrorResponse}) #{rich:component('rpt_parameter_modal_panel')}.hide()"
+							reRender="mainTable, btnPanelParameters" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbReportRunParametersSearch.close}" immediate="true"
+							oncomplete="#{rich:component('rpt_parameter_modal_panel')}.hide()"
+							reRender="rpt_parameter_modal_div">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="rpt_parameter_view_modal_panel" autosized="true"
+		minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:outputText value="#{lblRpt.report_parameter}" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="rpt_parameter_view_modal_div">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbReportRunParametersSearch.close}" immediate="true"
+							limitToList="true"
+							oncomplete="#{rich:component('rpt_parameter_view_modal_panel')}.hide()"
+							reRender="rpt_parameter_view_modal_div">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+</ui:composition>
+</html>

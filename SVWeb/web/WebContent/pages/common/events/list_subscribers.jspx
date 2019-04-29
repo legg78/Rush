@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		>
+<ui:composition>
+	<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+	<f:loadBundle var="lblProcess" basename="ru.bpc.sv2.ui.bundles.Process"/>
+	
+	<script type="text/javascript">
+//<!--
+	function enableButtons() {
+		var disableAll = #{MbEventSubscribers.eventType == null};
+		var selected = false;
+		var rows = document.getElementById("subscribersSearchForm:subscribersTable").
+				getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+		for (var i = 0; i < rows.length; i++) {
+			if (rows[i].className.indexOf("res-table-selected") >= 0) {
+				selected = true;
+				break;
+			}
+		}
+		if (disableAll) {
+			document.getElementById("subscribersSearchForm:addBtn").disabled = true;
+			document.getElementById("subscribersSearchForm:editBtn").disabled = true;
+			document.getElementById("subscribersSearchForm:deleteBtn").disabled = true;
+		} else {
+			document.getElementById("subscribersSearchForm:addBtn").disabled = false;
+			if (selected) {
+				document.getElementById("subscribersSearchForm:editBtn").disabled = false;
+				document.getElementById("subscribersSearchForm:deleteBtn").disabled = false;
+			} else {
+				document.getElementById("subscribersSearchForm:editBtn").disabled = true;
+				document.getElementById("subscribersSearchForm:deleteBtn").disabled = true;
+			}
+		}
+	}
+	//-->
+	</script>
+
+	<h:form id="subscribersSearchForm">
+		<h:panelGroup layout="block" id="subscribersTableWrapper"
+			style="margin:0px;padding:0px">
+			<rich:extendedDataTable onselectionchange="enableButtons()"
+				id="subscribersTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbEventSubscribers.subscribers}"
+				selection="#{MbEventSubscribers.itemSelection}"
+				selectionMode="single" enableContextMenu="true"
+				tableState="#{MbEventSubscribers.tableState}"
+				noDataLabel="#{MbEventSubscribers.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}">
+				
+				<rich:column id="id" label="#{lblCommon.id}" title="Id" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="process" label="#{lblProcess.process}" title="Process name" sortBy="#{'processName'}"
+					width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.process}"
+							title="#{lblProcess.process}" />
+					</f:facet>
+					<h:outputText value="#{item.processName}"
+						title="#{item.processName}" />
+				</rich:column>
+
+				<rich:column id="procedure_name" label="#{lblCommon.procedure_name}" title="Procedure name" sortBy="#{'procedureName'}"
+					width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.procedure_name}"
+							title="#{lblCommon.procedure_name}" />
+					</f:facet>
+					<h:outputText value="#{item.procedureName}"
+						title="#{item.procedureName}" />
+				</rich:column>
+
+				<rich:column id="event_type" label="#{lblCommon.event_type}" title="Event type" sortBy="#{'eventType'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.event_type}"
+							title="#{lblCommon.event_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.eventType]}"
+						title="#{DictUtils.articles[item.eventType]}" />
+				</rich:column>
+
+				<rich:column id="priority" label="#{lblCommon.priority}" title="Priority" sortBy="#{'priority'}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.priority}"
+							title="#{lblCommon.priority}" />
+					</f:facet>
+					<h:outputText value="#{item.priority}" title="#{item.priority}" />
+				</rich:column>
+
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid id="subscrBtns" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						reRender="comEventSubscriberModalDiv,com_event_subscriber_modal_header"
+						value="#{lblForm.add}"
+						oncomplete="#{rich:component('com_event_subscriber_modal_panel')}.show()"
+						action="#{MbEventSubscribers.add}"
+						rendered="#{usession.inRole['ADD_EVENT_SUBSCRIBER']}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="comEventSubscriberModalDiv,com_event_subscriber_modal_header"
+						value="#{lblForm.edit}" action="#{MbEventSubscribers.edit}"
+						oncomplete="#{rich:component('com_event_subscriber_modal_panel')}.show()"
+						rendered="#{usession.inRole['MODIFY_EVENT_SUBSCRIBER']}"
+						image="/images/edit.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						oncomplete="#{rich:component('deleteSubscriberViewId:confirmPanel')}.show()"
+						rendered="#{usession.inRole['REMOVE_EVENT_SUBSCRIBER']}"
+						image="/images/delete.gif" />
+
+					<script type="text/javascript">
+		        		enableButtons();
+		        	</script>
+		        	</h:panelGroup>
+		        	
+		        	<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveSubscriberTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteSubscriberTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveSubscriberTableState" action="#{MbEventSubscribers.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteSubscriberTableState" action="#{MbEventSubscribers.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="com_event_subscriber_modal_panel" autosized="true" minWidth="300" minHeight="100">
+		<f:facet name="header">
+   	    	<h:panelGroup id="com_event_subscriber_modal_header">
+	       	    <h:outputText value="#{lblCommon.new_subscriber}" rendered="#{MbEventSubscribers.newMode}"/>
+	       	    <h:outputText value="#{lblCommon.edit_subscriber}" rendered="#{MbEventSubscribers.editMode}"/>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="comEventSubscriberModalDiv">
+
+			<ui:include src="/pages/common/events/subscriber_edit.jspx"></ui:include>
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbEventSubscribers.save}"
+                       			onclick="if (!checkSubscriberFields()) return false; disableModalPanelBtns(this);"
+                       			oncomplete="enableModalPanelBtns(this);if (#{usession.noErrorResponse}) {#{rich:component('com_event_subscriber_modal_panel')}.hide();}"
+                       			reRender="subscribersSearchForm"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbEventSubscribers.close}" immediate="true"
+                        		oncomplete="#{rich:component('com_event_subscriber_modal_panel')}.hide()"
+                        		reRender="comEventSubscriberModalDiv">
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                        </bre:taggedCommandButton>			                        		
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>			
+	</rich:modalPanel>
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbEventSubscribers}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="subscribersSearchForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteSubscriberViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+		
+</ui:composition>
+</html>

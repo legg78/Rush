@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bpc="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+   	<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+   	
+   	<!--<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/richfaces.js"/>-->
+   	
+	<script type="text/javascript">//<![CDATA[
+	function checkPairs() {
+		var rowsCount = document.getElementById("tiersWizForm:preTiersTable:tb").rows.length;
+		var firstInput;
+		var startIndex = 0;
+		if (document.getElementById("tiersWizForm:preTiersTable:tb").rows[0].id
+				.indexOf("fakeIeRow") >= 0) {
+			startIndex = 1;
+		}
+		for (var i = startIndex; i < rowsCount; i++) {
+			var countElem = document.getElementById("tiersWizForm:preTiersTable:" + 
+					(i - startIndex) + ":countThreshold");
+			var sumElem = document.getElementById("tiersWizForm:preTiersTable:" + 
+					(i - startIndex) + ":sumThreshold");
+			
+			if (countElem.value == "" && sumElem.value != "") {
+				countElem.style.backgroundColor = "#FF9999";
+				if (firstInput == null) firstInput = countElem; 
+			}
+			if (countElem.value != "" && sumElem.value == "") {
+				sumElem.style.backgroundColor = "#FF9999";
+				if (firstInput == null) firstInput = sumElem;
+			}
+		}
+		if (firstInput != null) {
+			firstInput.focus();
+			return false;
+		}
+		return true;
+	}
+
+	function clearError(e) {
+		if (window.event) { 
+			window.event.srcElement.style.backgroundColor = "white";
+		} else {
+			e.target.style.backgroundColor = "white";
+		}
+	}
+
+	function checkTiersTable() {
+		var correct = true;
+		jQuery(".required").each(function(i) {
+			if (jQuery(this).attr("value") == "") {
+				jQuery(this).addClass("errorField");
+				correct = false;
+			} else {
+				jQuery(this).removeClass("errorField");
+			}
+		});
+
+		return correct;
+	}
+
+	function clearTierError(elem) {
+		jQuery(elem).removeClass("errorField");
+	}
+	//]]>
+	</script>
+
+	<rich:modalPanel id="feeTierWizardPanel" autosized="true" minWidth="500" minHeight="150">
+		<f:facet name="header">
+			<h:outputText value="#{lblFcl.fee_tier_wizard}"/>
+		</f:facet>
+	    <f:facet name="controls">
+		</f:facet>
+		<h:form id="tiersWizForm">
+			<a4j:queue size="5" sizeExceededBehavior="dropNext"/>
+				
+	      	<rich:extendedDataTable rowKeyVar="index"
+			        id="preTiersTable"
+				    var="item"
+				    value="#{MbFeeTiers.wizPreFeeTiers}"
+				    rows="0"
+				    width="500px"
+				    height="350px"
+				    selectionMode="none"
+			        rowClasses=",odd"
+			        headerClass="res-table-header"
+	       			styleClass="res-table"
+	       			enableContextMenu="false"
+					noDataLabel="#{lblCommon['no_records_found']}"
+					rendered="#{MbFeeTiers.wizardStep == 1}"
+					>
+		        <rich:column title="Count threshold" width="215px">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.count_threshold}" title="#{lblFcl.count_threshold}" />
+	                </f:facet>
+					<h:inputText id="countThreshold" value="#{item.countThreshold}" 
+							maxlength="16" style="width:98%"
+							onkeypress="if (!numbersOnly(this, event)) return false;"
+							onchange="clearError(event);"
+							readonly="#{index == 0}"
+							>
+						<rich:ajaxValidator event="onblur"/>
+					</h:inputText>
+		        </rich:column>
+
+		        <rich:column title="Sum threshold" width="215px">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.sum_threshold}" title="#{lblFcl.sum_threshold}" />
+	                </f:facet>
+	                <a4j:region id="preSumThr">
+						<h:inputText id="sumThreshold" value="#{item.sumThreshold}"
+								validator="#{MbFeeTiers.validateBigDecimal}"
+								style="width:90%; background-color: #{usession.noErrorResponse ? '#FFFFFF' : '#FF9999'}"
+								readonly="#{index == 0}">
+							<bpc:numericMaskConverter numericType="bigdecimal" />
+							<f:attribute name="decDigits"
+									value="#{CurrencyUtils.currencyObjectsMap[MbFclObjects.fee.currency].exponent}" />
+							<a4j:support event="onblur" reRender="preSumThr, err_ajax"
+									onsubmit="clearError(event);" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:inputText>
+						<bpc:jsMask for="sumThreshold"
+							decDigits="#{CurrencyUtils.currencyObjectsMap[MbFclObjects.fee.currency].exponent}" />
+					</a4j:region>
+		        </rich:column>
+
+		        <rich:column width="70px">
+		        	<bre:taggedCommandButton
+		        			styleClass="pzKpfwBtn" style="width:28px"
+		        			action="#{MbFeeTiers.addPreTier}"
+		        			reRender="preTiersTable"
+		        			value="+">
+		        		<f:setPropertyActionListener value="#{index}" target="#{MbFeeTiers.preTierIndex}"/>
+		        	</bre:taggedCommandButton>
+		        	<bre:taggedCommandButton
+		        			styleClass="pzKpfwBtn" style="width:28px"
+		        			action="#{MbFeeTiers.removePreTier}"
+		        			reRender="preTiersTable"
+		        			value="-" rendered="#{index != 0}">
+		        		<f:setPropertyActionListener value="#{index}" target="#{MbFeeTiers.preTierIndex}"/>
+		        	</bre:taggedCommandButton>
+		        </rich:column>
+	      	</rich:extendedDataTable>
+		
+			<rich:extendedDataTable
+			        id="tiersTable"
+				    var="item"
+				    value="#{MbFeeTiers.wizFeeTiers}"
+				    rows="0"
+				    width="800px"
+				    height="350px"
+				    selectionMode="none"
+			        rowClasses=",odd"
+			        headerClass="res-table-header"
+	       			selectedClass="res-table-selected" 
+	       			styleClass="res-table"
+	       			enableContextMenu="false"
+					noDataLabel="#{lblCommon['no_records_found']}"
+					rendered="#{MbFeeTiers.wizardStep == 2}"
+					>
+		        <rich:column title="Count threshold" styleClass="tab_res_last" 
+		        		width="#{MbFeeTiers.fixedValue or MbFeeTiers.percentValue ? '17%' : '14%'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.count_threshold}" title="#{lblFcl.count_threshold}"/>
+	                </f:facet>
+	                <a4j:region>
+						<h:inputText id="countThreshold" value="#{item.countThreshold}" 
+								label="#{lblFcl.count_threshold}"
+								maxlength="16" styleClass="required"
+								style="width:90%; background-color: #{usession.noErrorResponse ? '#FFFFFF' : '#FF9999'}"
+								onkeypress="if (!numbersOnly(this, event)) return false;"
+								>
+							<a4j:support event="onchange" reRender="countThreshold"
+									limitToList="true" ajaxSingle="true" onsubmit="clearTierError(this)"/>
+						</h:inputText>*
+					</a4j:region>
+		        </rich:column>
+
+		        <rich:column title="Sum threshold" 
+		        		width="#{MbFeeTiers.fixedValue or MbFeeTiers.percentValue ? '17%' : '14%'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.sum_threshold}" title="#{lblFcl.sum_threshold}"/>
+	                </f:facet>
+	                <a4j:region id="sumThrRegion">
+						<h:inputText id="sumThreshold" value="#{item.sumThreshold}"
+								label="#{lblFcl.sum_threshold}"
+								validator="#{MbFeeTiers.validateBigDecimal}"
+								styleClass="required"
+								style="width:90%; background-color: #{usession.noErrorResponse ? '#FFFFFF' : '#FF9999'}"
+								>
+							<bpc:numericMaskConverter numericType="bigdecimal" />
+							<f:attribute name="decDigits"
+									value="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+							<a4j:support event="onblur" reRender="sumThrRegion, err_ajax"
+									limitToList="true" ajaxSingle="true" onsubmit="clearTierError(this)"/>
+						</h:inputText>*
+						<bpc:jsMask for="sumThreshold"
+							decDigits="#{CurrencyUtils.currencyObjectsMap[MbFclObjects.fee.currency].exponent}" />               
+					</a4j:region>
+		        </rich:column>
+	
+				<rich:column title="Fixed rate" styleClass="tab_res_first" 
+						width="#{MbFeeTiers.fixedValue ? '18%' : '15%'}"
+						rendered="#{!MbFeeTiers.percentValue}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.fixed_rate}" title="#{lblFcl.fixed_rate}"/>
+	                </f:facet>
+	                <a4j:region id="fixedRateRegion">
+						<h:inputText id="fixedRate" value="#{item.fixedRate}"
+								label="#{lblFcl.fixed_rate}"
+								validator="#{MbFeeTiers.validateBigDecimal}"
+								styleClass="required"
+								style="width:90%; background-color: #{usession.noErrorResponse ? '#FFFFFF' : '#FF9999'}">
+							<bpc:numericMaskConverter numericType="bigdecimal" />
+							<f:attribute name="decDigits"
+									value="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+							<a4j:support event="onblur" reRender="fixedRateRegion, err_ajax"
+									limitToList="true" ajaxSingle="true" onsubmit="clearTierError(this)"/>
+						</h:inputText>*
+						<bpc:jsMask for="fixedRate"
+								decDigits="#{CurrencyUtils.currencyObjectsMap[MbFclObjects.fee.currency].exponent}" />
+					</a4j:region>
+		        </rich:column>
+	
+		        <rich:column title="Percent rate" 
+						width="#{MbFeeTiers.percentValue ? '18%' : '15%'}"
+						rendered="#{!MbFeeTiers.fixedValue}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.percent_rate}" title="#{lblFcl.percent_rate}"/>
+	                </f:facet>
+	                <a4j:region>
+						<h:inputText id="percentRate" value="#{item.percentRate}"
+								label="#{lblFcl.percent_rate}"
+								maxlength="23" validator="#{MbFeeTiers.validatePercentBigDecimal}"
+								onkeypress="if (!numbersOnly(this, event, true)) return false;"
+								style="width:90%;background-color: #{usession.noErrorResponse ? '#FFFFFF' : '#FF9999'}"
+								styleClass="required">
+							<rich:ajaxValidator event="onchange" onsubmit="clearTierError(this)"/>
+						</h:inputText>*
+					</a4j:region>
+		        </rich:column>
+	
+		        <rich:column title="Min value" 
+		        		width="#{MbFeeTiers.fixedValue or MbFeeTiers.percentValue ? '16%' : '14%'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.min_value}" title="#{lblFcl.min_value}"/>
+	                </f:facet>
+	                <a4j:region id="minValueRegion">
+						<h:inputText id="minValue" value="#{item.minValue}"
+								validator="#{MbFeeTiers.validateBigDecimal}"
+								style="width:98%; background-color: #{usession.noErrorResponse ? '#FFFFFF' : '#FF9999'}">
+							<bpc:numericMaskConverter numericType="bigdecimal" />
+							<f:attribute name="decDigits"
+									value="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+							<a4j:support event="onchange" reRender="minValueRegion, err_ajax"
+									limitToList="true" ajaxSingle="true"/>
+						</h:inputText>
+						<bpc:jsMask for="minValue"
+								decDigits="#{CurrencyUtils.currencyObjectsMap[MbFclObjects.fee.currency].exponent}" />               
+					</a4j:region>
+		        </rich:column>
+	
+		        <rich:column title="Max value" 
+		        		width="#{MbFeeTiers.fixedValue or MbFeeTiers.percentValue ? '16%' : '14%'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.max_value}" title="#{lblFcl.max_value}"/>
+	                </f:facet>
+	                <a4j:region id="maxValueRegion">
+						<h:inputText id="maxValue" value="#{item.maxValue}"
+								validator="#{MbFeeTiers.validateBigDecimal}"
+								style="width:98%; background-color: #{usession.noErrorResponse ? '#FFFFFF' : '#FF9999'}">
+							<bpc:numericMaskConverter numericType="bigdecimal" />
+							<f:attribute name="decDigits"
+									value="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+							<a4j:support event="onchange" reRender="maxValueRegion, err_ajax"
+									limitToList="true" ajaxSingle="true"/>
+						</h:inputText>
+						<bpc:jsMask for="maxValue"
+								decDigits="#{CurrencyUtils.currencyObjectsMap[MbFclObjects.fee.currency].exponent}" />
+					</a4j:region>
+		        </rich:column>
+	
+		        <rich:column title="Length type" 
+		        		width="#{MbFeeTiers.fixedValue or MbFeeTiers.percentValue ? '16%' : '14%'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblFcl.length_type}" title="#{lblFcl.length_type}"/>
+	                </f:facet>
+	                <a4j:region>
+						<h:selectOneMenu id="lengthType" style="width:100%"
+								value="#{item.lengthType}">
+							<f:selectItems value="#{MbFeeTiers.lengthTypes}"/>
+							<a4j:support event="onchange" reRender="lengthType"
+									limitToList="true" ajaxSingle="true"/>
+						</h:selectOneMenu>
+					</a4j:region>
+		        </rich:column>
+	
+			</rich:extendedDataTable>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+				     <h:panelGrid columns="4" columnClasses="width99P,,">
+				     	<h:outputText/>
+				     	
+						<bre:taggedCommandButton
+								value="#{lblForm.next}"
+								action="#{MbFeeTiers.step2}"
+								reRender="tiersWizForm"
+								onclick="if (!checkPairs()) return false;"
+								rendered="#{MbFeeTiers.wizardStep == 1}"
+								/>
+						<bre:taggedCommandButton
+								value="#{lblForm.back}"
+								action="#{MbFeeTiers.step1}"
+								reRender="tiersWizForm"
+								rendered="#{MbFeeTiers.wizardStep == 2}"
+								immediate="true"
+								/>
+						<bre:taggedCommandButton
+								value="#{lblForm.save}" type="submit"
+								action="#{MbFeeTiers.saveWizard}"
+								rendered="#{MbFeeTiers.wizardStep == 2}"
+								onclick="if (!checkTiersTable()) {return false;} disableModalPanelBtns(this)"
+		                   		oncomplete="enableModalPanelBtns(this); 
+		                   				if (#{usession.noErrorResponse}) {
+			                   				document.getElementById('#{currencyElemId}').disabled = true;
+			                   				document.getElementById('#{feeRateCalcId}').disabled = true;
+		                   					#{rich:component('feeTierWizardPanel')}.hide()
+		                   				}"
+								reRender="#{rerenderList}"
+								/>
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}"
+								onclick="#{rich:component('feeTierWizardPanel')}.hide()"
+								immediate="true"
+								/>
+	               	</h:panelGrid>
+			    </h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

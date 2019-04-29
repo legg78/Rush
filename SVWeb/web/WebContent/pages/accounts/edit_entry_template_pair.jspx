@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<!--
+		function checkEntryTemplatesFields() {
+			var checked = true;
+			if (!document.getElementById("editEntryTplForm:dateNum").disabled) {
+				checked = checkField("editEntryTplForm:dateNum") && checked;
+			}
+			if (!document.getElementById("editEntryTplForm:editDebit").checked &&
+					!document.getElementById("editEntryTplForm:editCredit").checked) {
+				alert("Either debit or credit or both should be checked and filled in.");
+				return false;
+			}
+	
+			checked = checkField("editEntryTplForm:transType") && checked;
+			checked = checkField("editEntryTplForm:transNum") && checked;			
+	
+			if (document.getElementById("editEntryTplForm:editDebit").checked) {
+				checked = checkField("editEntryTplForm:debitAmountName") && checked;
+				checked = checkField("editEntryTplForm:debitAccount") && checked;
+				checked = checkField("editEntryTplForm:debitPostMethod") && checked;
+				checked = checkField("editEntryTplForm:debitBalance") && checked;
+				if (document.getElementById("editEntryTplForm:debitDestEntityType").value != "" &&
+						document.getElementById("editEntryTplForm:debitDestAccountType").value == "") {
+					document.getElementById("editEntryTplForm:debitDestAccountTypeError").style.display = "inline";
+					checked = false;
+				}
+			}
+	
+			if (document.getElementById("editEntryTplForm:editCredit").checked) {
+				checked = checkField("editEntryTplForm:creditAmountName") && checked;
+				checked = checkField("editEntryTplForm:creditAccount") && checked;
+				checked = checkField("editEntryTplForm:creditPostMethod") && checked;
+				checked = checkField("editEntryTplForm:creditBalance") && checked;
+				if (document.getElementById("editEntryTplForm:creditDestEntityType").value != "" &&
+						document.getElementById("editEntryTplForm:creditDestAccountType").value == "") {
+					document.getElementById("editEntryTplForm:creditDestAccountTypeError").style.display = "inline";
+					checked = false;
+				}
+			}
+			return checked;
+		}
+
+		function hideDestAccountTypeError(prefix) {
+			document.getElementById("editEntryTplForm:" + prefix + "DestAccountTypeError").style.display = "none";
+		}
+		
+		function changePostingMethod(prefix) {
+			otherPrefix = (prefix == 'debit') ? 'credit' : 'debit';
+			otherCheckbox = (prefix == 'debit') ? 'editCredit' : 'editDebit';
+			document.getElementById("editEntryTplForm:dateNumError").style.display = "none";
+			if (document.getElementById("editEntryTplForm:" + prefix + "PostMethod").value == 'POSTPEND') {
+				// 1. if credit or debit pending is selected, then pending must be selected in another.
+				if (document.getElementById("editEntryTplForm:" + otherCheckbox).checked) {
+					document.getElementById("editEntryTplForm:" + otherPrefix + "PostMethod").value = 'POSTPEND';
+				}
+				//
+				document.getElementById("editEntryTplForm:dateNum").disabled = false;
+				document.getElementById("editEntryTplForm:dateNum").value = '';				
+				document.getElementById("editEntryTplForm:dateNameId").innerHTML = "* " + "#{lblAcc.date_name}:";
+			} else {
+				// 2. if value was changed from pending to non pending, then clear the other value
+				if (document.getElementById("editEntryTplForm:" + otherPrefix + "PostMethod").value == 'POSTPEND'
+						&& document.getElementById("editEntryTplForm:" + otherCheckbox).checked) {
+					document.getElementById("editEntryTplForm:" + otherPrefix + "PostMethod").value = '';
+				}
+				//
+				document.getElementById("editEntryTplForm:dateNum").value = '';
+				document.getElementById("editEntryTplForm:dateNum").disabled = true;
+				document.getElementById("editEntryTplForm:dateNameId").innerHTML = "#{lblAcc.date_name}:";
+			}
+		}
+		
+		function initDateNum() {
+			var postMethod = null;
+			if (!document.getElementById("editEntryTplForm:creditPostMethod").disabled) {
+				postMethod = document.getElementById("editEntryTplForm:creditPostMethod");
+			} else {
+				postMethod = document.getElementById("editEntryTplForm:debitPostMethod");
+			}
+			if (postMethod.value == 'POSTPEND') {
+				document.getElementById("editEntryTplForm:dateNum").disabled = false;
+				if (document.getElementById("editEntryTplForm:dateNum").value == null){
+					document.getElementById("editEntryTplForm:dateNum").value = '';
+				}
+				document.getElementById("editEntryTplForm:dateNameId").innerHTML = "* " + "#{lblAcc.date_name}:";
+			} else {
+				document.getElementById("editEntryTplForm:dateNum").value = null;
+				document.getElementById("editEntryTplForm:dateNum").disabled = true;
+				document.getElementById("editEntryTplForm:dateNameId").innerHTML = "#{lblAcc.date_name}:";
+			}
+		}
+		
+	//-->
+	</script>
+	<rich:modalPanel id="entryTmplModalPanel" autosized="true" minWidth="300" minHeight="100"
+			onshow="document.getElementById('editEntryTplForm:transType').focus()">
+ 	    <f:facet name="header">
+ 		    <h:panelGroup id="entryTmplModalHeader">
+           	    <h:outputText value="#{lblAcc.new_transaction_template}" rendered="#{MbEntryTemplates.newMode}"/>
+           	    <h:outputText value="#{lblAcc.edit_transaction_template}" rendered="#{MbEntryTemplates.editMode}"/>
+       	    </h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:panelGroup id="entryTmplModalDiv">
+      		<h:form id="editEntryTplForm">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+			        	<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+							<h:outputLabel value="#{lblAcc.bunch_type}: " title="#{lblAcc.bunch_type}"/>
+							<h:inputText value="#{MbEntryTemplates.bunchTypeName}" readonly="true"
+									styleClass="grayInput" style="width:99%"/>
+
+							<h:outputLabel value="* #{lblAcc.trans_type}: " title="#{lblAcc.trans_type}"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width:100%">
+								<h:selectOneMenu id="transType"
+										value="#{MbEntryTemplates.newEntryTemplatePair.transactionType}"
+										style="width:100%"
+										onblur="hideErrorField(this)">
+									<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbEntryTemplates.transactionTypes}"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="transTypeError" style="display:none;">
+									<f:param name="fieldName" value="#{lblAcc.trans_type}"/>
+								</h:outputFormat>
+						    </h:panelGrid>
+
+							<h:outputLabel value="* #{lblAcc.trans_num}: " title="#{lblAcc.trans_num}"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width:100%">
+								<h:inputText id="transNum"
+										value="#{MbEntryTemplates.newEntryTemplatePair.transactionNum}"
+										maxlength="4" style="width:99%"
+										onkeypress="if (!numbersOnly(this, event)) return false; "
+										onblur="hideErrorField(this);">
+								</h:inputText>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="transNumError" style="display:none;">
+									<f:param name="fieldName" value="#{lblAcc.trans_num}"/>
+								</h:outputFormat>
+							</h:panelGrid>
+
+							<h:outputLabel value="* #{lblAcc.date_name}: " title="#{lblAcc.date_name}" id="dateNameId"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width:100%">
+								<h:selectOneMenu id="dateNum"
+										value="#{MbEntryTemplates.newEntryTemplatePair.dateName}"
+										style="width:100%"
+										onblur="hideErrorField(this)">
+									<f:selectItem itemValue = ""/>
+									<f:selectItems value="#{MbEntryTemplates.datePurposes}"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="dateNumError" style="display:none;">
+									<f:param name="fieldName" value="#{lblAcc.date_name}"/>
+								</h:outputFormat>
+							</h:panelGrid>
+
+							<h:outputLabel value="#{lblAcc.negative_allowed}" title="#{lblAcc.negative_allowed}"/>
+							<h:selectBooleanCheckbox value="#{MbEntryTemplates.newEntryTemplatePair.negativeAllowed}"/>
+						</h:panelGrid>
+
+						<h:panelGrid columns="2" id="pairTable" style="width:100%;" columnClasses="top,top">
+							<f:facet name="header">
+								<h:panelGrid columns="2" style="width:100%">
+									<h:panelGroup>
+										<h:selectBooleanCheckbox
+												value="#{MbEntryTemplates.newEntryTemplatePair.editDebit}"
+												id="editDebit"
+												disabled="#{MbEntryTemplates.newEntryTemplatePair.editDebit and not MbEntryTemplates.newEntryTemplatePair.editCredit}"
+												valueChangeListener="#{MbEntryTemplates.changeDebit}">
+											<a4j:support event="onchange" reRender="debitsTable, editCredit"/>
+										</h:selectBooleanCheckbox>
+										<h:outputText value="#{lblAcc.debit}" style="padding: 4px"/>
+									</h:panelGroup>
+									<h:panelGroup>
+										<h:selectBooleanCheckbox
+												value="#{MbEntryTemplates.newEntryTemplatePair.editCredit}"
+												id="editCredit"
+												disabled="#{MbEntryTemplates.newEntryTemplatePair.editCredit and not MbEntryTemplates.newEntryTemplatePair.editDebit}"
+												valueChangeListener="#{MbEntryTemplates.changeCredit}">
+											<a4j:support event="onchange" reRender="creditsTable, editDebit"/>
+										</h:selectBooleanCheckbox>
+										<h:outputText value="#{lblAcc.credit}" style="padding: 4px"/>
+									</h:panelGroup>
+								</h:panelGrid>
+							</f:facet>
+
+							<h:panelGrid columns="2" id="debitsTable" styleClass="cardholderdata" columnClasses="firstColModal, width250" >
+								<h:outputLabel value="* #{lblAcc.amount_name}: " title="#{lblAcc.amount_name}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width:100%">
+									<h:selectOneMenu id="debitAmountName"
+											value="#{MbEntryTemplates.newEntryTemplatePair.debitAmountName}"
+											style="width:100%"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editDebit}"
+											onblur="hideErrorField(this)">
+										<f:selectItem itemValue = ""/>
+										<f:selectItems value="#{MbEntryTemplates.amountTypes}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="debitAmountNameError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.amount_name}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+
+								<h:outputLabel value="* #{lblAcc.account_name}: " title="#{lblAcc.account_name}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="debitAccount"
+											value="#{MbEntryTemplates.newEntryTemplatePair.debitAccountName}"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editDebit}"
+											onblur="hideErrorField(this)">
+										<f:selectItem itemValue = ""/>
+										<f:selectItems value="#{MbEntryTemplates.accountPurposes}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="debitAccountError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.account_name}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+
+
+								<h:outputLabel value="* #{lblAcc.posting_method}: " title="#{lblAcc.posting_method}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="debitPostMethod"
+											value="#{MbEntryTemplates.newEntryTemplatePair.debitPostingMethod}"
+											onblur="hideErrorField(this)"
+											onchange="changePostingMethod('debit');"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editDebit}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbEntryTemplates.postingMethods}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="debitPostMethodError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.posting_method}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+
+								<h:outputLabel value="* #{lblAcc.balance_type}: " title="#{lblAcc.balance_type}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="debitBalance"
+											value="#{MbEntryTemplates.newEntryTemplatePair.debitBalanceType}"
+											onblur="hideErrorField(this)"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editDebit}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbEntryTemplates.balanceTypes}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="debitBalanceError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.balance_type}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+
+								<h:outputLabel value="#{lblAcc.dest_ent_type}: " title="#{lblAcc.dest_ent_type}"/>
+								<h:selectOneMenu id="debitDestEntityType"
+										value="#{MbEntryTemplates.newEntryTemplatePair.debitDestEntityType}"
+										disabled="#{!MbEntryTemplates.newEntryTemplatePair.editDebit or MbEntryTemplates.editMode and MbEntryTemplates.newEntryTemplatePair.debitDestEntityType!=null}">
+									<a4j:support event="onchange" reRender="debitDestAccountType, dbtAccountTypeMod"
+											limitToList="true" ajaxSingle="true"
+											oncomplete="hideDestAccountTypeError('debit')"
+											/>
+									<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbEntryTemplates.destEntityTypes}"/>
+								</h:selectOneMenu>
+
+								<h:outputLabel value="#{lblAcc.dest_acc_type}: " title="#{lblAcc.dest_acc_type}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="debitDestAccountType"
+											value="#{MbEntryTemplates.newEntryTemplatePair.debitDestAccountType}"
+											onchange="hideErrorField(this)"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editDebit}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbEntryTemplates.debitDestAccountTypes}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="debitDestAccountTypeError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.dest_acc_type}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+								<h:outputText value="" title="" />
+								
+								<h:panelGroup id="dbtAccountTypeMod" layout="block">
+									<h:panelGrid columns="1" cellspacing="0" cellpadding="0" width="100%" rendered="#{MbEntryTemplates.newEntryTemplatePair.debitDestEntityType != null}" >
+										<ui:include src="/pages/accounts/account_type_mod.jspx">
+											<ui:param name="accTypeModifierBean" value="#{MbDbtAccTypeModifier}"/>
+											<ui:param name="subject" value="debit"/>
+											<ui:param name="del" value="debitDelete"/>
+										</ui:include>
+									</h:panelGrid>
+								</h:panelGroup>
+								
+							</h:panelGrid>
+
+
+							<h:panelGrid columns="2" id="creditsTable" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+								<h:outputLabel value="* #{lblAcc.amount_name}: " title="#{lblAcc.amount_name}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width:100%">
+									<h:selectOneMenu id="creditAmountName"
+											value="#{MbEntryTemplates.newEntryTemplatePair.creditAmountName}"
+											style="width:100%"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editCredit}"
+											onblur="hideErrorField(this)">
+										<f:selectItem itemValue = ""/>
+										<f:selectItems value="#{MbEntryTemplates.amountTypes}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="creditAmountNameError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.amount_name}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+
+								<h:outputLabel value="* #{lblAcc.account_name}: " title="#{lblAcc.account_name}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="creditAccount"
+											value="#{MbEntryTemplates.newEntryTemplatePair.creditAccountName}"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editCredit}"
+											onblur="hideErrorField(this)">
+										<f:selectItem itemValue = ""/>
+										<f:selectItems value="#{MbEntryTemplates.accountPurposes}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="creditAccountError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.account_name}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+
+
+								<h:outputLabel value="* #{lblAcc.posting_method}: " title="#{lblAcc.posting_method}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="creditPostMethod"
+											value="#{MbEntryTemplates.newEntryTemplatePair.creditPostingMethod}"
+											onblur="hideErrorField(this)"
+											onchange="changePostingMethod('credit');"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editCredit}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbEntryTemplates.postingMethods}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="creditPostMethodError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.posting_method}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+
+								<h:outputLabel value="* #{lblAcc.balance_type}: " title="#{lblAcc.balance_type}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="creditBalance"
+											value="#{MbEntryTemplates.newEntryTemplatePair.creditBalanceType}"
+											onblur="hideErrorField(this)"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editCredit}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbEntryTemplates.balanceTypes}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="creditBalanceError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.balance_type}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+
+								<h:outputLabel value="#{lblAcc.dest_ent_type}: " title="#{lblAcc.dest_ent_type}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="creditDestEntityType"
+											value="#{MbEntryTemplates.newEntryTemplatePair.creditDestEntityType}"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editCredit or MbEntryTemplates.editMode and MbEntryTemplates.newEntryTemplatePair.creditDestEntityType!=null}">
+										<a4j:support event="onchange" reRender="creditDestAccountType,crdAccountTypeMod"
+												limitToList="true" ajaxSingle="true"
+												oncomplete="hideDestAccountTypeError('credit')"
+												/>
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbEntryTemplates.destEntityTypes}"/>
+									</h:selectOneMenu>
+									<rich:message for="creditDestEntityType" id="creditDestEntityTypeError" styleClass="errorMarker"/>
+								</h:panelGrid>
+
+								<h:outputLabel value="#{lblAcc.dest_acc_type}: " title="#{lblAcc.dest_acc_type}"/>
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+									<h:selectOneMenu id="creditDestAccountType"
+											value="#{MbEntryTemplates.newEntryTemplatePair.creditDestAccountType}"
+											onchange="hideErrorField(this)"
+											disabled="#{!MbEntryTemplates.newEntryTemplatePair.editCredit}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbEntryTemplates.creditDestAccountTypes}"/>
+									</h:selectOneMenu>
+									<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="creditDestAccountTypeError" style="display:none;">
+										<f:param name="fieldName" value="#{lblAcc.dest_acc_type}"/>
+									</h:outputFormat>
+								</h:panelGrid>
+								<h:outputText value="" title="" />
+
+								<h:panelGrid columns="1" cellspacing="0" cellpadding="0" width="100%" id="crdAccountTypeMod" >
+									<h:panelGroup rendered="#{MbEntryTemplates.newEntryTemplatePair.creditDestEntityType!=null}">	
+										<ui:include src="/pages/accounts/account_type_mod.jspx">
+											<ui:param name="accTypeModifierBean" value="#{MbAccTypeModifier}"/>
+											<ui:param name="subject" value="credit"/>
+											<ui:param name="del" value="creditDelete"/>
+										</ui:include>
+									</h:panelGroup>
+								</h:panelGrid>
+
+							</h:panelGrid>
+
+						</h:panelGrid>
+				</h:panelGroup>
+
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+							<h:outputText/>
+
+							<bre:taggedCommandButton id="saveBtn"
+													 value="#{lblForm.save}"
+													 action="#{MbEntryTemplates.save}"
+													 oncomplete="enableModalPanelBtns(this);
+													             if (#{usession.noErrorResponse})
+													                 #{rich:component('entryTmplModalPanel')}.hide()"
+													 reRender="#{rerenderList}"
+													 onclick="if (!checkEntryTemplatesFields()) return false;
+													          disableModalPanelBtns(this)"
+													 type="submit"/>
+
+							<bre:taggedCommandButton id="cancelBtn"
+													 value="#{lblForm.cancel}"
+													 action="#{MbEntryTemplates.close}"
+													 oncomplete="#{rich:component('entryTmplModalPanel')}.hide()"
+													 reRender="entryTmplModalDiv"
+													 immediate="true">
+								<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+							</bre:taggedCommandButton>
+			    		</h:panelGrid>
+			    	</h:panelGroup>
+			    </h:panelGroup>
+			</h:form>
+			<ui:include src="/pages/accounts/editAccTypeMod.jspx">
+				<ui:param name="accTypeModifierEditBean" value="#{MbAccTypeModifier}"/>
+				<ui:param name="subject" value="credit"/>
+				<ui:param name="rerenderList" value="editEntryTplForm:credit:accTypeModTable, editEntryTplForm:credit:accTypeModBtn" />
+			</ui:include>
+			<ui:include src="/pages/accounts/editAccTypeMod.jspx">
+				<ui:param name="accTypeModifierEditBean" value="#{MbDbtAccTypeModifier}"/>
+				<ui:param name="subject" value="debit"/>
+				<ui:param name="rerenderList" value="editEntryTplForm:debit:accTypeModTable, editEntryTplForm:debit:accTypeModBtn" />
+			</ui:include>
+			<ui:include src="/pages/utils/confirmPanel.jspx">
+				<ui:param name="backingBean" value="#{MbDbtAccTypeModifier}"/>
+				<ui:param name="yesAction" value="delete"/>
+				<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+				<ui:param name="rerenderList" value="editEntryTplForm:debit:accTypeModTable, editEntryTplForm:debit:accTypeModBtn"/>
+				<ui:param name="confirmQuestion" value=" "/> 
+				<ui:param name="yes" value="#{lblForm.ok}"/>
+				<ui:param name="no" value="#{lblForm.cancel}"/>
+				<ui:param name="subviewId" value="debitDelete"/>
+			</ui:include>
+			<ui:include src="/pages/utils/confirmPanel.jspx">
+				<ui:param name="backingBean" value="#{MbAccTypeModifier}"/>
+				<ui:param name="yesAction" value="delete"/>
+				<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+				<ui:param name="rerenderList" value="editEntryTplForm:credit:accTypeModTable, editEntryTplForm:credit:accTypeModBtn"/>
+				<ui:param name="confirmQuestion" value=" "/> 
+				<ui:param name="yes" value="#{lblForm.ok}"/>
+				<ui:param name="no" value="#{lblForm.cancel}"/>
+				<ui:param name="subviewId" value="creditDelete"/>
+			</ui:include>
+		</h:panelGroup>
+	</rich:modalPanel>
+</ui:composition>
+</html>

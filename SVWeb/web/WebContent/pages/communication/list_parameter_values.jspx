@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:c="http://java.sun.com/jsp/jstl/core">
+<ui:composition>
+	<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+
+	<style type="text/css">
+	.noBorder {
+		border-width: 0 !important;
+	}
+	.thinLine {
+		line-height: 10px !important;
+	}
+	</style>
+	<f:loadBundle var="lblCmn" basename="ru.bpc.sv2.ui.bundles.Cmn"/>
+
+	<h:form id="cmnParamValuesForm">
+		<h:panelGroup layout="block" style="margin:0px;padding:0px;"
+			id="paramValuesTableWrapper">
+			<rich:extendedDataTable id="paramValuesTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbCmnParamValues.cmnParamValues}"
+				selection="#{MbCmnParamValues.itemSelection}"
+				selectionMode="single" enableContextMenu="true"
+				tableState="#{MbCmnParamValues.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" reRender="btnPanel"
+					eventsQueue="cmnParamValuesQueue" />
+
+				<rich:column id="name" label="Name" title="Name" width="25%" sortBy="#{'name'}">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.name}" title="#{item.name}"
+						rendered="#{item.name != null}" />
+					<h:outputText value="#{item.systemName}" title="#{item.systemName}"
+						rendered="#{item.name == null}" />
+				</rich:column>
+
+				<rich:column id="value" label="Value" title="Value" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.value}"
+							title="#{lblCommon.value}" />
+					</f:facet>
+
+					<h:outputText value="#{item.lovValue}"
+						rendered="#{item.lovId != null}" />
+					<h:panelGroup rendered="#{item.lovId == null}">
+						<h:outputText value="#{item.paramValueV}"
+							rendered="#{item.paramValueV != null}" />
+						<h:outputText value="#{item.paramValueN}"
+							rendered="#{item.paramValueN != null}">
+							<bm:convertNumberNew minFractionDigits="0" groupingUsed="false" />
+						</h:outputText>
+						<h:outputText value="#{item.paramValueD}"
+							rendered="#{item.paramValueD != null}">
+							<f:convertDateTime pattern="#{usession.datePattern}"
+								timeZone="#{CommonUtils.timeZone}" />
+						</h:outputText>
+						<h:outputText value="[#{lblForm.xml_content}]"
+							rendered="#{item.clob and not empty item.paramValueXml}" />
+						<h:outputText value=""
+							rendered="#{item.clob and empty item.paramValueXml}" />
+					</h:panelGroup>
+				</rich:column>
+
+				<rich:column id="default_value" label="Default value" title="Default value" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.default_value}"
+							title="#{lblCommon.default_value}" />
+					</f:facet>
+
+					<h:outputText value="#{item.defaultLovValue}"
+						rendered="#{item.lovId != null}" />
+					<h:panelGroup rendered="#{item.lovId == null}">
+						<h:outputText value="#{item.defaultValueV}"
+							rendered="#{item.defaultValueV != null}" />
+						<h:outputText value="#{item.defaultValueN}"
+							rendered="#{item.defaultValueN != null}">
+							<bm:convertNumberNew minFractionDigits="0" groupingUsed="false" />
+						</h:outputText>
+						<h:outputText value="#{item.defaultValueD}"
+							rendered="#{item.defaultValueD != null}">
+							<f:convertDateTime pattern="#{usession.datePattern}"
+								timeZone="#{CommonUtils.timeZone}" />
+						</h:outputText>
+						<h:outputText value="[#{lblForm.xml_content}]"
+							rendered="#{item.clob and not empty item.defaultXmlValue and empty item.paramValueXml}" />								
+					</h:panelGroup>
+				</rich:column>
+
+		        <rich:column id="mod" label="Mod" title="Mod" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcq.mod_name}" title="#{lblAcq.mod_name}"/>
+					</f:facet>
+	                <h:outputText value="#{item.modName}" title="#{item.modName}"/>
+		        </rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" style="padding-right:9px">
+               	<h:panelGrid styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state" id="btnPanel">
+	              	<h:panelGroup>
+						<bre:taggedCommandButton id="setBtn" value="#{lblForm.set}"
+							reRender="paramValueModalDiv, viewXmlForm"
+							oncomplete="#{rich:component('paramValueModalPanel')}.show()"
+							action="#{MbCmnParamValues.edit}"
+							disabled="#{MbCmnParamValues.activeCmnParamValue == null}"
+							image="/images/edit.gif" />
+						<bre:taggedCommandButton id="delBtn" value="#{lblForm.delete}"
+							disabled="#{MbCmnParamValues.activeCmnParamValue == null || MbCmnParamValues.activeCmnParamValue.id == null}"
+							oncomplete="#{rich:component('deleteParamValueViewId:confirmPanel')}.show()"
+							image="/images/delete.gif" />
+						<bre:taggedCommandButton value="#{lblForm.view_xml}"
+							action="#{MbCmnParamValues.viewXml}" immediate="true"
+							oncomplete="#{rich:component('paramValue:code_mirror_modal_panel')}.show(); setCodeValue_paramValue();"
+							reRender="viewXmlForm, paramValue:code_mirror_modal_panel"
+							rendered="#{MbCmnParamValues.activeCmnParamValue.clob}"
+							title="Open editor">
+						</bre:taggedCommandButton>
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveTableState" action="#{MbCmnParamValues.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteTableState" action="#{MbCmnParamValues.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="paramValueModalPanel" autosized="true" minWidth="400" minHeight="50">
+      	<f:facet name="header">
+	        <h:outputText value="#{lblCmn.edit_param_value}"/>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:panelGroup id="paramValueModalDiv">
+      		<h:form>
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+			        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstCol firstColModal, width250">
+						<h:outputLabel value="#{MbCmnParamValues.activeCmnParamValue.name}: " title="#{MbCmnParamValues.activeCmnParamValue.name}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0" 
+								rendered="#{MbCmnParamValues.activeCmnParamValue.lovId == null}">
+							<h:inputText  
+									id="paramValueV" required="#{requireValues}" 
+									value="#{MbCmnParamValues.newCmnParamValue.paramValueV}"
+									label="#{MbCmnParamValues.activeCmnParamValue.name}"
+									rendered="#{MbCmnParamValues.charValue}"
+									onkeypress="if (!limitText(event,this,200)) return false;">
+								<a4j:support event="onblur" reRender="paramValueVError"
+										ajaxSingle="true" limitToList="true"/>
+								<f:validateLength maximum="200" />
+							</h:inputText>
+							<h:inputText  
+									id="paramValueN" required="#{requireValues}" 
+									value="#{MbCmnParamValues.newCmnParamValue.paramValueN}"
+									label="#{MbCmnParamValues.activeCmnParamValue.name}" maxlength="23"
+									rendered="#{MbCmnParamValues.numberValue}"
+									onkeypress="if (!numbersOnly(this, event, true)) return false;"
+									>
+								<bm:convertNumberNew minFractionDigits="0" groupingUsed="false"/>
+								<a4j:support event="onblur" reRender="paramValueNError"
+										ajaxSingle="true" limitToList="true"/>
+							</h:inputText>
+               				<rich:calendar zindex="1000" buttonIcon="/images/calendar.gif" datePattern="#{usession.datePattern}"
+               						id="paramValueD" required="#{requireValues}" 
+									value="#{MbCmnParamValues.newCmnParamValue.paramValueD}"
+									label="#{MbCmnParamValues.activeCmnParamValue.name}"
+									rendered="#{MbCmnParamValues.dateValue}" timeZone="#{CommonUtils.timeZone}"
+									/>
+							<rich:fileUpload id="upload"
+											 fileUploadListener="#{MbCmnParamValues.uploadListener}"
+											 maxFilesQuantity="1"
+											 acceptedTypes="#{MbCmnParamValues.getAcceptedFileTypes('xml')}"
+											 ontyperejected="alert('#{lblRpt.type_not_allowed}')"
+											 listHeight="50px;"
+											 listWidth="200px"
+											 clearAllControlLabel="Clear"
+											 clearControlLabel="#{lblForm.clear}"
+											 rendered="#{MbCmnParamValues.clobValue}"
+											 immediateUpload="true">
+								<a4j:support event="onclear" reRender="upload, viewXmlBtn"
+										ajaxSingle="true" action="#{MbCmnParamValues.clearUpload}"
+										limitToList="true"/>
+								<a4j:support event="onfileuploadcomplete"
+										reRender="viewXmlBtn, viewXmlForm" ajaxSingle="true"
+										limitToList="true" action="#{MbCmnParamValues.setUpload}"/>
+							</rich:fileUpload>
+							<bre:taggedCommandButton value="#{lblForm.view_xml}"
+								id="viewXmlBtn"
+								oncomplete="#{rich:component('paramValue:code_mirror_modal_panel')}.show(); setCodeValue_paramValue();"
+								reRender="paramValue:code_mirror_modal_panel"
+								disabled="#{!MbCmnParamValues.xmlUploaded}"
+								rendered="#{MbCmnParamValues.clobValue}"
+								title="Open editor">
+							</bre:taggedCommandButton>
+
+							<rich:message for="paramValueV" 
+									styleClass="errorMarker"
+									id="paramValueVError"
+									rendered="#{MbCmnParamValues.charValue}"				
+							/>
+							<rich:message for="paramValueN" 
+									styleClass="errorMarker"
+									id="paramValueNError"
+									rendered="#{MbCmnParamValues.numberValue}"				
+							/>
+							<rich:message for="paramValueD" 
+									styleClass="errorMarker"
+									id="paramValueDError"
+									rendered="#{MbCmnParamValues.dateValue}"				
+							/>
+						</h:panelGrid>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0" 
+								rendered="#{MbCmnParamValues.activeCmnParamValue.lovId != null}">
+							<h:selectOneMenu label="#{lblAcq.value}" 
+									id="paramLovValueN" required="#{requireValues}" 
+									value="#{MbCmnParamValues.newCmnParamValue.paramValueN}"
+									rendered="#{MbCmnParamValues.activeCmnParamValue.lovId != null and MbCmnParamValues.numberValue}"
+									>
+								<f:selectItem itemValue=""/>
+						    	<f:selectItems value="#{MbCmnParamValues.valuesFromLov}"/>
+							</h:selectOneMenu>
+							
+							<h:selectOneMenu label="#{lblAcq.value}" 
+									id="paramLovValueV" required="#{requireValues}"
+									value="#{MbCmnParamValues.newCmnParamValue.paramValueV}"
+									rendered="#{MbCmnParamValues.activeCmnParamValue.lovId != null and MbCmnParamValues.charValue}"
+									>
+								<f:selectItem itemValue=""/>
+						    	<f:selectItems value="#{MbCmnParamValues.valuesFromLov}"/>
+							</h:selectOneMenu>
+							<rich:message for="paramLovValueV" 
+									styleClass="errorMarker"												
+							/>
+							<rich:message for="paramLovValueN" 
+									styleClass="errorMarker"
+							/>
+						</h:panelGrid>
+
+						<h:outputLabel value="#{lblAcq.modifier}: " title="#{lblAcq.modifier}" />
+						<h:selectOneMenu 
+								id="mod"
+								value="#{MbCmnParamValues.newCmnParamValue.modId}" >
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbCmnParamValues.mods}"/>
+						</h:selectOneMenu>
+						
+				    </h:panelGrid>
+				</h:panelGroup>
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+							<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+									action="#{MbCmnParamValues.save}"
+									reRender="cmnParamValuesForm"
+									oncomplete="if (#{usession.noErrorResponse}) #{rich:component('paramValueModalPanel')}.hide()"
+									/>
+		                	<bre:taggedCommandButton value="#{lblForm.cancel}" 
+			                       	action="#{MbCmnParamValues.cancel}"
+			                       	immediate="true" limitToList="true"
+			                       	oncomplete="#{rich:component('paramValueModalPanel')}.hide()"
+			                       	/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+      	    </h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="viewXmlPanel" autosized="true" minWidth="300" minHeight="100">
+		<h:form id="viewXmlForm">
+			<h:inputTextarea id="previewBox" 
+				value="#{MbCmnParamValues.selectedParValXml}" 
+				rows="15" style="max-width:none;padding:0"/>
+		</h:form>
+	</rich:modalPanel>
+
+	<ui:include src="/pages/utils/codeMirrorPanel.jspx">
+		<ui:param name="codeElement" value="viewXmlForm:previewBox"/>
+		<ui:param name="subviewId" value="paramValue"/>
+		<ui:param name="readOnly" value="false"/>
+		<ui:param name="title" value="#{lblForm.xml_content}"/>
+		<ui:param name="nosubmit" value="#{true}" />
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbCmnParamValues}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="cmnParamValuesForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteParamValueViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

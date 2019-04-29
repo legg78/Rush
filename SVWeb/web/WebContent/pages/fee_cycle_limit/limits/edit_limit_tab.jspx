@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bpc="http://www.bpc.ru/jsf/misc"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<!--
+    function checkLimitsForm() {
+        var checked = true;
+
+        if (document.getElementById("limitsForm:limCurrency").value == "" && document.getElementById("limitsForm:sumLimit").value !== "Unlimited") {
+            document.getElementById("limitsForm:limCurrencyError").style.display = "inline";
+            checked = false;
+        }
+        if (document.getElementById("limitsForm:limitRate").value == "" && document.getElementById("limitsForm:limitRate").disabled == false) {
+            document.getElementById("limitsForm:limitRateError").style.display = "inline";
+            checked = false;
+        }
+
+        checked = checkSumLimits() && checked;
+        return checked;
+    }
+
+    function checkForPoint(element, event){
+        if (!numbersOnly(element,event,true))
+            return false;
+        var limitRate = document.getElementById("limitsForm:limitRate").value;
+        var pointPos = limitRate.indexOf(".");
+        if (pointPos != -1){
+            var code;
+            var shift;
+            if (window.event) {
+                code = window.event.keyCode;
+                shift = window.event.shiftKey;
+            } else {
+                code = event.charCode;
+                shift = event.shiftKey;
+            }
+            if (code == null || code == 0 || code == 8 ||
+                code == 9 || code == 13 || code == 27) {
+                return true;
+            }
+
+            var length = limitRate.length;
+            if (length - pointPos > 2){
+                return false;
+
+            }
+        }
+        return true;
+    }
+
+    function checkSumLimits() {
+        var checked = true;
+        if (!document.getElementById("limitsForm:limitRate").disabled && document.getElementById("limitsForm:limitRate").value != "") {
+            document.getElementById("limitsForm:limitRate").onchange();
+        }
+        setTimeout("", 250);	// wait till fields are rerendered
+        if (document.getElementById("limitsForm:limitRateErrorMsg").children[0].innerHTML != "") {
+            checked = false;
+        }
+        return checked;
+    }
+
+    var sumLimitValue;
+    var limitRateValue;
+
+    function saveSumLimits() {
+        //sumLimitValue = document.getElementById("limitsForm:sumLimit").value;
+        //limitRateValue = document.getElementById("limitsForm:limitRate").value;
+    }
+
+    function restoreSumLimits() {
+        //document.getElementById("limitsForm:sumLimit").value = sumLimitValue;
+        //document.getElementById("limitsForm:sumLimit").onchange();
+        /*document.getElementById("limitsForm:limitRate").value = limitRateValue;
+        if (!document.getElementById("limitsForm:limitRate").disabled) {
+            document.getElementById("limitsForm:limitRate").onchange();
+        }*/
+    }
+
+    function hideFeeError(){
+        document.getElementById("feesForm:feeParamsTable:0:feeCurrencyError").style.display = "none";
+    }
+    //-->
+	</script>
+
+	<h:form id="limitsForm" rendered="#{MbFclObjects.isRendered()}">
+		<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstCol alignLeft, width250">
+			<h:panelGroup>
+				<h:outputLabel value="* #{lblFcl.count_limit}: " title="#{lblFcl.count_limit}"
+							   rendered="#{MbFclObjects.limit.limitBase==null}" />
+				<h:outputLabel value="  #{lblFcl.count_limit}: " title="#{lblFcl.count_limit}"
+							   rendered="#{MbFclObjects.limit.limitBase!=null}" />
+			</h:panelGroup>
+			<h:panelGrid id="countLimitGroup" cellpadding="0" cellspacing="0" columns="3">
+				<h:inputText id="countLimit"
+							 maxlength="16"
+							 value="#{MbFclObjects.limit.countLimit}"
+							 disabled="#{MbFclObjects.isDisabled('LIMIT')}">
+					<bpc:numericMaskConverter numericType="long"/>
+					<f:attribute name="decDigits" value="0"/>
+					<a4j:support event="onblur"
+								 limitToList="true"
+								 ajaxSingle="true"
+								 action="#{MbFclObjects.validate('COUNT')}"
+								 onsubmit="document.getElementById('limitsForm:countLimit').maskType.onBlur(event);"
+								 reRender="countLimitGroup"/>
+				</h:inputText>
+
+				<bpc:jsMask for="countLimit" decDigits="0" promtText="#{lblFcl.unlimited}"/>
+				<h:graphicImage url="/images/delete.gif"
+								height="17px"
+								style="cursor:pointer;"
+								align="right"
+								rendered="#{MbFclObjects.isCleanupRendered('LIMIT')}">
+					<a4j:support event="onclick"
+								 action="#{MbFclObjects.validate('COUNT')}"
+								 onsubmit="document.getElementById('limitsForm:countLimit').maskType.setValue('');"
+								 limitToList="true"
+								 process="countLimit"
+								 reRender="countLimitGroup"/>
+				</h:graphicImage>
+			</h:panelGrid>
+
+			<h:panelGroup id="limCurrencyLabelGroup">
+				<h:outputLabel for="limCurrency" value="* #{lblCommon.currency}: " title="#{lblCommon.currency}" rendered="#{MbFclObjects.limit.sumLimit != null}"/>
+				<h:outputLabel for="limCurrency" value="#{lblCommon.currency}: " title="#{lblCommon.currency}" rendered="#{MbFclObjects.limit.sumLimit == null}"/>
+			</h:panelGroup>
+			<h:panelGrid cellpadding="0" cellspacing="0">
+				<h:selectOneMenu id="limCurrency"
+								 disabled="#{MbFclObjects.isDisabled('CURRENCY')}"
+								 value="#{MbFclObjects.limit.currency}">
+					<a4j:support event="onchange"
+								 reRender="limCurrency, sumLimitGroup, limitRateGroup,
+								           feesForm:feeParamsTable:feeCurrency, boundsForm:sumBoundGroup"
+								 ajaxSingle="true"
+								 onsubmit="hideErrorField(this);"
+								 action="#{MbFclObjects.changeLimitCurrency}"
+								 oncomplete="hideFeeError();"
+								 process="sumLimit, limitRate"/>
+					<f:selectItem itemValue="" itemLabel="" />
+					<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+				</h:selectOneMenu>
+				<h:outputFormat id="limCurrencyError"
+								value="#{lblMsg.value_request}"
+								styleClass="errorMarker"
+								style="display:none;">
+					<f:param name="fieldName" value="#{lblCommon.currency}" />
+				</h:outputFormat>
+			</h:panelGrid>
+
+			<h:panelGroup>
+				<h:outputLabel value="* #{lblFcl.sum_limit}: " title="#{lblFcl.sum_limit}"
+							   rendered="#{MbFclObjects.limit.limitBase==null}" />
+				<h:outputLabel value="  #{lblFcl.sum_limit}: " title="#{lblFcl.sum_limit}"
+							   rendered="#{MbFclObjects.limit.limitBase!=null}" />
+			</h:panelGroup>
+			<h:panelGrid id="sumLimitGroup" cellpadding="0" cellspacing="0" columns="3">
+				<h:inputText id="sumLimit"
+							 maxlength="23"
+							 value="#{MbFclObjects.limit.sumLimit}"
+							 disabled="#{MbFclObjects.isDisabled('LIMIT')}">
+					<bpc:numericMaskConverter numericType="bigdecimal" />
+					<f:attribute name="decDigits"
+								 value="#{CurrencyUtils.currencyObjectsMap[MbFclObjects.limit.currency].exponent}" />
+					<a4j:support event="onblur"
+								 limitToList="true"
+								 ajaxSingle="true"
+								 action="#{MbFclObjects.validate('SUM')}"
+								 onsubmit="document.getElementById('limitsForm:sumLimit').maskType.onBlur(event);"
+								 reRender="sumLimitGroup, limCurrencyLabelGroup"/>
+				</h:inputText>
+
+				<bpc:jsMask for="sumLimit" promtText="#{lblFcl.unlimited}"
+							decDigits="#{CurrencyUtils.currencyObjectsMap[MbFclObjects.limit.currency].exponent}" />
+				<h:graphicImage url="/images/delete.gif"
+								height="17px"
+								style="cursor:pointer;"
+								align="right"
+								rendered="#{MbFclObjects.isCleanupRendered('LIMIT')}">
+					<a4j:support event="onclick"
+								 ajaxSingle="true"
+								 action="#{MbFclObjects.validate('SUM')}"
+								 onsubmit="document.getElementById('limitsForm:sumLimit').maskType.setValue('');"
+								 limitToList="true"
+								 process="sumLimit"
+								 reRender="sumLimitGroup, limCurrencyLabelGroup"/>
+				</h:graphicImage>
+			</h:panelGrid>
+
+			<h:outputLabel for="checkType" value="#{lblFcl.limit_check_type}: " title="#{lblFcl.limit_check_type}" />
+			<h:selectOneMenu id="checkType"
+							 disabled="#{!MbFclObjects.newMode || MbFclObjects.limitMode == MbFclObjects.applyValue}"
+							 value="#{MbFclObjects.limit.checkType}"
+							 label="#{lblFcl.limit_check_type}">
+				<f:selectItem itemValue=""/>
+				<a4j:support event="onchange"/>
+				<f:selectItems value="#{MbFclObjects.limitCheckTypes}" />
+			</h:selectOneMenu>
+
+			<h:outputLabel for="limitBase" value="#{lblFcl.limit_base}: " title="#{lblFcl.limit_base}" />
+			<a4j:region>
+				<h:selectOneMenu id="limitBase"
+								 disabled="#{!MbFclObjects.newMode || MbFclObjects.limitMode == MbFclObjects.applyValue}"
+								 value="#{MbFclObjects.limit.limitBase}"
+								 label="#{lblFcl.limit_base}">
+					<f:selectItem itemValue=""/>
+					<f:selectItems value="#{MbFclObjects.limitBases}" />
+					<a4j:support event="onchange" reRender="limitsForm"
+								 limitToList="true" ajaxSingle="true" />
+				</h:selectOneMenu>
+			</a4j:region>
+
+			<h:outputLabel for="countAlgorithm" value="#{lblFcl.counter_algorithm}: " title="#{lblFcl.counter_algorithm}"/>
+			<h:selectOneMenu id="countAlgorithm"  disabled="#{!MbFclObjects.newMode || MbFclObjects.limitMode == MbFclObjects.applyValue}"
+							 value="#{MbFclObjects.limit.counterAlgorithm}">
+				<f:selectItem itemValue=""/>
+				<a4j:support event="onchange"/>
+				<f:selectItems value="#{MbFclObjects.limitCounterAlgorithms}"/>
+			</h:selectOneMenu>
+
+			<h:panelGroup>
+				<h:outputLabel for="limitRate" value="#{lblFcl.limit_rate}:" title="#{lblFcl.limit_rate}"
+							   rendered="#{MbFclObjects.limit.limitBase==null}" />
+				<h:outputLabel value="* #{lblFcl.limit_rate}: " title="#{lblFcl.limit_rate}"
+							   rendered="#{MbFclObjects.limit.limitBase!=null}" />
+			</h:panelGroup>
+			<h:panelGrid cellpadding="0" cellspacing="0">
+				<h:panelGroup style="margin:0px;padding:0px;" id="limitRateGroup">
+					<h:inputText id="limitRate"
+								 value="#{MbFclObjects.limit.limitRate}"
+								 validator="#{MbFclObjects.validateBigDecimal}"
+								 required="true"
+								 disabled="#{!MbFclObjects.newMode || MbFclObjects.limitMode == MbFclObjects.applyValue || MbFclObjects.limit.limitBase == null}">
+						<bpc:numericMaskConverter numericType="bigdecimal" />
+						<a4j:support event="onblur" ajaxSingle="true" limitToList="true"/>
+						<a4j:support event="onchange" reRender="limitRateErrorMsg"
+									 limitToList="true" ajaxSingle="true"
+									 onsubmit="hideErrorField(this);" />
+					</h:inputText>
+					<bpc:jsMask for="limitRate"
+								decDigits="2"/>
+				</h:panelGroup>
+				<h:outputFormat value="#{lblMsg.value_request}"
+								styleClass="errorMarker" id="limitRateError"
+								style="display:none;">
+					<f:param name="fieldName" value="#{lblFcl.limit_rate}" />
+				</h:outputFormat>
+				<rich:message for="limitRate" styleClass="errorMarker" id="limitRateErrorMsg"/>
+			</h:panelGrid>
+		</h:panelGrid>
+	</h:form>
+</ui:composition>
+</html>

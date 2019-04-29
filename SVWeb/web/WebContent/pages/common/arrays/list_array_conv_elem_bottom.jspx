@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+	
+   	<h:form id="convElementsForm">
+		<h:panelGroup id="elementsTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="elementsTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbArrayConvElems.elements}"
+				selection="#{MbArrayConvElems.itemSelection}" selectionMode="single"
+				enableContextMenu="true"
+				tableState="#{MbArrayConvElems.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" ignoreDupResponses="true"
+					reRender="btnPanel" />
+
+				<rich:column id="id" label="#{lblCommon.id}" title="Id" sortBy="#{'id'}" width="20%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}"/>
+				</rich:column>
+
+				<rich:column id="in_element_value" label="#{lblCommon.in_element_value}" title="#{lblCommon.in_element_value}" width="40%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.in_element_value}"
+							title="#{lblCommon.in_element_value}" />
+					</f:facet>
+					<h:outputText value="#{item.inValue == null ? item.inElementValue : item.inValue}"/>
+				</rich:column>
+
+				<rich:column id="out_element_value" label="#{lblCommon.out_element_value}" title="#{lblCommon.out_element_value}" width="40%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.out_element_value}"
+							title="#{lblCommon.out_element_value}" />
+					</f:facet>
+					<h:outputText value="#{item.outValue == null ? item.outElementValue : item.outValue}"/>
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	            <h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	            	<h:panelGroup>
+					<bre:taggedCommandButton
+							action="#{MbArrayConvElems.view}"
+							value="#{lblForm.view}"
+							oncomplete="#{rich:component('element_view_modal_panel')}.show()"
+							disabled="#{MbArrayConvElems.activeElement == null}"
+							reRender="element_view_modal_div"
+							/>
+	            	<bre:taggedCommandButton id="addBtn"
+                      		reRender="element_modal_header, element_modal_div"
+                      		value="#{lblForm.add}"
+                   			oncomplete="#{rich:component('element_modal_panel')}.show()"
+                      		action="#{MbArrayConvElems.add}"
+                      		disabled="#{MbArrayConvElems.conversion == null}"
+                      		image="/images/create_doc.gif"
+                      		/>
+					<bre:taggedCommandButton id="editBtn"
+                      		reRender="element_modal_header, element_modal_div"
+                      		value="#{lblForm.edit}"
+                      		action="#{MbArrayConvElems.edit}"
+                   			oncomplete="#{rich:component('element_modal_panel')}.show()"
+                      		disabled="#{MbArrayConvElems.activeElement == null}"
+                      		image="/images/edit.gif"
+                      		/>
+					<bre:taggedCommandButton id="deleteBtn"
+                      		value="#{lblForm.delete}"
+                      		oncomplete="#{rich:component('deleteElementViewId:confirmPanel')}.show()"
+                      		disabled="#{MbArrayConvElems.activeElement == null}"
+                      		image="/images/delete.gif"
+                      		/>
+                    </h:panelGroup>
+                    
+                    <h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveConvTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteConvTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveConvTableState" action="#{MbArrayConvElems.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteConvTableState" action="#{MbArrayConvElems.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+    </h:form>
+
+	<ui:include src="/pages/common/arrays/array_conv_elem_edit.jspx">
+		<ui:param name="rerenderList" value="convElementsForm:elementsTable, convElementsForm:btnPanel" />
+	</ui:include>
+
+	<rich:modalPanel id="element_view_modal_panel" autosized="true" minWidth="300" minHeight="120">
+	   <f:facet name="header">
+   	    	<h:outputText value="#{lblCommon.conversion_elements}"/>
+   		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+    	<h:form>
+			<h:panelGroup id="element_view_modal_div">
+				<ui:include src="/pages/common/arrays/array_conv_elem_details.jspx"/>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbArrayConvElems.close}" 
+                        		immediate="true"
+                        		oncomplete="#{rich:component('element_view_modal_panel')}.hide()"
+                        		/>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbArrayConvElems}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="elementsTable, btnPanel"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteElementViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+	
+</ui:composition>
+</html>

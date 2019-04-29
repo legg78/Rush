@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+		PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+		"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="aggregation">
+
+	<sql id="limitationOpen">
+		SELECT *
+		FROM (
+	</sql>
+
+	<sql id="limitationOpenCount">
+		SELECT count(*)
+		FROM (
+	</sql>
+
+	<sql id="limitationClose">
+		) q
+		<isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+	</sql>
+	<sql id="paginatedOpen">
+		SELECT *
+		FROM(
+		SELECT a.*, rownum r
+		FROM(
+		<include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedClose">
+		<include refid="limitationClose"/>
+		) a
+		WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+		)
+		WHERE r >= (#range.start# + 1)
+	</sql>
+
+	<resultMap id="mapping_type" class="ru.bpc.sv2.aggregation.AggrType">
+		<result property="id" column="id"/>
+		<result property="name" column="name"/>
+		<result property="description" column="description"/>
+		<result property="condition" column="condition"/>
+	</resultMap>
+
+	<resultMap id="mapping_rule" class="ru.bpc.sv2.aggregation.AggrRule">
+		<result property="id" column="id"/>
+		<result property="paramId" column="param_id"/>
+		<result property="aggrTypeId" column="aggr_type_id"/>
+		<result property="aggrType" column="aggr_type"/>
+		<result property="rounding" jdbcType="VARCHAR" column="rounding"/>
+	</resultMap>
+
+	<resultMap id="mapping_param" class="ru.bpc.sv2.aggregation.AggrParam">
+		<result property="id" column="id"/>
+		<result property="name" column="name"/>
+		<result property="table" column="table_name"/>
+		<result property="field" column="field"/>
+		<result property="type" column="type"/>
+	</resultMap>
+
+	<select id="get_aggr_types" parameterClass="qparams" resultMap="mapping_type">
+		<include refid="paginatedOpen"/>
+		SELECT id,
+		name,
+		description,
+		condition
+		FROM $module$_aggr_type
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">name LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">description LIKE #filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="description">description $sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="condition">condition $sorting[].direction$
+				</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get_aggr_types_cnt" parameterClass="qparams" resultClass="long">
+		SELECT COUNT(1) FROM $module$_aggr_type
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">name LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">description LIKE #filters[].value#
+			</isEqual>
+		</iterate>
+	</select>
+
+	<insert id="insert_aggr_type" parameterClass="ru.bpc.sv2.aggregation.AggrType">
+		INSERT INTO $module$_aggr_type(id, name, description, condition) VALUES (#id#, #name#, #description#, #condition#)
+	</insert>
+
+	<update id="update_aggr_type" parameterClass="ru.bpc.sv2.aggregation.AggrType">
+		UPDATE $module$_aggr_type SET name=#name#, description=#description#, condition=#condition# WHERE id=#id#
+	</update>
+
+	<delete id="delete_aggr_type" parameterClass="map">
+		DELETE FROM $module$_aggr_type WHERE id=#item_id#
+	</delete>
+
+	<select id="get_aggr_rules" parameterClass="qparams" resultMap="mapping_rule">
+		SELECT id,
+		param_id,
+		aggr_type,
+		rounding,
+		aggr_type_id
+		FROM $module$_aggr_rule
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="aggr_type_id">aggr_type_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<select id="get_aggr_param" parameterClass="qparams" resultMap="mapping_param">
+		SELECT id, name, table_name, field,	type, parent_id, flag FROM $module$_aggr_param
+	</select>
+
+	<insert id="insert_aggr_rule" parameterClass="ru.bpc.sv2.aggregation.AggrRule">
+		INSERT INTO $module$_aggr_rule(id, aggr_type_id, param_id, aggr_type, rounding)
+		VALUES (#id#, #aggrTypeId#, #paramId#, #aggrType#, #rounding#)
+	</insert>
+
+	<update id="update_aggr_rule" parameterClass="ru.bpc.sv2.aggregation.AggrRule">
+		UPDATE $module$_aggr_rule SET aggr_type_id=#aggrTypeId#, param_id=#paramId#, aggr_type=#aggrType#, rounding=#rounding#
+		WHERE id=#id#
+	</update>
+
+	<delete id="delete_aggr_rule" parameterClass="map">
+		DELETE FROM $module$_aggr_rule WHERE id=#item_id#
+	</delete>
+
+	<delete id="delete_rules_for_type" parameterClass="map">
+		DELETE FROM $module$_aggr_rule WHERE aggr_type_id=#item_id#
+	</delete>
+
+	<select id="get_aggr_result_columns" parameterClass="map" resultClass="string">
+		SELECT DISTINCT p.field FROM $module$_aggr_param_value pv INNER JOIN $module$_aggr_param p ON(pv.param_id=p.id)
+		WHERE pv.aggr_type_id = #type_id#
+	</select>
+
+	<select id="get_aggr_params" parameterClass="qparams" resultMap="mapping_param">
+		SELECT id, name, field, table_name, type FROM $module$_aggr_param
+	</select>
+
+	<select id="new_type_id" resultClass="long">
+		SELECT aggregation_type_seq.nextval FROM dual
+	</select>
+
+	<select id="new_rule_id" resultClass="long">
+		SELECT aggregation_rule_seq.nextval FROM dual
+	</select>
+
+	<select id="get_aggr_results" parameterClass="map" resultClass="java.util.HashMap">
+		SELECT * FROM (
+			SELECT p.field, pv.value, v.count, v.sum, v.currency, pv.aggr_value_id as id
+			FROM $module$_aggr_param_value pv INNER JOIN $module$_aggr_param p ON(pv.param_id=p.id)
+			INNER JOIN $module$_aggr_value v ON (pv.aggr_value_id=v.id) WHERE pv.aggr_type_id=#type_id#
+		) PIVOT(MAX(value) FOR field IN ($columns$))
+	</select>
+
+	<select id="validate_rules" parameterClass="qparams" resultClass="long">
+		SELECT COUNT(1) FROM (SELECT DISTINCT ap.flag FROM $module$_aggr_param ap
+		INNER JOIN $module$_aggr_rule ar ON(ap.id=ar.param_id)
+		WHERE ap.flag IS NOT NULL
+		<iterate prepend="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="aggr_type_id">ar.aggr_type_id=#filters[].value#
+			</isEqual>
+		</iterate>
+		)
+	</select>
+</sqlMap>

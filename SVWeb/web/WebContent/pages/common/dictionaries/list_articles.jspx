@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<style type="text/css">
+	.redOne {
+		color: red;
+	}
+	</style>
+   	<h:form id="articlesForm">
+		<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+	        <h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable" columnClasses="firstCol,secondCol">
+				<h:outputLabel value="#{lblCommon.lang_selector}: " title="#{lblCommon.lang_selector}"/>
+				<h:selectOneMenu id="lang"
+						disabled="#{MbDictionary.activeDict == null}"
+						value="#{MbDictionary.curLangArticle}"
+						valueChangeListener="#{MbDictionary.changeLanguageArticle}">
+					<a4j:support event="onchange" reRender="articlesForm:articlesTable" limitToList="true"/>
+			    	<f:selectItems value="#{MbDictionary.languages}"/>
+			    </h:selectOneMenu>
+			</h:panelGrid>
+		</h:panelGroup>
+		<h:panelGroup layout="block" style="padding:0px;margin:0px;"
+			id="articlesTableWrapper">
+			<rich:extendedDataTable id="articlesTable" var="item"
+				styleClass="res-table" headerClass="res-table-header table-header-ext"
+				rowClasses=",odd" selectedClass="res-table-selected"
+				value="#{MbDictionary.articles}"
+				selection="#{MbDictionary.articleSelection}"
+				selectionMode="single" enableContextMenu="true"
+				tableState="#{MbDictionary.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" requestDelay="500"
+					reRender="articlesForm:btnsArticle" />
+
+				<rich:column id="code" label="Code" title="Code" width="10%" sortBy="#{'code'}">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.code}" title="#{lblCommon.code}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<f:facet name="filter">
+						<h:inputText value="#{MbDictionary.filterArticle.code}"
+							style="width:100%"
+							onkeydown="if (ignoreEnter(event)) return false;">
+							<a4j:support event="onkeyup" reRender="articlesTable"
+								requestDelay="1000" action="#{MbDictionary.searchArticles}" />
+						</h:inputText>
+					</f:facet>
+					<h:outputText value="#{item.code}" />
+				</rich:column>
+
+				<rich:column id="name" label="Name" title="Name" width="25%" sortBy="#{'name'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:inputText value="#{MbDictionary.filterArticle.name}"
+							style="width:100%"
+							onkeydown="if (ignoreEnter(event)) return false;">
+							<a4j:support event="onkeyup" reRender="articlesTable"
+								requestDelay="1000" action="#{MbDictionary.searchArticles}" />
+						</h:inputText>
+					</f:facet>
+					<h:outputText value="#{item.name}" title="#{item.name}" />
+				</rich:column>
+
+				<rich:column id="description" label="Description" title="Description" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.description}"
+							title="#{lblCommon.description}" />
+					</f:facet>
+					<h:outputText value="#{item.description}"
+						title="#{item.description}" />
+				</rich:column>
+
+				<rich:column id="institution" label="Institution" title="Institution" width="30%" sortBy="#{'instName'}" rendered="false">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.institution}"
+							title="#{lblCommon.institution}" />
+					</f:facet>
+					<h:outputText value="#{item.instName}" title="#{item.instName}" />
+				</rich:column>
+
+                <rich:column id="module_code" label="Module Code" title="Module Code" width="20%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblCommon.module_code}"
+                                      title="#{lblCommon.module_code}" />
+                    </f:facet>
+                    <h:outputText value="#{item.moduleCode}" title="#{item.moduleCode}" />
+                </rich:column>
+
+                <rich:column id="editable" label="Editable" title="Editable" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.editable}"
+							title="#{lblCommon.editable}" />
+					</f:facet>
+					<h:selectBooleanCheckbox value="#{item.editable}" disabled="true" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" style="padding-right:9px">
+	            <h:panelGrid id="btnsArticle" styleClass="fw buttons_block" columns="4" columnClasses=", table_tools_state">
+	               	<h:panelGroup>
+						<bre:taggedCommandButton
+								action="#{MbDictionary.viewArticle}"
+								value="#{lblForm.view}"
+								oncomplete="#{rich:component('articleViewModalPanel')}.show()"
+								disabled="#{MbDictionary.activeArticle == null}"
+								reRender="articleViewForm"
+								/>
+						<bre:taggedCommandButton id="btn_create_article"
+	                    		reRender="articlesView:articleModalPanel" value="#{lblForm.add}"
+	                			oncomplete="#{rich:component('articlesView:articleModalPanel')}.show()"
+	                			rendered="#{usession.inRole['ADD_DICTIONARY_ARTICLE']}"
+	                    		disabled="#{MbDictionary.activeDict == null || !MbDictionary.activeDict.editable}"
+	                    		image="/images/create_doc.gif"
+	                    		action="#{MbDictionary.addArticle}"
+	                    		/>
+	                   	<bre:taggedCommandButton id="btn_edit_article"
+	                   			value="#{lblForm.edit}" image="/images/edit.gif"
+	                   			action="#{MbDictionary.editArticle}"
+	                   			rendered="#{usession.inRole['MODIFY_DICTIONARY_ARTICLE']}"
+	                   			reRender="articlesView:articleModalPanel" 
+	                   			disabled="#{MbDictionary.activeArticle == null || !MbDictionary.activeArticle.editable}"
+	                   			oncomplete="#{rich:component('articlesView:articleModalPanel')}.show()"
+	                   			/>                        	
+						<bre:taggedCommandButton id="btn_delete_article"
+								value="#{lblForm.delete}"
+								disabled="#{MbDictionary.activeArticle == null || !MbDictionary.activeArticle.editable}"
+								rendered="#{usession.inRole['REMOVE_DICTIONARY_ARTICLE']}"
+								image="/images/delete.gif"
+								oncomplete="#{rich:component('deleteArticleViewId:confirmPanel')}.show()" />
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveTableState" action="#{MbDictionary.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteTableState" action="#{MbDictionary.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+        	</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<ui:include src="/pages/common/dictionaries/editArticle.jspx">
+		<ui:param name="rerenderList" value="articlesForm"></ui:param>
+	</ui:include>
+
+	<ui:include src="/pages/common/dictionaries/article_details.jspx"/>
+	
+	<ui:include src="/pages/common/dictionaries/dictSynchronizationResultModalPanel.jspx" />
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbDictionary}"/>
+		<ui:param name="yesAction" value="deleteArticle"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="articlesTable,btnsArticle"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteArticleViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+	       	    
+</ui:composition>
+</html>

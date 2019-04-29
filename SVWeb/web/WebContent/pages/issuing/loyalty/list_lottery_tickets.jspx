@@ -1,0 +1,650 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+      xmlns:o="http://openfaces.org/"
+      xmlns:c="http://java.sun.com/jstl/core">
+    <ui:composition template="/WEB-INF/templates/navigatable.jspx">
+        <ui:define name="navigatableContent">
+            <script type="text/javascript" src="#{request.contextPath}/js/stretch.js" />
+
+            <f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+            <f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+            <f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+            <f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+            <f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+            <f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+            <f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+            <f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+            <f:loadBundle var="lblRej" basename="ru.bpc.sv2.ui.bundles.Reject"/>
+            <f:loadBundle var="lblMsg" basename="ru.bpc.sv2.ui.bundles.Msg"/>
+
+            <rich:calendar id="calendar"
+                           buttonIcon="/images/calendar.gif"
+                           datePattern="#{usession.fullDatePattern}"
+                           timeZone="#{CommonUtils.timeZone}"
+                           onchanged="if(#{rich:component('calendar')}.customInput.value!=event.rich.component.getSelectedDateString()){
+                                         #{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();
+                                         #{rich:component('calendar')}.customInput.onchange();
+                                      }"
+                           zindex="1000"
+                           inputClass="hidden"
+                           buttonClass="hidden"
+                           showApplyButton="true"
+                           defaultTime="00:00"/>
+            <script>
+                #{rich:component('calendar')}.customExpand = customExpand;
+            </script>
+            <a4j:loadScript src="/js/calendarUtils.js"/>
+            <bpct:navBar pageName="#{lblIss.lottery_tickets}"/>
+            <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+            <bpct:customerSearchModalPanels id="custSearchPanels"/>
+            <bpct:cardSearchModalPanels id="cardSearchPanels"/>
+
+            <script>
+            //<![CDATA[
+                function selectTab(tabName) {
+                    submittingTab = tabName;
+                    if (checkTabLoaded(tabName)) {
+                        //set only tab name to managed bean (in order to use it in the future)
+                        setTabName(tabName);
+                        return false;
+                    }
+                    refreshTab(tabName);
+                    updateHeight();
+                    return true;
+                }
+            //]]>
+            </script>
+
+            <h:form id="lotteryTicketsSearchForm" onkeypress="return handleEnter(event)">
+                <h:inputHidden value="#{MbLotteryTickets.tabName}" id="tabNameInput"/>
+
+                <script type="text/javascript">
+                    load("lotteryTicketsSearchForm:tabNameInput");
+                </script>
+
+                <a4j:jsFunction name="refreshTab"
+                                eventsQueue="queue"
+                                limitToList="true"
+                                ajaxSingle="true"
+                                reRender="#{MbLotteryTickets.tabName}, err_ajax"
+                                action="#{MbLotteryTickets.loadCurrentTab}"
+                                oncomplete="setTabLoaded(submittingTab); updateHeight();">
+                    <a4j:actionparam name="tabName" assignTo="#{MbLotteryTickets.tabName}"/>
+                </a4j:jsFunction>
+
+                <a4j:jsFunction name="setTabName"
+                                reRender="err_ajax"
+                                limitToList="true"
+                                ajaxSingle="true"
+                                oncomplete="setTabLoaded(submittingTab); updateHeight();">
+                    <a4j:actionparam name="tabName" assignTo="#{MbLotteryTickets.tabName}"/>
+                </a4j:jsFunction>
+
+                <h:panelGroup styleClass="search_block" layout="block">
+                    <h:panelGroup layout="block" styleClass="search_block_inner1">
+                        <h:panelGroup layout="block" styleClass="search_block_inner2">
+                            <h:panelGroup styleClass="search_block_left" layout="block">
+                                <h:panelGrid styleClass="fw" columns="4" columnClasses="top ,link-cont">
+                                    <h:panelGrid id="filtersTable" columns="4"
+                                                 styleClass="filter-table field-cont twoColumnTable"
+                                                 columnClasses="firstCol,secondCol,firstCol,secondCol">
+                                        <h:outputLabel for="regDateFrom" value="#{lblApp.reg_date_from}: " title="#{lblApp.reg_date_from}"/>
+                                        <h:panelGroup>
+                                            <h:inputText id="regDateFrom"
+                                                         value="#{MbLotteryTickets.regDateFrom}"
+                                                         onclick="#{rich:component('calendar')}.customExpand(event,
+                                                                  #{rich:element('lotteryTicketsSearchForm:regDateFrom')},
+                                                                  #{rich:element('lotteryTicketsSearchForm:regDateFromBtn')});"
+                                                         style="max-width:231px; margin-right: 4px;">
+                                                <f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+                                                <a4j:support event="onchange" ajaxSingle="true" limitToList="true"/>
+                                            </h:inputText>
+                                            <h:graphicImage id="regDateFromBtn"
+                                                            onclick="#{rich:component('calendar')}.customExpand(event,
+                                                                     #{rich:element('lotteryTicketsSearchForm:regDateFrom')},
+                                                                     #{rich:element('lotteryTicketsSearchForm:regDateFromBtn')});"
+                                                            value="/images/calendar.gif"/>
+                                        </h:panelGroup>
+
+                                        <h:outputLabel for="ticketNumber" value="#{lblIss.ticket_number}: " title="#{lblIss.ticket_number}"/>
+                                        <h:panelGroup>
+                                            <h:inputText id="ticketNumber" value="#{MbLotteryTickets.filter.ticketNumber}"/>
+                                        </h:panelGroup>
+
+                                        <h:outputLabel for="regDateTo" value="#{lblApp.reg_date_to}: " title="#{lblApp.reg_date_to}"/>
+                                        <h:panelGroup>
+                                            <h:inputText id="regDateTo"
+                                                         value="#{MbLotteryTickets.regDateTo}"
+                                                         onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('lotteryTicketsSearchForm:regDateTo')},
+                                                                  #{rich:element('lotteryTicketsSearchForm:regDateToBtn')});"
+                                                         style="max-width:231px; margin-right: 4px;">
+                                                <f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+                                                <a4j:support event="onchange" ajaxSingle="true" limitToList="true"/>
+                                            </h:inputText>
+                                            <h:graphicImage id="regDateToBtn"
+                                                            onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('lotteryTicketsSearchForm:regDateTo')},
+                                                                     #{rich:element('lotteryTicketsSearchForm:regDateToBtn')});"
+                                                            value="/images/calendar.gif"/>
+                                        </h:panelGroup>
+
+                                        <h:outputLabel for="status" value="#{lblCommon.status}: " title="#{lblCommon.status}"/>
+                                        <h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width: 256px;">
+                                            <h:selectOneMenu id="status"
+                                                             value="#{MbLotteryTickets.filter.status}"
+                                                             label="#{lblCommon.status}">
+                                                <f:selectItem itemValue=""/>
+                                                <f:selectItems value="#{MbLotteryTickets.ticketStatuses}"/>
+                                            </h:selectOneMenu>
+                                        </h:panelGrid>
+
+                                        <h:outputLabel for="customer" value="#{lblPrd.customer}: " title="#{lblPrd.customer}"/>
+                                        <h:panelGroup>
+                                            <bm:selectCustomer id="customer"
+                                                               valueId="#{MbLotteryTickets.filter.customerId}"
+                                                               valueNumber="#{MbLotteryTickets.filter.customerNumber}"
+                                                               custInfoField="#{MbLotteryTickets.filter.customerInfo}"
+                                                               beanName="MbLotteryTickets"
+                                                               modalPanel="customerSearchModalPanel"
+                                                               readonly="false"
+                                                               formName="lotteryTicketsSearchForm"
+                                                               searchButton="searchBtn"
+                                                               rerenderList="lotteryTicketsSearchForm:customer, lotteryTicketsSearchForm:instId"
+                                                               manualInput="true"
+                                                               disabled="false"
+                                                               rendered="true"/>
+                                        </h:panelGroup>
+
+                                        <h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+                                        <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                                            <h:selectOneMenu id="instId"
+                                                             value="#{MbLotteryTickets.filter.instId}"
+                                                             label="#{lblCommon.institution}">
+                                                <f:selectItem itemValue=""/>
+                                                <f:selectItems value="#{MbLotteryTickets.institutions}"/>
+                                            </h:selectOneMenu>
+                                        </h:panelGrid>
+                                    </h:panelGrid>
+
+                                    <h:panelGrid columns="1">
+                                        <bre:taggedCommandButton id="searchLotteryTicketBtn"
+                                                                 action="#{MbLotteryTickets.search}"
+                                                                 type="submit"
+                                                                 image="/_img/icon_search.png"
+                                                                 value="#{lblForm.search}"
+                                                                 style="width:85px;"
+                                                                 onclick="disableModalPanelBtns(this);"
+                                                                 oncomplete="updateHeight();enableModalPanelBtns(this);"
+                                                                 reRender="lotteryTicketsForm:lotteryTicketsTable,
+                                                                           lotteryTicketsBtnForm:btnPanel,
+                                                                           details, workplacePanel, #{MbLotteryTickets.tabName},
+                                                                           lotteryTicketsBtnForm"
+                                                                 eventsQueue="queue">
+                                            <a4j:actionparam name="stateKeeper" value="false" assignTo="#{menu.keepState}" />
+                                        </bre:taggedCommandButton>
+
+                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                            <a4j:commandLink action="#{MbLotteryTickets.clearFilter}"
+                                                             value="#{lblForm.clear_all}"
+                                                             reRender="lotteryTicketsSearchForm,
+                                                                       lotteryTicketsForm,
+                                                                       lotteryTicketsBtnForm,
+                                                                       details"/>
+                                            <h:graphicImage url="/_img/icon_clear.png" />
+                                        </h:panelGroup>
+
+                                        <h:panelGroup>
+                                            <bpct:filterBar sectionId="1024"/>
+                                        </h:panelGroup>
+                                    </h:panelGrid>
+                                </h:panelGrid>
+
+                                <a4j:outputPanel ajaxRendered="true">
+                                    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                                    <h:panelGroup styleClass="collapse-vert" layout="block"/>
+                                </a4j:outputPanel>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+
+            <h:panelGroup id="init">
+                <script type="text/javascript">
+                //<![CDATA[
+                    flushTabs();
+                //]]>
+                </script>
+            </h:panelGroup>
+
+            <h:form id="lotteryTicketsForm">
+                <a4j:jsFunction name="changeSelection"
+                                reRender="lotteryTicketsBtnForm:btnPanel, details, workplacePanel, #{MbLotteryTickets.tabName}"
+                                oncomplete="flushTabs(); setTabLoaded(currentTab); updateHeight();"
+                                eventsQueue="queue"/>
+
+                <h:panelGroup styleClass="search_result_block" layout="block">
+                    <h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+                        <h:panelGroup id="lotteryTicketsTableWrapper" layout="block" styleClass="search_result_block_inner">
+                            <rich:extendedDataTable id="lotteryTicketsTable"
+                                                    tableState="#{MbLotteryTickets.tableState}"
+                                                    styleClass="res-table"
+                                                    headerClass="res-table-header"
+                                                    rowClasses=",odd"
+                                                    selectedClass="res-table-selected"
+                                                    var="item"
+                                                    value="#{MbLotteryTickets.lotteryTickets}"
+                                                    selection="#{MbLotteryTickets.itemSelection}"
+                                                    rows="#{MbLotteryTickets.rowsNum}"
+                                                    selectionMode="single"
+                                                    width="100%" height="255px"
+                                                    enableContextMenu="true" onselectionchange="changeSelection(currentTab);"
+                                                    noDataLabel="#{MbLotteryTickets.searching ? lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+                                                    onRowMouseDown="handleMouseClick(event)"
+                                                    reRender="init, lotteryTicketsBtnForm:btnPanel,
+                                                              details, workplacePanel, #{MbLotteryTickets.tabName}">
+                                <a4j:support event="onselectionchange"
+                                             eventsQueue="queue" ajaxSingle="true" limitToList="true"
+                                             reRender="lotteryTicketsBtnForm:btnPanel, details, workplacePanel,
+                                                       #{MbLotteryTickets.tabName}, lotteryTicketDetailsForm"
+                                             oncomplete="updateHeight();"/>
+
+                                <rich:column id="id" label="#{lblIss.ticket_number}" title="#{lblIss.ticket_number}"
+                                             sortBy="#{'ticketNumber'}" width="20%" sortOrder="ASCENDING">
+                                    <f:facet name="header">
+                                        <h:panelGroup>
+                                            <h:outputText value="#{lblIss.ticket_number}" title="#{lblIss.ticket_number}"/>
+                                            <script type="text/javascript">
+                                                updateHeight();
+                                            </script>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <h:outputText value="#{item.ticketNumber}" title="#{item.ticketNumber}"/>
+                                </rich:column>
+
+                                <rich:column id="status" label="#{lblCommon.status}" title="#{lblCommon.status}"
+                                             sortBy="#{'status'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:panelGroup>
+                                            <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+                                            <script type="text/javascript">
+                                                updateHeight();
+                                            </script>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <h:outputText value="#{item.status} - #{item.statusDesc}" title="#{item.status} - #{item.statusDesc}"/>
+                                </rich:column>
+
+                                <rich:column id="registrationDate" label="#{lblApp.reg_date}" title="#{lblApp.reg_date}"
+                                             sortBy="#{'registrationDate'}" width="10%">
+                                    <f:facet name="header">
+                                        <h:panelGroup>
+                                            <h:outputText value="#{lblApp.reg_date}" title="#{lblApp.reg_date}"/>
+                                            <script type="text/javascript">
+                                                updateHeight();
+                                            </script>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <h:outputText value="#{item.registrationDate}">
+                                        <f:convertDateTime pattern="#{usession.fullDatePatternSeconds}" timeZone="#{CommonUtils.timeZone}"/>
+                                    </h:outputText>
+                                </rich:column>
+
+                                <rich:column id="customerNumber" label="#{lblIss.customer_number}" title="#{lblIss.customer_number}"
+                                             sortBy="#{'customerNumber'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:panelGroup>
+                                            <h:outputText value="#{lblIss.customer_number}" title="#{lblIss.customer_number}"/>
+                                            <script type="text/javascript">
+                                                updateHeight();
+                                            </script>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <bm:entityDisplay contextType="ENTTCUST" bean="MbLotteryTickets"
+                                                      value="#{item.customerNumber} - #{item.customerInfo}"/>
+                                </rich:column>
+
+                                <rich:column id="cardMask" label="#{lblCrd.card_number}" title="#{lblCrd.card_number}"
+                                             width="15%">
+                                    <f:facet name="header">
+                                        <h:panelGroup>
+                                            <h:outputText value="#{lblCrd.card_number}" title="#{lblCrd.card_number}"/>
+                                            <script type="text/javascript">
+                                                updateHeight();
+                                            </script>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <bm:entityDisplay contextType="ENTTCARD" bean="MbLotteryTickets"
+                                                      value="#{item.cardMask}"/>
+                                </rich:column>
+
+                                <rich:column id="instId" label="#{lblCommon.institution}" title="#{lblCommon.institution}"
+                                             sortBy="#{'instId'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:panelGroup>
+                                            <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}"/>
+                                            <script type="text/javascript">
+                                                updateHeight();
+                                            </script>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <bm:entityDisplay link="true" contextType="ENTTINST" bean="MbLotteryTickets"
+                                                      entityId="#{item.instId}"
+                                                      value="#{item.instName != null ? item.instName : '...'}"/>
+                                </rich:column>
+                            </rich:extendedDataTable>
+                        </h:panelGroup>
+
+                        <a4j:outputPanel ajaxRendered="true">
+                            <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+                            <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                            <h:panelGroup styleClass="show-more-vert table-collapse-vert" layout="block" rendered="false"/>
+                            <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+                        </a4j:outputPanel>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+
+            <h:form id="lotteryTicketsBtnForm">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+                        <h:panelGroup layout="block" styleClass="table_tools">
+                            <h:panelGrid columns="5"
+                                         columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state"
+                                         styleClass="fw field-cont">
+                                <h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+                                <h:selectOneMenu id="rows_num" value="#{MbLotteryTickets.rowsNum}"
+                                                 styleClass="row_per_page">
+                                    <a4j:support event="onchange"
+                                                 reRender="lotteryTicketsTable, dstickets, pagesNum,
+                                                           lotteryTicketsBtnForm, #{MbLotteryTickets.tabName}"/>
+                                    <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                                </h:selectOneMenu>
+
+                                <rich:datascroller id="dstickets"
+                                                   for="lotteryTicketsTable"
+                                                   maxPages="10"
+                                                   fastControls="hide"
+                                                   pagesVar="pages"
+                                                   styleClass="res-datascroller"
+                                                   page="#{MbLotteryTickets.pageNumber}"
+                                                   reRender="lotteryTicketsBtnForm:btnPanel, #{MbLotteryTickets.tabName}"
+                                                   oncomplete="flushTabs();changeSelection(currentTab);">
+                                    <f:facet name="first">
+                                        <h:outputText value="&lt;&lt;" styleClass="prev-next"/>
+                                    </f:facet>
+                                    <f:facet name="first_disabled">
+                                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis"/>
+                                    </f:facet>
+                                    <f:facet name="last">
+                                        <h:outputText value="&gt;&gt;" styleClass="prev-next"/>
+                                    </f:facet>
+                                    <f:facet name="last_disabled">
+                                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis"/>
+                                    </f:facet>
+                                    <f:facet name="previous">
+                                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next"/>
+                                    </f:facet>
+                                    <f:facet name="previous_disabled">
+                                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis"/>
+                                    </f:facet>
+                                    <f:facet name="next">
+                                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next"/>
+                                    </f:facet>
+                                    <f:facet name="next_disabled">
+                                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis"/>
+                                    </f:facet>
+                                    <f:facet name="pages"/>
+                                </rich:datascroller>
+
+                                <h:panelGroup id="pagesNum">
+                                    <h:outputText styleClass="strongClass" value="#{pages} "/>
+                                    <h:outputText value=" #{lblCommon.pages}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                                    <h:outputText styleClass="strongClass" value="#{MbLotteryTickets.lotteryTickets.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                                </h:panelGroup>
+                            </h:panelGrid>
+                        </h:panelGroup>
+
+                        <h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+                            <h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+                                <h:panelGrid styleClass="buttons_block" columns="5" id="btnPanel">
+                                    <bre:taggedCommandButton id="addLotteryTicketBtn"
+                                                             value="#{lblForm.add}"
+                                                             action="#{MbLotteryTickets.addLotteryTicket}"
+                                                             reRender="addEditLotteryTicketModalPanel"
+                                                             oncomplete="#{rich:component('addEditLotteryTicketModalPanel')}.show()"
+                                                             rendered="#{usession.inRole['ADD_LOTTERY_TICKET']}"
+                                                             image="/images/create_doc.gif"/>
+
+                                    <bre:taggedCommandButton id="editLotteryTicketBtn"
+                                                             value="#{lblForm.edit}"
+                                                             action="#{MbLotteryTickets.editLotteryTicket}"
+                                                             reRender="addEditLotteryTicketModalPanel"
+                                                             oncomplete="#{rich:component('addEditLotteryTicketModalPanel')}.show()"
+                                                             rendered="#{usession.inRole['MODIFY_LOTTERY_TICKET']}"
+                                                             image="/images/edit.gif"/>
+
+                                    <bre:taggedCommandButton id="removeLotteryTicketBtn"
+                                                             value="#{lblForm.remove}"
+                                                             reRender="delLotteryTicketModalPanel"
+                                                             oncomplete="#{rich:component('removeLotteryTicketModalPanel')}.show()"
+                                                             rendered="#{usession.inRole['REMOVE_LOTTERY_TICKET']}"
+                                                             image="/images/delete.gif"/>
+                                </h:panelGrid>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+
+            <h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+                <rich:tabPanel id="details"
+                               switchType="client"
+                               tabClass="tab-cell"
+                               activeTabClass="active-tab-cell"
+                               headerClass="tabs"
+                               headerSpacing="0px"
+                               contentClass="tab-content"
+                               selectedTab="#{MbLotteryTickets.tabName}"
+                               ontabchange="selectTab('detailsTab')">
+                    <rich:tab id="detailsTab" name="detailsTab" label="#{lblCommon.details}" onlabelclick="selectTab('detailsTab')">
+                        <f:facet name="label">
+                            <h:panelGroup styleClass="first tab-label" layout="block">
+                                <h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+                            </h:panelGroup>
+                        </f:facet>
+
+                        <h:panelGroup id="detailsTabPanel" layout="block">
+                            <ui:include src="/pages/issuing/loyalty/lottery_ticket_details.jspx"/>
+                        </h:panelGroup>
+                    </rich:tab>
+                </rich:tabPanel>
+            </h:panelGroup>
+
+            <rich:modalPanel id="addEditLotteryTicketModalPanel" autosized="true" minWidth="200" minHeight="100">
+                <f:facet name="header">
+                    <h:panelGroup>
+                        <h:outputText value="#{lblIss.edit_lottery_ticket}" rendered="#{MbLotteryTickets.editMode}"/>
+                        <h:outputText value="#{lblIss.create_lottery_ticket}" rendered="#{MbLotteryTickets.newMode}"/>
+                    </h:panelGroup>
+                </f:facet>
+                <f:facet name="controls"/>
+
+                <h:panelGroup id="addEditLotteryTicketModalDiv">
+                    <h:form id="addEditLotteryTicketForm">
+                        <script type="text/javascript">
+                        //<!--
+                            function checkLotteryTicketFields() {
+                                var checked = true;
+                                if (document.getElementById('addEditLotteryTicketForm:newCustomerVwcustomerIdHidden').value == "") {
+                                    document.getElementById('addEditLotteryTicketForm:newCustomerError').style.display = "inline";
+                                    checked = false;
+                                }
+                                if (document.getElementById('addEditLotteryTicketForm:newCardVwcardIdHidden').value == "") {
+                                    document.getElementById('addEditLotteryTicketForm:newCardError').style.display = "inline";
+                                    checked = false;
+                                }
+                                return checked;
+                            }
+                        //-->
+                        </script>
+
+                        <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                            <h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+                                         columnClasses="firstColModal, width250">
+                                <h:outputLabel value="* #{lblPrd.customer}: " title="#{lblPrd.customer}"/>
+                                <h:panelGrid id="newCustomerWrapper" cellpadding="0" cellspacing="0" columns="1">
+                                    <bm:selectCustomer id="newCustomer"
+                                                       valueId="#{MbLotteryTickets.newLottetyTicket.customerId}"
+                                                       valueNumber="#{MbLotteryTickets.newLottetyTicket.customerNumber}"
+                                                       custInfoField="#{MbLotteryTickets.newLottetyTicket.customerInfo}"
+                                                       beanName="MbLotteryTickets"
+                                                       modalPanel="customerSearchModalPanel"
+                                                       viewIdColon="newCustomerVw"
+                                                       readonly="#{MbLotteryTickets.editMode || MbLotteryTickets.viewMode}"
+                                                       formName="addEditLotteryTicketForm"
+                                                       searchButton="searchBtn"
+                                                       rerenderList="addEditLotteryTicketForm:newCustomer,
+                                                                     addEditLotteryTicketForm:newCard"
+                                                       disabled="#{MbLotteryTickets.editMode || MbLotteryTickets.viewMode}"
+                                                       manualInput="true"
+                                                       rendered="true"
+                                                       style="margin-left: 0px;">
+                                        <a4j:support event="onchange"
+                                                     ajaxSingle="true" limitToList="true"
+                                                     reRender="newCustomer, addEditLotteryTicketForm:newCustomer,
+                                                               newCard, addEditLotteryTicketForm:newCard,
+                                                               newCardVw, addEditLotteryTicketForm:newCardVwnewCard"/>
+                                    </bm:selectCustomer>
+                                    <h:outputFormat id="newCustomerError" value="#{lblMsg.value_request}"
+                                                    styleClass="errorMarker"
+                                                    style="display:none;" rendered="#{MbLotteryTickets.newMode}">
+                                        <f:param name="fieldName" value="newCustomer"/>
+                                    </h:outputFormat>
+                                </h:panelGrid>
+
+                                <h:outputLabel value="* #{lblCrd.card}: " title="#{lblCrd.card}"/>
+                                <h:panelGrid id="newCardWrapper" cellpadding="0" cellspacing="0" columns="1">
+                                    <bm:selectCard id="newCard"
+                                                   valueCardMask="#{MbLotteryTickets.newLottetyTicket.cardMask}"
+                                                   valueCardId="#{MbLotteryTickets.newLottetyTicket.cardId}"
+                                                   disabled="#{MbLotteryTickets.newLottetyTicket.customerId == null ||
+                                                               MbLotteryTickets.editMode || MbLotteryTickets.viewMode}"
+                                                   readonly="#{MbLotteryTickets.newLottetyTicket.customerId == null ||
+                                                               MbLotteryTickets.editMode || MbLotteryTickets.viewMode}"
+                                                   beanName="MbLotteryTickets"
+                                                   formName="addEditLotteryTicketForm"
+                                                   methodName="selectCard"
+                                                   rendered="true"
+                                                   viewIdColon="newCardVw"
+                                                   modalPanel="cardSearchModalPanel"
+                                                   renderList="addEditLotteryTicketForm:newCard"
+                                                   style="max-width:100% !important; margin-left:0px;">
+                                        <a4j:support event="onchange"
+                                                     ajaxSingle="true" limitToList="true"
+                                                     reRender="newCard, newCardVw, addEditLotteryTicketForm:newCard, addEditLotteryTicketForm:newCardVwnewCard"/>
+                                    </bm:selectCard>
+                                    <h:outputFormat id="newCardError" value="#{lblMsg.value_request}"
+                                                    styleClass="errorMarker"
+                                                    style="display:none;" rendered="#{MbLotteryTickets.newMode}">
+                                        <f:param name="fieldName" value="newCard"/>
+                                    </h:outputFormat>
+                                </h:panelGrid>
+
+                                <h:outputLabel value="#{lblIss.ticket_number}: " title="#{lblIss.ticket_number}"/>
+                                <h:panelGrid id="newTicketNumberWrapper" cellpadding="0" cellspacing="0" columns="1">
+                                    <h:inputText id="newTicketNumber"
+                                                 value="#{MbLotteryTickets.newLottetyTicket.ticketNumber}"
+                                                 disabled="#{MbLotteryTickets.editMode || MbLotteryTickets.viewMode}"/>
+                                </h:panelGrid>
+
+                                <h:outputLabel value="#{lblCommon.status}: " title="#{lblCommon.status}"/>
+                                <h:panelGrid id="newStatusWrapper" cellpadding="0" cellspacing="0" columns="1">
+                                    <h:selectOneMenu id="newStatus"
+                                                     value="#{MbLotteryTickets.newLottetyTicket.status}"
+                                                     label="#{lblCommon.status}">
+                                        <f:selectItem itemValue=""/>
+                                        <f:selectItems value="#{MbLotteryTickets.ticketStatuses}"/>
+                                    </h:selectOneMenu>
+                                </h:panelGrid>
+                            </h:panelGrid>
+                        </h:panelGroup>
+
+                        <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                            <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                                <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                                    <h:outputText/>
+                                    <bre:taggedCommandButton id="saveBtn"
+                                                             value="#{lblForm.save}"
+                                                             type="submit"
+                                                             action="#{MbLotteryTickets.save}"
+                                                             reRender="lotteryTicketsForm"
+                                                             onclick="if (!checkLotteryTicketFields()) return false;
+                                                                      disableModalPanelBtns(this)"
+                                                             oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse})
+                                                                         #{rich:component('addEditLotteryTicketModalPanel')}.hide()"/>
+                                    <bre:taggedCommandButton id="cancelBtn"
+                                                             value="#{lblForm.cancel}"
+                                                             action="#{MbLotteryTickets.cancel}"
+                                                             immediate="true" limitToList="true"
+                                                             oncomplete="#{rich:component('addEditLotteryTicketModalPanel')}.hide()"/>
+                                </h:panelGrid>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                    </h:form>
+                </h:panelGroup>
+            </rich:modalPanel>
+
+            <rich:modalPanel id="removeLotteryTicketModalPanel" autosized="true" minWidth="250">
+                <f:facet name="header">
+                    <h:panelGroup>
+                        <h:outputText value="#{lblIss.confirm_remove_ticket}" title="#{lblIss.confirm_remove_ticket}"/>
+                    </h:panelGroup>
+                </f:facet>
+                <f:facet name="controls"/>
+
+                <h:panelGroup id="removeLotteryTicketModalDiv">
+                    <h:form id="removeLotteryTicketForm">
+                        <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                            <h:panelGroup styleClass="cardholderdata" width="100%">
+                                <h:outputText value="#{lblMsg.confirm_delete}" title="#{lblMsg.confirm_delete}"
+                                              style="padding-left: 10px;"/>
+                            </h:panelGroup>
+                        </h:panelGroup>
+
+                        <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                            <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                                <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                                    <h:outputText/>
+                                    <bre:taggedCommandButton id="confirmRemoveBtn"
+                                                             value="#{lblForm.ok}"
+                                                             type="submit"
+                                                             action="#{MbLotteryTickets.deleteLotteryTicket}"
+                                                             reRender="lotteryTicketsForm"
+                                                             onclick="disableModalPanelBtns(this)"
+                                                             oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse})
+                                                                         #{rich:component('removeLotteryTicketModalPanel')}.hide()"/>
+                                    <bre:taggedCommandButton id="cancelRemoveBtn"
+                                                             value="#{lblForm.cancel}"
+                                                             action="#{MbLotteryTickets.cancel}"
+                                                             immediate="true" limitToList="true"
+                                                             oncomplete="#{rich:component('removeLotteryTicketModalPanel')}.hide()"/>
+                                </h:panelGrid>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                    </h:form>
+                </h:panelGroup>
+            </rich:modalPanel>
+        </ui:define>
+    </ui:composition>
+</html>

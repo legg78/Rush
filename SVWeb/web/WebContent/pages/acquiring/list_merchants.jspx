@@ -1,0 +1,738 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:my="http://mycompany.org/inputDate"
+		xmlns:o="http://openfaces.org/"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+    
+    	<link rel="stylesheet" type="text/css" href="#{facesContext.externalContext.requestContextPath}/css/stretch.css" />
+		<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/stretch.js" />
+    	
+    	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+		<f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+		<f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost"/>
+		<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+		<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+        <f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+        <f:loadBundle var="lblReport" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+		<f:loadBundle var="lblAup" basename="ru.bpc.sv2.ui.bundles.Aup" />
+		
+		<a4j:outputPanel ajaxRendered="true">
+			<o:loadBundle var="lblPrdQ" basename="ru.bpc.sv2.ui.bundles.Prd" />
+		</a4j:outputPanel>
+			
+		<script type="text/javascript">
+//<!--
+		function checkInst() {
+			var instIdEl = document.getElementById("merchantsSearchForm:instId");
+			if (instIdEl.value == null || instIdEl.value == "") {
+				instIdEl.style.backgroundColor = "#FF9999";
+				instIdEl.focus();
+				return false;
+			} else {
+				instIdEl.style.backgroundColor = "#FFFFFF";
+			}
+			return true;
+		}
+		function selectTab(tabName) {
+			submittingTab = tabName;
+			if (checkTabLoaded(tabName)) {
+				//set only tab name to managed bean (in order to use it in the future)
+				setTabName(tabName);
+				return false;
+			}
+			refreshTab(tabName);
+			return true;
+		}
+		
+		function handleEnter(event) {
+			 if (event.keyCode == 13) { 
+				 document.getElementById('merchantsSearchForm:searchBtn').click(); 
+				 return false; 
+			} 
+			return true;
+		 }
+		//-->
+		</script>
+		
+		<!-- navigation bar -->
+        <bpct:navBar pageName="#{lblAcq.merchants}"/>
+        <bpct:filterBarModalPanels id="filterPanels"
+			rerenderList="merchantsSearchForm, merchantsTreeTable, btnPanelForm, save_filter_panel_div, #{MbMerchant.tabName}"
+			selectedFilter="#{MbMerchant.selectedSectionFilter}"
+			sectionFilter="#{MbMerchant.sectionFilter}"
+			sectionFilterModeEdit="#{MbMerchant.sectionFilterModeEdit}"
+			searchAutomatically="#{MbMerchant.searchAutomatically}"
+			sectionId="#{MbMerchant.sectionId}"
+			beanName="MbMerchant" />
+        
+        <bpct:customerSearchModalPanels id="custSearchPanels"/> 
+           
+		<h:form id="merchantsSearchForm" onkeypress="return handleEnter(event)">			
+			<h:inputHidden value="#{MbMerchant.tabName}"
+				id="tabNameInput" />
+			<script type="text/javascript">
+				load("merchantsSearchForm:tabNameInput");
+			</script>
+
+			<a4j:jsFunction name="refreshTab" eventsQueue="queue1"
+				limitToList="true" ajaxSingle="true"
+				reRender="#{MbMerchant.tabName}, err_ajax"
+				action="#{MbMerchant.loadCurrentTab}"
+				oncomplete="setTabLoaded(submittingTab); updateHeight();">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbMerchant.tabName}" />
+			</a4j:jsFunction>
+
+			<a4j:jsFunction name="setTabName" reRender="#{MbMerchant.tabName}, err_ajax"
+				limitToList="true" ajaxSingle="true"
+				oncomplete="setTabLoaded(submittingTab); updateHeight()">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbMerchant.tabName}" />
+			</a4j:jsFunction>
+
+			<a4j:queue name="queue1" requestDelay="500" ignoreDupResponses="true"
+				size="1" sizeExceededBehavior="dropNew" />
+			
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+		                <h:panelGroup styleClass="search_block_left" layout="block">
+		                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+			                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+	
+		                			<h:outputLabel value="#{lblOst.institution}:" title="#{lblOst.institution}" />
+					      			<h:selectOneMenu id="instId" label="#{lblOst.institution}"
+					      						value="#{MbMerchant.filter.instId}" required="true">
+					      				<f:selectItem itemValue=""/>
+					      				<f:selectItems value="#{MbMerchant.institutions}"/>
+					      				<a4j:support event="onchange" limitToList="true"
+											oncomplete="document.getElementById('merchantsSearchForm:instId').focus();"
+											ajaxSingle="true" />
+					      			</h:selectOneMenu>
+	
+		                			<h:outputLabel value="#{lblCommon.status}:" title="#{lblCommon.status}" />
+					      			<h:selectOneMenu id="statusSelector" value="#{MbMerchant.filter.status}">
+					      				<f:selectItem itemValue=""/>
+					      				<f:selectItems value="#{MbMerchant.merchantStatuses}"/>
+					      			</h:selectOneMenu>
+					      			
+					      			<h:outputLabel value="#{lblAcq.merchant_number}" title="#{lblAcq.merchant_number}" />
+					      			<h:inputText value="#{MbMerchant.filter.merchantNumber}"/>
+
+		                			<h:outputLabel value="#{lblCommon.type}:" title="#{lblCommon.type}" />
+					      			<h:selectOneMenu value="#{MbMerchant.filter.merchantType}">
+					      				<f:selectItem itemValue=""/>
+					      				<f:selectItems value="#{MbMerchant.merchantTypes}"/>
+					      			</h:selectOneMenu>
+
+					      			<h:outputLabel value="#{lblPrd.customer_number}" title="#{lblPrd.customer_number}" />
+					      			<bm:selectCustomer 
+					      				valueId="#{MbMerchant.filter.customerId}"
+										valueNumber="#{MbMerchant.filter.customerNumber}"
+										custInfoField="#{MbMerchant.filter.custInfo}"
+										beanName="MbMerchant" 
+										modalPanel="customerSearchModalPanel"
+										formName="merchantsSearchForm"
+										searchButton="searchBtn"
+										rerenderList="merchantsSearchForm:instId"
+										manualInput="true"
+                                        disabled="false" rendered="true"/>
+
+					      			<h:outputLabel value="#{lblCommon.company_name}" title="#{lblCommon.company_name}" />
+					      			<h:inputText value="#{MbMerchant.filter.companyName}"/>
+			                	</h:panelGrid>
+			                	<h:panelGrid columns="1" >
+			                		<bre:taggedCommandButton
+			                				id="searchBtn" 
+			                				image="/_img/icon_search.png" type="submit"
+			                				value="#{lblForm.search}" style="width:85px;"
+			                				onclick="if (!checkInst()) return false; checkCustNumber('merchantsSearchForm'); disableModalPanelBtns(this);"
+			                				action="#{MbMerchant.searchMerchants}" oncomplete="enableModalPanelBtns(this); updateHeight();"
+			                				reRender="merchantsForm:merchantsTreeTable
+			                						, btnPanelForm, #{MbMerchant.tabName}"
+			                				eventsQueue="queue"/>
+			                		<h:panelGrid columns="1" >
+				                		<h:panelGroup styleClass="link-clear" layout="block"  >
+				                			<h:graphicImage url="/_img/icon_clear.png"/>
+				                			<a4j:commandLink value="#{lblForm.clear_all}" oncomplete="updateHeight();"
+				                					action="#{MbMerchant.clearFilter}" ajaxSingle="true"
+				                					reRender="merchantsSearchForm, merchantsForm, btnPanelForm, details">
+				                			</a4j:commandLink>
+				                		</h:panelGroup>
+				                		<h:panelGroup>
+				            	    		<bpct:filterBar sectionId="#{MbMerchant.sectionId}"/>
+										</h:panelGroup>
+									</h:panelGrid>
+			                	</h:panelGrid>
+		                	</h:panelGrid>
+		                	<a4j:outputPanel ajaxRendered="true">
+		                		<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                		<h:panelGroup styleClass="collapse-vert" layout="block"/>
+		                	</a4j:outputPanel>
+		                </h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="merchantsForm">
+		
+		<a4j:jsFunction name="rerenderContextMenuMerch" reRender="merchCtxForm:merchCtxMenu"
+			oncomplete="#{rich:component('merchCtxForm:merchCtxMenu')}.doShow(savedEvent, {});">
+			<a4j:actionparam name="param1" assignTo="#{MbMerchant.ctxItemEntityType}"/> 
+		</a4j:jsFunction>
+		
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+					<h:panelGroup id="mainTableWrapper" layout="block"
+								styleClass="search_result_block_tree_inner">
+						<o:treeTable id="merchantsTreeTable" var="merchant"
+								expansionState="allExpanded"
+								sortColumnId="shortDesc"
+								headerHorizSeparator="1px solid #D7DAC2"
+								headerVertSeparator="1px solid #D7DAC2"
+								headerSectionClass="res-tree-table-header"
+								commonHeaderRowClass="res-tree-table-header"
+								sortableHeaderClass="res-tree-table-header"
+								sortedColumnHeaderClass="res-tree-table-header"
+								sortableHeaderRolloverClass="res-tree-table-header"
+								styleClass="res-tree-table"
+								bodyOddRowClass="res-tree-table-row odd-tree-table"
+								bodyRowClass="res-tree-table-row"
+								verticalGridLines="1px solid #D7DAC2"
+								cellpadding="0" cellspacing="0"
+								preloadedNodes="all" 
+								style="height: 255px">
+							<o:scrolling/>
+							<o:columnResizing minColWidth="50px" />
+							<o:row onmousedown="handleMouseClick(event)"
+									onmouseup="if (showMenuForTree(this, 'merchantsForm:merchantsTreeTable', true, event)){rerenderContextMenuMerch('ENTTMRCH');}"
+									styleClass="treeRow#{item.modelId}">
+							</o:row>
+							
+							<f:facet name="noDataMessage">
+							  	<h:panelGroup>
+							       <h:outputText value="#{lblCommon['no_records_found']}" rendered="#{MbMerchant.searching}"/>
+							       <h:outputText value="#{lblCommon['enter_search_criteria_above']}" rendered="#{!MbMerchant.searching}"/>
+								</h:panelGroup>
+							</f:facet>
+																	
+				       		<o:dynamicTreeStructure nodeChildren="#{MbMerchant.nodeChildren}" 
+				       				nodeHasChildren="#{MbMerchant.nodeHasChildren}" 
+				       				nodeKey="#{merchant.id}"/>
+	
+						    <o:singleNodeSelection nodePath="#{MbMerchant.nodePath}"
+						          	nodeData="#{MbMerchant.node}"
+			          				keyboardSupport="false"
+			          				styleClass="treetable_selection"
+			          				>
+								<a4j:support event="onchange" oncomplete="updateHeight();" eventsQueue="queue"
+			                    		reRender="btnPanelForm, #{MbMerchant.tabName}" />
+			          		</o:singleNodeSelection>
+			          		
+			          		<o:treeColumn id="id" sortingExpression="#{merchant.id}" width="8%">
+						      	<f:facet name="header">
+						      		<h:panelGroup>
+			                      		<script>
+			                      			updateHeight();
+			                      		</script>
+			                          	<h:outputText value="#{lblCommon.id}"/>
+			                        </h:panelGroup>
+	                            </f:facet>
+						      	<bm:entityDisplay  value="#{merchant.id}"  description="#{merchant.id}" styleClass="treeTableText" 
+						      		bean="MbMerchant" contextType="ENTTMRCH"/>
+						    </o:treeColumn>
+	
+							<o:column id="merchantNumber" sortingExpression="#{merchant.merchantNumber}" width="12%">
+						      	<f:facet name="header">
+						      		<h:panelGroup>
+			                          	<h:outputText value="#{lblAcq.merchant_number}"/>
+			                        </h:panelGroup>
+	                            </f:facet>
+						      	<bm:entityDisplay  value="#{merchant.merchantNumber}"  description="#{merchant.merchantNumber}" styleClass="treeTableText" 
+						      		bean="MbMerchant" contextType="ENTTMRCH"/>
+						    </o:column>
+						    
+						    <o:column id="label" styleClass="res-tree-table-cell" 
+						    		sortingExpression="#{merchant.merchantName}" width="26%">
+						    	<f:facet name="header">
+						        	<h:outputText value="#{lblAcq.merchant_name}"/>
+						      	</f:facet>
+						      	<bm:entityDisplay  value="#{merchant.merchantName}"  description="#{merchant.merchantName}" styleClass="treeTableText" 
+						      		bean="MbMerchant" contextType="ENTTMRCH"/>
+						    </o:column>
+	
+						    <o:column id="type" styleClass="res-tree-table-cell" 
+						    		sortingExpression="#{merchant.merchantType}" width="12%">
+						      	<f:facet name="header">
+						        	<h:outputText value="#{lblCommonQ.type}"/>
+						      	</f:facet>
+						      	<bm:entityDisplay  value="#{DictUtils.articles[merchant.merchantType]}"  description="#{DictUtils.articles[merchant.merchantType]}" styleClass="treeTableText" 
+						      		bean="MbMerchant" contextType="ENTTMRCH"/>
+						    </o:column>
+	
+						    <o:column id="status" styleClass="res-tree-table-cell" 
+						    		sortingExpression="#{merchant.status}" width="8%">
+						      	<f:facet name="header">
+						        	<h:outputText value="#{lblCommonQ.status}"/>
+						      	</f:facet>
+						      	<bm:entityDisplay  value="#{DictUtils.articles[merchant.status]}"  description="#{DictUtils.articles[merchant.status]}" styleClass="treeTableText" 
+						      		bean="MbMerchant" contextType="ENTTMRCH"/>
+						    </o:column>
+	
+						    <o:column id="companyName" styleClass="res-tree-table-cell"
+									sortingExpression="#{merchant.companyName}" width="19%">
+						      	<f:facet name="header">
+						        	<h:outputText value="#{lblCommonQ.company_name}"/>
+						      	</f:facet>
+						      	<bm:entityDisplay  value="#{merchant.companyName}"  description="#{merchant.companyName}" styleClass="treeTableText" 
+						      		bean="MbMerchant" contextType="ENTTCOMP"/>
+						    </o:column>
+	
+						    <o:column id="customerNumber" styleClass="res-tree-table-cell" 
+						    		sortingExpression="#{merchant.customerNumber}" width="15%">
+						      	<f:facet name="header">
+						        	<h:outputText value="#{lblPrdQ.customer_number}"/>
+						      	</f:facet>
+						      	<bm:entityDisplay  value="#{merchant.customerNumber}"  description="#{merchant.customerNumber}" styleClass="treeTableText" 
+						      		bean="MbMerchant" contextType="ENTTCUST"/>
+						    </o:column>
+						</o:treeTable>
+					</h:panelGroup>
+					
+					<a4j:outputPanel ajaxRendered="true">
+						<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tree-tab" layout="block"/>
+		            	<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+				    	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="btnPanelForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+					<h:panelGrid styleClass="buttons_block" columns="5" id="btnPanel">
+						<bre:taggedCommandButton id="backBtn" value="#{lblForm.back}"
+								action="#{MbMerchant.back}" rendered="#{MbMerchant.showBackBtn}"/>
+
+						<rich:spacer width="20px" rendered="#{MbMerchant.showBackBtn}"/>
+
+	                   	<bre:taggedCommandButton id="terminalsBtn" rendered="#{usession.inRole['VIEW_TERMINAL']}"
+                    			value="#{lblAcq.terminals}" action="#{MbMerchant.toTerminals}"
+                    			disabled="#{MbMerchant.node.id == null}"
+								/>
+		            	<bre:taggedCommandButton id="applBtn"
+	                      		value="#{lblAcq.applications}" disabled="#{MbMerchant.node.id == null}"
+	                      		action="#{MbMerchant.toApplications}"
+	                      		>
+	                      	<a4j:actionparam name="appType" value="acquiring" />
+	                    </bre:taggedCommandButton>
+  		            	<bre:taggedCommandButton id="reloadBtn"
+	            			disabled="#{MbMerchant.node.id == null}" rendered="#{usession.inRole['RELOAD_MERCHANT']}"
+	                   		value="#{lblForm.reload}"
+	                   		action="#{MbMerchant.reload}"
+	                   		reRender="synchronizationResultModalPanel"
+	                   		oncomplete="if (#{usession.noErrorResponse}) {#{rich:component('synchronizationResultModalPanel')}.show();}"/>
+					</h:panelGrid>
+                </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNext" requestDelay="500"/>
+
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+			<rich:tabPanel id="details"
+						   switchType="client"
+						   tabClass="tab-cell"
+						   activeTabClass="active-tab-cell"
+						   headerClass="tabs"
+						   headerSpacing="0px"
+						   contentClass="tab-content"
+						   selectedTab="#{MbMerchant.tabName}">
+
+				<rich:tab label="#{lblCommon.details}" name="detailsTab" onlabelclick="selectTab('detailsTab')">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+        			<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/acquiring/merchantDetails.jspx"/>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+	                </h:panelGroup>
+			    </rich:tab>
+
+			    <rich:tab label="Additional" name="flexFieldsTab" onlabelclick="selectTab('flexFieldsTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_FLEXIBLE_DATA']}"> 
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+        				</h:panelGroup>
+        			</f:facet>
+
+					<h:panelGroup id="flexFieldsTab" layout="block" styleClass="carddata-wrapper" style="height:100%;overflow: hidden;position:relative;">
+       						<ui:include src="#{MbMerchant.tabName=='flexFieldsTab' ? '/pages/common/flexible/flexFieldsTableBottom.jspx' : null}">
+       						</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+
+			    <rich:tab label="Accounts" name="accountsTab" onlabelclick="selectTab('accountsTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_ACCOUNT']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.accounts}" title="#{lblCommon.accounts}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="accountsTab" layout="block" styleClass="carddata-wrapper" style="height:100%;overflow: hidden;position:relative;">
+      						<ui:include src="#{MbMerchant.tabName=='accountsTab' ? '/pages/accounts/list_accounts_bottom.jspx' : null}">
+      						</ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+
+			    <rich:tab label="Addresses" name="addressesTab" onlabelclick="selectTab('addressesTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_ADDRESS']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.addresses}" title="#{lblCommon.addresses}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup layout="block" id="addressesTab" styleClass="carddata-wrapper" style="height:100%;overflow: hidden;position:relative;">
+						<ui:include src="#{MbMerchant.tabName=='addressesTab' ? '/pages/common/address/list_addresses.jspx' : null}"/>
+					</h:panelGroup>
+			    </rich:tab>
+
+				<rich:tab label="Contacts" name="contactsTab" onlabelclick="selectTab('contactsTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_CONTACT']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.contacts}" title="#{lblCommon.contacts}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="contactsTab" layout="block" styleClass="carddata-wrapper" style="height:100%;overflow: hidden;position:relative;">
+        				<ui:include src="#{MbMerchant.tabName=='contactsTab' ? '/pages/contacts/contactsTableBottom.jspx' : null}"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+
+				<rich:tab label="Attributes" name="attrsTab" onlabelclick="selectTab('attrsTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_ATTRIBUTE_OBJECTS']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblPrd.service_terms}" title="#{lblPrd.service_terms}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="attrsTab" layout="block" styleClass="carddata-wrapper" style="height:100%;overflow: hidden;position:relative;">
+       					<ui:include src="#{MbMerchant.tabName=='attrsTab' ? '/pages/products/attributes/list_object_attributes.jspx' : null}"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+
+				<rich:tab label="Notes" name="notesTab" onlabelclick="selectTab('notesTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_NOTE']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper" style="height:100%;overflow: hidden;position:relative;">
+       						<ui:include src="#{MbMerchant.tabName=='notesTab' ? '/pages/notes/list_notes_bottom.jspx' : null}"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+
+				<rich:tab label="Limit counters" name="limitCountersTab" onlabelclick="selectTab('limitCountersTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_LIMIT_COUNTER']}">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblFcl.limit_counters}" title="#{lblFcl.limit_counters}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="limitCountersTab" layout="block" styleClass="carddata-wrapper" 
+        					style="height:100%;overflow: hidden;position:relative;">
+       					<ui:include src="#{MbMerchant.tabName=='limitCountersTab' ? '/pages/fee_cycle_limit/limits/listLimitCounters.jspx' : null}">
+       					</ui:include>
+        			</h:panelGroup>
+        		</rich:tab>
+
+				<rich:tab label="Cycle counters" name="cycleCountersTab" onlabelclick="selectTab('cycleCountersTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_CYCLE_COUNTER']}">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblFcl.cycle_counters}" title="#{lblFcl.cycle_counters}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="cycleCountersTab" layout="block" styleClass="carddata-wrapper" 
+        					style="height:100%;overflow: hidden;position:relative;">
+       					<ui:include src="#{MbMerchant.tabName=='cycleCountersTab' ? '/pages/fee_cycle_limit/cycles/listCycleCounters.jspx' : null}">
+       					</ui:include>
+        			</h:panelGroup>
+        		</rich:tab>
+
+				<rich:tab label="Customer" name="customerTab" rendered="#{usession.inRole['VIEW_CUSTOMERS']}" onlabelclick="selectTab('customerTab')" >
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblPrd.customer}" title="#{lblPrd.customer}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="customerTab" layout="block">
+       					<ui:include src="#{MbMerchant.tabName=='customerTab' ? '/pages/products/customerDetails.jspx' : null}">
+       						<ui:param name="customersBean" value="#{MbCustomersDependent}"/>
+       					</ui:include>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+        			</h:panelGroup>
+        		</rich:tab>
+
+				<rich:tab label="Schemes" name="schemesTab" onlabelclick="selectTab('schemesTab')" style="height:100%;" rendered="#{usession.inRole['VIEW_ACQ_ACCOUNT_SCHEME']}">
+	                <f:facet name="label">
+	                    <h:panelGroup styleClass="tab-label" layout="block">
+	                        <h:outputText value="#{lblAup.schemes}" title="#{lblAup.schemes}"/>
+	                    </h:panelGroup>
+	                </f:facet>
+	                <h:panelGroup id="schemesTab" layout="block" styleClass="carddata-wrapper"
+	                              style="height: 100%;overflow:hidden;position:relative;">
+	                    <ui:include src="#{MbMerchant.tabName=='schemesTab' ? '/pages/aup/list_scheme_object.jspx' : null}">
+	                    </ui:include>
+	                </h:panelGroup>
+	            </rich:tab>
+
+				<rich:tab label="Terminals" name="terminalsTab" rendered="#{usession.inRole['VIEW_TERMINAL']}"
+                         onlabelclick="selectTab('terminalsTab')" style="height:100%;">
+
+                   <f:facet name="label">
+                       <h:panelGroup styleClass="tab-label" layout="block">
+                           <h:outputText value="#{lblAcq.terminals}"
+                                         title="#{lblAcq.terminals}" />
+                       </h:panelGroup>
+                   </f:facet>
+                   <h:panelGroup id="terminalsTab" layout="block"
+                                 styleClass="carddata-wrapper"
+                                 style="height: 100%; overflow: hidden;position:relative;">
+                       <h:panelGroup id="terminalsTabContents">
+                           <ui:include src="#{MbMerchant.tabName=='terminalsTab' ? '/pages/acquiring/terminals/list_terminals_bottom.jspx' : null}"></ui:include>
+                       </h:panelGroup>
+                   </h:panelGroup>
+                </rich:tab>
+
+				<rich:tab label="Reports" style="height:100%;" onlabelclick="selectTab('reportTab')" name="reportTab" rendered="#{usession.inRole['VIEW_REPORT']}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblReport.reports}"
+								title="#{lblReport.reports}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="reportTab" style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include
+								src="#{MbMerchant.tabName=='reportTab' ? '/pages/reports/list_entity_report_bottom.jspx' : null}" />
+						</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Cards"
+						  onlabelclick="selectTab('cardsTab')"
+						  name="cardsTab"
+						  rendered="#{usession.inRole['VIEW_CARDS']}"
+						  style="height:100%;" >
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblApp.cards}" title="#{lblApp.cards}"/>
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="cardsTab"
+								  layout="block"
+								  styleClass="carddata-wrapper"
+								  style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+								src="#{MbMerchant.tabName=='cardsTab' ? '/pages/acquiring/list_merchant_cards_bottom.jspx' : null}" />
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Info" id="_info" style="height:100%;" onlabelclick="selectTab('info')" rendered="#{usession.inRole['VIEW_ENTITY_OBJECT_INFO']}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblRul.info}"
+								title="#{lblRul.info}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="info" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="#{MbMerchant.tabName=='info' ? '/pages/reports/list_entity_object_info.jspx' : null}" />
+					</h:panelGroup>
+				</rich:tab>		
+
+		    </rich:tabPanel>
+		</h:panelGroup>
+
+		<rich:modalPanel id="messagePanel" autosized="true" minWidth="200" minHeight="100">
+	      	<f:facet name="header">
+	        	<h:outputText value="Message" />
+	        </f:facet>
+	  	    <f:facet name="controls">
+	      	</f:facet>
+			<h:form>
+	           	<div style="width:100%;text-align:right">
+				<a4j:commandLink value="Close" onclick="#{rich:component('messagePanel')}.hide()"/>
+				</div>
+	        </h:form>
+		</rich:modalPanel>
+
+		<h:form id="merchCtxForm">
+			<rich:contextMenu id="merchCtxMenu" attached="false"
+				submitMode="ajax" disableDefaultMenu="true"
+				selectItemClass="selected-menu-item">
+				<c:forEach items="#{MbMerchant.ctxType.menuItems}"
+					var="ctxItem">
+					<rich:menuItem value="#{ctxItem.label}"
+						action="#{MbMerchant.ctxType.ctxPageForward}"
+						rendered="#{ctxItem.actionItem and MbMerchant.ctxItemEntityType != 'ENTTMRCH'}">
+						<f:setPropertyActionListener value="#{ctxItem}"
+							target="#{MbMerchant.ctxType.selectedCtxItem}" />
+					</rich:menuItem>
+					<rich:menuItem value="#{ctxItem.label}"
+						action="#{MbMerchant.ctxType.initCtxParams}"
+						oncomplete="Richfaces.showModalPanel('contextMenuModalPanel:#{MbContextMenu.actionParams[ctxItem.action]['panelName']}');"
+						rendered="#{ctxItem.modalItem}"
+						reRender="contextMenuModalPanel">
+						<f:setPropertyActionListener value="#{ctxItem}"
+							target="#{MbMerchant.ctxType.selectedCtxItem}" />
+					</rich:menuItem>
+					<rich:menuGroup value="#{ctxItem.label}" rendered="#{ctxItem.group}">
+						<c:forEach items="#{ctxItem.children}" var="innerItem">
+							<rich:menuItem value="#{innerItem.label}"
+								action="#{MbMerchant.ctxType.ctxPageForward}"
+								rendered="#{innerItem.actionItem}">
+								<f:setPropertyActionListener value="#{innerItem}"
+									target="#{MbMerchant.ctxType.selectedCtxItem}" />
+							</rich:menuItem>
+							<rich:menuItem value="#{innerItem.label}"
+								action="#{MbMerchant.ctxType.initCtxParams}"
+								oncomplete="Richfaces.showModalPanel('contextMenuModalPanel:#{MbContextMenu.actionParams[innerItem.action]['panelName']}');"
+								rendered="#{innerItem.modalItem}"
+								reRender="contextMenuModalPanel">
+								<f:setPropertyActionListener value="#{innerItem}"
+									target="#{MbMerchant.ctxType.selectedCtxItem}" />
+							</rich:menuItem>
+						</c:forEach>
+					</rich:menuGroup>
+				</c:forEach>
+			</rich:contextMenu>
+		</h:form>
+
+		<ui:include src="/pages/acquiring/terminals/synchronizationResultModalPanel.jspx">
+			<ui:param name="bean" value="#{MbMerchant}"/>
+		</ui:include>
+		
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.css" style and "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel" и layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+			
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'merchantsSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'merchantsForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'btnPanelForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'merchantDetails',
+	                                    TAB_FORM_WRAPPER_ID:    'merchantDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'flexDataForm',
+	                                    TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'accountsBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'accountsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'addressesBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'addressesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'contactsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomContactsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'contactDatasForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomContactDatasTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'attrsTreeForm',
+	                                    TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'attrValuesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'attrValuesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'notesBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'limitCountersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'countersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'cycleCountersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'countersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'customerDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'customerDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'schemesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'schemesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'terminalsBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'terminalsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'reportForm',
+	                                    TAB_FORM_WRAPPER_ID:    'reportTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'merchantCardsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'merchantCardsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'entityObjectInfoForm',
+	                                    TAB_FORM_WRAPPER_ID:    'entityObjectInfoWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }] 
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>
+    </ui:define>
+</ui:composition>
+</html>

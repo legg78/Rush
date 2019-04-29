@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+         xmlns:f="http://java.sun.com/jsf/core"
+         xmlns:h="http://java.sun.com/jsf/html"
+         xmlns:ui="http://java.sun.com/jsf/facelets"
+         xmlns:a4j="http://richfaces.org/a4j"
+         xmlns:rich="http://richfaces.org/rich"
+         xmlns:bm="http://www.bpc.ru/jsf/misc"
+         xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+         xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition>
+    <f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+    <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+    <f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+    <f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form"/>
+
+    <a4j:loadScript src="/js/calendarUtils.js"/>
+    <rich:calendar buttonIcon="/images/calendar.gif" id="dueDateCalendar"
+                   datePattern="#{usession.datePattern}"  timeZone="#{CommonUtils.timeZone}"
+                   onchanged="#{rich:component('dueDateCalendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+                   zindex="1000" inputClass="hidden" buttonClass="hidden"/>
+    <script>
+        #{rich:component('calendar')}.customExpand=customExpand;
+    </script>
+
+    <rich:modalPanel id="appCheckDueDateWindow" autosized="true" minWidth="400" minHeight="50">
+        <f:facet name="header">
+            <h:outputText value="#{lblApp.check_due_date}"/>
+        </f:facet>
+        <f:facet name="controls"/>
+        <h:form id="appCheckDueDateWindowForm">
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="width25, width70">
+                    <h:outputLabel for="ddtDisputeCase" value="Dispute action:" />
+                    <h:panelGroup layout="block">
+                        <h:selectOneMenu id="ddtDisputeCase" value="#{MbDspApplications.disputeAction}">
+                            <f:selectItem itemValue="" />
+                            <f:selectItems value="#{MbDspApplications.dueDateTypesOfDisputeCases}" />
+                            <a4j:support reRender="appCheckDueDateWindowForm, ddtDisputeCase, rcLabel,
+                                                   rcGroup, reasonCode, checkDueDateBtn, chargebackWarning,
+                                                   fraudWarning, dueDateWarning"
+                                         event="onchange" ajaxSingle="true" limitToList="true" />
+                        </h:selectOneMenu>
+                    </h:panelGroup>
+
+                    <h:outputLabel id="rcLabel" for="reasonCode" value="Reason code:" rendered="#{MbDspApplications.disputeAction == 'MSGTCHBK'}" />
+                    <h:panelGroup id="rcGroup" layout="block" rendered="#{MbDspApplications.disputeAction == 'MSGTCHBK'}">
+                        <h:selectOneMenu id="reasonCode" value="#{MbDspApplications.reasonCode}">
+                            <f:selectItem itemValue="" />
+                            <f:selectItems value="#{MbDspApplications.reasonCodes}" />
+                        </h:selectOneMenu>
+                    </h:panelGroup>
+
+                    <h:outputLabel for="appCheckDueDateResultDate" value="#{lblCrd.due_date}: " title="#{lblCrd.due_date}"
+                                   style="font-weight: bold; white-space: nowrap;"/>
+                    <h:inputText id="appCheckDueDateResultDate" value="#{MbDspApplications.dueDate}"
+                                 readonly="true" style="color: #{(MbDspApplications.dueDate == 'Due date is not defined') ? '#ff0000' : '#000000'}"/>
+
+                </h:panelGrid>
+
+                <h:outputText id="chargebackWarning" value="#{lblMsg.CHARGEBACK_WARNING}" style="color: #ff0000"
+                              rendered="#{MbDspApplications.renderAttentionMessage('chargebackWarning')}" />
+
+                <h:outputText id="fraudWarning" value="#{lblMsg.FRAUD_WARNING}" style="color: #ff0000"
+                              rendered="#{MbDspApplications.renderAttentionMessage('fraudWarning')}" />
+
+                <h:outputText id="dueDateWarning" value="#{lblMsg.due_date_warning}" style="color: #ff0000"
+                              rendered="#{MbDspApplications.renderAttentionMessage('dueDateWarning')}" />
+            </h:panelGroup>
+
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,">
+                        <h:outputText />
+                        <bre:taggedCommandButton id="checkDueDateBtn" value="#{lblApp.check_due_date}"
+                                                 action="#{MbDspApplications.checkDueDate}"
+                                                 reRender="appCheckDueDateResultDate"/>
+                        <bre:taggedCommandButton id="exitDueDateBtn" value="#{lblForm.close}"
+                                                 immediate="true"
+                                                 onclick="#{rich:component('appCheckDueDateWindow')}.hide()"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </rich:modalPanel>
+
+    <rich:modalPanel id="appSetDueDateWindow" autosized="true" minWidth="200" minHeight="50" zindex="2">
+        <f:facet name="header">
+            <h:outputText value="#{lblApp.set_due_date}"/>
+        </f:facet>
+        <f:facet name="controls"/>
+        <h:form id="appSetDueDateWindowForm" style="width: 350px;">
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+                    <h:outputLabel for="newDueDate" value="#{lblApp.new_due_date}* :" title="#{lblApp.new_due_date}"
+                                   style="font-weight: bold; white-space: nowrap;"/>
+                    <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+                        <rich:calendar id="newDueDate" buttonIcon="/images/calendar.gif" inputStyle="max-width:225px"
+                                       datePattern="#{usession.fullDatePattern}" reRender="setDueDateBtn, newDueDate"
+                                       value="#{MbDspApplications.newDueDate}">
+                            <a4j:support event="onchanged" reRender="setDueDateBtn"/>
+                        </rich:calendar>
+                    </h:panelGrid>
+                </h:panelGrid>
+            </h:panelGroup>
+
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,">
+                        <h:outputText />
+                        <bre:taggedCommandButton id="setDueDateBtn" value="#{lblForm.ok}"
+                                                 action="#{MbDspApplications.setDueDate}"
+                                                 disabled="#{MbDspApplications.newDueDate == null}"
+                                                 oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) { #{rich:component('appSetDueDateWindow')}.hide()}"
+                                                 reRender="{rerenderList}"/>
+                        <bre:taggedCommandButton id="exitNewDueDateBtn" value="#{lblForm.cancel}"
+                                                 immediate="true"
+                                                 onclick="#{rich:component('appSetDueDateWindow')}.hide()"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </rich:modalPanel>
+</ui:composition>
+</html>

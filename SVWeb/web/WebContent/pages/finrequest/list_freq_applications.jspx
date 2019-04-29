@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--suppress ELMethodSignatureInspection -->
+<html	xmlns="http://www.w3.org/1999/xhtml"
+         xmlns:f="http://java.sun.com/jsf/core"
+         xmlns:h="http://java.sun.com/jsf/html"
+         xmlns:ui="http://java.sun.com/jsf/facelets"
+         xmlns:a4j="http://richfaces.org/a4j"
+         xmlns:rich="http://richfaces.org/rich"
+         xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+         xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+
+        <f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+        <f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+        <f:loadBundle var="lblPmo" basename="ru.bpc.sv2.ui.bundles.Pmo"/>
+
+        <a4j:loadScript src="/js/stretch.js" />
+
+        <style type="text/css">
+            .status_succesfully {
+                background-color: #B2FFB2;
+            }
+            .status_failed {
+                background-color: #FFB2B2;
+            }
+        </style>
+
+        <!-- navigation bar -->
+        <bpct:navBar pageName="#{lblRul.freq_applications}"/>
+        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+        <script type="text/javascript">
+            //<![CDATA[
+            function selectTab(tabName) {
+                submittingTab = tabName;
+                if (checkTabLoaded(tabName)) {
+                    //set only tab name to managed bean (in order to use it in the future)
+                    setTabName(tabName);
+                    return false;
+                }
+                refreshTab(tabName);
+                return true;
+            }
+
+            function handleEnter(event) {
+                if (event.keyCode == 13) {
+                    document.getElementById('freqApplicationsSearchForm:searchBtn').click();
+                    return false;
+                }
+                return true;
+            }
+            //]]>
+        </script>
+
+        <a4j:loadScript src="/js/calendarUtils.js"/>
+
+        <h:form id="freqApplicationsSearchForm" onkeypress="handleEnter(event)">
+
+            <a4j:jsFunction name="refreshTab" eventsQueue="queue"
+                            requestDelay="500" limitToList="true" ajaxSingle="true"
+                            reRender="#{MbFreqApplications.tabName}, err_ajax"
+                            action="#{MbFreqApplications.loadCurrentTab}"
+                            oncomplete="setTabLoaded(submittingTab);updateHeight();">
+                <a4j:actionparam name="tabName"
+                                 assignTo="#{MbFreqApplications.tabName}" />
+            </a4j:jsFunction>
+
+            <a4j:jsFunction name="setTabName" reRender="err_ajax"
+                            limitToList="true" ajaxSingle="true"
+                            oncomplete="setTabLoaded(submittingTab)">
+                <a4j:actionparam name="tabName"
+                                 assignTo="#{MbFreqApplications.tabName}" />
+            </a4j:jsFunction>
+
+            <!-- search panel -->
+            <h:panelGroup styleClass="search_block" layout="block">
+                <h:panelGroup layout="block" styleClass="search_block_inner1">
+                    <h:panelGroup layout="block" styleClass="search_block_inner2">
+                        <h:panelGroup styleClass="search_block_left" layout="block">
+                            <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                <h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+                                    <h:outputLabel value="#{lblCommon.id}:" title="#{lblCommon.id}" />
+                                    <h:inputText id="applicationId" value="#{MbFreqApplications.filter.id}" />
+
+                                    <h:outputText value="#{lblCommon.date_from}:" title="#{lblCommon.date_from}" />
+                                    <rich:calendar buttonIcon="/images/calendar.gif" id="dateFrom" datePattern="#{usession.datePattern}" inputStyle="max-width:225px"
+                                                   value="#{MbFreqApplications.freqAppDateFrom}"/>
+
+									<h:outputLabel for="status" value="#{lblCommon.status}: " title="#{lblCommon.status}" />
+									<h:selectOneMenu id="status" value="#{MbFreqApplications.filter.status}" >
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbFreqApplications.statuses}"/>
+									</h:selectOneMenu>
+
+                                    <h:outputText value="#{lblCommon.date_to}:" title="#{lblCommon.date_to}" />
+                                    <rich:calendar buttonIcon="/images/calendar.gif" id="dateTo" datePattern="#{usession.datePattern}" inputStyle="max-width:225px"
+                                                   value="#{MbFreqApplications.freqAppDateTo}"/>
+
+                                    <h:outputLabel value="#{lblCommon.entity_type}:" title="#{lblCommon.entity_type}" />
+                                    <h:selectOneMenu id="entityType" value="#{MbFreqApplications.filter.entityType}">
+                                        <f:selectItem itemValue="" />
+                                        <f:selectItems value="#{MbFreqApplications.entityTypes}"/>
+                                    </h:selectOneMenu>
+
+                                    <h:outputLabel value="#{lblCommon.object_id}:" title="#{lblCommon.object_id}" />
+                                    <h:inputText id="objectId" value="#{MbFreqApplications.filter.objectId}" />
+
+                                </h:panelGrid>
+                                <h:panelGrid columns="1">
+                                    <bre:taggedCommandButton
+                                            action="#{MbFreqApplications.search}"
+                                            reRender="freqApplicationsForm:freqApplicationsTable, freqApplicationsBtnForm:dsFreqApplications,
+	        									freqApplicationsBtnForm:pagesNum, freqApplicationsBtnForm:btnPanel, detailsTab"
+                                            image="/_img/icon_search.png" type="submit"
+                                            value="#{lblForm.search}" style="width:85px;"
+                                            onclick="disableModalPanelBtns(this);"
+                                            id="searchBtn"
+                                            oncomplete="enableModalPanelBtns(this);"
+                                            eventsQueue="queue"/>
+                                    <h:panelGroup styleClass="link-clear" layout="block">
+                                        <h:graphicImage url="/_img/icon_clear.png"/>
+                                        <a4j:commandLink value="#{lblForm.clear_all}"
+                                                         action="#{MbFreqApplications.clearFilter}"
+                                                         reRender="freqApplicationsSearchForm, freqApplicationsForm, freqApplicationsBtnForm, detailsTab">
+                                        </a4j:commandLink>
+                                    </h:panelGroup>
+                                </h:panelGrid>
+                            </h:panelGrid>
+                            <a4j:outputPanel ajaxRendered="true">
+                                <h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+                                <h:panelGroup styleClass="collapse-vert" layout="block"/>
+                            </a4j:outputPanel>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <h:form id="freqApplicationsForm">
+            <h:panelGroup styleClass="search_result_block" layout="block">
+                <h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+                    <h:panelGroup id="mainTableWrapper" layout="block"
+                                  styleClass="search_result_block_inner">
+                        <rich:extendedDataTable
+                                id="freqApplicationsTable"
+                                tableState="#{MbFreqApplications.tableState}"
+                                styleClass="res-table"
+                                headerClass="res-table-header"
+                                rowClasses=",odd"
+                                selectedClass="res-table-selected"
+                                var="item"
+                                value="#{MbFreqApplications.freqApplications}"
+                                selection="#{MbFreqApplications.itemSelection}"
+                                rows="#{MbFreqApplications.rowsNum}"
+                                height="255px"
+                                selectionMode="single"
+                                width="100%"
+                                enableContextMenu="true"
+                                noDataLabel="#{MbFreqApplications.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+                                reRender="#{MbFreqApplications.tabName}, freqApplicationsBtnForm:btnPanel">
+                            <!--@elvariable id="item" type="ru.bpc.sv2.application.FreqApplication"-->
+
+                            <a4j:support event="onselectionchange" eventsQueue="queue" limitToList="true"
+                                         reRender="#{MbFreqApplications.tabName}, freqApplicationsBtnForm:btnPanel" />
+
+                            <rich:column id="id" label="#{lblCommon.id}" title="#{lblCommon.id}" sortBy="#{'id'}" width="10%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+                                </f:facet>
+                                <h:outputText value="#{item.id}" />
+                            </rich:column>
+                            <rich:column title="Flow name" width="20%" sortBy="#{'flowName'}"
+                                         id="col_flow" label="#{lblApp.flow}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblApp.flow}" title="#{lblApp.flow}" />
+                                </f:facet>
+                                <h:outputText value="#{item.flowName}" />
+                                <h:outputText value=": #{item.operType} #{DictUtils.allArticlesDesc[item.operType]}" rendered="#{!empty item.operType}"/>
+                            </rich:column>
+                            <rich:column id="oper_reason" label="#{lblOpr.oper_reason}" title="#{lblOpr.oper_reason}" sortBy="#{'oper_reason'}" width="15%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.oper_reason}" title="#{lblOpr.oper_reason}" />
+                                </f:facet>
+                                <h:outputText value="#{DictUtils.articles[item.operReason]}"/>
+                            </rich:column>
+                            <rich:column id="created" label="#{lblApp.created}" title="#{lblApp.created}" sortBy="#{'created'}" width="10%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblApp.created}" title="#{lblApp.created}" />
+                                </f:facet>
+                                <h:outputText value="#{item.created}" >
+                                    <f:convertDateTime pattern="#{usession.fullDatePatternSeconds}" timeZone="#{CommonUtils.timeZone}" />
+                                </h:outputText>
+                            </rich:column>
+                            <rich:column id="status" label="#{lblCommon.status}" title="#{lblCommon.status}" sortBy="#{'status'}" width="15%"
+                                         styleClass="#{(item.status == 'APST0012') ? 'status_succesfully' : (item.status == 'APST0013' ? 'status_failed' : '') }">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}" />
+                                </f:facet>
+                                <h:outputText  value="#{DictUtils.articles[item.status]}"/>
+                            </rich:column>
+
+                        </rich:extendedDataTable>
+                    </h:panelGroup>
+                    <a4j:outputPanel ajaxRendered="true">
+                        <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                        <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+                    </a4j:outputPanel>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+        <h:form id="freqApplicationsBtnForm">
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+                    <h:panelGroup layout="block" styleClass="table_tools">
+                        <h:panelGrid styleClass="fw field-cont" columns="5"
+                                     columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+                            <h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+                            <h:selectOneMenu id="rows_num" value="#{MbFreqApplications.rowsNum}" styleClass="row_per_page">
+                                <a4j:support event="onchange" reRender="freqApplicationsTable, dsFreqApplications, pagesNum, btnPanel, #{MbFreqApplications.tabName}"/>
+                                <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                            </h:selectOneMenu>
+
+                            <rich:datascroller maxPages="10" fastControls="hide"
+                                               pagesVar="pages" styleClass="res-datascroller"
+                                               id="dsFreqApplications" for="freqApplicationsForm:freqApplicationsTable"
+                                               page="#{MbFreqApplications.pageNumber}"
+                                               reRender="btnPanel, #{MbFreqApplications.tabName}">
+                                <f:facet name="first">
+                                    <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+                                </f:facet>
+                                <f:facet name="first_disabled">
+                                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+                                </f:facet>
+                                <f:facet name="last">
+                                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+                                </f:facet>
+                                <f:facet name="last_disabled">
+                                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+                                </f:facet>
+                                <f:facet name="previous">
+                                    <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+                                </f:facet>
+                                <f:facet name="previous_disabled">
+                                    <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+                                </f:facet>
+                                <f:facet name="next">
+                                    <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+                                </f:facet>
+                                <f:facet name="next_disabled">
+                                    <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+                                </f:facet>
+                                <f:facet name="pages">
+                                </f:facet>
+                            </rich:datascroller>
+
+                            <h:panelGroup id="pagesNum">
+                                <!--@elvariable id="pages" type="java.lang.Integer"-->
+                                <h:outputText styleClass="strongClass" value="#{pages} "/>
+                                <h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbFreqApplications.freqApplications.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                            </h:panelGroup>
+
+                            <h:panelGroup>
+                                <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+                                                onclick="saveTableState();"/>
+                                <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+                                                onclick="deleteTableState();"/>
+                                <a4j:queue name="tablestatequeue"/>
+                                <!--suppress ELMethodSignatureInspection -->
+                                <a4j:jsFunction name="saveTableState" action="#{MbFreqApplications.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+                                <!--suppress ELMethodSignatureInspection -->
+                                <a4j:jsFunction name="deleteTableState" action="#{MbFreqApplications.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+                            </h:panelGroup>
+                        </h:panelGrid>
+                    </h:panelGroup>
+
+                    <h:panelGrid id="btnPanel" columns="3" styleClass="buttons_block">
+                        <bre:taggedCommandButton id="btn_view"
+                                                 value="#{lblForm.view}"
+                                                 reRender="mainTable,btn_edit"
+                                                 action="#{MbFreqApplications.viewApp}"
+                                                 disabled="#{MbFreqApplications.activeFreqApplication == null}"
+                        />
+                        <bre:taggedCommandButton id="accept"
+                                                 reRender="appStatusWindow, freqApplicationsTable, btnPanel"
+                                                 value="#{lblRul.accept}"
+                                                 action="#{MbFreqApplications.accept}"
+                                                 disabled="#{MbFreqApplications.activeFreqApplication == null || MbFreqApplications.activeFreqApplication.status!='APST0011'}"
+                                                 rendered="#{usession.inRole['PROCESS_FIN_REQUESTS']}"/>
+                        <bre:taggedCommandButton id="reject"
+                                                 reRender="appStatusWindow, freqApplicationsTable, btnPanel"
+                                                 value="#{lblRul.reject}"
+                                                 action="#{MbFreqApplications.reject}"
+                                                 disabled="#{MbFreqApplications.activeFreqApplication == null || MbFreqApplications.activeFreqApplication.status!='APST0011'}"
+                                                 rendered="#{usession.inRole['PROCESS_FIN_REQUESTS']}"
+                                                 oncomplete="#{rich:component('appStatusWindow')}.show()"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <h:panelGroup layout="block" id="workplacePanel">
+            <rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+                           activeTabClass="active-tab-cell" headerClass="tabs"
+                           headerSpacing="0px" contentClass="tab-content" selectedTab="#{MbFreqApplications.tabName}">
+                <rich:tab label="Details" name="detailsTab">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="first tab-label" layout="block">
+                            <h:outputText value="#{lblCommon.details}"
+                                          title="#{lblCommon.details}" />
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="detailsTab" layout="block">
+                        <ui:include src="/pages/finrequest/freq_application_details.jspx" />
+                        <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+                    </h:panelGroup>
+                </rich:tab>
+                <rich:tab label="Operations" name="operationsTab" onlabelclick="selectTab('operationsTab')" style="height:100%;">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblIss.operations}" title="#{lblIss.operations}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="operationsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include src="#{MbFreqApplications.tabName=='operationsTab' ? '/pages/issuing/cards/list_operations_bottom.jspx' : null}">
+                            <ui:param name="hideSearchFields" value="true"/>
+                        </ui:include>
+                    </h:panelGroup>
+                </rich:tab>
+				<rich:tab ontabenter="selectTab('traceTab')"  label="Trace" name="traceTab" style="height:100%;" >
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblProcess.trace}" title="#{lblProcess.trace}"/>
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="traceTab" layout="block"
+								  styleClass="carddata-wrapper"
+								  style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+								src="#{MbFreqApplications.tabName=='traceTab' ? '/pages/processes/monitoring/list_process_trace.jspx' : null}">
+							<ui:param name="show_user_id" value="false"/>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+            </rich:tabPanel>
+        </h:panelGroup>
+
+        <ui:include src="/pages/utils/confirmPanel.jspx">
+            <ui:param name="backingBean" value="#{MbFreqApplications}"/>
+            <ui:param name="yesAction" value="delete"/>
+            <ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+            <ui:param name="rerenderList" value="freqApplicationsForm:freqApplicationsTable, freqApplicationsBtnForm:btnPanel, details"/>
+            <ui:param name="confirmQuestion" value=" "/>
+            <ui:param name="subviewId" value="deleteViewId"/>
+            <ui:param name="yes" value="#{lblForm.ok}"/>
+            <ui:param name="no" value="#{lblForm.cancel}"/>
+        </ui:include>
+
+        <rich:modalPanel id="appStatusWindow" autosized="true" minWidth="200" minHeight="50">
+            <f:facet name="header">
+                <h:outputText value="#{lblCommon.warning_label}"/>
+            </f:facet>
+            <f:facet name="controls"/>
+            <h:form id="appStatusWindowForm">
+                <h:panelGroup id="appStatusWindowPanel" style="padding-top:10px" layout="block">
+                    <h:outputText value="#{lblApp.app_status_change_comment}" style="padding: 0 10px" />
+
+                    <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                        <h:panelGrid columns="2"
+                                     styleClass="cardholderdata"
+                                     columnClasses="firstCol firstColModal, width250">
+
+                            <h:outputLabel value="#{lblApp.reject_reason}" rendered="#{MbFreqApplications.showReasons}"/>
+                            <h:selectOneMenu label="#{lblApp.reject_reason}" id="type" onblur="hideErrorField(this)"
+                                             value="#{MbFreqApplications.activeFreqApplication.rejectCode}" rendered="#{MbFreqApplications.showReasons}">
+                                    <f:selectItems value="#{MbFreqApplications.rejectCodes}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel value="#{lblApp.comments}:" id="commentLabel"/>
+                            <h:inputTextarea value="#{MbFreqApplications.activeFreqApplication.comment}" id="comment" rows="3" />
+                        </h:panelGrid>
+                    </h:panelGroup>
+
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                        <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                            <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                                <h:outputText />
+                                <bre:taggedCommandButton value="#{lblForm.save}"
+                                                         type="submit"
+                                                         disabled="#{!usession.noErrorResponse}]"
+                                                         action="#{MbFreqApplications.changeStatus}"
+                                                         reRender="freqApplicationsForm:freqApplicationsTable, btnPanel, detailsTab"
+                                                         onclick="disableModalPanelBtns(this);"
+                                                         oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}){#{rich:component('appStatusWindow')}.hide();}">
+                                </bre:taggedCommandButton>
+                                <bre:taggedCommandButton value="#{lblForm.cancel}"
+                                                         immediate="true"
+                                                         action="#{MbFreqApplications.cancelStatusChange}"
+                                                         reRender="mainTable, ds, pagesNum, btns, workplacePanel"
+                                                         oncomplete="#{rich:component('appStatusWindow')}.hide()">
+                                </bre:taggedCommandButton>
+                            </h:panelGrid>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+        </rich:modalPanel>
+
+        <script>
+            //<![CDATA[
+            /*
+             Short manual for the tabs stretching
+
+             * Put in head of the page a link to "streach.js" script.
+             * Copy "updateHeight()" from here to end of the page.
+             * Chage the function as you need. Change the forms names
+             * Set id="workplacePanel"¸ layout="block" for workplace panel
+             * Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;"
+             for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+             * Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+             * Correct updateHeight() in correspondence with wrappers you wrote.
+             * Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+             * If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+             height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight().
+             */
+
+            function updateHeight(){
+                updateGridHeight();
+            }
+
+            layout =
+            {
+                SEARCH_FORM_ID:                 'freqApplicationsSearchForm',
+                SEARCH_RESULT_FORM_ID:          'freqApplicationsForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID:   'freqApplicationsBtnForm',
+                TAB_PANEL_ID:                   'workplacePanel',
+
+                TAB_DATA:      [{
+                    TAB_FORM_ID:            'freqConditionDetailsForm',
+                    TAB_FORM_WRAPPER_ID:    'freqConditionDetailsWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID:            'operationsBtmForm',
+                    TAB_FORM_WRAPPER_ID:    'operationsFormWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+				, {
+					TAB_FORM_ID:            'traceForm',
+					TAB_FORM_WRAPPER_ID:    'statTableWrapper',
+					CORRECTING_HEIGHT:      Stretch.TABS + Stretch.PAGINATED_AND_BUTTONS
+				}
+				]
+
+            };
+            jQuery(window).resize(updateHeight);
+
+            updateHeight();
+            //]]>
+        </script>
+    </ui:define>
+</ui:composition>
+</html>

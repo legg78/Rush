@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:param name="pageHelp" value="service_types_browse.htm" />
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+		<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<h:panelGroup rendered="#{usession.inRole['VIEW_SERVICE_TYPES']}">
+			
+			<!-- navigation bar -->
+	        <bpct:navBar pageName="#{lblPrd.service_types}"/>
+	        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+	        
+	        <script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('serviceTypesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+	    	<h:form id="serviceTypesSearchForm" onkeypress="handleEnter(event)">			
+	
+				<!-- search panel -->
+				<h:panelGroup styleClass="search_block" layout="block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+			                <h:panelGroup styleClass="search_block_left" layout="block">
+			                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				            			<h:outputLabel value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+				            			<h:inputText id="labelFilter" value="#{MbServiceTypes.filter.label}"/>
+				            			
+				            			<h:outputLabel value="#{lblPrd.product_type}: " title="#{lblPrd.product_type}" />
+				            			<h:selectOneMenu id="productTypeFilter"
+					           					value="#{MbServiceTypes.filter.productEntityType}"
+					           					label="#{lblPrd.product_type}">
+					           				<a4j:support event="onchange" reRender="entityTypeFilter"
+					           						oncomplete="document.getElementById('serviceTypesSearchForm:productTypeFilter').focus();" 
+					           						limitToList="true" ajaxSingle="true" process="entityTypeFilter"/>
+					           				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbServiceTypes.productTypes}"/>
+										</h:selectOneMenu>
+									
+										<h:outputLabel value="#{lblCommon.entity_type}: " title="#{lblCommon.entity_type}" />
+										<h:selectOneMenu id="entityTypeFilter"
+					           					value="#{MbServiceTypes.filter.entityType}"
+					           					label="#{lblCommon.entity_type}">
+					           				<f:selectItem itemValue=""/>
+					           				<f:selectItems value="#{MbServiceTypes.productEntitiesFilter}"/>
+										</h:selectOneMenu>
+									
+				            			<h:inputText style="display:none" 
+				            					value="IE hack for 'Enter' hit when there's only one input field 
+				            							on form. Stick it to the bottom to not to break layout"/>
+		                			</h:panelGrid>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+					                			action="#{MbServiceTypes.search}"
+			        							reRender="serviceTypesTable, serviceTypesDs, pagesNum, serviceTypesBtnForm:btnsPanel, #{MbServiceTypes.tabName}"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					id="searchBtn"
+			                					onclick="disableModalPanelBtns(this);"
+			                					oncomplete="enableModalPanelBtns(this);"
+			                					eventsQueue="queue"/>
+			                			<h:panelGroup styleClass="link-clear" layout="block">
+				                			<h:graphicImage url="/_img/icon_clear.png"/>
+				                			<a4j:commandLink value="#{lblForm.clear_all}"
+								        			action="#{MbServiceTypes.clearFilter}"
+								        			reRender="serviceTypesSearchForm, 
+								        					serviceTypesBtnForm, serviceTypesForm, details">
+								        	</a4j:commandLink>
+			            	    		</h:panelGroup>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               		<a4j:outputPanel ajaxRendered="true">
+			               			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+			               			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+		               			</a4j:outputPanel>
+			               	</h:panelGroup>
+		               	</h:panelGroup>
+	               	</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<h:form id="serviceTypesForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+			    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+			    		<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+					    <rich:extendedDataTable
+								id="serviceTypesTable"
+								var="item"
+								tableState="#{MbServiceTypes.tableState}"
+								value="#{MbServiceTypes.serviceTypes}"
+								selection="#{MbServiceTypes.itemSelection}"
+								rows="#{MbServiceTypes.rowsNum}"
+								height="255px"
+								selectionMode="single"
+								rowClasses=",odd"
+								headerClass="res-table-header"
+								selectedClass="res-table-selected"
+								styleClass="res-table"
+								enableContextMenu="true"
+								noDataLabel="#{MbServiceTypes.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+								reRender="serviceTypesBtnForm:btnsPanel, #{MbServiceTypes.tabName}">
+				
+							<a4j:support event="onselectionchange" eventsQueue="queue" 
+									reRender="serviceTypesBtnForm:btnsPanel, #{MbServiceTypes.tabName}"/>
+				
+							<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="10%">
+			                    <f:facet name="header">
+				                   	<a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+			                    </f:facet>
+			                 	<h:outputText value="#{item.id}" title="#{item.id}"/>
+							</rich:column>
+				
+							<rich:column id="name" label="#{lblCommon.name}" sortBy="#{'label'}" width="30%">
+				                   <f:facet name="header">
+				                   	<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+				                   </f:facet>
+				               	<h:outputText value="#{item.label}" title="#{item.label}"/>
+							</rich:column>
+							
+							<rich:column id="product_type" label="#{lblPrd.product_type}" sortBy="#{'productType'}" width="20%">
+				                   <f:facet name="header">
+				                   	<h:outputText value="#{lblPrd.product_type}" title="#{lblPrd.product_type}" />
+				                   </f:facet>
+				               	<h:outputText value="#{DictUtils.articles[item.productEntityType]}" 
+				               			title="#{DictUtils.articles[item.productEntityType]}"
+				               			rendered="#{item.productEntityType != null}" />
+				               	<h:outputText value="" title="" rendered="#{item.productEntityType == null}" />
+							</rich:column>
+
+							<rich:column id="entity_type" label="#{lblCommon.entity_type}" sortBy="#{'entityType'}" width="20%">
+				                   <f:facet name="header">
+				                   	<h:outputText value="#{lblCommon.entity_type}" title="#{lblCommon.entity_type}" />
+				                   </f:facet>
+				               	<h:outputText value="#{DictUtils.articles[item.entityType]}" 
+				               			title="#{DictUtils.articles[item.entityType]}"
+				               			rendered="#{item.entityType != null}" />
+				               	<h:outputText value="" title="" rendered="#{item.entityType == null}" />
+							</rich:column>
+							
+							<rich:column id="external_code" label="#{lblPrd.external_code}" sortBy="#{'externalCode'}" width="25%">
+				                   <f:facet name="header">
+				                   	<h:outputText value="#{lblPrd.external_code}" title="#{lblPrd.external_code}" />
+				                   </f:facet>
+				               	<h:outputText value="#{item.externalCode}" 
+				               			title="#{item.externalCode}"
+				               			rendered="#{item.externalCode != null}" />
+				               	<h:outputText value="" title="" rendered="#{item.externalCode == null}" />
+							</rich:column>
+
+					    </rich:extendedDataTable>
+					    </h:panelGroup>
+					    <a4j:outputPanel ajaxRendered="true">
+					    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    	<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    	</a4j:outputPanel>
+			    	</h:panelGroup>
+				</h:panelGroup>
+            </h:form>
+
+            <h:form id="serviceTypesBtnForm">
+			    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+			        	<h:panelGroup layout="block" styleClass="table_tools">
+				        	<h:panelGrid styleClass="fw field-cont" columns="5"
+				        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+					        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+								<h:selectOneMenu id="rows_num" value="#{MbServiceTypes.rowsNum}" styleClass="row_per_page" >
+									<a4j:support event="onchange" reRender="serviceTypesTable, serviceTypesDs, pagesNum, serviceTypesBtnForm, #{MbServiceTypes.tabName}" />
+			                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+			                    </h:selectOneMenu>
+		
+			                    <rich:datascroller maxPages="10" fastControls="hide"
+			                    		pagesVar="pages" styleClass="res-datascroller"
+					                    id="serviceTypesDs" for="serviceTypesTable"
+					                    reRender="serviceTypesBtnForm:btnsPanel, #{MbServiceTypes.tabName}">
+					            	<f:facet name="first">
+					                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+					                <f:facet name="first_disabled">
+					                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="last">
+					                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="last_disabled">
+					                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="previous_disabled">
+					                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="next">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="next_disabled">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="pages">
+					                </f:facet>
+								</rich:datascroller>
+		
+			                    <h:panelGroup id="pagesNum">
+			                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+			                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbServiceTypes.serviceTypes.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+			                    </h:panelGroup>
+			                    
+			                    <h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbServiceTypes.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbServiceTypes.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+						
+			            <h:panelGrid id="btnsPanel" columns="4" styleClass="itempanel">
+			            	<bre:taggedCommandButton id="addBtn"
+		                      		reRender="serviceTypeEditForm,serviceTypeModalPanel"
+		                      		value="#{lblForm.add}"
+		                   			oncomplete="#{rich:component('serviceTypeModalPanel')}.show()"
+		                      		action="#{MbServiceTypes.add}"
+		                   			rendered="#{usession.inRole['ADD_SERVICE_TYPE']}"
+		                      		image="/images/create_doc.gif"/>
+			            	<bre:taggedCommandButton id="editBtn"
+		                      		reRender="serviceTypeEditForm,serviceTypeModalPanel"
+		                      		value="#{lblForm.edit}"
+		                   			oncomplete="#{rich:component('serviceTypeModalPanel')}.show()"
+		                      		action="#{MbServiceTypes.edit}"
+		                   			rendered="#{usession.inRole['MODIFY_SERVICE_TYPE']}"
+		                      		disabled="#{MbServiceTypes.activeServiceType == null}"
+		                      		image="/images/edit.gif"/>
+							<bre:taggedCommandButton id="deleteBtn"
+		                      		value="#{lblForm.delete}"
+		                   			rendered="#{usession.inRole['REMOVE_SERVICE_TYPE']}"
+		                      		disabled="#{MbServiceTypes.activeServiceType == null}"
+		                      		image="/images/delete.gif"
+		                      		oncomplete="#{rich:component('deleteServiceTypeView:confirmPanel')}.show()"/>
+						</h:panelGrid>
+					</h:panelGroup>
+			    </h:panelGroup>
+	    	</h:form>
+
+            <h:form>
+                <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                                requestDelay="500" reRender="#{MbServiceTypes.rerenderList}">
+                    <a4j:actionparam name="tabName" assignTo="#{MbServiceTypes.tabName}" />
+                </a4j:jsFunction>
+            </h:form>
+
+			<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+		    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+		    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    			contentClass="tab-content" selectedTab="#{MbServiceTypes.tabName}">
+	
+					<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+						<h:panelGroup id="detailsTab">
+	      					<h:panelGroup layout="block">
+	      						<ui:include src="/pages/products/services/service_type_details.jspx"/>
+								<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+	      					</h:panelGroup>
+	       				</h:panelGroup>
+				    </rich:tab>
+	
+				    <rich:tab ontabenter="storeTab('attributesTab')" label="Atributes" name="attributesTab" rendered="#{usession.inRole['VIEW_ATTRIBUTES']}" style="height:100%;">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.service_terms}" title="#{lblPrd.service_terms}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+						<h:panelGroup layout="block" styleClass="carddata-wrapper"
+								style="height: 100%;overflow:hidden;position:relative;">
+	       					<ui:include src="/pages/products/attributes/list_attributes_bottom.jspx"/>
+	       				</h:panelGroup>
+				    </rich:tab>
+	
+				    <rich:tab ontabenter="storeTab('servicesTab')" label="Services" name="servicesTab" rendered="#{usession.inRole['VIEW_SERVICES']}" style="height:100%;">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.services}" title="#{lblPrd.services}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+						<h:panelGroup id="servicesTab" layout="block" styleClass="carddata-wrapper" 
+								style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include src="/pages/products/services/list_services_bottom.jspx"/>
+	       				</h:panelGroup>
+				    </rich:tab>
+			    </rich:tabPanel>
+	        </h:panelGroup>
+	        
+	        <ui:include src="/pages/products/services/serviceTypeEdit.jspx">
+	        	<ui:param name="rerenderList" value="serviceTypesTable, serviceTypesDs, pagesNum, serviceTypesBtnForm:btnsPanel, #{MbServiceTypes.tabName}"/>
+	        </ui:include>
+		</h:panelGroup>
+		
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_SERVICE_TYPES']}" style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+		</h:panelGroup>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbServiceTypes}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="serviceTypesTable, serviceTypesDs, pagesNum, serviceTypesBtnForm:btnsPanel, detailsTab, entitiesTab, attributesTab, servicesTab"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteServiceTypeView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>			
+		</ui:include>
+		
+		<script type="text/javascript">
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'serviceTypesSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'serviceTypesForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'serviceTypesBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'serviceTypeDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'serviceTypeDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'attrsBottomForm',
+                            TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'servicesBtmPanel',
+                            TAB_FORM_WRAPPER_ID:    'servicesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>		
+	</ui:define>
+</ui:composition>
+</html>

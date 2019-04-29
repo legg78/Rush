@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<h:panelGroup id="attributesTab">
+		<script type="text/javascript">
+	//<!--
+		function enableButtons() {
+			var disableBottom = #{MbAttributes.disableBottom};
+			var rowId = "row_" +
+					document.getElementById("attrsBottomForm:attrsTreeTable").getSelectedNodeKey();
+			if (disableBottom ||
+					document.getElementById("attrsBottomForm:attrsTreeTable").isSelectionEmpty()) {
+				document.getElementById("attrsBottomForm:addBtn").disabled = true;
+				document.getElementById("attrsBottomForm:editBtn").disabled = true;
+				document.getElementById("attrsBottomForm:deleteBtn").disabled = true;
+			} else {
+				document.getElementById("attrsBottomForm:addBtn").disabled = false;
+				if (document.getElementsByClassName(rowId)[0].className.indexOf("serviceType_true") >= 0) {
+					document.getElementById("attrsBottomForm:editBtn").disabled = true;
+					document.getElementById("attrsBottomForm:deleteBtn").disabled = true;
+				} else {
+					document.getElementById("attrsBottomForm:editBtn").disabled = false;
+					document.getElementById("attrsBottomForm:deleteBtn").disabled = false;
+				}
+			}
+		}
+
+		//-->
+		</script>
+
+		<a4j:outputPanel ajaxRendered="true" id="q_bundle_prd" >
+			<o:loadBundle var="lblPrdQ" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+			<o:loadBundle var="lblCommonQ" basename="ru.bpc.sv2.ui.bundles.Common"/>
+		</a4j:outputPanel>
+
+		<h:form id="attrsBottomForm">
+			<h:panelGroup id="attrsTreeTableWrapper" layout="block" style="padding:0px;margin:0px;">
+				<o:treeTable id="attrsTreeTable" var="prodAttr"
+						expansionState="allExpanded"
+						headerHorizSeparator="1px solid #D7DAC2"
+						headerVertSeparator="1px solid #D7DAC2"
+						headerSectionClass="res-tree-table-header"
+						commonHeaderRowClass="res-tree-table-header"
+						sortableHeaderClass="res-tree-table-header"
+						sortedColumnHeaderClass="res-tree-table-header"
+						sortableHeaderRolloverClass="res-tree-table-header"
+						styleClass="extdt-table-layout res-tree-table"
+						bodyOddRowClass="res-tree-table-row odd-tree-table"
+						bodyRowClass="res-tree-table-row" headerRowClass="res-tree-table-header"
+						verticalGridLines="1px solid #D7DAC2"
+						cellpadding="0" cellspacing="0"
+						preloadedNodes="all"
+						useAjax="true"
+						style="height:100%">
+					<f:attribute name="forceUsingCellStyles" value="true"></f:attribute>
+					<o:scrolling/>
+					<f:facet name="noDataMessage">
+						<h:panelGroup>
+						   <h:outputText value="#{lblCommon['no_records_found']}"/>
+						</h:panelGroup>
+					</f:facet>
+
+					<o:dynamicTreeStructure
+							nodeChildren="#{MbAttributes.nodeChildren}"
+							nodeHasChildren="#{MbAttributes.nodeHasChildren}"
+							nodeKey="#{prodAttr.modelId}"/>
+
+					<o:singleNodeSelection nodePath="#{MbAttributes.nodePath}"
+							nodeData="#{MbAttributes.node}"
+							keyboardSupport="false"
+							onchange="enableButtons()"
+							styleClass="treetable_selection"
+							>
+					</o:singleNodeSelection>
+
+					<o:treeColumn id="nodeLabel" width="30%" >
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblCommonQ.name}"/>
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{prodAttr.label}"
+								styleClass="treeTableText row_#{prodAttr.modelId}"
+								rendered="#{!prodAttr.serviceType}"/>
+						<h:outputText value="#{prodAttr.label}"
+								styleClass="treeTableText serviceType_true row_#{prodAttr.modelId}"
+								rendered="#{prodAttr.serviceType}" style="font-weight: bold"/>
+					</o:treeColumn>
+
+					<o:column id="attrType" width="10%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommonQ.type}"/>
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[prodAttr.attributeType]}" styleClass="res-tree-table-cell"/>
+					</o:column>
+
+					<o:column id="lovName" width="20%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommonQ.lov}"/>
+						</f:facet>
+						<h:outputText value="#{prodAttr.lovId} - #{prodAttr.lovName}"
+								styleClass="res-tree-table-cell"
+								rendered="#{prodAttr.lovId != null}"/>
+						<h:outputText value=""
+								styleClass="res-tree-table-cell"
+								rendered="#{prodAttr.lovId == null}"/>
+					</o:column>
+
+					<o:column id="defLevel" width="20%">
+						<f:facet name="header">
+							<h:outputText value="#{lblPrdQ.def_level}"/>
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[prodAttr.definitionLevel]}" styleClass="res-tree-table-cell"/>
+					</o:column>
+
+					<o:column id="visible" width="20%">
+						<f:facet name="header">
+							<h:outputText value="#{lblPrd.visible}" title="#{lblPrd.visible}"/>
+						</f:facet>
+						<h:selectBooleanCheckbox value="#{prodAttr.visible}" disabled="true"/>
+					</o:column>
+				</o:treeTable>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid id="btnPanel" columns="3" cellpadding="0" cellspacing="0" width="auto">
+						<bre:taggedCommandButton id="addBtn"
+								value="#{lblForm.add}" reRender="attrModalDiv, attrModalHeader"
+								oncomplete="#{rich:component('attrModalPanel')}.show()"
+								action="#{MbAttributes.add}"
+								rendered="#{usession.inRole['ADD_ATTRIBUTE']}"
+								image="/images/create_doc.gif"/>
+						<bre:taggedCommandButton id="editBtn"
+								value="#{lblForm.edit}"
+								reRender="attrModalDiv, attrModalHeader"
+								action="#{MbAttributes.edit}"
+								rendered="#{usession.inRole['MODIFY_ATTRIBUTE']}"
+								oncomplete="#{rich:component('attrModalPanel')}.show()"
+								image="/images/edit.gif"/>
+						<bre:taggedCommandButton id="deleteBtn"
+								value="#{lblForm.delete}"
+								rendered="#{usession.inRole['REMOVE_ATTRIBUTE']}"
+								image="/images/delete.gif"
+								oncomplete="#{rich:component('deleteAttributeView:confirmPanel')}.show()"/>
+
+						<script type="text/javascript">
+	//<!--
+							var disableBottom = #{MbAttributes.disableBottom};
+							document.getElementById("attrsBottomForm:addBtn").disabled = disableBottom;
+							document.getElementById("attrsBottomForm:editBtn").disabled = true;
+							document.getElementById("attrsBottomForm:deleteBtn").disabled = true;
+							enableButtons();
+
+							// select first row which for some reason doesn't want to do it automatically
+							var nodeKey = "#{MbAttributes.node.modelId}";
+							if (document.getElementById("attrsBottomForm:attrsTreeTable").getSelectedNodeKey() == null
+									&& nodeKey != null) {
+								document.getElementById("attrsBottomForm:attrsTreeTable").setSelectedNodeKey(nodeKey);
+							}
+							// -->
+						</script>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</h:panelGroup>
+
+	<ui:include src="/pages/products/attributes/attributeEdit.jspx">
+		<ui:param name="rerenderList" value="attrsBottomForm"></ui:param>
+	</ui:include>
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbAttributes}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+		<ui:param name="rerenderList" value="attrsTreeTable, attrValues, btnPanel"/>
+		<ui:param name="confirmQuestion" value=" "/>
+		<ui:param name="subviewId" value="deleteAttributeView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

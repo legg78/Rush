@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<h:form id="reportEntitiesForm">
+		<h:panelGroup id="entitiesTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable headerClass="res-table-header table-header-ext"
+				selectedClass="res-table-selected" styleClass="res-table"
+				rowClasses=",odd" id="entitiesTable" var="item"
+				value="#{MbReportEntitiesSearch.reportEntities}"
+				selection="#{MbReportEntitiesSearch.itemSelection}" rows="0"
+				selectionMode="single" enableContextMenu="true"
+				tableState="#{MbReportEntitiesSearch.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="reportEntitiesForm:btnPanelEntities" />
+
+				<rich:column id="entityType" label="#{lblCommon.entity_type}" 
+					sortBy="#{'entityType'}" title="entityType" width="25%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.entity_type}" title="#{lblCommon.entity_type}" />
+						</a4j:outputPanel>	
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.entityType]}" rendered="#{item.entityType!= null}" />
+				</rich:column>
+
+				<rich:column id="objectType" label="#{lblCommon.object_type}" 
+					sortBy="#{'objectType'}" title="objectType" width="75%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.object_type}"
+							title="#{lblCommon.object_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.objectType]}" rendered="#{item.objectType!= null and !item.anyObjectType}" />
+					<h:outputText value="#{lblCommon.any}" rendered="#{item.anyObjectType}"/>
+				</rich:column>
+
+				<f:facet name="footer">
+				</f:facet>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid id="btnPanelEntities" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+						<h:panelGroup>
+						<bre:taggedCommandButton id="addBtn"
+							reRender="rpt_entity_modal_panel"
+							value="#{lblForm.add}"
+							oncomplete="#{rich:component('rpt_entity_modal_panel')}.show()"
+							action="#{MbReportEntitiesSearch.add}"
+							disabled="#{MbReportEntitiesSearch.filterMap['reportId'] == null}"
+							rendered="#{usession.inRole['MODIFY_REPORT']}"
+							image="/images/create_doc.gif" />
+						<bre:taggedCommandButton id="editBtn"
+							reRender="rpt_entity_modal_panel" value="#{lblForm.edit}"
+							action="#{MbReportEntitiesSearch.edit}"
+							oncomplete="#{rich:component('rpt_entity_modal_panel')}.show()"
+							disabled="#{MbReportEntitiesSearch.activeItem == null}"
+							rendered="#{usession.inRole['MODIFY_REPORT']}"
+							image="/images/edit.gif" />
+						<bre:taggedCommandButton id="deleteBtn"
+							value="#{lblForm.delete}"
+							oncomplete="#{rich:component('deleteEntityViewId:confirmPanel')}.show()"
+							disabled="#{MbReportEntitiesSearch.activeItem == null}"
+							rendered="#{usession.inRole['MODIFY_REPORT']}"
+							image="/images/delete.gif" />
+						</h:panelGroup>
+						
+						<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveEntityTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteEntityTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveEntityTableState" action="#{MbReportEntitiesSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteEntityTableState" action="#{MbReportEntitiesSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+	</h:form>
+
+- 	<ui:include src="/pages/reports/entity_edit.jspx">
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbReportEntitiesSearch}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="reportEntitiesForm:entitiesTableWrapper, reportEntitiesForm:btnPanelEntities"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteEntityViewId"/> -->
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

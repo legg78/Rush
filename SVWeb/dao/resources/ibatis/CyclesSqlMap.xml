@@ -1,0 +1,470 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="cycles">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+
+    <resultMap  id="mapping-cycle-shift"
+                class="ru.bpc.sv2.fcl.cycles.CycleShift"  >
+        <result property="id" column="id" />
+        <result property="seqnum" column="seqnum" />
+        <result property="cycleId" column="cycle_id" />
+        <result property="shiftType" column="shift_type" />
+        <result property="priority" column="priority" />
+        <result property="shiftSign" column="shift_sign" />
+        <result property="lengthType" column="length_type" />
+        <result property="shiftLength" column="shift_length" />
+	</resultMap>
+
+	<resultMap  id="mapping-cycle"
+                class="ru.bpc.sv2.fcl.cycles.Cycle"  >
+        <result property="id" column="id" />
+        <result property="seqNum" column="seqnum" />
+        <result property="cycleType" column="cycle_type" />
+        <result property="lengthType" column="length_type" />
+        <result property="cycleLength" column="cycle_length" />
+        <result property="truncType" column="trunc_type" />
+        <result property="instId" column="inst_id" />
+        <result property="instName" column="inst_name" />
+        <result property="description" column="description" />
+        <result property="workdays" column="workdays_only" javaType="boolean"/>
+	</resultMap>
+
+	<select id="get-cycles"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-cycle" >
+		<include refid="paginatedOpen"/>
+			SELECT 	  c.id
+					, c.seqnum
+					, c.cycle_type
+					, c.length_type
+					, c.cycle_length
+					, c.trunc_type
+					, c.inst_id
+					, i.name inst_name
+					, c.description
+					, c.workdays_only
+			FROM 
+				fcl_ui_cycle_vw c, ost_ui_institution_sys_vw i
+			WHERE 
+				c.inst_id = i.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cycleType">c.cycle_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cycleLength">c.cycle_length = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lengthType">c.length_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">i.lang(+) = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cycleType">c.cycle_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="lengthType">c.length_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="truncType">c.trunc_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cycleLength">c.cycle_length $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-cycles-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+       	SELECT 
+       		c.* 
+       	FROM 
+       		fcl_ui_cycle_vw c
+       	<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cycleType">c.cycle_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cycleLength">c.cycle_length = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lengthType">c.length_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>				
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+
+    <procedure id="insert-new-cycle"
+    		parameterClass="ru.bpc.sv2.fcl.cycles.Cycle">
+    	{call FCL_UI_CYCLE_PKG.add_cycle(
+				  i_cycle_type		=> #cycleType#
+				, i_length_type		=> #lengthType#
+				, i_cycle_length	=> #cycleLength#
+				, i_trunc_type		=> #truncType#
+				, i_inst_id			=> #instId#
+				, i_workdays_only   => #workdays,javaType=boolean,jdbcType=NUMERIC,mode=IN#
+				, o_cycle_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+				)}
+    </procedure>
+
+    <update id="modify-cycle"
+            parameterClass="ru.bpc.sv2.fcl.cycles.Cycle">
+        {call FCL_UI_CYCLE_PKG.modify_cycle(
+				  i_cycle_id		=> #id#
+				, i_length_type		=> #lengthType#
+				, i_cycle_length	=> #cycleLength#
+				, i_trunc_type		=> #truncType#
+				, i_seqnum			=> #seqNum#
+        		)}
+    </update>
+
+    <procedure id="remove-cycle"
+    		parameterClass="ru.bpc.sv2.fcl.cycles.Cycle">
+    	{call FCL_UI_CYCLE_PKG.remove_cycle(
+				  i_cycle_id	=> #id#
+				, i_seqnum 		=> #seqNum#)}
+    </procedure>
+
+    <!-- Cycle Types queries -->
+
+   <procedure
+    	id="add-cycle-type"
+    	parameterClass="ru.bpc.sv2.common.Dictionary">
+    	{call FCL_UI_CYCLE_PKG.add_cycle_type(#fullCode#, #name#, #description#, #lang#)}
+    </procedure>
+
+    <procedure
+    	id="remove-cycle-type"
+    	parameterClass="string">
+    	{call FCL_UI_CYCLE_PKG.remove_cycle_type(#value#)}
+    </procedure>
+
+	<select id="get-partition-cycles-usage-count"
+			parameterClass="int"
+			resultClass="int">
+		SELECT
+		count(*)
+		FROM
+		com_ui_partition_table_vw a
+		WHERE partition_cycle_id = #value#
+	</select>
+
+	<select id="get-storage-cycles-usage-count"
+			parameterClass="int"
+			resultClass="int">
+		SELECT
+		count(*)
+		FROM
+		com_ui_partition_table_vw a
+		WHERE storage_cycle_id = #value#
+	</select>
+
+    <!-- Cycle Shifts -->
+
+    <select id="get-cycle-shifts"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-cycle-shift" >
+		<include refid="paginatedOpen"/>
+			SELECT	  id
+					, seqnum
+					, cycle_id
+					, shift_type
+					, priority
+					, shift_sign
+					, length_type
+					, shift_length
+			FROM fcl_ui_cycle_shift_vw
+			<iterate prepend="WHERE " conjunction="AND " property="filters">
+				<isEqual property="filters[].element" compareValue="cycleId">cycle_id = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="shiftType">shift_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="lengthType">length_type $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-cycle-shifts-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT * FROM fcl_ui_cycle_shift_vw
+        <iterate prepend="WHERE " conjunction="AND " property="filters">
+				<isEqual property="filters[].element" compareValue="cycleId">cycle_id = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+    </select>
+
+    <select id="get-cycle-shifts-by-cycle"
+	    	parameterClass="int"
+	    	resultMap="mapping-cycle-shift" >
+		SELECT	  id
+				, seqnum
+				, cycle_id
+				, shift_type
+				, priority
+				, shift_sign
+				, length_type
+				, shift_length
+		FROM fcl_ui_cycle_shift_vw
+		WHERE cycle_id = #value#
+	</select>
+
+    <procedure id="insert-new-cycle-shift"
+    		parameterClass="ru.bpc.sv2.fcl.cycles.CycleShift">
+    	{call FCL_UI_CYCLE_PKG.add_cycle_shift(
+				  i_cycle_id		=> #cycleId#
+				, i_shift_type		=> #shiftType#
+				, i_priority		=> #priority#
+				, i_shift_sign		=> #shiftSign#
+				, i_length_type		=> #lengthType#
+				, i_shift_length	=> #shiftLength#
+				, o_cycle_shift_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+				)}
+    </procedure>
+
+    <update id="modify-cycle-shift"
+            parameterClass="ru.bpc.sv2.fcl.cycles.CycleShift">
+        {call FCL_UI_CYCLE_PKG.modify_cycle_shift(
+				  i_cycle_shift_id	=> #id#
+				, i_shift_type		=> #shiftType#
+				, i_priority		=> #priority#
+				, i_shift_sign		=> #shiftSign#
+				, i_length_type		=> #lengthType#
+				, i_shift_length	=> #shiftLength#
+				, i_seqnum			=> #seqnum#
+				)}
+    </update>
+
+    <procedure id="remove-cycle-shift"
+    		parameterClass="ru.bpc.sv2.fcl.cycles.CycleShift">
+    	{call FCL_UI_CYCLE_PKG.remove_cycle_shift(
+				  i_cycle_shift_id	=> #id#
+				, i_seqnum			=> #seqnum#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-cycle-counter"
+                class="ru.bpc.sv2.fcl.cycles.CycleCounter">
+        <result property="id" column="id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="cycleType" column="cycle_type"/>
+        <result property="prevDate" column="prev_date" javaType="java.util.Date"/>
+        <result property="nextDate" column="next_date" javaType="java.util.Date"/>
+        <result property="periodNumber" column="period_number"/>
+        <result property="splitHash" column="split_hash"/>
+        <result property="instId" column="inst_id"/>
+	</resultMap>
+
+	<select id="get-cycle-counters"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-cycle-counter" >
+		SELECT 	  c.id
+				, c.entity_type
+				, c.object_id
+				, c.cycle_type
+				, c.prev_date
+				, c.next_date
+				, c.period_number
+				, c.split_hash
+				, c.inst_id
+		FROM 
+			fcl_ui_cycle_counter_vw c
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">c.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">c.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cycleType">c.cycle_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="nextDateTo">c.next_date <![CDATA[<=]]> #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cycleType">c.cycle_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="prevDate">c.prev_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="nextDate">c.next_date $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-cycle-counters-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+       	SELECT 
+       		count(c.id) 
+       	FROM 
+       		fcl_ui_cycle_counter_vw c
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">c.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">c.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cycleType">c.cycle_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="nextDateTo">c.next_date <![CDATA[<=]]> #filters[].value#</isEqual>
+		</iterate>
+    </select>
+    
+    	<procedure id="switch-cycle-by-object"
+		parameterClass="ru.bpc.sv2.fcl.cycles.CycleCounter">
+		{call fcl_api_cycle_pkg.switch_cycle(
+		    i_cycle_type        => #cycleType#
+		  , i_product_id        => prd_api_product_pkg.get_product_id(#entityType#, #objectId#)
+		  , i_entity_type       => #entityType#
+		  , i_object_id         => #objectId#
+		  , i_params            => null
+		  , o_new_finish_date   => #nextDate# 
+		)}
+	</procedure>
+	
+	 <procedure id="remove-cycle-counter"
+    		parameterClass="ru.bpc.sv2.fcl.cycles.CycleCounter">
+    	{call FCL_API_CYCLE_PKG.remove_cycle_counter(
+				  i_cycle_type  => #cycleType#
+				, i_entity_type => #entityType#
+				, i_object_id   => #objectId#
+				, i_split_hash  => #splitHash#
+				)}
+    </procedure>
+    
+	<procedure id="modify-cycle-counter"
+			parameterClass="ru.bpc.sv2.fcl.cycles.CycleCounter">
+		{call fcl_ui_cycle_pkg.modify_cycle_counter(
+			  i_counter_id		=> #id#
+			, i_next_date		=> #nextDate#
+	)}
+	</procedure>
+	
+	<resultMap  id="mapping-cycle-counter-tree"
+                class="ru.bpc.sv2.fcl.cycles.TreeCycleCounter" extends="mapping-cycle-counter">
+        <result property="name" column="name"/>        
+	</resultMap>
+	
+	<select id="get-card-cycle-counters" resultMap="mapping-cycle-counter-tree"
+		parameterClass="qparams">
+		select * from (
+		select 
+			to_CHAR(ci.expir_date, 'MM.YY') name
+			, ci.expir_date
+			, cc.id
+			, cc.entity_type
+			, cc.object_id
+			, cc.cycle_type
+			, cc.prev_date
+			, cc.next_date
+			, cc.period_number
+			, cc.split_hash
+			, cc.inst_id
+		from 
+			fcl_ui_cycle_counter_vw cc, iss_ui_card_instance_vw ci 
+		where 
+			cc.entity_type = 'ENTTCINS' 
+			and cc.object_id = ci.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="objectId">ci.card_id = #filters[].value#</isEqual>
+			</iterate>
+		union all
+		select 
+			c.card_mask
+			, null expir_date
+			, cc.id
+			, cc.entity_type
+			, cc.object_id
+			, cc.cycle_type
+			, cc.prev_date
+			, cc.next_date
+			, cc.period_number
+			, cc.split_hash
+			, cc.inst_id 
+		from 
+			fcl_ui_cycle_counter_vw cc, iss_ui_card_vw c 
+		where 
+			cc.entity_type = 'ENTTCARD' 
+			and cc.object_id = c.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="objectId">c.id = #filters[].value#</isEqual>
+			</iterate>
+		)
+		order by decode(entity_type, 'ENTTCARD', 1, 'ENTTCINS', 0) desc, expir_date desc, object_id, cycle_type
+	</select>
+	
+	<select id="get-account-cycle-counters" resultMap="mapping-cycle-counter-tree"
+		parameterClass="qparams">
+		select * from (
+		select 
+			to_CHAR(ci.invoice_date, 'DD.MM.YYYY') name
+			, cc.id
+			, ci.invoice_date
+			, cc.entity_type
+			, cc.object_id
+			, cc.cycle_type
+			, cc.prev_date
+			, cc.next_date
+			, cc.period_number
+			, cc.split_hash
+			, cc.inst_id
+		from 
+			fcl_ui_cycle_counter_vw cc, crd_ui_invoice_vw ci 
+		where 
+			cc.entity_type = 'ENTTINVC' 
+			and cc.object_id = ci.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="objectId">ci.account_id = #filters[].value#</isEqual>
+			</iterate>
+		union all
+		select 
+			c.account_number
+			, cc.id
+			, null invoice_date
+			, cc.entity_type
+			, cc.object_id
+			, cc.cycle_type
+			, cc.prev_date
+			, cc.next_date
+			, cc.period_number
+			, cc.split_hash
+			, cc.inst_id 
+		from 
+			fcl_ui_cycle_counter_vw cc, acc_ui_account_vw c 
+		where 
+			cc.entity_type = 'ENTTACCT' 
+			and cc.object_id = c.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="objectId">c.id = #filters[].value#</isEqual>
+			</iterate>
+		)
+		order by decode(entity_type, 'ENTTACCT', 1, 'ENTTINVC', 0) desc, invoice_date desc, object_id, cycle_type
+	</select>
+</sqlMap>

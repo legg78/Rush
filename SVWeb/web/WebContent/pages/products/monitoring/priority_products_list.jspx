@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+         xmlns:f="http://java.sun.com/jsf/core"
+         xmlns:h="http://java.sun.com/jsf/html"
+         xmlns:ui="http://java.sun.com/jsf/facelets"
+         xmlns:a4j="http://richfaces.org/a4j"
+         xmlns:rich="http://richfaces.org/rich"
+         xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+         xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+        <style type="text/css">
+            .leftAligned {
+                text-align: left;
+            }
+        </style>
+
+        <f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+        <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+        <link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css"/>
+        <a4j:loadScript src="/js/stretch.js" />
+
+        <h:panelGroup rendered="#{usession.inRole['VIEW_PRIORITY_PRODUCTS']}">
+
+            <!-- navigation bar -->
+            <bpct:navBar pageName="#{lblPrd.priority_products}"/>
+            <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+            <script type="text/javascript">
+                //<![CDATA[
+                function handleEnter(event) {
+                    if (event.keyCode == 13) {
+                        document.getElementById('priorityProductsSearchForm:searchBtn').click();
+                        return false;
+                    }
+                    return true;
+                }
+                //]]>
+            </script>
+
+            <h:form id="priorityProductsSearchForm" onkeypress="handleEnter(event)">
+
+                <!-- search panel -->
+                <h:panelGroup styleClass="search_block" layout="block">
+                    <h:panelGroup layout="block" styleClass="search_block_inner1">
+                        <h:panelGroup layout="block" styleClass="search_block_inner2">
+                            <h:panelGroup styleClass="search_block_left" layout="block">
+                                <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                    <h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+                                        <h:outputLabel for="dateFrom" value="#{lblCommon.creation_date_from}: " title="#{lblCommon.creation_date_from}" />
+                                        <rich:calendar buttonIcon="/images/calendar.gif" id="dateFrom" value="#{MbPriorityProducts.filter.dateFrom}"
+                                                       datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" inputClass="inputDate"/>
+
+                                        <h:outputLabel for="dateTo" value="#{lblCommon.creation_date_to}: " title="#{lblCommon.creation_date_to}" />
+                                        <rich:calendar buttonIcon="/images/calendar.gif" id="dateTo" value="#{MbPriorityProducts.filter.dateTo}"
+                                                       datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" inputClass="inputDate"/>
+
+                                        <h:outputLabel for="productNumber" title="#{lblCommon.product_number}"
+                                                       value="#{lblCommon.product_number}: " />
+                                        <h:inputText id="productNumber"
+                                                     value="#{MbPriorityProducts.filter.productNumber}" />
+
+                                        <h:outputLabel for="productCategory" title="#{lblPrd.product_category}"
+                                                       value="#{lblPrd.product_category}: " />
+                                        <h:inputText id="productCategory"
+                                                     value="#{MbPriorityProducts.filter.productCategory}" />
+
+                                        <h:outputLabel for="productSubcategory" title="#{lblPrd.product_subcategory}"
+                                                       value="#{lblPrd.product_subcategory}: " />
+                                        <h:inputText id="productSubcategory"
+                                                     value="#{MbPriorityProducts.filter.productSubcategory}" />
+                                    </h:panelGrid>
+                                    <h:panelGrid columns="1">
+                                        <bre:taggedCommandButton
+                                                action="#{MbPriorityProducts.search}"
+                                                reRender="priorityProductsTable, priorityProductsBtn, detailsTab"
+                                                image="/_img/icon_search.png" type="submit"
+                                                id="searchBtn"
+                                                value="#{lblForm.search}" style="width:85px;"
+                                                onclick="disableModalPanelBtns(this);"
+                                                oncomplete="enableModalPanelBtns(this);"
+                                                eventsQueue="queue"/>
+                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                            <h:graphicImage url="/_img/icon_clear.png"/>
+                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                             action="#{MbPriorityProducts.clearFilter}"
+                                                             reRender="priorityProductsSearchForm, priorityProductsForm, detailsTab">
+                                            </a4j:commandLink>
+                                        </h:panelGroup>
+                                    </h:panelGrid>
+                                </h:panelGrid>
+                                <a4j:outputPanel ajaxRendered="true">
+                                    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                                    <h:panelGroup styleClass="collapse-vert" layout="block"/>
+                                </a4j:outputPanel>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+
+            <h:form id="priorityProductsForm">
+                <h:panelGroup styleClass="search_result_block" layout="block">
+                    <h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+                        <h:panelGroup id="mainTableWrapper" layout="block"
+                                      styleClass="search_result_block_inner">
+                            <rich:extendedDataTable
+                                    id="priorityProductsTable"
+                                    tableState="#{MbPriorityProducts.tableState}"
+                                    styleClass="res-table"
+                                    headerClass="res-table-header"
+                                    rowClasses=",odd"
+                                    selectedClass="res-table-selected"
+                                    var="item"
+                                    value="#{MbPriorityProducts.priorityProducts}"
+                                    selection="#{MbPriorityProducts.itemSelection}"
+                                    rows="#{MbPriorityProducts.rowsNum}"
+                                    height="200px"
+                                    selectionMode="single"
+                                    width="100%"
+                                    enableContextMenu="true"
+                                    noDataLabel="#{MbPriorityProducts.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+                                    reRender="priorityProductsBtn:btnPanel, detailsTab">
+
+                                <a4j:support event="onselectionchange" eventsQueue="queue"
+                                             reRender="priorityProductsBtn:btnPanel, detailsTab"/>
+
+                                <rich:column id="id" label="#{lblCommon.id}" title="#{lblCommon.id}" sortBy="#{'id'}" width="7%">
+                                    <f:facet name="header">
+                                        <a4j:outputPanel layout="none">
+                                            <script>updateHeight();</script>
+                                            <h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+                                        </a4j:outputPanel>
+                                    </f:facet>
+                                    <h:outputText value="#{item.id}" title="#{item.id}"/>
+                                </rich:column>
+
+                                <rich:column id="product_id" label="#{lblAcq.product_id}" title="#{lblAcq.product_id}" sortBy="#{'productId'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblAcq.product_id}" title="#{lblAcq.product_id}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.productId}" title="#{item.productId}"/>
+                                </rich:column>
+
+                                <rich:column id="parent_product_id" label="#{lblPrd.parent_product_id}" title="#{lblPrd.parent_product_id}" sortBy="#{'parentProductId'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblPrd.parent_product_id}" title="#{lblPrd.parent_product_id}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.parentProductId}" title="#{item.parentProductId}"/>
+                                </rich:column>
+
+                                <rich:column id="product_number" label="#{lblCommon.product_number}" title="#{lblCommon.product_number}" sortBy="#{'productNumber'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCommon.product_number}" title="#{lblCommon.product_number}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.productNumber}" title="#{item.productNumber}"/>
+                                </rich:column>
+
+                                <rich:column id="product_description" label="#{lblPrd.product_description}" title="#{lblPrd.product_description}" sortBy="#{'productDescription'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblPrd.product_description}" title="#{lblPrd.product_description}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.productDescription}" title="#{item.productDescription}"/>
+                                </rich:column>
+
+                                <rich:column id="product_category" label="#{lblPrd.product_category}" title="#{lblPrd.product_category}" sortBy="#{'productCategory'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblPrd.product_category}" title="#{lblPrd.product_category}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.productCategory}" title="#{item.productCategory}"/>
+                                </rich:column>
+
+                                <rich:column id="product_subcategory" label="#{lblPrd.product_subcategory}" title="#{lblPrd.product_subcategory}" sortBy="#{'productSubcategory'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblPrd.product_subcategory}" title="#{lblPrd.product_subcategory}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.productSubcategory}" title="#{item.productSubcategory}"/>
+                                </rich:column>
+
+                                <rich:column id="product_level3" label="#{lblPrd.product_level3}" title="#{lblPrd.product_level3}" sortBy="#{'productLevel3'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblPrd.product_level3}" title="#{lblPrd.product_level3}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.productLevel3}" title="#{item.productLevel3}"/>
+                                </rich:column>
+
+                                <rich:column id="creation_date" label="#{lblCommon.creation_date}" title="#{lblCommon.creation_date}" sortBy="#{'creationDate'}" width="12%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCommon.creation_date}" title="#{lblCommon.creation_date}" />
+                                    </f:facet>
+                                    <h:outputText value="#{item.creationDate}">
+                                        <f:convertDateTime pattern="#{usession.datePattern}"
+                                                           timeZone="#{CommonUtils.timeZone}" />
+                                    </h:outputText>
+                                </rich:column>
+
+                                <rich:column id="product_level4" label="#{lblPrd.product_level4}" title="#{lblPrd.product_level4}" sortBy="#{'productLevel4'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblPrd.product_level4}" title="#{lblPrd.product_level4}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.productLevel4}" title="#{item.productLevel4}"/>
+                                </rich:column>
+
+                                <rich:column id="product_lag" label="#{lblPrd.product_lag}" title="#{lblPrd.product_lag}" sortBy="#{'productLag'}" width="15%">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblPrd.product_lag}" title="#{lblPrd.product_lag}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.productLag}" title="#{item.productLag}"/>
+                                </rich:column>
+                            </rich:extendedDataTable>
+
+                        </h:panelGroup>
+                        <a4j:outputPanel ajaxRendered="true">
+                            <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+                            <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                            <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+                        </a4j:outputPanel>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+            <h:form id="priorityProductsBtn">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+                        <h:panelGroup layout="block" styleClass="table_tools">
+                            <h:panelGrid styleClass="fw field-cont" columns="5"
+                                         columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+                                <h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+                                <h:selectOneMenu id="rows_num" value="#{MbPriorityProducts.rowsNum}" styleClass="row_per_page" >
+                                    <a4j:support event="onchange" reRender="priorityProductsTable, priorityProductsBtn, detailsTab"/>
+                                    <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                                </h:selectOneMenu>
+
+                                <rich:datascroller maxPages="10" fastControls="hide"
+                                                   pagesVar="pages" styleClass="res-datascroller"
+                                                   reRender="detailsTab"
+                                                   id="dsRules" for="priorityProductsTable">
+                                    <f:facet name="first">
+                                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+                                    </f:facet>
+                                    <f:facet name="first_disabled">
+                                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+                                    </f:facet>
+                                    <f:facet name="last">
+                                        <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+                                    </f:facet>
+                                    <f:facet name="last_disabled">
+                                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+                                    </f:facet>
+                                    <f:facet name="previous">
+                                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+                                    </f:facet>
+                                    <f:facet name="previous_disabled">
+                                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+                                    </f:facet>
+                                    <f:facet name="next">
+                                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+                                    </f:facet>
+                                    <f:facet name="next_disabled">
+                                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+                                    </f:facet>
+                                    <f:facet name="pages">
+                                    </f:facet>
+                                </rich:datascroller>
+
+                                <h:panelGroup id="pagesNum">
+                                    <h:outputText styleClass="strongClass" value="#{pages} "/>
+                                    <h:outputText value=" #{lblCommon.pages}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbPriorityProducts.priorityProducts.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                </h:panelGroup>
+
+                                <h:panelGroup>
+                                    <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+                                                    onclick="saveTableState();"/>
+                                    <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+                                                    onclick="deleteTableState();"/>
+                                    <a4j:queue name="tablestatequeue"/>
+                                    <a4j:jsFunction name="saveTableState" action="#{MbPriorityProducts.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+                                    <a4j:jsFunction name="deleteTableState" action="#{MbPriorityProducts.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+                                </h:panelGroup>
+                            </h:panelGrid>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+
+            <h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+                <rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+                               activeTabClass="active-tab-cell" headerClass="tabs"
+                               headerSpacing="0px" contentClass="tab-content">
+
+                    <rich:tab label="#{lblCommon.details}" name="detailsTab">
+                        <f:facet name="label">
+                            <h:panelGroup styleClass="first tab-label" layout="block">
+                                <h:outputText value="#{lblCommon.details}"
+                                              title="#{lblCommon.details}" />
+                            </h:panelGroup>
+                        </f:facet>
+
+                        <h:panelGroup layout="block" id="detailsTab">
+                            <ui:include src="/pages/products/monitoring/priority_product_details.jspx"></ui:include>
+                            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+                        </h:panelGroup>
+                    </rich:tab>
+
+                </rich:tabPanel>
+            </h:panelGroup>
+        </h:panelGroup>
+
+        <h:panelGroup rendered="#{!usession.inRole['VIEW_PRIORITY_PRODUCTS']}" style="text-align: center">
+            <h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+        </h:panelGroup>
+
+        <script>
+
+            function updateHeight(){
+                updateGridHeight();
+            }
+
+            layout =
+                {
+                    SEARCH_FORM_ID:                 'priorityProductsSearchForm',
+                    SEARCH_RESULT_FORM_ID:          'priorityProductsForm',
+                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                    SEARCH_RESULT_FOOTER_FORM_ID:   'priorityProductsBtn',
+                    TAB_PANEL_ID:                   'workplacePanel',
+
+                    TAB_DATA:      [{
+                        TAB_FORM_ID:            'priorityProductDetailsForm',
+                        TAB_FORM_WRAPPER_ID:    'priorityProductDetailsWrapper',
+                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                    }]
+
+                };
+            jQuery(window).resize(updateHeight);
+
+            updateHeight();
+        </script>
+    </ui:define>
+</ui:composition>
+</html>

@@ -1,0 +1,838 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="acm">
+
+    <!--
+         Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+    </sql>
+
+    <sql id="paginatedClose">
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-action"
+                class="ru.bpc.sv2.acm.AcmAction">
+        <result property="id" column="id"/>
+       	<result property="seqNum" column="seqnum"/>
+        <result property="callMode" column="call_mode"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectType" column="object_type"/>
+        <result property="sectionId" column="section_id"/>
+        <result property="privId" column="priv_id"/>       	
+        <result property="privObjectId" column="priv_object_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="isDefault" column="is_default" javaType="boolean"/>
+        <result property="label" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="sectionName" column="section_name"/>
+        <result property="action" column="action"/>
+        <result property="privName" column="priv_name"/>
+        <result property="instName" column="inst_name"/>
+        <result property="groupId" column="group_id"/>
+        <result property="groupName" column="group_name"/>
+        <result property="objectTypeLovId" column="object_type_lov_id"/>
+	</resultMap>
+
+	<select id="get-actions" 
+			parameterClass="qparams" 
+			resultMap="mapping-action">
+	    <include refid="paginatedOpen"/>
+			SELECT 	
+					  a.id
+					, a.seqnum
+					, a.call_mode
+					, a.entity_type
+					, a.object_type
+					, a.section_id
+					, a.priv_id
+					, a.priv_object_id
+					, a.inst_id
+					, a.is_default
+					, a.label
+					, a.description
+					, a.lang
+					, s.caption AS section_name
+					, s.action
+					, p.short_desc AS priv_name
+					, i.name inst_name
+					, a.group_id
+					, g.label group_name
+					, a.object_type_lov_id
+			FROM 
+					  acm_ui_action_vw a
+					, acm_ui_section_vw s
+					, acm_ui_privilege_vw p
+					, ost_ui_institution_sys_vw i
+					, acm_ui_action_group_vw g
+			WHERE
+					    a.section_id = s.id
+					AND a.lang = s.lang
+					AND a.inst_id = i.id
+					AND a.lang = i.lang 
+					AND a.priv_id = p.id
+					AND a.lang = p.lang
+					AND a.group_id = g.id(+)
+					AND a.lang = g.lang(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="groupId">a.group_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="callMode">a.call_mode = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectType">a.object_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="sectionId">a.section_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">(a.inst_id = #filters[].value# OR a.inst_id = 9999)</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(a.label) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="noGroup">a.group_id IS NULL</isEqual>
+				<isEqual property="filters[].element" compareValue="default">a.is_default = #filters[].value#</isEqual>
+			</iterate>			
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+	                <isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="callMode">a.call_mode $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="entityType">a.entity_type $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="objectType">a.object_type $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="label">upper(a.label) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="sectionName">upper(section_name) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="action">upper(s.action) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="privName">upper(priv_name) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-actions-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		SELECT 	
+				count(*)
+		FROM 
+				  acm_ui_action_vw a
+				, acm_ui_section_vw s
+				, acm_ui_privilege_vw p
+				, ost_ui_institution_sys_vw i				
+		WHERE
+				    a.section_id = s.id
+				AND a.lang = s.lang
+				AND a.inst_id = i.id
+				AND a.lang = i.lang 
+				AND a.priv_id = p.id
+				AND a.lang = p.lang				
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="groupId">a.group_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="callMode">a.call_mode = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectType">a.object_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sectionId">a.section_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">(a.inst_id = #filters[].value# OR a.inst_id = 9999)</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(a.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="noGroup">a.group_id IS NULL</isEqual>
+			<isEqual property="filters[].element" compareValue="default">a.is_default = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+
+	<procedure id="add-action"
+    		parameterClass="ru.bpc.sv2.acm.AcmAction">
+    	{call ACM_UI_ACTION_PKG.add(
+   				  o_id              => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum          => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_call_mode       => #callMode#
+				, i_entity_type     => #entityType#
+				, i_object_type     => #objectType#
+				, i_group_id		=> #groupId#
+				, i_section_id      => #sectionId#
+				, i_priv_id         => #privId#
+				, i_priv_object_id  => #privObjectId#
+				, i_is_default      => #isDefault#
+				, i_label           => #label#
+				, i_description     => #description#
+				, i_lang            => #lang#
+				, i_inst_id         => #instId#
+				, i_object_type_lov_id => #objectTypeLovId#
+   				)}
+    </procedure>
+
+	<procedure id="modify-action"
+    		parameterClass="ru.bpc.sv2.acm.AcmAction">
+    	{call ACM_UI_ACTION_PKG.modify(
+   				  i_id              => #id#
+				, io_seqnum         => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_call_mode       => #callMode#
+				, i_entity_type     => #entityType#
+				, i_object_type     => #objectType#
+				, i_group_id		=> #groupId#
+				, i_section_id      => #sectionId#
+				, i_priv_id         => #privId#
+				, i_priv_object_id  => #privObjectId#
+				, i_is_default      => #isDefault#
+				, i_label           => #label#
+				, i_description     => #description#
+				, i_lang            => #lang#
+				, i_inst_id         => #instId#
+				, i_object_type_lov_id => #objectTypeLovId#
+				)}
+    </procedure>
+
+	<procedure id="remove-action"
+    		parameterClass="ru.bpc.sv2.acm.AcmAction">
+    	{call ACM_UI_ACTION_PKG.remove(
+   				  i_id              => #id#
+				, i_seqnum          => #seqNum#
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-action-group" class="ru.bpc.sv2.acm.AcmActionGroup">
+        <result property="id" column="id"/>
+       	<result property="seqNum" column="seqnum"/>
+        <result property="instId" column="inst_id" />
+        <result property="instName" column="inst_name" />
+        <result property="name" column="label" />
+        <result property="lang" column="lang" />
+        <result property="parentId" column="parent_id" />
+        <result property="entityType" column="entity_type" />
+	</resultMap>
+	
+	<resultMap  id="mapping-action-group-hier" extends="mapping-action-group"
+                class="ru.bpc.sv2.acm.AcmActionGroup"  >       
+        <result property="level" column="level" />
+        <result property="isLeaf" javaType="boolean" column="is_leaf" />
+	</resultMap>
+	
+	<select id="get-action-groups-hier"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-action-group-hier" >
+		SELECT 	level
+		    	, id
+		    	, seqnum
+		    	, inst_id
+		    	, inst_name
+		    	, label
+		    	, lang
+		    	, parent_id
+		    	, entity_type
+		    	, CONNECT_BY_ISLEAF as is_leaf
+	    FROM (
+			SELECT DISTINCT 
+				a.*
+				, i.name inst_name
+			FROM 
+				ACM_UI_ACTION_GROUP_VW a, OST_UI_INSTITUTION_SYS_VW i			
+			WHERE
+				a.inst_id = i.id
+				AND i.lang = a.lang
+			<iterate prepend=" START WITH " conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+	        	<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+	        	<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(a.label) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>								
+			</iterate>       
+			CONNECT BY PRIOR a.parent_id = a.id
+			  	<iterate prepend="AND" conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>	        		
+			  	</iterate>	   
+			)
+			START WITH (parent_id is null or parent_id not in (select id from ACM_UI_ACTION_GROUP_VW))
+			CONNECT BY PRIOR id = parent_id
+			ORDER SIBLINGS BY id
+	</select>
+	
+	<select id="get-action-groups"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-action-group" >
+		SELECT 
+				 a.id
+		    	, a.seqnum
+		    	, a.inst_id
+		    	, i.name inst_name
+		    	, a.label
+		    	, a.lang
+		    	, a.parent_id
+		    	, a.entity_type
+		FROM 
+				ACM_UI_ACTION_GROUP_VW  a, OST_UI_INSTITUTION_SYS_VW i
+		WHERE
+				a.inst_id = i.id
+				AND i.lang = a.lang
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+        	<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(a.label) like #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>								
+		</iterate>       
+	</select>
+	
+	<procedure id="add-action-group"
+    		parameterClass="ru.bpc.sv2.acm.AcmActionGroup">
+    	{call ACM_UI_ACTION_GROUP_PKG.add_acm_action_group(
+   				  o_id              => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum          => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_entity_type     => #entityType#
+				, i_parent_id       => #parentId#
+				, i_inst_id         => #instId#
+				, i_lang            => #lang#
+				, i_label           => #name#
+   				)}
+    </procedure>
+
+	<procedure id="modify-action-group"
+    		parameterClass="ru.bpc.sv2.acm.AcmActionGroup">
+    	{call ACM_UI_ACTION_GROUP_PKG.modify_acm_action_group(
+   				  i_id              => #id#
+				, io_seqnum         => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_parent_id       => #parentId#
+				, i_lang            => #lang#
+				, i_label           => #name#
+				)}
+    </procedure>
+
+	<procedure id="remove-action-group"
+    		parameterClass="ru.bpc.sv2.acm.AcmActionGroup">
+    	{call ACM_UI_ACTION_GROUP_PKG.remove_acm_action_group(
+   				  i_id              => #id#
+				, i_seqnum          => #seqNum#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-action-value"
+                class="ru.bpc.sv2.acm.AcmActionValue">
+        <result property="id" column="id"/>
+       	<result property="actionId" column="action_id"/>
+        <result property="paramId" column="param_id"/>
+        <result property="systemName" column="name"/>
+        <result property="dataType" column="data_type"/>
+        <result property="label" column="label"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="paramFunction" column="param_function"/>
+        <result property="paramValue" column="param_value"/>
+        <result property="lang" column="lang"/>
+        <result property="valueV" column="value_v"/>
+        <result property="valueN" column="value_n"/>
+        <result property="valueD" column="value_d"/>
+        <result property="lovName" column="lov_name"/>
+        <result property="paramName" column="param_name"/>
+        <result property="paramSystemName" column="param_sys_name"/>
+	</resultMap>
+
+	<select id="get-action-values" 
+			parameterClass="qparams" 
+			resultMap="mapping-action-value">
+		SELECT 	
+				  av.id
+				, av.action_id
+				, av.param_id
+				, av.name
+				, av.data_type
+				, av.label
+				, av.lov_id
+				, av.param_function
+				, av.param_value
+				, av.lang
+				, decode(av.data_type, 'DTTPCHAR', TO_CHAR(av.param_value), TO_CHAR(NULL)) value_v
+				, decode(av.data_type, 'DTTPNMBR', av.param_value, NULL) value_n
+				, decode(av.data_type, 'DTTPDATE', TO_DATE(av.param_value, get_date_format), TO_DATE(NULL)) value_d
+				, p.label AS param_name
+				, p.name AS param_sys_name
+				, lov.name lov_name
+		FROM 
+				  acm_ui_action_value_vw av
+				, acm_ui_section_parameter_vw p
+				, com_ui_lov_vw lov
+		WHERE 
+				    av.param_id = p.id 
+				AND av.lang = p.lang
+				AND av.lov_id = lov.id(+)
+				AND av.lang = lov.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">av.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="actionId">av.action_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">av.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="systemName">upper(av.name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">av.data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(av.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">av.lang = #filters[].value#</isEqual>
+		</iterate>			
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">av.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="systemName">upper(av.name) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="dataType">av.data_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="label">upper(av.label) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="lovId">av.lov_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="lovName">upper(lov_name) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="paramFunction">upper(av.param_function) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="paramName">upper(param_name) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="value">
+                	value_v $sorting[].direction$
+                	, value_n $sorting[].direction$
+                	, value_d $sorting[].direction$
+                	, av.param_function $sorting[].direction$
+                </isEqual>
+            </isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-action-values-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		SELECT count(*)
+		FROM acm_ui_action_value_vw av, acm_ui_section_parameter_vw p
+		WHERE av.param_id = p.id AND av.lang = p.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">av.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="actionId">av.action_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">av.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="systemName">upper(av.name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">av.data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(av.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">av.lang = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+
+	<procedure id="add-action-value"
+    		parameterClass="ru.bpc.sv2.acm.AcmActionValue">
+    	{call ACM_UI_ACTION_VALUE_PKG.add(
+   				  o_id             => #id,jdbcType=NUMERIC,mode=OUT#
+				, i_action_id      => #actionId#
+				, i_param_id       => #paramId#
+				, i_param_value    => #paramValue#
+				, i_param_function => #paramFunction#
+   				)}
+    </procedure>
+
+	<procedure id="modify-action-value"
+    		parameterClass="ru.bpc.sv2.acm.AcmActionValue">
+    	{call ACM_UI_ACTION_VALUE_PKG.modify(
+   				  i_id             => #id#
+				, i_action_id      => #actionId#
+				, i_param_id       => #paramId#
+				, i_param_value    => #paramValue#
+				, i_param_function => #paramFunction#
+				)}
+    </procedure>
+
+	<procedure id="remove-action-value"
+    		parameterClass="ru.bpc.sv2.acm.AcmActionValue">
+    	{call ACM_UI_ACTION_VALUE_PKG.remove(
+   				  i_id             => #id#
+				)}
+    </procedure>
+
+
+	<resultMap  id="mapping-section-param"
+                class="ru.bpc.sv2.acm.SectionParameter">
+        <result property="id" column="id"/>
+       	<result property="seqNum" column="seqnum"/>
+        <result property="sectionId" column="section_id"/>
+        <result property="systemName" column="name"/>       	
+        <result property="label" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="sectionName" column="section_name"/>
+        <result property="dataType" column="data_type"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="lovName" column="lov_name"/>
+	</resultMap>
+
+	<select id="get-section-params" 
+			parameterClass="qparams" 
+			resultMap="mapping-section-param">
+	    <include refid="paginatedOpen"/>
+			SELECT 	
+					  p.id
+					, p.seqnum
+					, p.section_id
+					, p.name
+					, p.label
+					, p.description
+					, p.lang
+					, s.caption AS section_name
+					, p.data_type
+					, p.lov_id
+					, lov.name AS lov_name
+			FROM
+					  acm_ui_section_parameter_vw p
+					, acm_ui_section_vw s
+					, com_ui_lov_vw lov
+			WHERE 
+					    p.section_id = s.id 
+					AND p.lang = s.lang
+					AND p.lov_id = lov.id(+)
+					AND p.lang = lov.lang(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="sectionId">p.section_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="systemName">upper(p.name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(p.label) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			</iterate>			
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+	                <isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="sectionName">upper(section_name) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="systemName">upper(p.name) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="label">upper(p.label) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="dataType">p.data_type $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="lovName">upper(lov_name) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="lovId">p.lov_id $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-section-params-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		SELECT 	
+				count(*)
+		FROM
+				  acm_ui_section_parameter_vw p
+				, acm_ui_section_vw s
+		WHERE 
+				    p.section_id = s.id 
+				AND p.lang = s.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sectionId">p.section_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="systemName">upper(p.name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(p.label) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+
+	<procedure id="add-section-param"
+    		parameterClass="ru.bpc.sv2.acm.SectionParameter">
+    	{call ACM_UI_SECTION_PARAMETER_PKG.add(
+   				  o_id          => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum      => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_section_id  => #sectionId#
+				, i_name        => #systemName#
+				, i_data_type   => #dataType#
+				, i_lov_id      => #lovId#
+				, i_label       => #label#
+				, i_description => #description#
+				, i_lang        => #lang#
+   				)}
+    </procedure>
+
+	<procedure id="modify-section-param"
+    		parameterClass="ru.bpc.sv2.acm.SectionParameter">
+    	{call ACM_UI_SECTION_PARAMETER_PKG.modify(
+   				  i_id          => #id#
+				, io_seqnum     => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_section_id  => #sectionId#
+				, i_name        => #systemName#
+				, i_data_type   => #dataType#
+				, i_lov_id      => #lovId#
+				, i_label       => #label#
+				, i_description => #description#
+				, i_lang        => #lang#
+				)}
+    </procedure>
+
+	<procedure id="remove-section-param"
+    		parameterClass="ru.bpc.sv2.acm.SectionParameter">
+    	{call ACM_UI_SECTION_PARAMETER_PKG.remove(
+   				  i_id              => #id#
+				, i_seqnum          => #seqNum#
+				)}
+    </procedure>
+    
+   	<procedure id="set-priv-limitation"
+    		parameterClass="ru.bpc.sv2.administrative.roles.Privilege">
+    	{call acm_ui_privilege_pkg.set_limitation(
+				  i_role_id			=> #roleId#    			
+   				, i_priv_id         => #id#
+				, i_limit_id        => #limitationId#
+				)}
+    </procedure>
+
+	<resultMap id="priv-limitations-mapping" class="ru.bpc.sv2.acm.PrivLimitation">
+		<result property="id" column="id" />
+		<result property="privId" column="priv_id" />
+		<result property="shortDesc" column="label" />
+		<result property="lang" column="lang" />
+		<result property="condition" column="condition" />
+	</resultMap>
+    
+    <select id="get-priv-limitations" resultMap="priv-limitations-mapping"> 
+	    SELECT
+			pl.id
+			,pl.priv_id
+			,pl.label
+			,pl.lang
+			,l.condition
+		FROM
+			acm_ui_priv_limitation_vw pl, acm_priv_limitation_vw l
+		WHERE 
+			pl.id = l.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pl.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="privId">pl.priv_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pl.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">pl.id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="shortDesc">pl.label $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>
+    </select>
+    
+    <select id="get-priv-limitations-count" resultClass="int"> 
+	    SELECT
+			count(pl.id)
+		FROM
+			acm_ui_priv_limitation_vw pl
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pl.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="privId">pl.priv_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pl.lang = #filters[].value#</isEqual>
+		</iterate>
+    </select>
+    
+    <procedure id="add-limitation"
+    		parameterClass="ru.bpc.sv2.acm.PrivLimitation">
+    	{call ACM_UI_LIMITATION_PKG.add_limitation(
+   				  o_limitation_id   => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum          => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_priv_id	        => #privId#
+				, i_condition       => #condition#
+				, i_lang            => #lang#
+				, i_label           => #shortDesc#
+   				)}
+    </procedure>
+
+	<procedure id="modify-limitation"
+    		parameterClass="ru.bpc.sv2.acm.PrivLimitation">
+    	{call ACM_UI_LIMITATION_PKG.modify_limitation(
+   				  i_limitation_id   => #id#
+				, io_seqnum         => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_condition       => #condition#
+				, i_lang            => #lang#
+				, i_label           => #shortDesc#
+				)}
+    </procedure>
+
+	<procedure id="remove-limitation"
+    		parameterClass="ru.bpc.sv2.acm.PrivLimitation">
+    	{call ACM_UI_LIMITATION_PKG.remove_limitation(
+   				  i_limitation_id   => #id#
+				, i_seqnum          => #seqNum#
+				)}
+    </procedure>
+    
+    <procedure id="get-limitation"
+    		parameterClass="java.util.Map">
+    	{call ACM_UI_PRIVILEGE_PKG.get_priv_limitation(
+   				  o_limitation     => #limitation,jdbcType=VARCHAR,mode=OUT#
+				, i_priv_name      => #privName#
+   				)}
+    </procedure>
+    
+    <resultMap  id="mapping-component-state"
+                class="ru.bpc.sv2.acm.ComponentState">
+        <result property="id" column="id"/>
+       	<result property="userId" column="user_id"/>
+        <result property="componentId" column="component_id"/>
+        <result property="state" column="state"/>       	
+	</resultMap>
+
+	<select id="get-component-states" parameterClass="qparams" 
+			resultMap="mapping-component-state">
+	    <include refid="paginatedOpen"/>
+			SELECT 	
+					  s.id
+					, s.user_id
+					, s.component_id
+					, s.state
+			FROM
+				ACM_UI_COMPONENT_STATE_VW s
+			WHERE s.user_id = acm_api_user_pkg.get_user_id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="componentId">s.component_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="state">s.state = #filters[].value#</isEqual>
+			</iterate>			
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+	                <isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="componentId">s.component_id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="state">s.state $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<procedure id="add-component-state"
+    		parameterClass="ru.bpc.sv2.acm.ComponentState">
+    	{call ACM_UI_COMPONENT_STATE_PKG.add_state(
+    			i_user_id      		=> acm_api_user_pkg.get_user_id
+  				, i_component_id 	=> #componentId#
+  				, i_state 			=> #state#
+   				)}
+    </procedure>
+
+	<procedure id="remove-component-state"
+    		parameterClass="ru.bpc.sv2.acm.ComponentState">
+    	{call ACM_UI_COMPONENT_STATE_PKG.remove_state(
+    			i_user_id       	=> acm_api_user_pkg.get_user_id
+  				, i_component_id	=> #componentId#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-partition-table"
+                class="ru.bpc.sv2.administrative.PartitionTable">
+        <result property="id" column="id"/>
+       	<result property="seqNum" column="seqnum"/>
+        <result property="tableName" column="table_name"/>
+        <result property="partitionCycleId" column="partition_cycle_id"/>
+        <result property="storageCycleId" column="storage_cycle_id"/>
+        <result property="nextPartitionDate" column="next_partition_date"/>
+	</resultMap>
+
+	<select id="get-partition-tables" 
+			parameterClass="qparams" 
+			resultMap="mapping-partition-table">
+	    <include refid="paginatedOpen"/>
+			SELECT 	
+					  a.id
+					, a.seqnum
+					, a.table_name
+					, a.partition_cycle_id
+					, a.storage_cycle_id
+					, a.next_partition_date
+			FROM 
+					 com_ui_partition_table_vw a
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="tableName">upper(a.table_name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="nextPartitionDateFrom">a.next_partition_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="nextPartitionDateTo">a.next_partition_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			</iterate>			
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+	                <isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="tableName">upper(a.table_name) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="partitionCycleId">a.partition_cycle_id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="storageCycleId">a.storage_cycle_id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="nextPartitionDate">a.next_partition_date $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-partition-tables-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		SELECT 	
+				count(*)
+		FROM 
+			 com_ui_partition_table_vw a				
+	   <iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tableName">upper(a.table_name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="nextPartitionDateFrom">a.next_partition_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD/MM/YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="nextPartitionDateTo">a.next_partition_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD/MM/YYYY')</isEqual>
+		</iterate>			
+	</select>
+	
+	<resultMap class="ru.bpc.sv2.utils.KeyLabelItem" id="tableMap">
+    	<result property="value" column="object_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="label" column="object_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    </resultMap>
+	
+	<select id="get-tables" 
+			resultMap="tableMap">
+		select uo.object_name          
+        from user_objects uo
+        where uo.object_type = 'TABLE'	
+	</select>
+	
+	<procedure id="register-transactional-table"
+    		parameterClass="ru.bpc.sv2.administrative.PartitionTable">
+    	{call COM_UI_PARTITION_PKG.register_transactional_table(
+				  i_table_name       	=> #tableName#
+				, i_partition_cycle_id  => #partitionCycleId#
+				, i_storage_cycle_id    => #storageCycleId#
+				, i_seqnum				=> #seqNum#
+   				)}
+    </procedure>
+
+	<procedure id="unregister-transactional-table"
+    		parameterClass="ru.bpc.sv2.administrative.PartitionTable">
+    	{call COM_UI_PARTITION_PKG.unregister_transactional_table(
+   				  i_table_name          => #tableName#
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-partition"
+                class="ru.bpc.sv2.administrative.Partition">
+        <result property="id" column="id"/>
+        <result property="tableName" column="table_name"/>
+        <result property="partitionName" column="partition_name"/>
+        <result property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+        <result property="dropDate" column="drop_date"/>
+	</resultMap>
+    
+    <select id="get-partitions" 
+			parameterClass="qparams" 
+			resultMap="mapping-partition">
+	    <include refid="paginatedOpen"/>
+			SELECT 	
+					  a.id
+					, a.table_name
+					, a.partition_name
+					, a.start_date
+					, a.end_date
+					, a.drop_date
+			FROM 
+					 com_ui_partition_vw a
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="tableName">a.table_name = #filters[].value#</isEqual>
+			</iterate>			
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+	                <isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="partitionName">upper(a.partition_name) $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="startDate">a.start_date $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="endDate">a.end_date $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="dropDate">a.drop_date $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-partitions-count" 
+			parameterClass="qparams" 
+			resultClass="int">
+		SELECT 	
+				count(*)
+		FROM 
+			 com_ui_partition_vw a				
+	   <iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tableName">a.table_name = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+</sqlMap>

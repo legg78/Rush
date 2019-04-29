@@ -1,0 +1,503 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:fmt="http://www.bpc.ru/el/formatter">
+<ui:composition>
+    <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+    <f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+
+    <style type="text/css">
+        .alignRight {
+            text-align: right;
+        }
+    </style>
+    <h:form id="operDetailsForm">
+        <h:panelGroup layout="block" styleClass="langSelector">
+            <h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable" columnClasses=",secondCol">
+                <h:outputLabel for="lang" value="#{lblCommon.lang_selector}: "
+                               title="#{lblCommon.lang_selector}"/>
+                <h:selectOneMenu id="lang"
+                                 disabled="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation == null}"
+                                 value="#{(detailsBean==null ? MbOperations : detailsBean).curLang}"
+                                 valueChangeListener="#{(detailsBean==null ? MbOperations : detailsBean).changeLanguage}">
+                    <a4j:support event="onchange" reRender="operDetailsWrapper"
+                                 limitToList="true"
+                                 oncomplete="#{detailsBean==null} ? updateHeight() : updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}')"/>
+                    <f:selectItems value="#{(detailsBean==null ? MbOperations : detailsBean).languages}"/>
+                </h:selectOneMenu>
+            </h:panelGrid>
+        </h:panelGroup>
+
+        <h:panelGroup id="operDetailsWrapper" layout="block" styleClass="carddata-wrapper"
+                      style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+            <rich:dataTable id="operationDetailsTable"
+                            value="#{(detailsBean==null ? MbOperations : detailsBean).emptyTable}"
+                            var="field"
+                            styleClass="res-table noHeader" width="100%">
+                <rich:columnGroup rowClasses=",odd"
+                                  columnClasses="firstCol alignLeft width20, width80 width250 noPadding">
+                    <rich:column styleClass="detailsCategory expandedBranch">
+                        <h:graphicImage url="/images/minus.gif" onclick="showHideDetails(this)"/>
+                        <h:outputLabel value="#{lblPrd.general_data}:"/>
+                    </rich:column>
+                    <rich:column>
+                        <script>updateHeight();</script>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.operation_id}: " title="#{lblOpr.operation_id}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                entityId="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.id}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.id}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblCommon.session_id}: " title="#{lblCommon.session_id}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.sessionId}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.sessionId}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.reversal}: " title="#{lblOpr.reversal}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay value="#{lblCommon.yes}" description="#{lblCommon.yes}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.isReversal}"/>
+                        <bm:entityDisplay value="#{lblCommon.no}" description="#{lblCommon.no}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation != null and not (detailsBean==null ? MbOperations : detailsBean).activeOperation.isReversal}"/>
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.original_id}: " title="#{lblOpr.original_id}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.originalId}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.originalId}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_type}: " title="#{lblOpr.oper_type}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay id="oper_type"
+                                          value="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.operType]}"
+                                          description="#{DictUtils.articlesByLang[MbOperations.curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.operType]}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operType != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operType == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_reason}: " title="#{lblOpr.oper_reason}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay id="oper_reason"
+                                          value="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.operReason]}"
+                                          description="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.operReason]}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operReason != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operReason == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.msg_type}: " title="#{lblOpr.msg_type}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.msgType]}"
+                                description="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.msgType]}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.msgType != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.msgType == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblCommon.status}: " title="#{lblCommon.status}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay id="status"
+                                          value="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.status]}"
+                                          description="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.status]}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.status != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.status == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.status_reason}: " title="#{lblOpr.status_reason}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay id="status_reson"
+                                          value="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.statusReason]}"
+                                          description="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.statusReason]}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.statusReason != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.statusReason == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.originator_refnum}: " title="#{lblOpr.originator_refnum}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.originatorRefnum}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.originatorRefnum}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblAcq.terminal_number}: " title="#{lblAcq.terminal_number}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.terminalNumber}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.terminalNumber}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.terminal_type}: " title="#{lblOpr.terminal_type}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.terminalType} - #{(detailsBean==null ? MbOperations : detailsBean).activeOperation.terminalTypeName}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.terminalType} - #{(detailsBean==null ? MbOperations : detailsBean).activeOperation.terminalTypeName}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.terminalType != null}"/>
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.terminalType == null}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblAcq.merchant_number}: " title="#{lblAcq.merchant_number}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.merchantNumber}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.merchantNumber}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblAcq.merchant_name}: " title="#{lblAcq.merchant_name}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.merchantName}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.merchantName}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblAcq.merchant_location}: " title="#{lblAcq.merchant_location}"/>
+                    </rich:column>
+                    <rich:column>
+                        <div class="#{CountryUtils.flagsMap[(detailsBean==null ? MbOperations : detailsBean).country]}"/>
+                        <ui:remove>
+                            <div class="#{EntityIcons.objectsMapS['ENTTACCT'][(detailsBean==null ? MbOperations : detailsBean).country]}"/>
+                        </ui:remove>
+                        <bm:entityDisplay value="#{(detailsBean==null ? MbOperations : detailsBean).merchantLocation}"
+                                          description="#{(detailsBean==null ? MbOperations : detailsBean).merchantLocation}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblAcq.mcc}: " title="#{lblAcq.mcc}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.mccCode} - #{(detailsBean==null ? MbOperations : detailsBean).activeOperation.mccName}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.mccCode} - #{(detailsBean==null ? MbOperations : detailsBean).activeOperation.mccName}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.mccCode != null}"/>
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.mccCode == null}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.acq_inst_bin}: " title="#{lblOpr.acq_inst_bin}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.acqInstBin}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.acqInstBin}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.forw_inst_bin}: " title="#{lblOpr.forw_inst_bin}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.forwInstBin}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.forwInstBin}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_count}: " title="#{lblOpr.oper_count}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCount}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCount}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_request_amount}: " title="#{lblOpr.oper_request_amount}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operRequestAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                description="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operRequestAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operRequestAmount != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operRequestAmount == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_amount_alogrithm}: "
+                                       title="#{lblOpr.oper_amount_alogrithm}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.operAmountAlgorithm]}"
+                                description="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.operAmountAlgorithm]}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operAmountAlgorithm != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operAmountAlgorithm == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.operation_amount}: " title="#{lblOpr.operation_amount}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                description="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operAmount != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operAmount == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_currency}: " title="#{lblOpr.oper_currency}"/>
+                    </rich:column>
+                    <rich:column>
+                        <div class="#{EntityIcons.objectsMapS['ENTT0046'][(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"/>
+                        <bm:entityDisplay id="accCurr"
+                                          value="#{CurrencyUtils.currencyMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                          description="#{CurrencyUtils.currencyMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_cashback_amount}: " title="#{lblOpr.oper_cashback_amount}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operCashbackAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                description="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operCashbackAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCashbackAmount != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCashbackAmount == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_replacement_amount}: "
+                                       title="#{lblOpr.oper_replacement_amount}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operReplacementAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                description="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operReplacementAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operReplacementAmount != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operReplacementAmount == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_surcharge_amount}: "
+                                       title="#{lblOpr.oper_surcharge_amount}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operSurchargeAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                description="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.operSurchargeAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.operCurrency]}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operSurchargeAmount != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.operSurchargeAmount == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.oper_date}: " title="#{lblOpr.oper_date}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay id="detOperDate"
+                                          value="#{fmt:formatDate((detailsBean==null ? MbOperations : detailsBean).activeOperation.operDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"
+                                          description="#{fmt:formatDate((detailsBean==null ? MbOperations : detailsBean).activeOperation.operDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.host_date_n_time}: " title="#{lblOpr.host_date_n_time}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{fmt:formatDate((detailsBean==null ? MbOperations : detailsBean).activeOperation.hostDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"
+                                description="#{fmt:formatDate((detailsBean==null ? MbOperations : detailsBean).activeOperation.hostDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.unhold_date}: " title="#{lblOpr.unhold_date}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{fmt:formatDate((detailsBean==null ? MbOperations : detailsBean).activeOperation.unholdDate, usession.fullDatePattern, CommonUtils.timeZoneId)}"
+                                description="#{fmt:formatDate((detailsBean==null ? MbOperations : detailsBean).activeOperation.unholdDate, usession.fullDatePattern, CommonUtils.timeZoneId)}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.sttl_type}: " title="#{lblOpr.sttl_type}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlType]}"
+                                description="#{DictUtils.articlesByLang[(detailsBean==null ? MbOperations : detailsBean).curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlType]}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.sttl_amount}: " title="#{lblOpr.sttl_amount}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay id="sttlAmount"
+                                          value="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlCurrency]}"
+                                          description="#{fmt:formatMoney((detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlAmount, CurrencyUtils.currencyObjectsMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlCurrency].exponent)} #{CurrencyUtils.currencyMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlCurrency]}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlAmount != null}"
+                        />
+                        <bm:entityDisplay id="sttlAmountEmpty" value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlAmount == null}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.sttl_currency}: " title="#{lblOpr.sttl_currency}"/>
+                    </rich:column>
+                    <rich:column>
+                        <div class="#{EntityIcons.objectsMapS['ENTT0046'][(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlCurrency]}"/>
+                        <bm:entityDisplay id="sttlCurr"
+                                          value="#{CurrencyUtils.currencyMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlCurrency]}"
+                                          description="#{CurrencyUtils.currencyMap[(detailsBean==null ? MbOperations : detailsBean).activeOperation.sttlCurrency]}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.dispute_id}: " title="#{lblOpr.dispute_id}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.disputeId}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.disputeId}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.payment_order_id}: "
+                                       title="#{lblOpr.payment_order_id}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay id="paymentOrderIdDetails"
+                                          value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.paymentOrderId}"
+                                          description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.paymentOrderId}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.payment_host}: "
+                                       title="#{lblOpr.payment_host}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay id="paymentHostIdDetails"
+                                          value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.paymentHostId}"
+                                          description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.paymentHostId}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.forced_processing}: " title="#{lblOpr.forced_processing}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay value="#{lblCommon.yes}" description="#{lblCommon.yes}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.forcedProcessing}"/>
+                        <bm:entityDisplay value="#{lblCommon.no}" description="#{lblCommon.no}"
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation != null and not (detailsBean==null ? MbOperations : detailsBean).activeOperation.forcedProcessing}"/>
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.match_status}: " title="#{lblOpr.match_status}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{DictUtils.articlesByLang[MbOperations.curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.matchStatus]}"
+                                description="#{DictUtils.articlesByLang[MbOperations.curLang][(detailsBean==null ? MbOperations : detailsBean).activeOperation.matchStatus]}"
+                                rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.matchStatus != null}"
+                        />
+                        <bm:entityDisplay value=""
+                                          rendered="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.matchStatus == null}"
+                        />
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.match_id}: " title="#{lblOpr.match_id}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.matchId}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.matchId}"/>
+                    </rich:column>
+
+                    <rich:column breakBefore="true">
+                        <h:outputLabel value="#{lblOpr.external_auth_id}: " title="#{lblOpr.external_auth_id}"/>
+                    </rich:column>
+                    <rich:column>
+                        <bm:entityDisplay
+                                value="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.externalAuthId}"
+                                description="#{(detailsBean==null ? MbOperations : detailsBean).activeOperation.externalAuthId}"/>
+                    </rich:column>
+                </rich:columnGroup>
+            </rich:dataTable>
+            <script>setDetailsState("operDetailsForm:operationDetailsTable");</script>
+        </h:panelGroup>
+    </h:form>
+
+</ui:composition>
+</html>

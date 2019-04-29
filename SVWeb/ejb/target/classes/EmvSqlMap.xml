@@ -1,0 +1,1092 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="emv">
+	<!-- Common sql configuration not included in SqlMapConfig -->
+	<sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql> 
+	
+	<sql id="paginatedOpen">
+		SELECT *
+		FROM(
+		    SELECT a.*, rownum r
+		    FROM(
+		    <include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedClose">
+		<include refid="limitationClose"/>
+		        ) a
+		    WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+		)
+		WHERE r >= (#range.start# + 1)
+	</sql>
+	
+	<resultMap  id="mapping-application"
+            class="ru.bpc.sv2.emv.EmvApplication"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="aid" column="aid" />
+	    <result property="name" column="name" />
+	    <result property="idOwner" column="id_owner"/>
+	    <result property="lang" column="lang" />	    
+	    <result property="applSchemeId" column="appl_scheme_id" />  
+	    <result property="modId" column="mod_id" />
+	    <result property="pix" column="pix" />  
+	    <result property="applSchemeName" column="appl_scheme_name" />   
+	    <result property="ownerName" column="owner_name" />
+	</resultMap>
+	
+	<select id="get-applications"
+		parameterClass="qparams" resultMap="mapping-application">
+		<include refid="paginatedOpen" />
+			SELECT
+			a.id ,
+			a.seqnum ,
+			a.aid ,
+			a.name ,
+			a.lang ,
+			a.id_owner ,
+			get_text (
+		          i_table_name     => 'sec_authority'
+		          , i_column_name  => 'name'
+		          , i_object_id    => (select id from sec_authority where rid=a.id_owner)
+		          , i_lang         => a.lang
+		      ) owner_name,
+			a.appl_scheme_id,
+			a.mod_id,
+			a.pix,
+			asv.name as appl_scheme_name
+		FROM emv_ui_application_vw a
+		LEFT JOIN emv_ui_appl_scheme_vw asv ON a.appl_scheme_id = asv.id
+		AND a.lang = asv.lang
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="aid">upper(a.aid) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(a.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>		
+				<isEqual property="filters[].element" compareValue="applSchemeId">a.appl_scheme_id = #filters[].value#</isEqual>		
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqnum">a.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="aid">a.aid $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="name">a.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="idOwner">a.id_owner $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="applSchemeId">a.appl_scheme_id $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>			
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-applications-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			a.id
+		FROM
+			emv_ui_application_vw a
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="aid">upper(a.aid) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(a.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>		
+			<isEqual property="filters[].element" compareValue="applSchemeId">a.appl_scheme_id = #filters[].value#</isEqual>		
+		</iterate>	
+		<include refid="limitationClose"/>	
+	</select>	
+	
+	<procedure id="add-application"
+			parameterClass="ru.bpc.sv2.emv.EmvApplication">
+		{call emv_ui_application_pkg.add_application(
+			  o_id            => #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum        => #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_aid           => #aid#
+			, i_id_owner      => #idOwner#
+			, i_pix           => #pix#
+			, i_appl_scheme_id => #applSchemeId,jdbcType=NUMERIC#
+			, i_lang          => #lang#
+			, i_name          => #name#
+			, i_mod_id       => #modId,jdbcType=NUMERIC#
+		)}
+	</procedure>
+	
+	<procedure id="modify-application"
+			parameterClass="ru.bpc.sv2.emv.EmvApplication">
+		{call emv_ui_application_pkg.modify_application(
+			  i_id            => #id#
+			, io_seqnum       => #seqnum,mode=INOUT,jdbcType=NUMERIC#
+			, i_aid           => #aid#
+			, i_id_owner      => #idOwner#
+			, i_pix           => #pix#
+			, i_appl_scheme_id => #applSchemeId,jdbcType=NUMERIC#
+			, i_lang          => #lang#
+			, i_name          => #name#
+			, i_mod_id       => #modId,jdbcType=NUMERIC#
+		)}
+	</procedure>
+	
+	<procedure id="remove-application"
+			parameterClass="ru.bpc.sv2.emv.EmvApplication">
+		{call emv_ui_application_pkg.remove_application(
+			  i_id            => #id#
+			, i_seqnum        => #seqnum#
+		)}
+	</procedure>
+	
+	<resultMap id="mapping-block"
+	            class="ru.bpc.sv2.emv.EmvBlock"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="applicationId" column="application_id" />
+	    <result property="code" column="code" />
+	    <result property="includeInSda" column="include_in_sda" />
+	    <result property="includeInAfl" column="include_in_afl" />
+	    <result property="transportKeyId" column="transport_key_id" />
+	    <result property="encryptionId" column="encryption_id" />
+	    <result property="blockOrder" column="block_order" />
+	    <result property="profile" column="profile" />
+	    <result property="transportKeyName" column="transport_key_name" />
+	    <result property="encryptionName" column="encryption_name" />
+	</resultMap>
+	
+	<select id="get-blocks"
+			parameterClass="qparams" resultMap="mapping-block">
+		<include refid="paginatedOpen" />
+			SELECT
+				bv.id
+				,bv.seqnum
+				,bv.application_id
+				,bv.code
+				,bv.include_in_sda				
+				,bv.include_in_afl
+				,bv.transport_key_id
+				,vtk.name transport_key_name
+				,bv.encryption_id
+				,ve.name encryption_name
+				,bv.block_order
+				,bv.profile
+			FROM
+				emv_ui_block_vw bv, emv_ui_variable_vw vtk, emv_ui_variable_vw ve
+			WHERE
+				bv.transport_key_id = vtk.id (+)
+				AND bv.encryption_id = ve.id (+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="applicationId">bv.application_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">bv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">vtk.lang (+) = #filters[].value# AND ve.lang (+) = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">bv.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqnum">bv.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="applicationId">bv.application_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="code">bv.code $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="includeInSda">bv.include_in_sda $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="includeInAfl">bv.include_in_afl $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="transportKeyId">bv.transport_key_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="encryptionId">bv.encryption_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="blockOrder">bv.block_order $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="profile">bv.profile $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>			
+			<isEmpty property="sorting" prepend="ORDER BY ">bv.block_order ASC</isEmpty>	
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-blocks-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			bv.id
+		FROM
+			emv_ui_block_vw bv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="applicationId">bv.application_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>		
+	</select>	
+	
+	<procedure id="add-block"
+			parameterClass="ru.bpc.sv2.emv.EmvBlock">
+		{call emv_ui_block_pkg.add_block(
+			  o_id					=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum				=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_application_id		=> #applicationId#
+			, i_code				=> #code#
+			, i_include_in_sda		=> #includeInSda#
+			, i_include_in_afl		=> #includeInAfl#
+			, i_transport_key_id	=> #transportKeyId#
+			, i_encryption_id		=> #encryptionId#
+			, i_block_order			=> #blockOrder#
+			, i_profile				=> #profile#
+		)}
+	</procedure>	
+	
+	<procedure id="modify-block"
+			parameterClass="ru.bpc.sv2.emv.EmvBlock">
+		{call emv_ui_block_pkg.modify_block(
+			  i_id					=> #id#
+			, io_seqnum				=> #seqnum,mode=INOUT,jdbcType=NUMERIC#
+			, i_application_id		=> #applicationId#
+			, i_code				=> #code#
+			, i_include_in_sda		=> #includeInSda#
+			, i_include_in_afl		=> #includeInAfl#
+			, i_transport_key_id	=> #transportKeyId#
+			, i_encryption_id		=> #encryptionId#
+			, i_block_order			=> #blockOrder#
+			, i_profile				=> #profile#
+		)}
+	</procedure>
+	
+	<procedure id="remove-block"
+			parameterClass="ru.bpc.sv2.emv.EmvBlock">
+		{call emv_ui_block_pkg.remove_block(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqnum#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-variable"
+	            class="ru.bpc.sv2.emv.EmvVariable"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="applicationId" column="application_id" />
+	    <result property="variableType" column="variable_type" />
+	    <result property="profile" column="profile" />
+	    <result property="name" column="name" />
+	    <result property="lang" column="lang" />
+	</resultMap>
+	
+	<select id="get-variables"
+			parameterClass="qparams" resultMap="mapping-variable">
+		<include refid="paginatedOpen" />
+			SELECT
+				vv.id
+				,vv.seqnum
+				,vv.application_id
+				,vv.variable_type
+				,vv.profile
+				,vv.name
+				,vv.lang
+			FROM
+				emv_ui_variable_vw vv
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">vv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="applicationId">vv.application_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">vv.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">vv.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqnum">vv.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="applicationId">vv.application_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="variableType">vv.variable_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="profile">vv.profile $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="name">vv.name $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lang">vv.lang $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-variables-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			vv.id
+		FROM
+			emv_ui_variable_vw vv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">vv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="applicationId">vv.application_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">vv.lang = #filters[].value#</isEqual>
+		</iterate>	
+		<include refid="limitationClose"/>	
+	</select>	
+	
+	<procedure id="add-variable"
+			parameterClass="ru.bpc.sv2.emv.EmvVariable">
+		{call emv_ui_variable_pkg.add_variable(
+			  o_id				=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum			=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_application_id	=> #applicationId#
+			, i_variable_type	=> #variableType#
+			, i_profile			=> #profile#
+			, i_lang			=> #lang#
+			, i_name			=> #name#
+		)}
+	</procedure>
+	
+	<procedure id="modify-variable"
+			parameterClass="ru.bpc.sv2.emv.EmvVariable">
+		{call emv_ui_variable_pkg.modify_variable(
+			  i_id				=> #id#
+			, io_seqnum			=> #seqnum,mode=INOUT,jdbcType=NUMERIC#
+			, i_application_id	=> #applicationId#
+			, i_variable_type	=> #variableType#
+			, i_profile			=> #profile#
+			, i_lang			=> #lang#
+			, i_name			=> #name#
+		)}
+	</procedure>		
+	
+	<procedure id="remove-variable"
+			parameterClass="ru.bpc.sv2.emv.EmvVariable">
+		{call emv_ui_variable_pkg.remove_variable(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqnum#
+		)}
+	</procedure>	
+	
+	<resultMap  id="mapping-emv-element"
+	            class="ru.bpc.sv2.emv.EmvElement"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="parentId" column="parent_id" />
+	    <result property="entityType" column="entity_type" />
+	    <result property="objectId" column="object_id" />
+	    <result property="elementOrder" column="element_order" />
+	    <result property="code" column="code" />
+	    <result property="tag" column="tag" />
+	    <result property="value" column="value" />
+	    <result property="isOptional" column="is_optional" />
+	    <result property="addLength" column="add_length" />
+	    <result property="startPosition" column="start_position" />
+	    <result property="length" column="length" />
+	    <result property="level" column="level" />
+	    <result property="profile" column="profile" />
+	</resultMap>
+	
+	<select id="get-emv-elements"
+			parameterClass="qparams" resultMap="mapping-emv-element">
+			SELECT
+				ev.id
+				,ev.seqnum
+				,ev.parent_id
+				,ev.entity_type
+				,ev.object_id
+				,ev.element_order
+				,ev.code
+				,ev.tag
+				,ev.value
+				,ev.is_optional
+				,ev.add_length
+				,ev.start_position
+				,ev.length
+				,level
+				,ev.profile
+			FROM
+				emv_ui_element_vw ev
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="objectId">ev.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">ev.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">ev.entity_type = #filters[].value#</isEqual>
+			</iterate>
+            connect by prior ev.id = ev.parent_id            
+            start with ev.parent_id is null
+            order siblings by ev.element_order
+	</select>
+	
+	<select id="get-emv-elements-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(ev.id)
+		FROM
+			emv_ui_element_vw ev
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="objectId">ev.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">ev.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">ev.entity_type = #filters[].value#</isEqual>
+		</iterate>			
+	</select>		
+	
+	<procedure id="add-element"
+			parameterClass="ru.bpc.sv2.emv.EmvElement">
+		{call emv_ui_element_pkg.add_element(
+			  o_id				=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum			=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_parent_id		=> #parentId#
+			, i_entity_type		=> #entityType#
+			, i_object_id		=> #objectId#
+			, i_element_order	=> #elementOrder#
+			, i_code			=> #code#
+			, i_tag				=> #tag#
+			, i_value			=> #value#
+			, i_is_optional		=> #isOptional#
+			, i_add_length		=> #addLength#
+			, i_start_position	=> #startPosition#
+			, i_length			=> #length#
+			, i_profile			=> #profile#
+		)}
+	</procedure>
+	
+	<procedure id="modify-element"
+			parameterClass="ru.bpc.sv2.emv.EmvElement">
+		{call emv_ui_element_pkg.modify_element(
+			  i_id				=> #id#
+			, io_seqnum			=> #seqnum,mode=INOUT,jdbcType=NUMERIC#
+			, i_parent_id		=> #parentId#
+			, i_entity_type		=> #entityType#
+			, i_object_id		=> #objectId#
+			, i_element_order	=> #elementOrder#
+			, i_code			=> #code#
+			, i_tag				=> #tag#
+			, i_value			=> #value#
+			, i_is_optional		=> #isOptional#
+			, i_add_length		=> #addLength#
+			, i_start_position	=> #startPosition#
+			, i_length			=> #length#
+			, i_profile			=> #profile#
+		)}
+	</procedure>
+	
+	<procedure id="remove-element"
+			parameterClass="ru.bpc.sv2.emv.EmvElement">
+		{call emv_ui_element_pkg.remove_element(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqnum#
+		)}
+	</procedure>
+	
+	<resultMap  id="mapping-emv-tag"
+	            class="ru.bpc.sv2.emv.EmvTag"  >
+	    <result property="id" column="id" />
+	    <result property="tag" column="tag" />
+	    <result property="minLength" column="min_length" />
+	    <result property="maxLength" column="max_length" />
+	    <result property="dataType" column="data_type" />
+	    <result property="dataFormat" column="data_format" />
+	    <result property="defaultValue" column="default_value" />
+	    <result property="tagType" column="tag_type" />
+	    <result property="description" column="description" />
+	    <result property="lang" column="lang" />
+	</resultMap>	
+	
+	<select id="get-emv-tags"
+			parameterClass="qparams" resultMap="mapping-emv-tag">
+		<include refid="paginatedOpen" />
+			SELECT
+				tv.id
+				,tv.tag
+				,tv.min_length
+				,tv.max_length
+				,tv.data_type
+				,tv.data_format
+				,tv.default_value
+				,tv.tag_type
+				,tv.description
+				,tv.lang
+			FROM
+				emv_ui_tag_vw tv
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">tv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="tag">upper(tv.tag) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dataType">tv.data_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dataFormat">tv.data_format = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="defaultValue">tv.default_value = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="tagType">tv.tag_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">tv.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">tv.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="tag">tv.tag $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="minLength">tv.min_length $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="maxLength">tv.max_length $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="dataType">tv.data_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="dataFormat">tv.data_format $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="defaultValue">tv.default_value $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="tagType">tv.tag_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="description">tv.description $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lang">tv.lang $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-emv-tags-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			tv.id
+		FROM
+			emv_ui_tag_vw tv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">tv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tag">upper(tv.tag) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">tv.data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataFormat">tv.data_format = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="defaultValue">tv.default_value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tagType">tv.tag_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">tv.lang = #filters[].value#</isEqual>
+		</iterate>	
+		<include refid="limitationClose"/>		
+	</select>	
+	
+	
+	<resultMap  id="mapping-emv-card-instances"
+	            class="ru.bpc.sv2.emv.EmvCardInstance"  >
+	    <result property="id" column="card_instance_id" />
+	    <result property="instId" column="inst_id" />
+	    <result property="instName" column="inst_name" />
+	    <result property="status" column="status" />
+	    <result property="cardNumber" column="card_number" />
+	    <result property="cardMask" column="card_mask" />
+	    <result property="seqNumber" column="seq_number" />
+	    <result property="expirDate" column="expir_date" />
+	    <result property="applSchemeId" column="appl_scheme_id" />
+	    <result property="applSchemeName" column="appl_scheme_name" />
+	    <result property="applType" column="appl_type" />
+	    <result property="lang" column="lang" />
+	</resultMap>
+	
+	
+	<select id="get-emv-card-instances"
+			parameterClass="qparams" resultMap="mapping-emv-card-instances">
+		<include refid="paginatedOpen" />
+			SELECT
+				card_instance_id
+				,inst_id
+				,inst_name
+				,status
+				,card_number
+				,card_mask
+				,seq_number
+				,expir_date
+				,appl_scheme_id
+				,appl_scheme_name
+				,appl_type
+				,lang
+			FROM
+				emv_ui_card_instance_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardNumber">card_number =  #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardMask">reverse(card_mask) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="applSchemeId">appl_scheme_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="applType">appl_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerNumber">reverse(customer_number) $filters[].condition$ reverse(upper(#filters[].value#))</isEqual>
+				<isEqual property="filters[].element" compareValue="expirDate">trunc(expir_date) = TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="inst_id">inst_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="card_mask">card_mask $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="card_number">card_number $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="expir_date">expir_date $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="status">status $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seq_number">seq_number $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="appl_type">appl_type $sorting[].direction$</isEqual>									
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	<select id="get-emv-card-instances-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			card_instance_id				
+		FROM
+				emv_ui_card_instance_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardNumber">card_number =  #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardMask">reverse(card_mask) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="applSchemeId">appl_scheme_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="applType">appl_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerNumber">reverse(customer_number) $filters[].condition$ reverse(upper(#filters[].value#))</isEqual>
+				<isEqual property="filters[].element" compareValue="expirDate">trunc(expir_date) = TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>	
+		<include refid="limitationClose"/>		
+	</select>
+	
+	<resultMap  id="mapping-emv-object-script"
+	            class="ru.bpc.sv2.emv.EmvObjectScript"  >
+	    <result property="id" column="id" />
+	    <result property="objectId" column="object_id" />
+	    <result property="entityType" column="entity_type" />
+	    <result property="status" column="status" />	    
+	    <result property="type" column="type" />
+	    <result property="typeId" column="type_id" />
+	    <result property="priority" column="priority" />
+	    <result property="changeDate" column="change_date" />
+	</resultMap>		
+		
+	<select id="get-emv-object-script"
+			parameterClass="qparams" resultMap="mapping-emv-object-script">
+		<include refid="paginatedOpen" />
+			SELECT
+				id
+				,object_id
+				,entity_type
+				,status
+				,priority
+				,type
+				,type_id
+				,change_date
+			FROM
+				emv_ui_script_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">object_id =  #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="typeId">type_id = #filters[].value#</isEqual>				
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">status $sorting[].direction$</isEqual>	
+					<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="type">type $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-emv-object-script-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			id				
+		FROM
+			emv_ui_script_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">object_id =  #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="typeId">type_id = #filters[].value#</isEqual>				
+		</iterate>	
+		<include refid="limitationClose"/>		
+	</select>
+	
+	<parameterMap class="ru.bpc.sv2.emv.EmvObjectScript" id="add-script-map">
+		<parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="objectId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="type" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="status" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="params" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+	
+	<procedure id="add-script"
+			parameterMap="add-script-map">
+		{call emv_ui_script_pkg.add_script(
+			  o_id                =>  ?
+        	, i_object_id         =>  ?
+        	, i_entity_type       =>  ?
+        	, i_type	          =>  ?
+        	, i_status            =>  ?
+        	, i_param_tab         =>  ?
+		)}
+	</procedure>
+	
+	<procedure id="remove-script"
+			parameterClass="ru.bpc.sv2.emv.EmvObjectScript">
+		{call emv_ui_script_pkg.remove_script(
+			  i_id            => #id#			
+		)}
+	</procedure>
+	
+	<select id="get-emv-script-form-url"
+			parameterClass="qparams"
+			resultClass="String">
+		SELECT
+			form_url				
+		FROM
+			emv_script_type
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="type">type = #filters[].value#</isEqual>
+		</iterate>	
+	</select>	
+	
+	
+	
+	
+	
+	
+	
+	<resultMap  id="mapping-emv-script-type"
+	            class="ru.bpc.sv2.emv.EmvScriptType"  >
+	    <result property="id" column="id" />
+	    <result property="seqNum" column="seqnum" />
+	    <result property="type" column="type" />
+	    <result property="priority" column="priority" />
+	    <result property="mac" column="mac" />
+	    <result property="tag71" column="tag_71" />
+	    <result property="tag72" column="tag_72" />
+	    <result property="condition" column="condition" />
+	    <result property="retransmission" column="retransmission" />
+	    <result property="repeatCount" column="repeat_count" />
+	    <result property="classByte" column="class_byte" />
+	    <result property="instructionByte" column="instruction_byte" />
+	    <result property="parameter1" column="parameter1" />
+	    <result property="parameter2" column="parameter2" />
+	    <result property="reqLengthData" column="req_length_data" />
+	    <result property="isUsedByUser" column="is_used_by_user" />
+	    <result property="formUrl" column="form_url" />	    
+	    <result property="lang" column="lang" />
+	</resultMap>
+		
+	<select id="get-emv-script-type"
+			parameterClass="qparams" resultMap="mapping-emv-script-type">
+		<include refid="paginatedOpen" />
+			SELECT
+				 n.id,
+          		 n.seqnum,
+          		 n.type,
+          		 n.priority,
+          		 n.mac,
+          		 n.tag_71,
+          		 n.tag_72,
+          		 n.condition,
+          		 n.retransmission,
+          		 n.repeat_count,
+          		 n.class_byte,
+          		 n.instruction_byte,
+          		 n.parameter1,
+          		 n.parameter2,
+          		 n.req_length_data,
+          		 n.is_used_by_user,
+          		 n.form_url,
+          		 l.lang
+          		 
+			FROM
+				emv_ui_script_type_vw n, com_language_vw l
+			Where n.lang = 	l.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="type">type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="condition">condition =  #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">n.lang =  #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="type">type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>																							
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-emv-script-type-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			n.id				
+		FROM
+			emv_ui_script_type_vw n
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="type">type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="condition">condition =  #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">n.lang =  #filters[].value#</isEqual>				
+		</iterate>	
+		<include refid="limitationClose"/>		
+	</select>
+	
+	<procedure id="add-script-type"
+			parameterClass="ru.bpc.sv2.emv.EmvScriptType">
+		{call emv_ui_script_type_pkg.add_script_type(
+			  o_id            		=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum        		=> #seqNum,mode=OUT,jdbcType=NUMERIC#
+			, i_type          		=> #type#
+			, i_priority	  		=> #priority#
+			, i_mac		      		=> #mac#
+			, i_tag_71        		=> #tag71#
+			, i_tag_72        		=> #tag72#
+			, i_condition     		=> #condition#
+			, i_retransmission		=> #retransmission#
+			, i_repeat_count		=> #repeatCount#
+			, i_class_byte			=> #classByte#
+			, i_instruction_byte	=> #instructionByte#
+			, i_parameter1			=> #parameter1#
+			, i_parameter2			=> #parameter2#
+			, i_req_length_data		=> #reqLengthData#
+			, i_is_used_by_user		=> #isUsedByUser#
+			, i_form_url			=> #formUrl#				
+		)}
+	</procedure>
+	
+	<procedure id="modify-script-type"
+			parameterClass="ru.bpc.sv2.emv.EmvScriptType">
+		{call emv_ui_script_type_pkg.modify_script_type(
+			  i_id            		=> #id#
+			, io_seqnum        		=> #seqNum,mode=OUT,jdbcType=NUMERIC#
+			, i_type          		=> #type#
+			, i_priority	  		=> #priority#
+			, i_mac		      		=> #mac#
+			, i_tag_71        		=> #tag71#
+			, i_tag_72        		=> #tag72#
+			, i_condition     		=> #condition#
+			, i_retransmission		=> #retransmission#
+			, i_repeat_count		=> #repeatCount#
+			, i_class_byte			=> #classByte#
+			, i_instruction_byte	=> #instructionByte#
+			, i_parameter1			=> #parameter1#
+			, i_parameter2			=> #parameter2#
+			, i_req_length_data		=> #reqLengthData#
+			, i_is_used_by_user		=> #isUsedByUser#
+			, i_form_url			=> #formUrl#				
+		)}
+	</procedure>
+	
+	<procedure id="remove-script-type"
+			parameterClass="ru.bpc.sv2.emv.EmvScriptType">
+		{call emv_ui_script_type_pkg.remove_script_type(
+			  i_id		=> #id#
+			, i_seqnum	=> #seqNum#
+		)}
+	</procedure>
+	
+	
+	
+	<procedure id="add-tag"
+			parameterClass="ru.bpc.sv2.emv.EmvTag">
+		{call emv_ui_tag_pkg.add_tag(
+			  o_id				=> #id,mode=OUT,jdbcType=NUMERIC#
+			, i_tag				=> #tag#
+			, i_min_length		=> #minLength#
+			, i_max_length		=> #maxLength#
+			, i_data_type		=> #dataType#
+			, i_data_format		=> #dataFormat#
+			, i_default_value	=> #defaultValue#
+			, i_tag_type		=> #tagType#
+			, i_lang			=> #lang#
+			, i_description		=> #description#
+		)}
+	</procedure>
+	
+	<procedure id="modify-tag"
+			parameterClass="ru.bpc.sv2.emv.EmvTag">
+		{call emv_ui_tag_pkg.modify_tag(
+			  i_id				=> #id#
+			, i_min_length		=> #minLength#
+			, i_max_length		=> #maxLength#
+			, i_data_type		=> #dataType#
+			, i_data_format		=> #dataFormat#
+			, i_default_value	=> #defaultValue#
+			, i_tag_type		=> #tagType#
+			, i_lang			=> #lang#
+			, i_description		=> #description#
+		)}
+	</procedure>
+	
+	<procedure id="remove-tag"
+			parameterClass="ru.bpc.sv2.emv.EmvTag">
+		{call emv_ui_tag_pkg.remove_tag(
+			  i_id		=> #id#
+		)}
+	</procedure>
+
+	<resultMap id="mapping-get-application-schemes"
+	            class="ru.bpc.sv2.emv.EmvApplicationScheme"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="instId" column="inst_id" />
+	    <result property="name" column="name" />
+	    <result property="description" column="description" />
+	    <result property="lang" column="lang" />
+	    <result property="instName" column="inst_name" />
+	    <result property="type" column="type" />
+	</resultMap>
+
+	<select id="get-application-schemes"
+			parameterClass="qparams"
+			resultMap="mapping-get-application-schemes">
+		<include refid="paginatedOpen" />
+            SELECT
+                asv.id
+                ,asv.seqnum
+                ,asv.inst_id
+                ,asv.name
+                ,asv.description
+                ,asv.lang
+                ,asv.type
+                ,inst.name inst_name
+            FROM
+                emv_ui_appl_scheme_vw asv, ost_ui_institution_sys_vw inst
+            WHERE 
+                asv.inst_id = inst.id(+)
+                and asv.lang = inst.lang(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">asv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">(asv.inst_id = #filters[].value# OR asv.inst_id = 9999)</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(asv.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">asv.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">asv.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqnum">asv.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="instId">asv.inst_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="name">asv.name $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="description">asv.description $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lang">asv.lang $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="type">asv.type $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>				
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-application-schemes-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			asv.id
+		FROM
+			emv_ui_appl_scheme_vw asv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">asv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">(asv.inst_id = #filters[].value# OR asv.inst_id = 9999)</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(asv.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">asv.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-inst-name"
+			parameterClass="qparams"
+			resultClass="String">
+		SELECT
+			name				
+		FROM
+			ost_ui_institution_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>	
+	</select>	
+	
+	<procedure id="add-appl-scheme"
+			parameterClass="ru.bpc.sv2.emv.EmvApplicationScheme">
+		{call emv_ui_appl_scheme_pkg.add_appl_scheme(
+			  o_id			=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum		=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_inst_id		=> #instId#
+			, i_type		=> #type#
+			, i_lang		=> #lang#
+			, i_name		=> #name#
+			, i_description	=> #description#
+		)}
+	</procedure>
+	
+	<procedure id="modify-appl-scheme"
+			parameterClass="ru.bpc.sv2.emv.EmvApplicationScheme">
+		{call emv_ui_appl_scheme_pkg.modify_appl_scheme(
+			  i_id			=> #id#
+			, io_seqnum		=> #seqnum,mode=INOUT,jdbcType=NUMERIC#
+			, i_inst_id		=> #instId#
+			, i_type		=> #type#
+			, i_lang		=> #lang#
+			, i_name		=> #name#
+			, i_description	=> #description#
+		)}
+	</procedure>
+	
+	<procedure id="remove-appl-scheme"
+			parameterClass="ru.bpc.sv2.emv.EmvApplicationScheme">
+		{call emv_ui_appl_scheme_pkg.remove_appl_scheme(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqnum#
+		)}
+	</procedure>
+	
+	<resultMap  id="mapping-tag-value"
+	            class="ru.bpc.sv2.emv.TagValue"  >
+	    <result property="id" column="id" />
+	    <result property="objectId" column="object_id" />
+	    <result property="entityType" column="entity_type" />
+	    <result property="tagId" column="tag_id" />
+	    <result property="tagValue" column="tag_value" />
+	    <result property="profile" column="profile" />
+	</resultMap>	
+	
+	<select id="get-tag-values"
+		parameterClass="qparams" resultMap="mapping-tag-value">
+		SELECT
+			tvv.id
+			,tvv.object_id
+			,tvv.entity_type
+			,tvv.tag_id
+			,tvv.tag_value
+			,tvv.profile
+		FROM
+			emv_ui_tag_value_vw tvv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">tvv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">tvv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">tvv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tagId">tvv.tag_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tagValue">tvv.tag_value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="profile">tvv.profile = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">tvv.id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="objectId">tvv.object_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="entityType">tvv.entity_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="tagId">tvv.tag_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="tagValue">tvv.tag_value $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="profile">tvv.profile $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>			
+	</select>
+	
+	<select id="get-tag-values-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(tvv.id)
+		FROM
+			emv_ui_tag_value_vw tvv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">tvv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">tvv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">tvv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tagId">tvv.tag_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="tagValue">tvv.tag_value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="profile">tvv.profile = #filters[].value#</isEqual>
+		</iterate>			
+	</select>	
+
+	<procedure id="set-tag-value"
+			parameterClass="ru.bpc.sv2.emv.TagValue">
+		{call emv_ui_tag_pkg.set_tag_value(
+			  i_tag_id			=> #tagId#
+			, i_object_id		=> #objectId#
+			, i_entity_type		=> #entityType#
+			, i_value			=> #tagValue#
+			, i_profile			=> #profile#
+		)}
+	</procedure>
+	
+	<procedure id="remove-tag-value"
+			parameterClass="ru.bpc.sv2.emv.TagValue">
+		{call emv_ui_tag_pkg.remove_tag_value(
+			  i_id			=> #id#
+		)}
+	</procedure>	
+</sqlMap>

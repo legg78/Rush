@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<h:form id="addressesBtmForm">
+		<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+	        <h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable" columnClasses="firstCol,secondCol" width="100%" >
+				<h:outputLabel value="#{lblCommon.lang_selector}: " title="#{lblCommon.lang_selector}"/>
+				<h:selectOneMenu  styleClass="width250"
+							id="addressLang"
+							value="#{(addressesBean==null ? MbAddressesSearch : addressesBean).curLang}"
+							>
+					<a4j:support event="onchange" reRender="addressesTable, btnsAddress" 
+							action="#{(addressesBean==null ? MbAddressesSearch : addressesBean).changeAddressLang}"/>					
+				    <f:selectItems value="#{MbAddressesSearch.languages}"/>
+				</h:selectOneMenu>
+			</h:panelGrid>
+		</h:panelGroup>
+		<h:panelGroup id="addressesTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable
+			           id="addressesTable"
+			           var="item"
+			           value="#{(addressesBean==null ? MbAddressesSearch : addressesBean).addresses}"
+			           selection="#{(addressesBean==null ? MbAddressesSearch : addressesBean).itemSelection}"
+			           height="178px"
+			           selectionMode="single"
+			           styleClass="res-table"
+			           headerClass="res-table-header table-header-ext"
+			           rowClasses=",odd"
+	       			   selectedClass="res-table-selected"
+	       			   enableContextMenu="true"
+	       			   tableState="#{(addressesBean==null ? MbAddressesSearch : addressesBean).tableState}"
+	       			   rows="0"
+	       			   noDataLabel="#{lblCommon['no_records_found']}">
+	
+	        	<a4j:support event="onselectionchange" reRender="btnsAddress"/>
+	
+				<rich:column id="address_type" label="Address type" title="Address type" width="${(entity_type != null) ? '20%' : '30%'}" styleClass="top">
+					<f:facet name="header">
+						<h:panelGroup>         
+							<script>updateHeight();</script>
+		                	<h:outputText value="#{lblCommon.address_type}" title="#{lblCommon.address_type}" />
+						</h:panelGroup>
+	                </f:facet>
+					<f:facet name="filter">
+						<a4j:region>
+							<h:selectOneMenu value="#{(addressesBean==null ? MbAddressesSearch : addressesBean).filter.addressType}" style="width: 100%;">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{(addressesBean==null ? MbAddressesSearch : addressesBean).addressTypes}"/>
+								<a4j:support event="onchange" reRender="addressesTable, btnsAddress" requestDelay="500" 
+										action="#{(addressesBean==null ? MbAddressesSearch : addressesBean).search}" limitToList="true"/>
+							</h:selectOneMenu>
+						</a4j:region>
+					</f:facet>
+					<bm:entityDisplay value="#{DictUtils.articles[item.addressType]}" 
+								description="#{DictUtils.articles[item.addressType]}"/>
+				</rich:column>
+
+                <rich:column id="entity_type" label="Entity type" title="Entity type" width="${(entity_type != null) ? '10%' : '0%'}" styleClass="top" rendered="${entity_type != null}">
+                    <f:facet name="header">
+                        <h:panelGroup>
+                            <script>updateHeight();</script>
+                            <h:outputText value="#{lblCommon.entity_type}" title="#{lblCommon.entity_type}" />
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <bm:entityDisplay value="#{DictUtils.articles[item.entityType]}"
+                                      description="#{DictUtils.articles[item.entityType]}"/>
+                </rich:column>
+
+				
+		        <rich:column id="address" label="Address" title="Address" width="50%" sortBy="#{'addressString'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.address}" title="#{lblCommon.address}" />
+	                </f:facet>
+                    <bm:entityDisplay value="#{item.addressString}" description="#{item.addressString}"/>
+		        </rich:column>
+		        
+		        <rich:column id="coordinates" label="Coordinates" title="Coordinates" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.coordinates}" title="#{lblCommon.coordinates}" />
+	                </f:facet>
+	                <h:outputLink target="_blank" value="#{item.coordLink}" rendered="#{item.coordLink != null}">
+	                	<bm:entityDisplay value="#{item.coordLabel}" description="#{item.coordLabel}" 
+			                		rendered="#{item.coordLabel != null}"/>	
+	                	<bm:entityDisplay value="#{item.coordLink}" description="#{item.coordLink}" 
+			                		rendered="#{item.coordLabel == null}"/>
+	                </h:outputLink>
+		        </rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+        <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{addressesBean==null}">
+
+	        	<h:panelGrid id="btnsAddress" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	        		<h:panelGroup>
+					<bre:taggedCommandButton id="addAddressBtn"
+			           		value="#{lblForm.add}" 
+			           		reRender="addressModalDiv, addressModalHeader"
+			           		action="#{(addressesBean==null ? MbAddressesSearch : addressesBean).addAddress}" limitToList="true"
+			           		oncomplete="#{rich:component('addressModalPanel')}.show()"
+			           		disabled="#{(addressesBean==null ? MbAddressesSearch : addressesBean).filter.objectId == null and (addressesBean==null ? MbAddressesSearch : addressesBean).filter.typeIdPairs == null}"
+			           		rendered="#{(parentPriv == null or parentPriv) and usession.inRole['ADD_ADDRESS'] and (addressesBean==null ? MbAddressesSearch : addressesBean).renderAdd}"			           		
+			           		image="/images/create_doc.gif"
+			           		/>
+					<bre:taggedCommandButton id="editAddressBtn"
+			           		value="#{lblForm.edit}" reRender="addressModalDiv, addressModalHeader"
+			           		action="#{(addressesBean==null ? MbAddressesSearch : addressesBean).editAddress}" limitToList="true"
+			           		oncomplete="#{rich:component('addressModalPanel')}.show()"
+			           		disabled="#{(addressesBean==null ? MbAddressesSearch : addressesBean).activeAddress == null}"
+			           		rendered="#{(parentPriv == null or parentPriv) and usession.inRole['MODIFY_ADDRESS'] and (addressesBean==null ? MbAddressesSearch : addressesBean).renderEdit}"
+			           		image="/images/edit.gif"
+			           		/>
+					<bre:taggedCommandButton id="addTranslationBtn" style="width:110px"
+			           		value="#{lblForm.translate}" reRender="addressModalPanel"
+			           		action="#{(addressesBean==null ? MbAddressesSearch : addressesBean).addTranslation}"
+			           		oncomplete="#{rich:component('addressModalPanel')}.show()"
+			           		disabled="#{(addressesBean==null ? MbAddressesSearch : addressesBean).filter.objectId == null || (addressesBean==null ? MbAddressesSearch : addressesBean).activeAddress == null}"
+			           		rendered="false"
+			           		/>
+					<bre:taggedCommandButton id="deleteAddressBtn"
+			           		value="#{lblForm.delete}" 
+			           		disabled="#{(addressesBean==null ? MbAddressesSearch : addressesBean).activeAddress == null}"
+			           		rendered="#{(parentPriv == null or parentPriv) and usession.inRole['REMOVE_ADDRESS'] and (addressesBean==null ? MbAddressesSearch : addressesBean).renderDelete}"			           		
+			           		image="/images/delete.gif"
+			           		oncomplete="#{rich:component('deleteAddressView:confirmPanel')}.show()"/>
+			        </h:panelGroup>
+			        <h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveAddrTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteAddrTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveAddrTableState" action="#{(addressesBean==null ? MbAddressesSearch : addressesBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteAddrTableState" action="#{(addressesBean==null ? MbAddressesSearch : addressesBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+	
+	<ui:include src="/pages/common/address/editAddress.jspx">
+		<ui:param name="rerenderList" value="addressesBtmForm:addressesTable, addressesBtmForm:btnsAddress"/>
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbAddressesSearch}"/>
+		<ui:param name="yesAction" value="deleteAddress"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="addressesTable"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteAddressView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

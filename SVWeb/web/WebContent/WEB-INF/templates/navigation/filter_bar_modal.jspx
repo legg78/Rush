@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+<script>
+//<![CDATA[
+		  function hideNew() {
+		      
+		  }
+		  function changeFilterName(value) {
+		   if (value == "true") {
+		    //$('#{panelDivIdSave}:new_filter_name').value = "";
+		    #{rich:element('save_filter_panel_div:new_filter_name')}.disabled = true;
+		    #{rich:element('save_filter_panel_div:new_filter_order')}.disabled = true;    
+		   } else {
+		    #{rich:element('save_filter_panel_div:new_filter_name')}.disabled = false;
+		    #{rich:element('save_filter_panel_div:new_filter_order')}.disabled = false;    
+		   }
+		  }
+		  
+		  function checkFilterFields() {
+			var checked = true;
+			if (document.getElementById('save_filter_panel_div:new_filter_name').value == "") {
+				document.getElementById('save_filter_panel_div:new_filter_name_error').style.display = "inline";
+				checked = false;
+			}
+			order = document.getElementById('save_filter_panel_div:new_filter_order').value;
+			if (document.getElementById('save_filter_panel_div:new_filter_order').value == "") {
+				document.getElementById('save_filter_panel_div:new_filter_order_error').style.display = "inline";
+				checked = false;
+			} else if(/\D/.test(order)){
+				Richfaces.showModalPanel('show_format_err');
+				
+				document.getElementById('save_filter_panel_div:new_filter_order_format_error').style.display = "inline";
+				checked = false;
+			} else if (order<=99){
+				Richfaces.showModalPanel('show_min_length_err');
+				document.getElementById('save_filter_panel_div:new_filter_order_min_error').style.display = "inline";
+				checked = false;
+			}
+			return checked;
+		  }
+//]]>
+		</script>
+		
+		<rich:modalPanel id="filter_panel" autosized="true" minWidth="100" minHeight="10" styleClass="filter_panel" rendered="#{usession.inRole['VIEW_FILTER']}">
+       	    <f:facet name="header">
+      	    	<h:outputText value="#{lblCommon.select_filter}"/>
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+       	    	<h:form id="filter_panel_div" rendered="#{sectionId != null}">
+       	    		<h:panelGrid>
+	       	    		<h:selectOneMenu value="#{selectedFilter}">
+	       	    			<f:selectItems value="#{filterFactory.sectionFilters}"/>
+	       	    		</h:selectOneMenu>	       	    		
+	       	    		<h:panelGroup>
+	       	    			<h:selectBooleanCheckbox value="#{searchAutomatically}" 
+	       	    				style="vertical-align:middle;"/>
+	       	    			<h:outputText value="#{lblCommon.search_automatically}" style="padding: 4px"/>
+	       	    		</h:panelGroup>
+       	    		</h:panelGrid>					
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton
+	                        			value="#{lblForm.set}" action="#{viewScope[beanName].setSectionFilter}"	                        			
+		                        		onclick="#{rich:component('filter_panel')}.hide();flushTabs()"
+		                        		reRender="${rerenderList}, remove_filter_panel">		                        		
+		                        </bre:taggedCommandButton>
+	                        	<bre:taggedCommandButton 
+		                        		value="#{lblForm.cancel}" 
+		                        		onclick="#{rich:component('filter_panel')}.hide();return false">	                        		
+		                        </bre:taggedCommandButton>			                        		
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+				</h:form>			
+		</rich:modalPanel>
+		
+		<rich:modalPanel id="save_filter_panel" autosized="true" minWidth="100" minHeight="10" styleClass="filter_panel" onshow="hideNew()" 
+			rendered="#{usession.inRole['MODIFY_FILTER_RECORD']}" >
+       	    <f:facet name="header">
+      	    	<h:outputText value="#{lblCommon.save_filter}"/>
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+       	    	<h:form id="save_filter_panel_div" rendered="#{sectionId != null}">
+       	    		<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+						<h:panelGrid columns="2" columnClasses="firstColModal top, top">
+							<h:outputLabel value="Type: " title="Type" rendered="#{selectedFilter != null}"/>
+		       	    		<h:selectOneRadio id="test" rendered="#{selectedFilter != null}" 
+		       	    				layout="pageDirection" value="#{sectionFilterModeEdit}" 
+		       	    				style="text-decoration: none" onchange="changeFilterName(this.value)" >
+	           	    			<f:selectItem itemValue="true" itemLabel="Use \'#{filterFactory.userSectionFiltersObjects[selectedFilter].name}\'" itemDisabled="#{selectedFilter == null}"/>
+	           	    			<f:selectItem itemValue="false" itemLabel="new"/>
+		            	    </h:selectOneRadio>
+		            	    
+		            	    <h:outputLabel value="#{lblCommon.name}: " title="#{lblCommon.name}" id="new_filter_name_label"
+		            	    	style="width:auto;"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+								<h:inputText id="new_filter_name" value="#{sectionFilter.name}"
+									style="width:150px;" maxlength="200"
+									onblur="hideErrorField(this)">
+									<a4j:support event="onchange" reRender="new_filter_name_error" limitToList="true"/>
+								</h:inputText>
+								<rich:message id="new_filter_name_err" for="new_filter_name" styleClass="errorMarker" />
+								<h:outputFormat value="#{lblMsg.value_request}"
+									styleClass="errorMarker" id="new_filter_name_error" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.name}" />
+								</h:outputFormat>
+							</h:panelGrid>
+		            	    	
+		            	    <h:outputLabel value="#{lblCommon.display_order}: " title="#{lblCommon.display_order}" id="new_filter_order_label"
+		            	    	style="width:auto;"/>
+		            	    <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+								<h:inputText id="new_filter_order" value="#{sectionFilter.displayOrder}"
+									style="width:150px;" maxlength="4" onkeypress="if (!numbersOnly(this, event)) return false;"
+									onblur="hideErrorField(this)">
+									<f:validateLength minimum="3" />
+									<a4j:support event="onchange" reRender="new_filter_order_error" limitToList="true"/>
+								</h:inputText>
+								<rich:message id="new_filter_order_err" for="new_filter_name" styleClass="errorMarker" />
+								<h:outputFormat value="#{lblMsg.value_request}"
+									styleClass="errorMarker" id="new_filter_order_error" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.display_order}" />
+								</h:outputFormat>
+								<h:outputFormat value="#{lblMsg.only_digit}"
+									styleClass="errorMarker" id="new_filter_order_format_error" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.display_order}" />
+								</h:outputFormat>
+								<h:outputFormat value="#{lblMsg.min_length_request}"
+									styleClass="errorMarker" id="new_filter_order_min_error" style="display:none;">
+									<f:param value="3" />
+									<f:param value="#{lblCommon.display_order}" />
+								</h:outputFormat>
+							</h:panelGrid>
+		            	    	
+		            	    <h:outputLabel value="" title="" style="width:auto;"/>
+		            	    <h:inputHidden id="new_filter_section_id" value="#{sectionFilter.sectionId}" />
+       	    			</h:panelGrid>			
+       	    		</h:panelGroup>		
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton
+	                        			value="#{lblForm.save}" type="submit" action="#{viewScope[beanName].saveSectionFilter}" reRender="save_filter_panel_div" 	                        			
+		                        		onclick="if (!checkFilterFields()) return false; #{rich:element('save_filter_panel_div:new_filter_section_id')}.value=#{sectionId};#{rich:component('save_filter_panel')}.hide()"
+										oncomplete="rerenderFavourites()">
+		                        </bre:taggedCommandButton>
+                       			
+	                        	<bre:taggedCommandButton 
+		                        		value="#{lblForm.cancel}" 
+		                        		onclick="#{rich:component('save_filter_panel')}.hide();return false">
+		                        </bre:taggedCommandButton>
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+				</h:form>			
+		</rich:modalPanel>
+		
+		<rich:modalPanel id="remove_filter_panel" autosized="true" minWidth="100" minHeight="10" styleClass="filter_panel" rendered="#{usession.inRole['REMOVE_FILTER']}">
+       	    <f:facet name="header">
+      	    	<h:outputText value="#{lblCommon.remove_current_filter}"/>
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+         	    <h:form id="remove_filter_panel_div" rendered="#{sectionId != null}">
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton
+	                        			id="rmBtn"
+	                        			value="#{lblForm.remove}" action="#{filterFactory.removeSectionFilter(selectedFilter)}"
+	                        			disabled="#{selectedFilter == null}"
+		                        		onclick="#{rich:component('remove_filter_panel')}.hide();flushTabs()"
+		                        		oncomplete="rerenderFavourites()">
+		                        </bre:taggedCommandButton>
+	                        	<bre:taggedCommandButton
+		                        		value="#{lblForm.cancel}"
+		                        		onclick="#{rich:component('remove_filter_panel')}.hide();return false">
+		                        </bre:taggedCommandButton>
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+				</h:form>
+		</rich:modalPanel>
+		
+		<rich:modalPanel id="show_format_err" autosized="true" minWidth="230" minHeight="10" styleClass="filter_panel" onshow="hideNew()" >
+       	    <f:facet name="header">
+      	    	<h:outputText value="#{lblForm.error}"/>
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+       	    	<h:form id="show_format_panel_div">
+       	    		<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+							<h:outputFormat value="#{lblMsg.only_digit}"
+									styleClass="errorMarker" id="new_filter_order_format_error">
+									<f:param name="fieldName" value="#{lblCommon.display_order}" />
+							</h:outputFormat>
+					</h:panelGroup>
+					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton 
+		                        		value="#{lblForm.cancel}" 
+		                        		onclick="#{rich:component('show_format_err')}.hide()">
+		                        </bre:taggedCommandButton>
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+				</h:form>
+		</rich:modalPanel>
+		
+		<rich:modalPanel id="show_min_length_err" autosized="true" minWidth="230" minHeight="10" styleClass="filter_panel" onshow="hideNew()" >
+       	    <f:facet name="header">
+      	    	<h:outputText value="#{lblForm.error}"/>
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+       	    	<h:form id="show_min_length_panel_div">
+       	    		<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+							<h:outputFormat value="#{lblMsg.min_length_request}"
+									styleClass="errorMarker">
+									<f:param value="3"/>
+									<f:param value="#{lblCommon.display_order}" />
+							</h:outputFormat>
+					</h:panelGroup>
+					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton 
+		                        		value="#{lblForm.cancel}" 
+		                        		onclick="#{rich:component('show_min_length_err')}.hide()">
+		                        </bre:taggedCommandButton>
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+				</h:form>
+		</rich:modalPanel>
+</ui:composition>
+</html>

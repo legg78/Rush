@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<style type="text/css">
+			.leftAligned {
+				text-align: left;
+			}
+		</style>
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm"/>
+		
+		<h:panelGroup rendered="#{usession.inRole['VIEW_SECTION_PARAMETER']}">
+		
+			<!-- navigation bar -->
+	        <bpct:navBar pageName="#{lblAcm.section_params}"/>
+	        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+	        
+	        <script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('sectionParamsSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			    
+	    	<h:form id="sectionParamsSearchForm" onkeypress="handleEnter(event)">			
+	
+				<!-- search panel -->
+				<h:panelGroup styleClass="search_block" layout="block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+		                <h:panelGroup styleClass="search_block_left" layout="block">
+		                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+			                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+			            			<h:outputLabel for="sectionId" value="#{lblAcm.section}: " title="#{lblAcm.section}" />
+									<h:selectOneMenu id="sectionId" value="#{MbSectionParameters.filter.sectionId}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbSectionParameters.sections}"/>
+									</h:selectOneMenu>
+
+			            			<h:outputLabel for="dataType" value="#{lblCommon.data_type}: " title="#{lblCommon.data_type}" />
+									<h:selectOneMenu id="dataType" value="#{MbSectionParameters.filter.dataType}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbSectionParameters.dataTypes}"/>
+									</h:selectOneMenu>
+	
+			            			<h:outputLabel for="label" value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+									<h:inputText id="label" value="#{MbSectionParameters.filter.label}"/>
+
+			            			<h:outputLabel for="sysName" value="#{lblCommon.system_name}: " title="#{lblCommon.system_name}" />
+									<h:inputText id="sysName" value="#{MbSectionParameters.filter.systemName}"/>
+	                			</h:panelGrid>
+		                		<h:panelGrid columns="1">
+			                		<bre:taggedCommandButton
+				                			action="#{MbSectionParameters.search}"
+		        							reRender="sectionParamsTable, dsRules, pagesNum, sectionParamsBtnForm:btnPanel, detailsTab"
+		                					image="/_img/icon_search.png" type="submit"
+		                					id="searchBtn"
+		                					value="#{lblForm.search}" style="width:85px;"
+		                					onclick="disableModalPanelBtns(this);"
+		                					oncomplete="enableModalPanelBtns(this);"
+		                					eventsQueue="queue"/>
+		                			<h:panelGroup styleClass="link-clear" layout="block">
+			                			<h:graphicImage url="/_img/icon_clear.png"/>
+			                			<a4j:commandLink value="#{lblForm.clear_all}"	
+							        			action="#{MbSectionParameters.clearFilter}"
+							        			reRender="sectionParamsSearchForm, sectionParamsForm, 
+							        					detailsTab, sectionParamsBtnForm">
+							        	</a4j:commandLink>
+		            	    		</h:panelGroup>
+		                		</h:panelGrid>
+		                	</h:panelGrid>
+		                	<a4j:outputPanel ajaxRendered="true">
+				               	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+			    	           	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+		    	           	</a4j:outputPanel>
+	    	           	</h:panelGroup>
+	               	</h:panelGroup>
+	               	</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<h:form id="sectionParamsForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+			    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+			    		<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+					    <rich:extendedDataTable
+								id="sectionParamsTable"
+								tableState="#{MbSectionParameters.tableState}"
+								styleClass="res-table"
+								headerClass="res-table-header"
+								rowClasses=",odd"
+								selectedClass="res-table-selected"
+								var="item"
+								value="#{MbSectionParameters.sectionParameters}"
+								selection="#{MbSectionParameters.itemSelection}"
+								rows="#{MbSectionParameters.rowsNum}"
+								height="200px"
+								selectionMode="single"
+								width="100%"
+								enableContextMenu="true"
+								reRender="sectionParamsBtnForm:btnPanel, detailsTab, valuesTab"
+								noDataLabel="#{MbSectionParameters.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}">
+	
+							<a4j:support event="onselectionchange" eventsQueue="queue" oncomplete="updateHeight();"
+									reRender="sectionParamsBtnForm:btnPanel, detailsTab, valuesTab"/>
+	
+					        <rich:column id="id" label="#{lblCommon.id}" title="ID" sortBy="#{'id'}" width="10%">
+								<f:facet name="header">
+				                    <a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+				                </f:facet>
+				                <h:outputText value="#{item.id}" title="#{item.id}"/>
+					        </rich:column>
+
+					        <rich:column id="name" label="#{lblCommon.name}" title="Label" sortBy="#{'label'}" width="30%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.label}" title="#{item.label}"/>
+					        </rich:column>
+	
+					        <rich:column id="data_type" label="#{lblCommon.data_type}" title="Data type" sortBy="#{'dataType'}" width="15%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblCommon.data_type}" title="#{lblCommon.data_type}"/>
+				                </f:facet>
+				                <h:outputText value="#{DictUtils.articles[item.dataType]}"
+				                		title="#{DictUtils.articles[item.dataType]}"
+				                		rendered="#{item.dataType != null}" />
+				                <h:outputText value="" title="" rendered="#{item.dataType == null}" />
+					        </rich:column>
+	
+					        <rich:column id="section" label="#{lblAcm.section}" title="Section" sortBy="#{'sectionName'}" width="15%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblAcm.section}" title="#{lblAcm.section}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.sectionName}" title="#{item.sectionName}"/>
+					        </rich:column>
+
+					        <rich:column id="system_name" label="#{lblCommon.system_name}" title="System name" sortBy="#{'systemName'}" width="15%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblCommon.system_name}" title="#{lblCommon.system_name}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.systemName}" title="#{item.systemName}"/>
+					        </rich:column>
+
+					        <rich:column id="lov" label="#{lblCommon.lov}" title="LOV" sortBy="#{'lovId'}" width="15%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblCommon.lov}" title="#{lblCommon.lov}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.lovId} - #{item.lovName}"
+				                		title="#{item.lovId} - #{item.lovName}"
+				                		rendered="#{item.lovName != null}"/>
+				                <h:outputText value="#{item.lovId}" title="#{item.lovId}"
+				                		rendered="#{item.lovName == null}"/>
+					        </rich:column>
+					    </rich:extendedDataTable>
+					    </h:panelGroup>
+					    <a4j:outputPanel ajaxRendered="true">
+					    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+						    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+					    </a4j:outputPanel>
+				    </h:panelGroup>
+				</h:panelGroup>
+				
+				</h:form>
+				<h:form id="sectionParamsBtnForm">
+	
+			    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+			        	<h:panelGroup layout="block" styleClass="table_tools">
+				        	<h:panelGrid styleClass="fw field-cont" columns="5"
+				        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+					        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+								<h:selectOneMenu id="rows_num" value="#{MbSectionParameters.rowsNum}" styleClass="row_per_page" >
+									<a4j:support event="onchange"
+									 	reRender="sectionParamsTable, dsRules, pagesNum, sectionParamsBtnForm:btnPanel, detailsTab, valuesTab"/>
+	                        		<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+			                    </h:selectOneMenu>
+	
+			                    <rich:datascroller maxPages="10" fastControls="hide"
+			                    		pagesVar="pages" styleClass="res-datascroller"
+					                    id="dsRules" for="sectionParamsTable"
+					                    reRender="sectionParamsBtnForm:btnPanel, detailsTab, valuesTab">
+					            	<f:facet name="first">
+					                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+					                <f:facet name="first_disabled">
+					                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="last">
+					                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="last_disabled">
+					                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="previous_disabled">
+					                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="next">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="next_disabled">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="pages">
+					                </f:facet>
+								</rich:datascroller>
+	
+			                    <h:panelGroup id="pagesNum">
+			                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+			                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbSectionParameters.sectionParameters.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+			                    </h:panelGroup>
+			                    
+			                    <h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbSectionParameters.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbSectionParameters.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+	
+			            <h:panelGrid id="btnPanel" columns="3" styleClass="buttons_block">
+					    	<bre:taggedCommandButton id="addBtn"
+		                      		reRender="sectionParamModalHeader, sectionParamModalForm"
+		                      		value="#{lblForm.add}"
+	                    			oncomplete="#{rich:component('sectionParamModalPanel')}.show()"
+		                      		action="#{MbSectionParameters.add}"
+		                      		image="/images/create_doc.gif"
+		                      		rendered="#{usession.inRole['ADD_SECTION_PARAMETER']}"
+		                      		/>
+							<bre:taggedCommandButton id="editBtn"
+		                      		reRender="sectionParamModalHeader, sectionParamModalForm"
+		                      		value="#{lblForm.edit}"
+		                      		action="#{MbSectionParameters.edit}"
+	                    			oncomplete="#{rich:component('sectionParamModalPanel')}.show()"
+		                      		disabled="#{MbSectionParameters.activeSectionParameter == null}"
+		                      		image="/images/edit.gif"
+		                      		rendered="#{usession.inRole['MODIFY_SECTION_PARAMETER']}"
+		                      		/>
+							<bre:taggedCommandButton id="deleteBtn"
+		                      		value="#{lblForm.delete}"
+		                      		disabled="#{MbSectionParameters.activeSectionParameter == null}"
+		                      		image="/images/delete.gif"
+		                      		rendered="#{usession.inRole['REMOVE_SECTION_PARAMETER']}"
+		                      		oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()" />
+						</h:panelGrid>
+					</h:panelGroup>
+			    </h:panelGroup>
+		    </h:form>
+
+			<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+				<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content">
+
+					<rich:tab label="#{lblCommon.details}" name="detailsTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup id="detailsTab" layout="block">
+							<ui:include src="/pages/acm/sectionParameterDetails.jspx" />
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+					</rich:tab>
+
+				</rich:tabPanel>
+			</h:panelGroup>
+
+			<ui:include src="/pages/acm/sectionParameterEdit.jspx">
+				<ui:param name="rerenderList" value="sectionParamsTable, dsRules, pagesNum, sectionParamsBtnForm:btnPanel, detailsTab"></ui:param>
+			</ui:include>
+		</h:panelGroup>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbSectionParameters}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="sectionParamsTable, dsRules, pagesNum, sectionParamsBtnForm:btnPanel, detailsTab, valuesTab"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteViewId"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_SECTION_PARAMETER']}" style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+		</h:panelGroup>
+		
+		<script>
+		//<![CDATA[
+		function updateHeight(){
+        updateGridHeight();
+	    }
+	
+	    layout =
+	            {
+	                SEARCH_FORM_ID:                 'sectionParamsSearchForm',
+	                SEARCH_RESULT_FORM_ID:          'sectionParamsForm',
+	                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                SEARCH_RESULT_FOOTER_FORM_ID:   'sectionParamsBtnForm',
+	                TAB_PANEL_ID:                   'workplacePanel',
+	
+	                TAB_DATA:      [{
+	                                TAB_FORM_ID:            'sectionParamDetailsForm',
+	                                TAB_FORM_WRAPPER_ID:    'sectionParamDetailsWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                }]
+	
+	            };
+	    jQuery(window).resize(updateHeight);
+		
+		updateHeight();
+		//]]>
+		</script>		
+    </ui:define>
+</ui:composition>
+</html>

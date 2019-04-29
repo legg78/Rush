@@ -1,0 +1,1317 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+		<script type="text/javascript" src="#{request.contextPath}/js/stretch.js" />
+
+		<script type="text/javascript">//<!--
+		function selectTab(tabName) {
+			submittingTab = tabName;
+			if (checkTabLoaded(tabName)) {
+				//set only tab name to managed bean (in order to use it in the future)
+				setTabName(tabName);
+				return false;
+			}
+			refreshTab(tabName);
+			return true;
+		}
+		
+		 function handleEnter(event) {
+			 if (event.keyCode == 13) { 
+				 document.getElementById('searchForm:searchBtn').click(); 
+				 return false; 
+			} 
+			return true;
+		 }
+		//-->
+		</script>
+	
+		<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+		<f:loadBundle var="lblAtm" basename="ru.bpc.sv2.ui.bundles.Atm"/>
+		<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+		<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+		<f:loadBundle var="lblCmn" basename="ru.bpc.sv2.ui.bundles.Cmn"/>
+		<f:loadBundle var="lblVch" basename="ru.bpc.sv2.ui.bundles.Vch"/>
+		<f:loadBundle var="lblReport" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+		<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+		<f:loadBundle var="lblPmo" basename="ru.bpc.sv2.ui.bundles.Pmo"/>
+		<f:loadBundle var="lblAup" basename="ru.bpc.sv2.ui.bundles.Aup" />
+		<f:loadBundle var="lblEvt" basename="ru.bpc.sv2.ui.bundles.Evt"/>
+		
+		<!-- navigation bar -->
+        <bpct:navBar pageName="#{lblAcq.terminals}"/>
+        <bpct:filterBarModalPanels id="filterPanels"
+			rerenderList="searchForm, save_filter_panel_div, #{MbTerminal.tabName}"
+			selectedFilter="#{MbTerminal.selectedSectionFilter}"
+			sectionFilter="#{MbTerminal.sectionFilter}"
+			sectionFilterModeEdit="#{MbTerminal.sectionFilterModeEdit}"
+			searchAutomatically="#{MbTerminal.searchAutomatically}"
+			sectionId="#{MbTerminal.sectionId}"
+			beanName="MbTerminal"/>
+			
+		<bpct:customerSearchModalPanels id="custSearchPanels"/>
+            
+    	<h:form id="searchForm" onkeypress="return handleEnter(event)">
+    	    <h:inputHidden value="#{MbTerminal.tabName}"
+				id="tabNameInput" />
+			<script type="text/javascript">
+				load("searchForm:tabNameInput");
+			</script>
+
+			<a4j:jsFunction name="refreshTab" eventsQueue="queue1"
+				limitToList="true" ajaxSingle="true"
+				reRender="#{MbTerminal.tabName}, err_ajax"
+				action="#{MbTerminal.loadCurrentTab}"
+				oncomplete="setTabLoaded(submittingTab); updateHeight();">
+				<a4j:actionparam name="tabName" assignTo="#{MbTerminal.tabName}"/>
+			</a4j:jsFunction>
+
+			<a4j:jsFunction name="setTabName" reRender="err_ajax"
+				limitToList="true" ajaxSingle="true"
+				oncomplete="setTabLoaded(submittingTab)">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbTerminal.tabName}" />
+			</a4j:jsFunction>
+
+			<a4j:queue name="queue1" requestDelay="500" ignoreDupResponses="true"
+				size="1" sizeExceededBehavior="dropNew" />      
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+		                <h:panelGroup styleClass="search_block_left" layout="block">
+	    	            	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		    	            	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+			            			
+			            			<h:outputLabel value="#{lblCommon.type}:" title="#{lblCommon.type}" />
+					      			<h:selectOneMenu id="typeFilter" 
+					      						value="#{MbTerminal.filter.terminalType}">
+					      				<f:selectItems value="#{MbTerminal.terminalTypes}"/>
+					      			</h:selectOneMenu>
+			            			
+			            			<h:outputLabel value="#{lblAcq.terminal_number}: " title="#{lblAcq.terminal_number}" />
+			            			<h:inputText id="termNumber" value="#{MbTerminal.filter.terminalNumber}"/>
+			            			
+			            			<h:outputLabel value="#{lblAcq.merchant_number}: " title="#{lblAcq.merchant_number}" />
+			            			<h:inputText id="merchantFilter" value="#{MbTerminal.filter.merchantNumber}"/>
+
+		                			<h:outputLabel value="#{lblCommon.status}:" title="#{lblCommon.status}" />
+					      			<h:selectOneMenu id="statusFilter" 
+					      						value="#{MbTerminal.filter.status}">
+					      				<f:selectItems value="#{MbTerminal.statuses}"/>
+					      			</h:selectOneMenu>
+					      			
+					      			<h:outputLabel value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}" />
+			                		<bm:selectCustomer 
+				                		valueId="#{MbTerminal.filter.customerId}"
+										valueNumber="#{MbTerminal.filter.customerNumber}"
+										custInfoField="#{MbTerminal.filter.custInfo}"
+										beanName="MbTerminal" 
+										modalPanel="customerSearchModalPanel"
+										formName="searchForm"
+										searchButton="searchBtn"
+										rerenderList="searchForm:instId"
+										manualInput="true"
+                                        disabled="false" rendered="true"/>
+
+		                			<h:outputLabel value="#{lblCommon.institution}:" title="#{lblCommon.institution}"/>
+					      			<h:selectOneMenu id="instFilter" 
+					      					value="#{MbTerminal.filter.instId}">
+					      				<f:selectItem itemValue=""/>
+					      				<f:selectItems value="#{MbTerminal.institutions}"/>
+										<a4j:support  event="onchange"
+													  oncomplete="document.getElementById('searchForm:instFilter').focus();"/>
+					      			</h:selectOneMenu>
+	                			</h:panelGrid>
+			                	<h:panelGrid columns="1" >
+			                		<bre:taggedCommandButton
+			                				id="searchBtn"
+				                			action="#{MbTerminal.search}"
+		        							reRender="terminalsTable, dsTerminals, terminalBtnForm, #{MbTerminal.tabName}, togglePanelTerm, termATMsTab, workplacePanel"
+		                					image="/_img/icon_search.png" type="submit"
+		                					value="#{lblForm.search}" style="width:85px;"
+		                					oncomplete="flushTabs(); toggleTabs(currentTab); updateHeight(); enableModalPanelBtns(this);"
+		                					onclick="checkCustNumber('searchForm'); disableModalPanelBtns(this);"
+		                					eventsQueue="queue"/>
+		                			<h:panelGrid columns="1" >
+					                	<h:panelGroup styleClass="link-clear" layout="block"  >
+					                		<h:graphicImage url="/_img/icon_clear.png"/>
+					                		<a4j:commandLink value="#{lblForm.clear_all}" 
+					                				action="#{MbTerminal.clearFilter}"
+					                				reRender="searchForm, terminalsForm, terminalBtnForm, details, togglePanelTerm"
+					                				oncomplete="flushTabs(); toggleTabs(currentTab); hideTabs();">
+					                		</a4j:commandLink>
+					                	</h:panelGroup>
+					                	
+					                	<h:panelGroup>
+				            	    		<bpct:filterBar sectionId="#{MbTerminal.sectionId}"/>
+										</h:panelGroup>
+									</h:panelGrid>
+			                	</h:panelGrid>
+		                	</h:panelGrid>
+		                	<a4j:outputPanel ajaxRendered="true">
+		                		<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                		<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                		</a4j:outputPanel>
+	                	</h:panelGroup>
+                	</h:panelGroup>
+                </h:panelGroup>
+			</h:panelGroup>
+	    </h:form>
+
+		<ui:include src="/pages/acquiring/terminals/terminalsList.jspx"/>
+
+		<a4j:queue name="queue" ignoreDupResponses="true" size="5" sizeExceededBehavior="dropNext" requestDelay="500"/>
+
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content"
+				selectedTab="#{MbTerminal.tabName}" >
+
+				<rich:tab id="_detailsTab" label="Details" name="detailsTab"
+					onlabelclick="selectTab('detailsTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/acquiring/terminals/terminalDetails.jspx"></ui:include>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_additionalTab" label="Additional" name="additionalTab" rendered="#{usession.inRole['VIEW_FLEXIBLE_DATA'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['additionalTab'])}"
+					onlabelclick="selectTab('additionalTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblCommon.additional}"
+								title="#{lblCommon.additional}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="additionalTab" layout="block" styleClass="carddata-wrapper"
+							style="height:100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="additionalTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='additionalTab' ? '/pages/common/flexible/flexFieldsTableBottom.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_unattendedTab" label="Unattended" name="unattendedTab" rendered="false"
+						onlabelclick="selectTab('unattendedTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcq.unattended}"
+								title="#{lblAcq.unattended}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="unattendedTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="unattendedTabContents" rendered="#{MbTerminal.renderTabs}">
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_connectivityTab" label="Connectivity" name="connectivityTab" rendered="#{usession.inRole['VIEW_TAB_COMMUNIC_DEVICE'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['connectivityTab'])}"
+						onlabelclick="selectTab('connectivityTab')" style="display: none">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcq.connectivity}"
+								title="#{lblAcq.connectivity}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="connectivityTab" layout="block">
+						<h:panelGroup id="connectivityTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='connectivityTab' ? '/pages/communication/tcp_device_details.jspx' : null}"></ui:include>
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+								<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+									<h:form>
+										<h:panelGrid columns="2" cellpadding="0" cellspacing="0" width="auto">
+											<bre:taggedCommandButton id="configBtn"
+													value="#{lblForm.configure}"
+													action="#{MbTerminal.configureDevice}"
+													disabled="#{MbTerminal.activeTerminal == null || MbTerminal.activeTerminal.deviceId == null}"
+													/>
+										</h:panelGrid>
+									</h:form>
+								</h:panelGroup>
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_keysTab" label="Keys" name="keysTab" style="display: none; height:100%"
+						rendered="#{usession.inRole['VIEW_TAB_DES_KEY'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['keysTab'])}"
+						onlabelclick="selectTab('keysTab');">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcq.keys}" title="#{lblAcq.keys}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="keysTab" layout="block" styleClass="carddata-wrapper"
+							style="height:100%; overflow:hidden; position:relative;">
+						<h:panelGroup id="keysTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='keysTab' ? '/pages/security/list_des_keys_bottom.jspx' : null}">
+								<ui:param name="useHsm" value="#{MbTerminal.useHsm}"/>
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_accountsTab" label="Accounts" name="accountsTab" rendered="#{usession.inRole['VIEW_TAB_ACCOUNT'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['accountsTab'])}"
+						onlabelclick="selectTab('accountsTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.accounts}"
+								title="#{lblCommon.accounts}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="accountsTab" layout="block" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="accountsTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='accountsTab' ? '/pages/accounts/list_accounts_bottom.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_addressesTab" label="Addresses" name="addressesTab" rendered="#{usession.inRole['VIEW_ADDRESS'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['addressesTab'])}"
+						onlabelclick="selectTab('addressesTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblCommon.addresses}"
+								title="#{lblCommon.addresses}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="addressesTab" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="addressesTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='addressesTab' ? '/pages/common/address/list_addresses.jspx' : null}" />
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_contactsTab" label="Contacts" name="contactsTab" rendered="#{usession.inRole['VIEW_CONTACT'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['contactsTab'])}"
+						onlabelclick="selectTab('contactsTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.contacts}"
+								title="#{lblCommon.contacts}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="contactsTab" layout="block" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="contactsTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='contactsTab' ? '/pages/contacts/contactsTableBottom.jspx' : null}"></ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_customerTab" label="Customer" name="customerTab" rendered="#{usession.inRole['VIEW_CUSTOMERS'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['customerTab'])}"
+						onlabelclick="selectTab('customerTab')" style="display: none">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblPrd.customer}" title="#{lblPrd.customer}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="customerTab" layout="block">
+						<h:panelGroup id="customerTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='customerTab' ? '/pages/products/customerDetails.jspx' : null}">
+								<ui:param name="customersBean" value="#{MbCustomersDependent}"/>
+							</ui:include>
+							<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_attrsTab" label="Attributes" name="attrsTab" rendered="#{usession.inRole['VIEW_ATTRIBUTE_OBJECTS'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['attrsTab'])}"
+						onlabelclick="selectTab('attrsTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblPrd.service_terms}"
+								title="#{lblPrd.service_terms}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="attrsTab" layout="block" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="attrsTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='attrsTab' ? '/pages/products/attributes/list_object_attributes.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_notesTab" label="Notes" name="notesTab" rendered="#{usession.inRole['VIEW_NOTE'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['notesTab'])}"
+					onlabelclick="selectTab('notesTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="notesTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='notesTab' ? '/pages/notes/list_notes_bottom.jspx' : null}"></ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_limitCountersTab" label="Limit counters" name="limitCountersTab" rendered="#{usession.inRole['VIEW_LIMIT_COUNTER'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['limitCountersTab'])}"
+					onlabelclick="selectTab('limitCountersTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblFcl.limit_counters}" title="#{lblFcl.limit_counters}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="limitCountersTab" layout="block" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="limitCountersTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='limitCountersTab' ? '/pages/fee_cycle_limit/limits/listLimitCounters.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_cycleCountersTab" label="Cycle counters" name="cycleCountersTab" rendered="#{usession.inRole['VIEW_CYCLE_COUNTER'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['cycleCountersTab'])}"
+					onlabelclick="selectTab('cycleCountersTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblFcl.cycle_counters}" title="#{lblFcl.cycle_counters}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="cycleCountersTab" layout="block" styleClass="carddata-wrapper"
+							style="height: 100%;position:relative;">
+						<h:panelGroup id="cycleCountersTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='cycleCountersTab' ? '/pages/fee_cycle_limit/cycles/listCycleCounters.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_standardsTab" label="Standards' versions" name="standardsTab" rendered="#{usession.inRole['VIEW_CMN_STANDARD_VERSION'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['standardsTab'])}"
+					onlabelclick="selectTab('standardsTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCmn.standard_versions}"
+								title="#{lblCmn.standard_versions}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup layout="block" id="standardsTab" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="standardsTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='standardsTab' ? '/pages/communication/objectVersionsListBottom.jspx' : null}">
+								<ui:param name="parentPageName"
+										value="#{MbTerminal.pageName == null ? lblAcq.terminals : MbTerminal.pageName}" />
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab id="_paymentsTab" label="Payments" name="paymentsTab" rendered="#{usession.inRole['VIEW_TAB_PMO_PROVIDER'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['paymentsTab'])}"
+						onlabelclick="selectTab('paymentsTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblPmo.payments}" title="#{lblPmo.payments}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="paymentsTab" layout="block" styleClass="carddata-wrapper"
+							style="height: 100%;position:relative;">
+						<h:panelGroup id="paymentsTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='paymentsTab' ? '/pages/pmo/list_pmo_object_purpose_parameters_values_bottom.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+ 				
+				<rich:tab id="_schemesTab" label="Schemes" name="schemesTab" rendered="#{usession.inRole['VIEW_AUTHORIZATION_SCHEME'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['schemesTab'])}"
+					onlabelclick="selectTab('schemesTab')" style="display: none; height:100%">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAup.schemes}" title="#{lblAup.schemes}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="schemesTab" styleClass="carddata-wrapper"
+							style="height: 100%;position:relative;">
+						<h:panelGroup id="schemesTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='schemesTab' ? '/pages/aup/list_scheme_object.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_termATMsTab" name="termATMsTab" label="ATM" style="display: none; height:100%"
+					styleClass="large-cell" onlabelclick="selectTab('termATMsTab')"
+					rendered="#{usession.inRole['VIEW_ATM_TERMINAL'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['termATMsTab']) and MbTerminal.atm}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.atm}" title="#{lblAtm.atm}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="termATMsTab" layout="block" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="termATMsTabContents" rendered="#{MbTerminal.renderTabs}">
+								<ui:include src="#{MbTerminal.tabName=='termATMsTab' ? '/pages/atm/terminal_atm.jspx' : null}">
+									<ui:param name="showButtons" value="true"/>
+									<ui:param name="isTemplate" value="false"></ui:param>
+									<ui:param name="objectIsNull" value="#{MbTerminal.activeTerminal == null}"/>
+								</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_dispensersTab" name="dispensersTab"
+						label="Dispensers" styleClass="large-cell" style="display: none; height:100%"
+						onlabelclick="selectTab('dispensersTab')"
+						rendered="#{usession.inRole['VIEW_ATM_DISPENSER'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['dispensersTab']) and MbTerminal.atm}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.dispensers}"
+								title="#{lblAtm.dispensers}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="dispensersTab" styleClass="carddata-wrapper"
+							style="height: 100%;position:relative;">
+						<h:panelGroup id="dispensersTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='dispensersTab' ? '/pages/atm/list_atm_dispensers_bottom.jspx' : null}">
+								<ui:param name="showButtons" value="false"/>
+								<ui:param name="isTemplate" value="false"></ui:param>
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab id="_cashInTab" name="cashInTab" label="Cash In" style="display: none; height:100%"
+					styleClass="large-cell" onlabelclick="selectTab('cashInTab')"
+					rendered="#{usession.inRole['VIEW_ATM_CASH_IN'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['cashInTab']) and MbTerminal.atm}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAtm.cash_in}" title="#{lblAtm.cash_in}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="cashInTab" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup id="cashInTabContents" rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='cashInTab' ? '/pages/atm/atmCashIn.jspx' : null}" />
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+  				
+				<rich:tab id="_statusLogsTab" label="Status logs" name="statusLogsTab" rendered="#{usession.inRole['VIEW_CARD_STATUS_LOG'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['statusLogsTab'])}"
+        				onlabelclick="selectTab('statusLogsTab')" style="display: none; height:100%">			    	
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblEvt.status_logs}" title="#{lblEvt.status_logs}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="statusLogsTab" layout="block" styleClass="carddata-wrapper" 
+        					style="height: 100%;position:relative;">
+        				<h:panelGroup id="statusLogsTabContents" rendered="#{MbTerminal.renderTabs}">
+	       					<ui:include src="#{MbTerminal.tabName=='statusLogsTab' ? '/pages/events/statusLogsList.jspx' : null}">
+	       						<ui:param name="renderColumnEventType" value="false"/>
+	       						<ui:param name="renderColumnSessionId" value="false"/>
+	       						<ui:param name="renderColumnUserName" value="false"/>       						
+	       					</ui:include>
+       					</h:panelGroup>
+        			</h:panelGroup>
+        		</rich:tab>
+    			        		
+        		<rich:tab id="_collectionsTab" label="Collections" name="collectionsTab" rendered="#{usession.inRole['VIEW_ATM_COLLECTION'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['collectionsTab'])}"
+        				onlabelclick="selectTab('collectionsTab')" style="display: none; height:100%">			    	
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblAtm.collection}" title="#{lblAtm.collection}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="collectionsTab" layout="block" styleClass="carddata-wrapper" 
+        					style="height: 100%;position:relative;">
+        				<h:panelGroup id="collectionsTabContents" rendered="#{MbTerminal.renderTabs}">
+	       					<ui:include src="#{MbTerminal.tabName=='collectionsTab' ? '/pages/atm/list_atm_collections_bottom.jspx' : null}">
+	       					</ui:include>
+       					</h:panelGroup>
+        			</h:panelGroup>
+        		</rich:tab>
+
+				<rich:tab id="_revenueSharingTab" label="Revenue sharing" name="revenueSharingTab"
+			    		onlabelclick="selectTab('revenueSharingTab')" style="display: none; height:100%"
+			    		rendered="#{usession.inRole['VIEW_TAB_ACCOUNT_SELECTION_PRIORITY'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['revenueSharingTab'])}">
+			    	<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblAcq.revenue_sharing}" title="#{lblAcq.revenue_sharing}"/> 
+        				</h:panelGroup>
+        			</f:facet>
+
+        			<h:panelGroup id="revenueSharingTab" layout="block" styleClass="carddata-wrapper" 
+        					style="height: 100%;position:relative;">
+      					<h:panelGroup id="templatesTabContents" rendered="#{MbTerminal.renderTabs}">
+      						<ui:include src="#{MbTerminal.tabName=='revenueSharingTab' ? '/pages/acquiring/revenueSharingListBottom.jspx' : null}">
+      							<ui:param name="renderColumnTerminalNumber" value="false"></ui:param>
+      							<ui:param name="renderColumnCustomer" value="true"></ui:param>
+      						</ui:include>
+      					</h:panelGroup>
+        			</h:panelGroup>
+	        	</rich:tab>
+			
+				<rich:tab id="_vouchersBatchesTab" name="vouchersBatchesTab" style="display: none; height:100%"
+					styleClass="large-cell" onlabelclick="selectTab('vouchersBatchesTab')"
+					rendered="#{usession.inRole['VIEW_VOUCHER_BATCHES'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['vouchersBatchesTab'])}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblVch.vouchers_batches}" title="#{lblVch.vouchers_batches}"/>
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="vouchersBatchesTab" styleClass="carddata-wrapper"
+							style="height: 100%;overflow:hidden;position:relative;">
+						<h:panelGroup rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='vouchersBatchesTab' ? '/pages/acquiring/terminals/terminalVouchersBatchesBottom.jspx' : null}"/>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+				
+   			    <rich:tab id="_mccRedefinitionsTab" label="#{lblAcq.mcc_selection}" name="mccRedefinitionsTab" style="display: none; height:100%;" 
+   			    	rendered="#{usession.inRole['VIEW_MCC_SELECTION'] and (MbTerminal.showAllTabs || MbTerminal.renderTabsMap['mccRedefinitionsTab'])}" onlabelclick="selectTab('mccRedefinitionsTab')">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblAcq.mcc_selection}" title="#{lblAcq.mcc_selection}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup id="mccRedefinitionsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;position:relative;">
+						<h:panelGroup rendered="#{MbTerminal.renderTabs}">
+							<ui:include src="#{MbTerminal.tabName=='mccRedefinitionsTab' ? '/pages/acquiring/mccSelectionsBottom.jspx' : null}">
+								<ui:param name="hideButtons" value="true" />
+							</ui:include>
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons"/>								
+						</h:panelGroup>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab onlabelclick="selectTab('suitesTab')" label="Suites" name="suitesTab" style="display: none; height:100%;" 
+			    	rendered="#{usession.inRole['VIEW_TAB_SUITE']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblFrp.suites}" title="#{lblFrp.suites}" />
+						</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="suitesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+   						<ui:include src="#{MbTerminal.tabName=='suitesTab' ? '/pages/fraud/list_fraud_object.jspx' : null}" />
+					</h:panelGroup>
+       			</rich:tab>
+       			
+       			<rich:tab id="_reportTab" style="display: none; height:100%;" onlabelclick="selectTab('reportTab')" name="reportTab">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblReport.reports}" title="#{lblReport.reports}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="reportTab" style="height: 100%;overflow:hidden;position:relative;">
+							<ui:include
+								src="#{MbTerminal.tabName=='reportTab' ? '/pages/reports/list_entity_report_bottom.jspx' : null}" />
+						</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab id="_info" style="display: none; height:100%;" onlabelclick="selectTab('info')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblRul.info}"
+								title="#{lblRul.info}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="info" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="#{MbTerminal.tabName=='info' ? '/pages/reports/list_entity_object_info.jspx' : null}" />
+					</h:panelGroup>
+				</rich:tab>				
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<h:panelGroup id="togglePanelTerm">
+			<script>
+		function toggleTabs(currentTab) {
+			var isATM = #{MbTerminal.atm};
+			var isImprinter = #{MbTerminal.imprinter};
+			var switchToDetails = false;
+	
+			var _termATMsTab = document.getElementById('_termATMsTab_shifted');
+			var termATMsTab = document.getElementById('termATMsTab');
+			var _dispensersTab = document.getElementById('_dispensersTab_shifted');
+			var dispensersTab = document.getElementById('dispensersTab');
+			var _cashInTab = document.getElementById('_cashInTab_shifted');
+			var cashInTab = document.getElementById('cashInTab');
+			var _collectionsTab = document.getElementById('_collectionsTab_shifted');
+			var collectionsTab = document.getElementById('collectionsTab');
+			
+			var _vouchersBatchesTab = document.getElementById('_vouchersBatchesTab_shifted');
+			var vouchersBatchesTab = document.getElementById('vouchersBatchesTab');
+			if (isATM == true) {
+				if (_termATMsTab != null) _termATMsTab.style.display = "";
+				if (termATMsTab != null) termATMsTab.parentNode.style.display = "";				
+				if (_dispensersTab != null) _dispensersTab.style.display = "";
+				if (dispensersTab != null) dispensersTab.parentNode.style.display = "";
+				if (_cashInTab != null) _cashInTab.style.display = "";
+				if (cashInTab != null) cashInTab.parentNode.style.display = "";
+				if (_collectionsTab != null) _collectionsTab.style.display = "";
+				if (collectionsTab != null) collectionsTab.parentNode.style.display = "";
+			} else {
+				if (_termATMsTab != null) _termATMsTab.style.display = "none";
+				if (termATMsTab != null) termATMsTab.parentNode.style.display = "none";
+				if (_dispensersTab != null) _dispensersTab.style.display = "none";
+				if (dispensersTab != null) dispensersTab.parentNode.style.display = "none";
+				if (_cashInTab != null) _cashInTab.style.display = "none";
+				if (cashInTab != null) cashInTab.parentNode.style.display = "none";
+				if (_collectionsTab != null) _collectionsTab.style.display = "none";
+				if (collectionsTab != null) collectionsTab.parentNode.style.display = "none";
+				
+				switchToDetails = currentTab == "termATMsTab" || currentTab == "dispensersTab" 
+					|| currentTab == "cashInTab" || currentTab == "collectionsTab";
+			}
+			if (isImprinter == true){
+				if (_vouchersBatchesTab != null) _vouchersBatchesTab.style.display = "";
+				if (vouchersBatchesTab != null) vouchersBatchesTab.parentNode.style.display = "";
+			} else {
+				if (_vouchersBatchesTab != null) _vouchersBatchesTab.style.display = "none";
+				if (vouchersBatchesTab != null) vouchersBatchesTab.parentNode.style.display = "none";
+				
+				switchToDetails = currentTab == "vouchersBatchesTab";
+			}
+			
+			if (switchToDetails == true){
+				RichFaces.switchTab('details','_detailsTab','detailsTab');
+				selectTab("detailsTab");
+			}
+			makeScrollableTabs('details');
+			
+			var _additionalTab = document.getElementById('_additionalTab_shifted');
+			var additionalTab = document.getElementById('additionalTab');
+			
+			var _unattendedTab = document.getElementById('_unattendedTab_shifted');
+			var unattendedTab = document.getElementById('unattendedTab');
+			
+			var _connectivityTab = document.getElementById('_connectivityTab_shifted');
+			var connectivityTab = document.getElementById('connectivityTab');
+			
+			var _keysTab = document.getElementById('_keysTab_shifted');
+			var keysTab = document.getElementById('keysTab');
+			
+			var _accountsTab = document.getElementById('_accountsTab_shifted');
+			var accountsTab = document.getElementById('accountsTab');
+			
+			var _addressesTab = document.getElementById('_addressesTab_shifted');
+			var addressesTab = document.getElementById('addressesTab');
+			
+			var _contactsTab = document.getElementById('_contactsTab_shifted');
+			var contactsTab = document.getElementById('contactsTab');
+			
+			var _customerTab = document.getElementById('_customerTab_shifted');
+			var customerTab = document.getElementById('customerTab');
+			
+			var _attrsTab = document.getElementById('_attrsTab_shifted');
+			var attrsTab = document.getElementById('attrsTab');
+			
+			var _notesTab = document.getElementById('_notesTab_shifted');
+			var notesTab = document.getElementById('notesTab');
+			
+			var _limitCountersTab = document.getElementById('_limitCountersTab_shifted');
+			var limitCountersTab = document.getElementById('limitCountersTab');
+			
+			var _cycleCountersTab = document.getElementById('_cycleCountersTab_shifted');
+			var cycleCountersTab = document.getElementById('cycleCountersTab');
+			
+			var _standardsTab = document.getElementById('_standardsTab_shifted');
+			var standardsTab = document.getElementById('standardsTab');
+			
+			var _paymentsTab = document.getElementById('_paymentsTab_shifted');
+			var paymentsTab = document.getElementById('paymentsTab');
+			
+			var _schemesTab = document.getElementById('_schemesTab_shifted');
+			var schemesTab = document.getElementById('schemesTab');
+			
+			var _termATMsTab = document.getElementById('_termATMsTab_shifted');
+			var termATMsTab = document.getElementById('termATMsTab');
+			
+			var _dispensersTab = document.getElementById('_dispensersTab_shifted');
+			var dispensersTab = document.getElementById('dispensersTab');
+			
+			var _cashInTab = document.getElementById('_cashInTab_shifted');
+			var cashInTab = document.getElementById('cashInTab');
+			
+			var _statusLogsTab = document.getElementById('_statusLogsTab_shifted');
+			var statusLogsTab = document.getElementById('statusLogsTab');
+			
+			var _collectionsTab = document.getElementById('_collectionsTab_shifted');
+			var collectionsTab = document.getElementById('collectionsTab');
+			
+			var _revenueSharingTab = document.getElementById('_revenueSharingTab_shifted');
+			var revenueSharingTab = document.getElementById('revenueSharingTab');
+			
+			var _vouchersBatchesTab = document.getElementById('_vouchersBatchesTab_shifted');
+			var vouchersBatchesTab = document.getElementById('vouchersBatchesTab');
+			
+			var _mccRedefinitionsTab = document.getElementById('_mccRedefinitionsTab_shifted');
+			var mccRedefinitionsTab = document.getElementById('mccRedefinitionsTab');
+			
+			var _suitesTab = document.getElementById('_suitesTab_shifted');
+			var suitesTab = document.getElementById('suitesTab');
+			
+			var _reportTab = document.getElementById('_reportTab_shifted');
+			var reportTab = document.getElementById('reportTab');
+			
+			var _info = document.getElementById('_info_shifted');
+			var info = document.getElementById('info');
+			
+	
+			if (#{MbTerminal.activeTerminal != null}) {
+				if (_additionalTab != null) _additionalTab.style.display = "";
+				if (additionalTab != null) additionalTab.parentNode.style.display = "";
+				
+				if (_unattendedTab != null) _unattendedTab.style.display = "";
+				if (unattendedTab != null) unattendedTab.parentNode.style.display = "";
+				
+				if (_connectivityTab != null) _connectivityTab.style.display = "";
+				if (connectivityTab != null) connectivityTab.parentNode.style.display = "";
+				
+				if (_keysTab != null) _keysTab.style.display = "";
+				if (keysTab != null) keysTab.parentNode.style.display = "";
+
+				if (_accountsTab != null) _accountsTab.style.display = "";
+				if (accountsTab != null) accountsTab.parentNode.style.display = "";
+				
+				if (_addressesTab != null) _addressesTab.style.display = "";
+				if (addressesTab != null) addressesTab.parentNode.style.display = "";
+
+				if (_contactsTab != null) _contactsTab.style.display = "";
+				if (contactsTab != null) contactsTab.parentNode.style.display = "";
+				
+				if (_customerTab != null) _customerTab.style.display = "";
+				if (customerTab != null) customerTab.parentNode.style.display = "";
+
+				if (_attrsTab != null) _attrsTab.style.display = "";
+				if (attrsTab != null) attrsTab.parentNode.style.display = "";
+
+				if (_notesTab != null) _notesTab.style.display = "";
+				if (notesTab != null) notesTab.parentNode.style.display = "";
+
+				if (_limitCountersTab != null) _limitCountersTab.style.display = "";
+				if (limitCountersTab != null) limitCountersTab.parentNode.style.display = "";
+
+				if (_cycleCountersTab != null) _cycleCountersTab.style.display = "";
+				if (cycleCountersTab != null) cycleCountersTab.parentNode.style.display = "";
+				
+				if (_standardsTab != null) _standardsTab.style.display = "";
+				if (standardsTab != null) standardsTab.parentNode.style.display = "";
+				
+				if (_paymentsTab != null) _paymentsTab.style.display = "";
+				if (paymentsTab != null) paymentsTab.parentNode.style.display = "";
+				
+				if (_schemesTab != null) _schemesTab.style.display = "";
+				if (schemesTab != null) schemesTab.parentNode.style.display = "";
+				
+				if (_termATMsTab != null) _termATMsTab.style.display = "";
+				if (termATMsTab != null) termATMsTab.parentNode.style.display = "";
+				
+				if (_dispensersTab != null) _dispensersTab.style.display = "";
+				if (dispensersTab != null) dispensersTab.parentNode.style.display = "";
+				
+				if (_cashInTab != null) _cashInTab.style.display = "";
+				if (cashInTab != null) cashInTab.parentNode.style.display = "";
+				
+				if (_statusLogsTab != null) _statusLogsTab.style.display = "";
+				if (statusLogsTab != null) statusLogsTab.parentNode.style.display = "";
+				
+				if (_collectionsTab != null) _collectionsTab.style.display = "";
+				if (collectionsTab != null) collectionsTab.parentNode.style.display = "";
+				
+				if (_revenueSharingTab != null) _revenueSharingTab.style.display = "";
+				if (revenueSharingTab != null) revenueSharingTab.parentNode.style.display = "";
+				
+				if (_vouchersBatchesTab != null) _vouchersBatchesTab.style.display = "";
+				if (vouchersBatchesTab != null) vouchersBatchesTab.parentNode.style.display = "";
+				
+				if (_mccRedefinitionsTab != null) _mccRedefinitionsTab.style.display = "";
+				if (mccRedefinitionsTab != null) mccRedefinitionsTab.parentNode.style.display = "";
+				
+				if (_suitesTab != null) _suitesTab.style.display = "";
+				if (suitesTab != null) suitesTab.parentNode.style.display = "";
+				
+				if (_reportTab != null) _reportTab.style.display = "";
+				if (reportTab != null) reportTab.parentNode.style.display = "";
+				
+				if (_info != null) _info.style.display = "";
+				if (info != null) info.parentNode.style.display = "";
+				
+			}
+		}
+		
+		function toggleContextTabs() {
+			var isATM = #{MbTerminal.atm};
+			var isImprinter = #{MbTerminal.imprinter};
+	
+			var _termATMsTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:_termATMsContextTab_shifted');
+			var termATMsTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:termATMsContextTab');
+			var _dispensersTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:_dispensersContextTab_shifted');
+			var dispensersTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:dispensersContextTab');
+			var _cashInTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:_cashInContextTab_shifted');
+			var cashInTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:cashInContextTab');
+			var _collectionsTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:_collectionsContextTab_shifted');
+			var collectionsTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:collectionsContextTab');
+			
+			var _vouchersBatchesTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:_vouchersBatchesContextTab_shifted');
+			var vouchersBatchesTab = document.getElementById('contextMenuModalPanel:terminalDetailsModalPanel:vouchersBatchesContextTab');
+			if (isATM == true) {
+				if (_termATMsTab != null) _termATMsTab.style.display = "";
+				if (termATMsTab != null) termATMsTab.parentNode.style.display = "";				
+				if (_dispensersTab != null) _dispensersTab.style.display = "";
+				if (dispensersTab != null) dispensersTab.parentNode.style.display = "";
+				if (_cashInTab != null) _cashInTab.style.display = "";
+				if (cashInTab != null) cashInTab.parentNode.style.display = "";
+				if (_collectionsTab != null) _collectionsTab.style.display = "";
+				if (collectionsTab != null) collectionsTab.parentNode.style.display = "";
+			} else {
+				if (_termATMsTab != null) _termATMsTab.style.display = "none";
+				if (termATMsTab != null) termATMsTab.parentNode.style.display = "none";
+				if (_dispensersTab != null) _dispensersTab.style.display = "none";
+				if (dispensersTab != null) dispensersTab.parentNode.style.display = "none";
+				if (_cashInTab != null) _cashInTab.style.display = "none";
+				if (cashInTab != null) cashInTab.parentNode.style.display = "none";
+				if (_collectionsTab != null) _collectionsTab.style.display = "none";
+				if (collectionsTab != null) collectionsTab.parentNode.style.display = "none";
+			}
+			if (isImprinter == true){
+				if (_vouchersBatchesTab != null) _vouchersBatchesTab.style.display = "";
+				if (vouchersBatchesTab != null) vouchersBatchesTab.parentNode.style.display = "";
+			} else {
+				if (_vouchersBatchesTab != null) _vouchersBatchesTab.style.display = "none";
+				if (vouchersBatchesTab != null) vouchersBatchesTab.parentNode.style.display = "none";
+				
+			}
+			
+		}
+		
+		function hideTabs() {
+			if (#{MbCustomersNew.activeCustomer == null}) {
+				
+				var _additionalTab = document.getElementById('_additionalTab_shifted');
+				var additionalTab = document.getElementById('additionalTab');
+				
+				var _unattendedTab = document.getElementById('_unattendedTab_shifted');
+				var unattendedTab = document.getElementById('unattendedTab');
+				
+				var _connectivityTab = document.getElementById('_connectivityTab_shifted');
+				var connectivityTab = document.getElementById('connectivityTab');
+				
+				var _keysTab = document.getElementById('_keysTab_shifted');
+				var keysTab = document.getElementById('keysTab');
+				
+				var _accountsTab = document.getElementById('_accountsTab_shifted');
+				var accountsTab = document.getElementById('accountsTab');
+				
+				var _addressesTab = document.getElementById('_addressesTab_shifted');
+				var addressesTab = document.getElementById('addressesTab');
+				
+				var _contactsTab = document.getElementById('_contactsTab_shifted');
+				var contactsTab = document.getElementById('contactsTab');
+				
+				var _customerTab = document.getElementById('_customerTab_shifted');
+				var customerTab = document.getElementById('customerTab');
+				
+				var _attrsTab = document.getElementById('_attrsTab_shifted');
+				var attrsTab = document.getElementById('attrsTab');
+				
+				var _notesTab = document.getElementById('_notesTab_shifted');
+				var notesTab = document.getElementById('notesTab');
+				
+				var _limitCountersTab = document.getElementById('_limitCountersTab_shifted');
+				var limitCountersTab = document.getElementById('limitCountersTab');
+				
+				var _cycleCountersTab = document.getElementById('_cycleCountersTab_shifted');
+				var cycleCountersTab = document.getElementById('cycleCountersTab');
+				
+				var _standardsTab = document.getElementById('_standardsTab_shifted');
+				var standardsTab = document.getElementById('standardsTab');
+				
+				var _paymentsTab = document.getElementById('_paymentsTab_shifted');
+				var paymentsTab = document.getElementById('paymentsTab');
+				
+				var _schemesTab = document.getElementById('_schemesTab_shifted');
+				var schemesTab = document.getElementById('schemesTab');
+				
+				var _termATMsTab = document.getElementById('_termATMsTab_shifted');
+				var termATMsTab = document.getElementById('termATMsTab');
+				
+				var _dispensersTab = document.getElementById('_dispensersTab_shifted');
+				var dispensersTab = document.getElementById('dispensersTab');
+				
+				var _cashInTab = document.getElementById('_cashInTab_shifted');
+				var cashInTab = document.getElementById('cashInTab');
+				
+				var _statusLogsTab = document.getElementById('_statusLogsTab_shifted');
+				var statusLogsTab = document.getElementById('statusLogsTab');
+				
+				var _collectionsTab = document.getElementById('_collectionsTab_shifted');
+				var collectionsTab = document.getElementById('collectionsTab');
+				
+				var _revenueSharingTab = document.getElementById('_revenueSharingTab_shifted');
+				var revenueSharingTab = document.getElementById('revenueSharingTab');
+				
+				var _vouchersBatchesTab = document.getElementById('_vouchersBatchesTab_shifted');
+				var vouchersBatchesTab = document.getElementById('vouchersBatchesTab');
+				
+				var _mccRedefinitionsTab = document.getElementById('_mccRedefinitionsTab_shifted');
+				var mccRedefinitionsTab = document.getElementById('mccRedefinitionsTab');
+				
+				var _suitesTab = document.getElementById('_suitesTab_shifted');
+				var suitesTab = document.getElementById('suitesTab');
+				
+				var _reportTab = document.getElementById('_reportTab_shifted');
+				var reportTab = document.getElementById('reportTab');
+				
+				var _info = document.getElementById('_info_shifted');
+				var info = document.getElementById('info');
+				
+				
+		
+				if (_additionalTab != null) _additionalTab.style.display = "none";
+				if (additionalTab != null) additionalTab.parentNode.style.display = "none";
+				
+				if (_unattendedTab != null) _unattendedTab.style.display = "none";
+				if (unattendedTab != null) unattendedTab.parentNode.style.display = "none";
+				
+				if (_connectivityTab != null) _connectivityTab.style.display = "none";
+				if (connectivityTab != null) connectivityTab.parentNode.style.display = "none";
+				
+				if (_keysTab != null) _keysTab.style.display = "none";
+				if (keysTab != null) keysTab.parentNode.style.display = "none";
+
+				if (_accountsTab != null) _accountsTab.style.display = "none";
+				if (accountsTab != null) accountsTab.parentNode.style.display = "none";
+				
+				if (_addressesTab != null) _addressesTab.style.display = "none";
+				if (addressesTab != null) addressesTab.parentNode.style.display = "none";
+
+				if (_contactsTab != null) _contactsTab.style.display = "none";
+				if (contactsTab != null) contactsTab.parentNode.style.display = "none";
+				
+				if (_customerTab != null) _customerTab.style.display = "none";
+				if (customerTab != null) customerTab.parentNode.style.display = "none";
+
+				if (_attrsTab != null) _attrsTab.style.display = "none";
+				if (attrsTab != null) attrsTab.parentNode.style.display = "none";
+
+				if (_notesTab != null) _notesTab.style.display = "none";
+				if (notesTab != null) notesTab.parentNode.style.display = "none";
+
+				if (_limitCountersTab != null) _limitCountersTab.style.display = "none";
+				if (limitCountersTab != null) limitCountersTab.parentNode.style.display = "none";
+
+				if (_cycleCountersTab != null) _cycleCountersTab.style.display = "none";
+				if (cycleCountersTab != null) cycleCountersTab.parentNode.style.display = "none";
+				
+				if (_standardsTab != null) _standardsTab.style.display = "none";
+				if (standardsTab != null) standardsTab.parentNode.style.display = "none";
+				
+				if (_paymentsTab != null) _paymentsTab.style.display = "none";
+				if (paymentsTab != null) paymentsTab.parentNode.style.display = "none";
+				
+				if (_schemesTab != null) _schemesTab.style.display = "none";
+				if (schemesTab != null) schemesTab.parentNode.style.display = "none";
+				
+				if (_termATMsTab != null) _termATMsTab.style.display = "none";
+				if (termATMsTab != null) termATMsTab.parentNode.style.display = "none";
+				
+				if (_dispensersTab != null) _dispensersTab.style.display = "none";
+				if (dispensersTab != null) dispensersTab.parentNode.style.display = "none";
+				
+				if (_cashInTab != null) _cashInTab.style.display = "none";
+				if (cashInTab != null) cashInTab.parentNode.style.display = "none";
+				
+				if (_statusLogsTab != null) _statusLogsTab.style.display = "none";
+				if (statusLogsTab != null) statusLogsTab.parentNode.style.display = "none";
+				
+				if (_collectionsTab != null) _collectionsTab.style.display = "none";
+				if (collectionsTab != null) collectionsTab.parentNode.style.display = "none";
+				
+				if (_revenueSharingTab != null) _revenueSharingTab.style.display = "none";
+				if (revenueSharingTab != null) revenueSharingTab.parentNode.style.display = "none";
+				
+				if (_vouchersBatchesTab != null) _vouchersBatchesTab.style.display = "none";
+				if (vouchersBatchesTab != null) vouchersBatchesTab.parentNode.style.display = "none";
+				
+				if (_mccRedefinitionsTab != null) _mccRedefinitionsTab.style.display = "none";
+				if (mccRedefinitionsTab != null) mccRedefinitionsTab.parentNode.style.display = "none";
+				
+				if (_suitesTab != null) _suitesTab.style.display = "none";
+				if (suitesTab != null) suitesTab.parentNode.style.display = "none";
+				
+				if (_reportTab != null) _reportTab.style.display = "none";
+				if (reportTab != null) reportTab.parentNode.style.display = "none";
+				
+				if (_info != null) _info.style.display = "none";
+				if (info != null) info.parentNode.style.display = "none";
+				
+			}
+		}
+		
+		hideTabs();
+		
+		jQuery(document).ready(function(){
+			toggleTabs();
+		});
+		
+		</script>
+		</h:panelGroup>
+		
+		<rich:modalPanel id="tabsManagePanel" autosized="true" minWidth="200" minHeight="100">
+			<f:facet name="header">
+				<h:outputText value="#{lblCommon.tabs_managing}"/>
+			</f:facet>
+			<f:facet name="controls">
+			</f:facet>
+		
+			<h:form id="tabsManageForm">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:selectManyCheckbox id="selectTabs" value="#{MbTerminal.selectedTabs}" layout="pageDirection">
+						<f:selectItem itemValue="additionalTab" itemLabel="#{lblCommon.additional}"/>
+						<f:selectItem itemValue="connectivityTab" itemLabel="#{lblAcq.connectivity}"/>
+						<f:selectItem itemValue="keysTab" itemLabel="#{lblAcq.keys}"/>
+						<f:selectItem itemValue="accountsTab" itemLabel="#{lblCommon.accounts}"/>
+						<f:selectItem itemValue="addressesTab" itemLabel="#{lblCommon.addresses}"/>
+						<f:selectItem itemValue="contactsTab" itemLabel="#{lblCommon.contacts}"/>
+						<f:selectItem itemValue="customerTab" itemLabel="#{lblPrd.customer}"/>
+						<f:selectItem itemValue="attrsTab" itemLabel="#{lblPrd.service_terms}"/>
+						<f:selectItem itemValue="notesTab" itemLabel="#{lblNote.notes}"/>
+						<f:selectItem itemValue="limitCountersTab" itemLabel="#{lblFcl.limit_counters}"/>
+						<f:selectItem itemValue="cycleCountersTab" itemLabel="#{lblFcl.cycle_counters}"/>
+						<f:selectItem itemValue="standardsTab" itemLabel="#{lblCmn.standard_versions}"/>
+						<f:selectItem itemValue="paymentsTab" itemLabel="#{lblPmo.payments}"/>
+						<f:selectItem itemValue="schemesTab" itemLabel="#{lblAup.schemes}"/>
+						<f:selectItem itemValue="termATMsTab" itemLabel="#{lblAtm.atm}"/>
+						<f:selectItem itemValue="dispensersTab" itemLabel="#{lblAtm.dispensers}"/>
+						<f:selectItem itemValue="cashInTab" itemLabel="#{lblAtm.cash_in}"/>
+						<f:selectItem itemValue="statusLogsTab" itemLabel="#{lblEvt.status_logs}"/>
+						<f:selectItem itemValue="collectionsTab" itemLabel="#{lblAtm.collection}"/>
+						<f:selectItem itemValue="revenueSharingTab" itemLabel="#{lblAcq.revenue_sharing}"/>
+						<f:selectItem itemValue="vouchersBatchesTab" itemLabel="#{lblVch.vouchers_batches}"/>
+						<f:selectItem itemValue="mccRedefinitionsTab" itemLabel="#{lblAcq.mcc_selection}"/>
+						<f:selectItem itemValue="suitesTab" itemLabel="#{lblFrp.suites}"/>
+						<f:selectItem itemValue="reportTab" itemLabel="#{lblReport.reports}"/>
+						<f:selectItem itemValue="info" itemLabel="#{lblRul.info}"/>
+					</h:selectManyCheckbox>
+				</h:panelGroup>
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="4" columnClasses="width99P,,,paddingR12">
+							<h:outputText />
+							<bre:taggedCommandButton value="#{lblForm.reset}" type="submit"
+								action="#{MbTerminal.clearTabsMap}"
+								onclick="disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this);"
+								reRender="tabsManageForm" />
+							<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+								action="#{MbTerminal.saveTabsMap}"
+								onclick="disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this);#{rich:component('tabsManagePanel')}.hide();makeScrollableTabs('details');"
+								reRender="details" />
+							<bre:taggedCommandButton value="#{lblForm.cancel}"
+								immediate="true"
+								limitToList="true"
+								oncomplete="#{rich:component('tabsManagePanel')}.hide()"
+								/>							
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+
+		<script type="text/javascript">//<!--
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.css" style and "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel" и layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+		
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'searchForm',
+	                    SEARCH_RESULT_FORM_ID:          'terminalsForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'terminalsTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'terminalBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'terminalDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'terminalDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'flexDataForm',
+	                                    TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'tcpDeviceDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'tcpDeviceDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'desKeysBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'desKeysTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'accountsBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'accountsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'addressesBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'addressesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'contactsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomContactsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'contactDatasForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomContactDatasTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'customerDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'customerDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'attrsTreeForm',
+	                                    TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'attrValuesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'attrValuesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'notesBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'limitCountersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'countersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'cycleCountersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'countersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'objectVerForm',
+	                                    TAB_FORM_WRAPPER_ID:    'stdTreeTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'mainPurposesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'purposesTable',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'mainParameterValuesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'parameterValuesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'schemesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'schemesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'atmDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'atmDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'mainDispensersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomDispensersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.CHECKBOX
+	                                    }, {
+	                                    TAB_FORM_ID:            'atmCashInForm',
+	                                    TAB_FORM_WRAPPER_ID:    'atmCashInTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'statusLogsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'statusLogsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'collectionsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'collectionsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'collectionParamsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'collectionParamsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'revenueSharingForm',
+	                                    TAB_FORM_WRAPPER_ID:    'revenueSharingWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'voucherBatchesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'voucherBatchesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'mainPurposesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'purposesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'selectionBtnForm',
+	                                    TAB_FORM_WRAPPER_ID:    'selectionBtnWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'fraudObjectsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'fraudObjectsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'reportForm',
+	                                    TAB_FORM_WRAPPER_ID:    'reportTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'entityObjectInfoForm',
+	                                    TAB_FORM_WRAPPER_ID:    'entityObjectInfoWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }]
+	        
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			
+			//--> 
+		</script>
+	</ui:define>
+</ui:composition>
+</html>

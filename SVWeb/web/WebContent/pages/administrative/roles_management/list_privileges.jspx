@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<script type="text/javascript">
+		<a4j:loadScript src="/js/stretch.js" />
+
+		function checkPrivilegeFields() {
+			var checked = true;
+			
+			if (document.getElementById('privilegeModalDiv:newName').value == "") {
+				document.getElementById('privilegeModalDiv:newNameError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('privilegeModalDiv:newModuleCode').value == "") {
+				document.getElementById('privilegeModalDiv:newModuleCodeError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('privilegeModalDiv:newLabel').value == "") {
+				document.getElementById('privilegeModalDiv:newLabelError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+	</script>
+	
+    	<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm"/>
+    	
+    	<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblAcm.privileges}"/>
+		<bpct:greyMenu selectMode="#{MbPrivilegesSearch.selectMode}"/>
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>	
+        <h:form id="searchPrivsForm">			
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">	                
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+	                			<h:outputText value="#{lblCommon.module_code}:" title="#{lblCommon.module_code}" />
+	                			<h:inputText value="#{MbPrivilegesSearch.privFilter.moduleCode}" 
+	                					maxlength="3"/>
+		                			
+	                			<h:outputText value="#{lblCommon.name}:" title="#{lblCommon.name}" />
+	                			<h:inputText value="#{MbPrivilegesSearch.privFilter.shortDesc}"/>
+		                	</h:panelGrid>
+		                	<h:panelGrid columns="1" >
+		                		<bre:taggedCommandButton value="#{lblForm.search}" style="width:85px;" 
+		                				reRender="mainTable, dsPrivs, pagesNum, privBtns, #{MbPrivilegesSearch.tabName}" 
+		                				action="#{MbPrivilegesSearch.search}"			                			
+		                				image="/_img/icon_search.png" type="submit"
+		                				onclick="disableModalPanelBtns(this);"
+		                				oncomplete="enableModalPanelBtns(this);"
+		                				eventsQueue="queue"/>
+
+		                		<h:panelGroup styleClass="link-clear" layout="block"  >
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+		                					action="#{MbPrivilegesSearch.clearFilter}"
+		                					reRender="searchPrivsForm, mainPrivsForm, #{MbPrivilegesSearch.tabName}, mainPrivsBtnForm">
+		                			</a4j:commandLink>
+		                		</h:panelGroup>
+		                	</h:panelGrid>
+	                	</h:panelGrid>	                	
+	                	<a4j:outputPanel ajaxRendered="true">
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>
+	                </h:panelGroup>
+				</h:panelGroup>
+				</h:panelGroup>
+            </h:panelGroup>
+		</h:form>
+		
+		<h:form id="mainPrivsForm">
+            <h:panelGroup styleClass="search_result_block" layout="block">
+            	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+            		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable enableContextMenu="true"
+							id="mainTable"
+							tableState="#{MbPrivilegesSearch.tableState}"
+							styleClass="res-table" 
+							headerClass="res-table-header"
+							rowClasses=",odd"
+							selectedClass="res-table-selected" 
+							var="item"
+							value="#{MbPrivilegesSearch.privs}"
+							selection="#{MbPrivilegesSearch.privSelection}"
+							rows="#{MbPrivilegesSearch.rowsNum}"
+							height="255px"
+							selectionMode="#{MbPrivilegesSearch.selectMode == true?'multi':'single' }"
+							noDataLabel="#{MbPrivilegesSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+				        	reRender="privBtns, #{MbPrivilegesSearch.tabName}">
+				           
+						<a4j:support event="onselectionchange" eventsQueue="queue" 
+								reRender="privBtns, #{MbPrivilegesSearch.tabName}" />
+				           
+		                <rich:column id="module_code" label="#{lblCommon.module_code}" title="Module code" 
+		                		sortBy="#{'moduleCode'}" width="20%">
+				           <f:facet name="header">
+			                    <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.module_code}" title="#{lblCommon.module_code}"/>
+								</a4j:outputPanel>
+			                </f:facet>
+			                <h:outputText value="#{item.moduleCode}" />
+				        </rich:column>
+
+		                <rich:column id="name" label="#{lblCommon.name}" title="Label" 
+		                		sortExpression="asc" sortBy="#{'shortDesc'}" width="70%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.shortDesc}" />
+				        </rich:column>
+				        
+		                <rich:column id="is_active" label="#{lblCommon.active}" title="Active" 
+		                		sortBy="#{'isActive'}" width="10%">
+							<f:facet name="header">
+			                	<h:outputText value="#{lblCommon.active}" title="#{lblCommon.active}"/>
+			                </f:facet>
+							<h:graphicImage url="/images/green-tick.png"
+									rendered="#{item.isActive == true}" style="align:center" />
+							<h:graphicImage url="/images/red-cross.png"
+									rendered="#{item.isActive == false}" style="align:center" />
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>				    
+			    </h:panelGroup>
+			</h:panelGroup>
+			    
+            </h:form>
+            <h:form id="mainPrivsBtnForm">
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5" 
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+	                        <h:selectOneMenu id="rows_num" value="#{MbPrivilegesSearch.rowsNum}" styleClass="row_per_page" >
+	                        	<a4j:support event="onchange"
+	                        		reRender="mainTable, dsPrivs, pagesNum, privBtns, #{MbPrivilegesSearch.tabName}"/>
+                        		<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>				         
+    	
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+				                    pagesVar="pages" styleClass="res-datascroller"
+				                    id="dsPrivs" for="mainTable"
+				                    reRender="privBtns, #{MbPrivilegesSearch.tabName}">
+			                    <f:facet name="first">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="first_disabled">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="last">
+			                        <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="last_disabled">
+			                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="previous">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="previous_disabled">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="next">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="next_disabled">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="pages">							                        
+			                    </f:facet>
+			                </rich:datascroller>
+		                    
+                        	<h:panelGroup id="pagesNum">
+	                        	<h:outputText styleClass="strongClass" value="#{pages} "/>
+	                        	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbPrivilegesSearch.privs.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                        	</h:panelGroup>
+                        	
+                        	<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbPrivilegesSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbPrivilegesSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+                        </h:panelGrid>
+					</h:panelGroup>
+                       
+					<h:panelGrid styleClass="buttons_block" columns="8" id="privBtns">
+				        <bre:taggedCommandButton id="btn_select_priv" 
+				        		value="#{lblForm.select}"
+                        		action="#{MbPrivilegesSearch.select}"
+                        		disabled="#{MbPrivilegesSearch.activePriv == null}"
+                        		rendered="#{MbPrivilegesSearch.selectMode and !MbPrivilegesSearch.addPrivToRole}"
+                        		/>               
+				        <bre:taggedCommandButton id="btn_select_priv_to_role" 
+				        		value="#{lblForm.add_to_role}"
+                        		action="#{MbPrivilegesSearch.addSelectedPrivsToRole}"
+                        		disabled="#{MbPrivilegesSearch.activePriv == null}"
+                        		rendered="#{MbPrivilegesSearch.selectMode and MbPrivilegesSearch.addPrivToRole}"
+                        		/>               
+				        <bre:taggedCommandButton id="btn_cancel_select_priv" 
+				        		value="#{lblForm.cancel}"
+                        		action="#{MbPrivilegesSearch.cancelSelect}"
+                        		rendered="#{MbPrivilegesSearch.selectMode}" 
+                        		/>
+                        		               
+						<rich:spacer width="20px" rendered="#{MbPrivilegesSearch.selectMode}"/>
+						
+		            	<bre:taggedCommandButton id="addPrivBtn"
+	                      		reRender="privilegeModalHeader, privilegeModalDiv"
+	                      		value="#{lblForm.add}"
+	                      		rendered="#{usession.inRole['ADD_PRIVILEGE']}"
+                    			oncomplete="#{rich:component('privilegeModalPanel')}.show()"
+	                      		action="#{MbPrivilegesSearch.add}"
+	                      		image="/images/create_doc.gif"
+	                      		/>
+
+                        <bre:taggedCommandButton id="editPrivBtn"
+                                                 reRender="privilegeModalHeader, privilegeModalDiv"
+                                                 value="#{lblForm.edit}"
+                                                 rendered="#{usession.inRole['ADD_PRIVILEGE']}"
+                                                 oncomplete="#{rich:component('privilegeModalPanel')}.show()"
+                                                 action="#{MbPrivilegesSearch.edit}"
+                                                 image="/images/edit.gif"
+                                                 disabled="#{MbPrivilegesSearch.activePriv == null}"
+                                />
+
+						<bre:taggedCommandButton id="deletePrivBtn"
+	                      		value="#{lblForm.delete}"
+	                      		rendered="#{usession.inRole['REMOVE_PRIVILEGE']}"
+	                      		oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()"
+	                      		disabled="#{MbPrivilegesSearch.activePriv == null}"
+	                      		image="/images/delete.gif"
+	                      		/>
+	                      		
+				        <bre:taggedCommandButton 
+				        		value="Export Web.xml"
+                        		action="#{MbPrivilegesSearch.exportWebXml}"
+                        		disabled="#{MbPrivilegesSearch.activePriv == null}" reRender="downloadFileLink"
+                        		oncomplete="document.getElementById('mainPrivsBtnForm:downloadFileLink').click()"
+                        		/>               
+				        <bre:taggedCommandButton 
+				        		value="Export Weblogic.xml"
+                        		action="#{MbPrivilegesSearch.exportWeblogicXml}"
+                        		disabled="#{MbPrivilegesSearch.activePriv == null}"  reRender="downloadFileLink"
+                        		oncomplete="document.getElementById('mainPrivsBtnForm:downloadFileLink').click()"
+                        		/>               
+                    </h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+			<h:outputLink id="downloadFileLink" value="#{request.contextPath}/file/#{MbPrivilegesSearch.fileLink}" />
+	    </h:form>
+	    
+	    <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbPrivilegesSearch.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbPrivilegesSearch.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content" selectedTab="#{MbPrivilegesSearch.tabName}">
+
+				<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup layout="block" id="detailsTab">
+						<ui:include
+							src="/pages/administrative/roles_management/privilegeDetails.jspx"/>
+						<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('rolesTab')" label="Roles" name="rolesTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcm.roles}" title="#{lblAcm.roles}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="rolesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/administrative/roles_management/list_roles_bottom.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('usersTab')" label="Users" name="usersTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcm.users}" title="#{lblAcm.users}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="usersTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/administrative/roles_management/privUsersTableBottom.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('limitationsTab')" label="Limitations" name="Limitations"
+					style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcm.limitations}"
+								title="#{lblAcm.limitations}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="limitationsTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/administrative/roles_management/privLimitationsBottom.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<rich:modalPanel id="privilegeModalPanel" autosized="true" minWidth="300" minHeight="150">
+	      	<f:facet name="header">
+                <h:panelGroup id="privilegeModalHeader">
+           	        <h:outputText value="#{lblAcm.new_privilege}" rendered="#{MbPrivilegesSearch.newMode}"/>
+                    <h:outputText value="#{lblAcm.edit_privilege}" rendered="#{not MbPrivilegesSearch.newMode}"/>
+                </h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+		    </f:facet>
+   	    	<h:form id="privilegeModalDiv">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+						
+            			<h:outputLabel for="newName" value="* #{lblCommon.system_name}: " title="#{lblCommon.system_name}"/>
+						<a4j:region>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		            			<h:inputText id="newName" 
+		            					value="#{MbPrivilegesSearch.newPrivilege.name}" 
+		            					maxlength="200"
+		            					label="#{lblCommon.system_name}"
+		            					onblur="hideErrorField(this)">
+		            			</h:inputText>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newNameError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.system_name}"/>
+								</h:outputFormat>
+	            			</h:panelGrid>
+            			</a4j:region>
+            			
+            			<h:outputLabel for="newModuleCode" value="* #{lblCommon.module_code}: " title="#{lblCommon.module_code}"/>
+						<a4j:region>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		            			<h:inputText id="newModuleCode" 
+		            					value="#{MbPrivilegesSearch.newPrivilege.moduleCode}" 
+		            					maxlength="3"
+		            					label="#{lblCommon.module_code}"
+		            					onblur="hideErrorField(this)">
+		            			</h:inputText>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newModuleCodeError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.module_code}"/>
+								</h:outputFormat>
+	            			</h:panelGrid>
+            			</a4j:region>
+
+						<h:outputLabel for="lang" value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+						<h:selectOneMenu id="lang" value="#{MbPrivilegesSearch.newPrivilege.lang}" rendered="#{MbPrivilegesSearch.newMode}">
+							<f:selectItems value="#{MbPrivilegesSearch.languages}"/>
+						</h:selectOneMenu>
+                        <h:selectOneMenu id="editLang" value="#{MbPrivilegesSearch.newPrivilege.lang}"
+                                         rendered="#{MbPrivilegesSearch.editMode}"
+                                         onchange="document.getElementById('privilege:confirmPanelForm:newValue').value = this.value;
+								#{rich:component('privilege:confirmPanel')}.show()">
+                            <f:selectItems value="#{MbPrivilegesSearch.languages}"/>
+                        </h:selectOneMenu>
+
+
+
+						<h:outputLabel for="newLabel" value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+						<a4j:region>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		            			<h:inputText id="newLabel" 
+		            					value="#{MbPrivilegesSearch.newPrivilege.shortDesc}" 
+		            					maxlength="2000"
+		            					label="#{lblCommon.name}"
+		            					onblur="hideErrorField(this)">
+		            				<a4j:support event="onchange" reRender="newLabelErr" 
+		            						limitToList="true" ajaxSingle="true"/>
+		            				<f:validateLength minimum="3"/>
+		            			</h:inputText>
+								<rich:message for="newLabel" id="newLabelErr" styleClass="errorMarker"/>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newLabelError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.name}"/>
+								</h:outputFormat>
+	            			</h:panelGrid>
+						</a4j:region>
+
+                        <h:outputLabel for="menuItem" value="#{lblCommon.menu_item}: " title="#{lblCommon.menu_item}"/>
+                        <h:selectOneMenu id="menuItem" value="#{MbPrivilegesSearch.newPrivilege.sectionId}">
+                            <f:selectItem itemValue=""/>
+                            <f:selectItems value="#{MbPrivilegesSearch.sections}"/>
+                        </h:selectOneMenu>
+						
+						<h:outputLabel for="newFullDesc" value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+            			<h:inputTextarea id="newFullDesc" 
+            					value="#{MbPrivilegesSearch.newPrivilege.fullDesc}" 
+            					rows="3"
+            					onkeypress="if (!limitText(event,this,2000)) return false;" 
+            					label="#{lblCommon.description}">
+			            	<f:validateLength maximum="2000" />
+				        </h:inputTextarea>
+					</h:panelGrid>
+				</h:panelGroup>
+
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+		                    <bre:taggedCommandButton
+                        			value="#{lblForm.save}" type="submit" action="#{MbPrivilegesSearch.save}"
+                        			onclick="if (!checkPrivilegeFields()) return false; disableModalPanelBtns(this)"
+				                   	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('privilegeModalPanel')}.hide()"
+                        			reRender="mainTable, dsPrivs, pagesNum, privBtns, #{MbPrivilegesSearch.tabName}"
+	                        		/>
+                        	<bre:taggedCommandButton
+	                        		value="#{lblForm.cancel}" 
+	                        		action="#{MbPrivilegesSearch.cancel}" 
+	                        		immediate="true" limitToList="true"
+	                        		oncomplete="#{rich:component('privilegeModalPanel')}.hide()"
+	                        		reRender="privilegeModalDiv">
+	                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                        </bre:taggedCommandButton>
+	            		</h:panelGrid>
+			    	</h:panelGroup>
+			    </h:panelGroup>
+			</h:form>
+
+
+            <ui:include src="/pages/utils/langConfirmPanel.jspx">
+                <ui:param name="backingBean" value="#{MbPrivilegesSearch}"/>
+                <ui:param name="rerenderList" value="privilegeModalDiv:newLabel, privilegeModalDiv:newFullDesc"/>
+                <ui:param name="editElem" value="privilegeModalDiv:editLang"/>
+                <ui:param name="newValue" value="#{MbPrivilegesSearch.newPrivilege.lang}"/>
+                <ui:param name="subviewId" value="privilege"/>
+                <ui:param name="formName" value="privilegeModalDiv" />
+            </ui:include>
+
+
+
+		</rich:modalPanel>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbPrivilegesSearch}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="mainTable, dsPrivs, pagesNum, privBtns, #{MbPrivilegesSearch.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteViewId"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script>
+		//<![CDATA[
+		function updateHeight(){
+            updateGridHeight();
+        }
+
+        layout =
+                {
+                    SEARCH_FORM_ID:                 'searchPrivsForm',
+                    SEARCH_RESULT_FORM_ID:          'mainPrivsForm',
+                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                    SEARCH_RESULT_FOOTER_FORM_ID:   'mainPrivsBtnForm',
+                    TAB_PANEL_ID:                   'workplacePanel',
+
+                    TAB_DATA:      [{
+                                    TAB_FORM_ID:            'privDetailsForm',
+                                    TAB_FORM_WRAPPER_ID:    'privDetailsWrapper',
+                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                                    },                    				
+                                    {
+                                     TAB_FORM_ID:            'rolesForm',
+                                     TAB_FORM_WRAPPER_ID:    'mainTableWrapper',
+                                     CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                                     },
+                                     {
+                                     TAB_FORM_ID:            'bottomRoleUsersForm',
+                                     TAB_FORM_WRAPPER_ID:    'bottomRoleUsersTableWrapper',
+                                     CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                                     },
+                                     {
+                                      TAB_FORM_ID:            'privLimitationForm',
+                                      TAB_FORM_WRAPPER_ID:    'privLimitationTableWrapper',
+                                      CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                                      }]
+
+                };
+        jQuery(window).resize(updateHeight);
+		
+		updateHeight();
+		//]]>
+		
+		</script>		
+	</ui:define>
+</ui:composition>
+</html>

@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+>
+<ui:composition>
+	<h:form id="surveyParameterEntitiesForm">
+		<h:panelGroup id="surveyParameterEntitiesWrapper" layout="block" styleClass="carddata-wrapper"
+		              style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+
+			<rich:extendedDataTable id="surveyParameterEntitiesTable"
+			                        tableState="#{MbSurveyParameterEntitiesSearch.tableState}"
+			                        styleClass="res-table"
+			                        headerClass="res-table-header"
+			                        rowClasses=",odd"
+			                        selectedClass="res-table-selected"
+			                        var="item"
+			                        value="#{MbSurveyParameterEntitiesSearch.dataModel}"
+			                        selection="#{MbSurveyParameterEntitiesSearch.itemSelection}"
+			                        rows="#{MbSurveyParameterEntitiesSearch.rowsNum}"
+			                        height="255px"
+			                        selectionMode="single"
+			                        noDataLabel="#{MbSurveyParameterEntitiesSearch.searching ? lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}">
+
+				<a4j:support event="onselectionchange" eventsQueue="queue"
+				             reRender="surveyParameterEntitiesButtons"/>
+
+				<rich:column id="id" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}"/>
+				</rich:column>
+
+				<rich:column id="paramName" width="45%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.param_name}" title="#{lblCommon.param_name}"/>
+					</f:facet>
+					<h:outputText value="#{item.paramName}"/>
+				</rich:column>
+
+				<rich:column id="name" width="45%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.entity_type}" title="#{lblCommon.entity_type}"/>
+					</f:facet>
+					<h:outputText value="#{item.entityType} - #{item.entityTypeName}"/>
+				</rich:column>
+			</rich:extendedDataTable>
+
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid styleClass="buttons_block" columns="4" id="surveyParameterEntitiesButtons">
+					<bre:taggedCommandButton id="createItem"
+					                         action="#{MbSurveyParameterEntitiesSearch.createItem}"
+					                         value="#{lblForm.add}"
+					                         reRender="surveyParameterEntityEditModal"
+					                         disabled="#{MbSurveyParameterEntitiesSearch.parameter == null}"
+					                         oncomplete="#{rich:component('surveyParameterEntityEditModal')}.show()"
+					                         image="/images/create_doc.gif"
+					                         rendered="#{usession.inRole['MODIFY_SURVEY_PARAMETERS']}"
+					/>
+					<bre:taggedCommandButton id="removeItem"
+					                         styleClass="stdButton"
+					                         onclick="#{rich:component('deleteParameterEntityViewId:confirmPanel')}.show(); return false;"
+					                         value="#{lblForm.remove}"
+					                         disabled="#{MbSurveyParameterEntitiesSearch.activeItem.id == null}"
+					                         image="/images/delete.gif"
+					                         rendered="#{usession.inRole['MODIFY_SURVEY_PARAMETERS']}"/>
+					<h:panelGroup styleClass="stdButton"/>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbSurveyParameterEntitiesSearch}"/>
+		<ui:param name="yesAction" value="removeItem"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+		<ui:param name="rerenderList" value="surveyParameterEntitiesForm"/>
+		<ui:param name="confirmQuestion" value=" "/>
+		<ui:param name="subviewId" value="deleteParameterEntityViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+
+	<rich:modalPanel id="surveyParameterEntityEditModal" autosized="true" minWidth="100" minHeight="50">
+		<f:facet name="header">
+			<h:panelGroup>
+				<h:outputText value="#{lblCommon.new_entity}"
+				              rendered="#{MbSurveyParameterEntitiesSearch.newMode}"/>
+				<h:outputText value="#{lblCommon.edit_entity}"
+				              rendered="#{MbSurveyParameterEntitiesSearch.editMode}"/>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="surveyParameterEntityForm">
+			<h:panelGroup id="surveyParameterEntityFields">
+				<script type="text/javascript">
+                    //<!--
+                    function checkSurveyParameterEntityFields() {
+                        var checked = true;
+
+                        checked = x$('#surveyParameterEntityForm .required').validate();
+
+                        return checked;
+                    }
+
+                    //-->
+				</script>
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" id="detailsData" width="100%"
+					             columnClasses="firstColModal, width250">
+						<h:outputLabel for="systemParamName"
+						               value="#{lblCommon.param_name}: "
+						               title="#{lblCommon.param_name}"/>
+						<h:panelGroup layout="block">
+							<h:inputText id="systemParamName"
+							             value="#{MbSurveyParameterEntitiesSearch.parameter.paramName}"
+							             disabled="true">
+							</h:inputText>
+						</h:panelGroup>
+
+						<h:outputLabel for="entityType"
+						               value="* #{lblCommon.entity_type}: "
+						               title="#{lblCommon.entity_type}"/>
+						<h:panelGroup layout="block">
+							<h:selectOneMenu id="entityType"
+							                 styleClass="required"
+							                 value="#{MbSurveyParameterEntitiesSearch.newItem.entityType}"
+							                 onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbSurveyParameterEntitiesSearch.entityTypes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}"
+							                styleClass="errorMarker"
+							                id="entityTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.entity_type}"/>
+							</h:outputFormat>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton
+								value="#{lblForm.save}" type="submit"
+								reRender="surveyParameterEntitiesForm"
+								action="#{MbSurveyParameterEntitiesSearch.saveItem}"
+								onclick="if (!checkSurveyParameterEntityFields()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); if(#{usession.noErrorResponse})#{rich:component('surveyParameterEntityEditModal')}.hide()"
+						/>
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}"
+								oncomplete="#{rich:component('surveyParameterEntityEditModal')}.hide();"
+								action="#{MbSurveyParameterEntitiesSearch.cancel}"
+								reRender="surveyParameterEntityEditForm"
+								limitToList="true"
+								immediate="true">
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

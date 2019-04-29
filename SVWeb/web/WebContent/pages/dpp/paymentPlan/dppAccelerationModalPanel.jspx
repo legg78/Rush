@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bm="http://www.bpc.ru/jsf/misc">
+<ui:composition>
+	<f:loadBundle var="lblDpp" basename="ru.bpc.sv2.ui.bundles.Dpp"/>
+
+	<rich:modalPanel id="dppAccelerationModalPanel" minHeight="100"
+		autosized="true">
+		<f:facet name="header">
+			<h:panelGroup>
+				<h:outputText value="#{lblDpp.acceleration}" />
+			</h:panelGroup>
+		</f:facet>
+
+		<f:facet name="controls">
+		</f:facet>
+
+		<h:form id="dppAccelerationModalPanelForm">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" columnClasses="firstColModal, width250"
+					styleClass="cardholderdata">
+
+					<h:outputLabel for="nextInstalmentDate"
+						value="#{lblDpp.next_installment_date}:" />
+					<h:inputText id="nextInstalmentDate"
+						value="#{MbDppPaymentPlan.activeItem.nextInstalmentDate}"
+						readonly="true">
+						<f:convertDateTime pattern="#{usession.datePattern}"
+							timeZone="#{CommonUtils.timeZone}" />
+					</h:inputText>
+
+					<h:outputLabel for="accelerationType"
+						value="#{lblDpp.acceleration_type}:" />
+					<h:selectOneMenu id="accelerationType"
+									 value="#{MbDppPaymentPlan.acceleratingDefferedPaymentPlan.accelerationType}">
+						<f:selectItem itemValue="" />
+						<f:selectItems value="#{MbDppPaymentPlan.accelerationTypes}" />
+						<a4j:support event="onchange"
+									 reRender="dppAccelerationModalPanelForm"
+									 limitToList="true"
+									 ajaxSingle="true" />
+					</h:selectOneMenu>
+
+					<h:outputLabel for="instalmentTotal"
+                                   value="#{lblDpp.payment_count}:" title="#{lblDpp.payment_count}"
+                                   rendered="#{MbDppPaymentPlan.countRendered}" />
+                    <h:inputText id="instalmentTotal"
+                        rendered="#{MbDppPaymentPlan.countRendered}"
+                        value="#{MbDppPaymentPlan.acceleratingDefferedPaymentPlan.instalmentTotal}"
+                        required="true" label="#{lblDpp.payment_count}"
+                        validator="#{MbDppPaymentPlan.validateInstalmentTotal}">
+                        <bm:convertNumberNew />
+                    </h:inputText>
+
+                    <h:outputLabel for="payment"
+                                   value="#{lblDpp.repayment_amount}:" title="#{lblDpp.repayment_amount}"
+                                   rendered="#{MbDppPaymentPlan.amountRendered}" />
+                    <h:inputText id="payment"
+                        rendered="#{MbDppPaymentPlan.amountRendered}"
+                        value="#{MbDppPaymentPlan.acceleratingDefferedPaymentPlan.instalmentAmount}"
+                        required="#{MbDppPaymentPlan.paymentAmountRequired}" label="#{lblDpp.repayment_amount}"
+                        validator="#{MbDppPaymentPlan.validateInstalmentAmount}">
+                    </h:inputText>
+
+				</h:panelGrid>
+			</h:panelGroup>
+			
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+
+						<bre:taggedCommandButton rendered="#{MbModifyDppPaymentPlan.makerCheckerAction.showConfirmation}"
+												 value="#{lblIss.modify}"
+						                         disabled="#{MbDppPaymentPlan.acceleratingDefferedPaymentPlan.accelerationType == null }"
+						                         id="registerMakerCheckerBtn"
+						                         oncomplete="if (#{usession.noErrorResponse}) Richfaces.showModalPanel('modifyPlanView:modal');"/>
+
+						<bre:taggedCommandButton value="#{lblIss.modify}"
+						                         rendered="#{not MbModifyDppPaymentPlan.makerCheckerAction.showConfirmation}"
+												 disabled="#{MbDppPaymentPlan.acceleratingDefferedPaymentPlan.accelerationType == null }"
+												 id="registerBtn"
+												 action="#{MbModifyDppPaymentPlan.makerCheckerAction.doAction}"
+												 oncomplete="if (#{usession.noErrorResponse}) #{rich:component('dppAccelerationModalPanel')}.hide()" />
+						<bre:taggedCommandButton
+							action="#{MbDppPaymentPlan.resetAcceleratingDpp }"
+							value="#{lblForm.cancel}" immediate="true"
+							reRender="dppAccelerationModalPanelForm"
+							onclick="#{rich:component('dppAccelerationModalPanel')}.hide()">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<ui:include src="/pages/utils/makerCheckerPanel.jspx">
+		<ui:param name="subviewId" value="modifyPlanView"/>
+		<ui:param name="makerCheckerActionBean" value="#{MbModifyDppPaymentPlan.makerCheckerAction}"/>
+		<ui:param name="rerenderList" value="paymentPlanSearchForm"/>
+		<ui:param name="oncompleteScriptMaker" value="Richfaces.hideModalPanel('dppAccelerationModalPanel');"/>
+		<ui:param name="oncompleteScriptMakerChecker" value="Richfaces.hideModalPanel('dppAccelerationModalPanel');"/>
+		<ui:param name="cancelScriptMakerChecker" value="Richfaces.hideModalPanel('dppAccelerationModalPanel');"/>
+	</ui:include>
+</ui:composition>
+</html>

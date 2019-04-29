@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html" xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles" xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:rich="http://richfaces.org/rich" xmlns:a4j="http://richfaces.org/a4j">
+<ui:composition>
+    <!--@elvariable id="stepBean" type="ru.bpc.sv2.ui.common.wizard.operations.MbRewardsLoyaltyOperationsDS"-->
+    <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+    <f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+    <f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+    <f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+    <f:loadBundle var="lblLty" basename="ru.bpc.sv2.ui.bundles.Lty"/>
+
+    <a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+
+    <rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"
+                   timeZone="#{CommonUtils.timeZone}"
+                   onchanged="if(#{rich:component('calendar')}.customInput.value!=event.rich.component.getSelectedDateString()){
+						#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();
+						#{rich:component('calendar')}.customInput.onchange();
+					}" zindex="1000"
+                   inputClass="hidden" buttonClass="hidden" showApplyButton="true" defaultTime="00:00"/>
+
+    <script>
+        #{rich:component('calendar')}.customExpand = customExpand;
+    </script>
+
+    <rich:modalPanel id="operationsRLModalPanel" autosized="true" minWidth="1200" minHeight="100">
+        <f:facet name="header">
+            <h:panelGroup>
+                <h:outputText value="#{lblOpr.operations}" />
+            </h:panelGroup>
+        </f:facet>
+        <f:facet name="controls">
+        </f:facet>
+        <h:form id="operationsRLModalPanelForm">
+
+            <!--search panel-->
+            <h:panelGrid styleClass="fw" columns="2" columnClasses=",link-cont" id="filtersGroup">
+                <h:panelGrid styleClass="filter-table field-cont" columns="4"
+                             columnClasses="firstColModal, ,firstColModal,">
+
+                    <h:outputLabel value="#{lblCommon.institution}:"
+                                   title="#{lblCommon.institution}:" />
+                    <h:selectOneMenu id="instId" label="#{lblCommon.institution}"
+                                     value="#{stepBean.filter.instId}" required="true">
+                        <f:selectItem itemValue="" />
+                        <f:selectItems value="#{stepBean.institutions}" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="#{lblAcq.merchant_id}:"
+                                   title="#{lblAcq.merchant_id}:" />
+                    <h:inputText value="#{stepBean.filter.merchantId}" required="true" disabled="true"/>
+
+                    <h:outputLabel value="#{lblCommon.status}:"
+                                   title="#{lblCommon.status}:" />
+                    <h:selectOneMenu id="statusSelector"
+                                     value="#{stepBean.filter.status}" required="true" disabled="true">
+                        <f:selectItems value="#{stepBean.statuses}" />
+                    </h:selectOneMenu>
+
+                    <h:outputLabel value="#{lblIss.card_number}:"
+                                   title="#{lblIss.card_number}:" />
+                    <h:inputText value="#{stepBean.filter.cardNumber}" required="true" disabled="true"/>
+
+                    <h:outputText for="startDate" value="#{lblCommon.start_date}:" />
+                    <h:panelGroup>
+                        <h:inputText id="startDate" style="max-width:175px"
+                                     value="#{stepBean.filter.startDate}"
+                                     onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationsRLModalPanelForm:startDate')}, #{rich:element('operationsRLModalPanelForm:startDateBtn')});">
+                            <f:convertDateTime pattern="#{usession.datePattern}" />
+                        </h:inputText>
+                        <h:graphicImage
+                                value="/images/calendar.gif"
+                                onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationsRLModalPanelForm:startDate')}, #{rich:element('operationsRLModalPanelForm:startDateBtn')});"
+                                id="startDateBtn" />
+                    </h:panelGroup>
+
+                    <h:outputText for="endDate" value="#{lblCommon.end_date}:" />
+                    <h:panelGroup>
+                        <h:inputText id="endDate" style="max-width:175px"
+                                     value="#{stepBean.filter.endDate}"
+                                     onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationsRLModalPanelForm:endDate')}, #{rich:element('operationsRLModalPanelForm:endDateBtn')});">
+                            <f:convertDateTime pattern="#{usession.datePattern}" />
+                        </h:inputText>
+                        <h:graphicImage
+                                value="/images/calendar.gif"
+                                onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationsRLModalPanelForm:endDate')}, #{rich:element('operationsRLModalPanelForm:endDateBtn')});"
+                                id="endDateBtn" />
+                    </h:panelGroup>
+
+                    <h:outputLabel value="#{lblOpr.auth_code}:"
+                                   title="#{lblOpr.auth_code}:" />
+                    <h:inputText value="#{stepBean.filter.authCode}"/>
+
+                </h:panelGrid>
+                <h:panelGrid columns="1">
+                    <bre:taggedCommandButton
+                            value="#{lblForm.search}"
+                            type="submit"
+                            action="#{stepBean.searchOperations}"
+                            reRender="operationsRLModalPanelForm:operationsTableSearch"
+                    />
+                </h:panelGrid>
+            </h:panelGrid>
+
+            <h:panelGroup layout="block">
+                <rich:extendedDataTable id="operationsTableSearch"
+                                        styleClass="res-table" headerClass="res-table-header"
+                                        rowClasses=",odd" selectedClass="res-table-selected" var="item"
+                                        value="#{stepBean.searchedOperations}"
+                                        height="255px" selectionMode="single" width="100%"
+                                        >
+                    <rich:column id="checked" label="#{lblForm.select}" title="Select" width="5%"
+                                 style="text-align:center;">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblForm.select}"
+                                          title="#{lblForm.select}" />
+                        </f:facet>
+                        <h:selectBooleanCheckbox value="#{item.checked}">
+                            <a4j:support event="onclick" ajaxSingle="true" reRender="btnSelect"/>
+                        </h:selectBooleanCheckbox>
+                    </rich:column>
+
+                    <rich:column id="operId" label="#{lblCommon.id}" title="ID" width="10%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.operId}" title="#{item.operId}"/>
+                    </rich:column>
+
+                    <rich:column id="operType" label="#{lblOpr.oper_type}" title="Operation type" width="8%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblOpr.oper_type}" title="#{lblOpr.oper_type}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.operType}" title="#{item.operType}"/>
+                    </rich:column>
+
+                    <rich:column id="operDate" label="#{lblOpr.oper_date}" title="Operation date" width="10%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblOpr.oper_date}" title="#{lblOpr.oper_date}"/>
+                        </f:facet>
+                        <h:outputText
+                                value="#{fmt:formatDate(item.operDate, usession.fullDatePattern, CommonUtils.timeZoneId)}"
+                                title="#{fmt:formatDate(item.operDate, usession.fullDatePattern, CommonUtils.timeZoneId)}"
+                        />
+                    </rich:column>
+
+                    <rich:column id="operAmount" label="#{lblOpr.operation_amount}" title="Operation amount" width="10%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblOpr.operation_amount}" title="#{lblOpr.operation_amount}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.operAmount}" title="#{item.operAmount}"/>
+                    </rich:column>
+
+                    <rich:column id="merchantId" label="#{lblAcq.merchant_id}" title="Merchant ID" width="7%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblAcq.merchant_id}" title="#{lblAcq.merchant_id}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.merchantId}" title="#{item.merchantId}"/>
+                    </rich:column>
+
+                    <rich:column id="instId" label="#{lblCommon.inst_id}" title="Institution ID" width="5%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblCommon.inst_id}" title="#{lblCommon.inst_id}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.instId}" title="#{item.instId}"/>
+                    </rich:column>
+
+                    <rich:column id="merchantNumber" label="#{lblAcq.merchant_number}" title="Merchant number" width="10%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblAcq.merchant_number}" title="#{lblAcq.merchant_number}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.merchantNumber}" title="#{item.merchantNumber}"/>
+                    </rich:column>
+
+                    <rich:column id="merchantName" label="#{lblAcq.merchant_name}" title="Merchant name" width="10%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblAcq.merchant_name}" title="#{lblAcq.merchant_name}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.merchantName}" title="#{item.merchantName}"/>
+                    </rich:column>
+
+                    <rich:column id="cardNumber" label="#{lblIss.card_number}" title="Card number" width="10%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblIss.card_number}" title="#{lblIss.card_number}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.cardNumber}" title="#{item.cardNumber}"/>
+                    </rich:column>
+
+                    <rich:column id="authCode" label="#{lblOpr.auth_code}" title="Auth code" width="5%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblOpr.auth_code}" title="#{lblOpr.auth_code}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.authCode}" title="#{item.authCode}"/>
+                    </rich:column>
+
+                    <rich:column id="rewardAmount" label="#{lblLty.reward_amount}" title="Reward amount" width="10%">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblLty.reward_amount}" title="#{lblLty.reward_amount}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.rewardAmount}" title="#{item.rewardAmount}"/>
+                    </rich:column>
+
+                </rich:extendedDataTable>
+            </h:panelGroup>
+
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                        <bre:taggedCommandButton id="btnSelect"
+                                value="#{lblForm.select}"
+                                type="submit"
+                                disabled="#{!stepBean.anyOperationSelected}"
+                                action="#{stepBean.selectOperations}"
+                                oncomplete="Richfaces.hideModalPanel('operationsRLModalPanel')"
+                                reRender="rewardsLoyaltyOperationsForm:operationsTable"
+                        />
+                        <bre:taggedCommandButton
+                                value="#{lblForm.cancel}" immediate="true"
+                                oncomplete="Richfaces.hideModalPanel('operationsRLModalPanel')" />
+                    </h:panelGrid>
+
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </rich:modalPanel>
+</ui:composition>
+</html>

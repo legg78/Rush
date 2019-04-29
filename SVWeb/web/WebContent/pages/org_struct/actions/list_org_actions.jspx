@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:o="http://openfaces.org/"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+        <f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost"/>
+        <f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+        <f:loadBundle var="lblMsg" basename="ru.bpc.sv2.ui.bundles.Msg"/>
+        <f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form"/>
+
+        <!-- Navigation bar -->
+        <bpct:navBar pageName="#{lblCommon.actions}"/>
+
+        <script type="text/javascript">
+            //<![CDATA[
+            function handleEnter(event) {
+                if (event.keyCode == 13) {
+                    document.getElementById('actionsSearchForm:searchBtn').click();
+                    return false;
+                }
+                return true;
+            }
+            //]]>
+        </script>
+
+        <a4j:queue name="queue" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNext" requestDelay="500"/>
+
+        <!-- Search panel -->
+        <h:form id="actionsSearchForm" onkeypress="handleEnter(event)">
+            <h:panelGroup styleClass="search_block" layout="block">
+                <h:panelGroup layout="block" styleClass="search_block_inner1">
+                    <h:panelGroup layout="block" styleClass="search_block_inner2">
+                        <h:panelGroup styleClass="search_block_left" layout="block">
+                            <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                <h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+                                             columns="4"
+                                             columnClasses="firstCol,secondCol,firstCol,secondCol">
+                                    <h:outputLabel value="#{lblOst.inst_status}: " title="#{lblOst.inst_status}"/>
+                                    <h:selectOneMenu value="#{MbOrgStructActions.filter.instStatus}">
+                                        <f:selectItem itemValue=""/>
+                                        <f:selectItems value="#{MbOrgStructActions.instStatuses}"/>
+                                    </h:selectOneMenu>
+
+                                    <h:outputLabel value="#{lblOst.data_action}: " title="#{lblOst.data_action}"/>
+                                    <h:selectOneMenu value="#{MbOrgStructActions.filter.dataAction}">
+                                        <f:selectItem itemValue=""/>
+                                        <f:selectItems value="#{MbOrgStructActions.dataActions}"/>
+                                    </h:selectOneMenu>
+                                </h:panelGrid>
+                                <h:panelGrid columns="1" >
+                                    <bre:taggedCommandButton image="/_img/icon_search.png"
+                                                             type="submit"
+                                                             value="#{lblForm.search}"
+                                                             style="width:85px;"
+                                                             reRender="actionsForm, actionsForm:actionsTable,
+                                                                       actionsBtnForm, workplacePanel"
+                                                             id="searchBtn"
+                                                             action="#{MbOrgStructActions.search}"
+                                                             onclick="disableModalPanelBtns(this);"
+                                                             oncomplete="enableModalPanelBtns(this);"
+                                                             eventsQueue="queue"/>
+
+                                    <h:panelGroup styleClass="link-clear" layout="block"  >
+                                        <h:graphicImage url="/_img/icon_clear.png"/>
+                                        <a4j:commandLink value="#{lblForm.clear_all}"
+                                                         action="#{MbOrgStructActions.clearFilter}"
+                                                         reRender="actionsSearchForm, actionsForm,
+                                                                   actionsForm:actionsTable, actionsBtnForm,
+                                                                   workplacePanel">
+                                        </a4j:commandLink>
+                                    </h:panelGroup>
+                                </h:panelGrid>
+                            </h:panelGrid>
+
+                            <a4j:outputPanel ajaxRendered="true">
+                                <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                                <h:panelGroup styleClass="collapse-vert" layout="block"/>
+                            </a4j:outputPanel>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <!-- Main panel -->
+        <h:form id="actionsForm">
+            <h:panelGroup styleClass="search_result_block" layout="block">
+                <h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+                    <h:panelGroup id="actionsTableWrapper" layout="block" styleClass="search_result_block_inner">
+                        <rich:extendedDataTable id="actionsTable"
+                                                var="item"
+                                                tableState="#{MbOrgStructActions.tableState}"
+                                                styleClass="res-table"
+                                                headerClass="res-table-header"
+                                                rowClasses=",odd"
+                                                selectedClass="res-table-selected"
+                                                value="#{MbOrgStructActions.actions}"
+                                                selection="#{MbOrgStructActions.itemSelection}"
+                                                rows="#{MbOrgStructActions.rowsNum}"
+                                                enableContextMenu="true"
+                                                height="255px"
+                                                selectionMode="single"
+                                                noDataLabel="#{lblCommon.no_records_found}"
+                                                width="100%"
+                                                reRender="actionsBtnForm, workplacePanel, #{MbOrgStructActions.tabName}">
+                            <a4j:support event="onselectionchange"
+                                         reRender="actionsBtnForm, workplacePanel, #{MbOrgStructActions.tabName}"
+                                         eventsQueue="queue"/>
+
+                            <rich:column id="id" label="#{lblCommon.id}" title="#{lblCommon.id}"
+                                         width="24%" sortBy="#{'id'}">
+                                <f:facet name="header">
+                                    <a4j:outputPanel layout="none">
+                                        <script>updateHeight();</script>
+                                        <h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+                                    </a4j:outputPanel>
+                                </f:facet>
+                                <h:outputText value="#{item.id}" title="#{item.id}"/>
+                            </rich:column>
+
+                            <rich:column id="status" label="#{lblOst.inst_status}" title="#{lblOst.inst_status}"
+                                         width="38%" sortBy="#{'instStatus'}">
+                                <f:facet name="header">
+                                    <a4j:outputPanel layout="none">
+                                        <script>updateHeight();</script>
+                                        <h:outputText value="#{lblOst.inst_status}" title="#{lblOst.inst_status}" />
+                                    </a4j:outputPanel>
+                                </f:facet>
+                                <h:outputText rendered="#{item.instStatus != null}"
+                                              value="#{DictUtils.articles[item.instStatus]}"
+                                              title="#{DictUtils.articles[item.instStatus]}"/>
+                                <h:outputText rendered="#{item.instStatus == null}" value="" title=""/>
+                            </rich:column>
+
+                            <rich:column id="action" label="#{lblOst.data_action}" title="#{lblOst.data_action}"
+                                         width="38%" sortBy="#{'dataAction'}">
+                                <f:facet name="header">
+                                    <a4j:outputPanel layout="none">
+                                        <script>updateHeight();</script>
+                                        <h:outputText value="#{lblOst.data_action}" title="#{lblOst.data_action}" />
+                                    </a4j:outputPanel>
+                                </f:facet>
+                                <h:outputText rendered="#{item.dataAction != null}"
+                                              value="#{DictUtils.articles[item.dataAction]}"
+                                              title="#{DictUtils.articles[item.dataAction]}"/>
+                                <h:outputText rendered="#{item.dataAction == null}" value="" title=""/>
+                            </rich:column>
+                        </rich:extendedDataTable>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <!-- Buttons panel -->
+        <h:form id="actionsBtnForm">
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+                    <h:panelGrid styleClass="buttons_block" columns="4" id="btnPanel">
+                        <bre:taggedCommandButton id="addBtn"
+                                                 rendered="#{usession.inRole['ADD_FORBID_ACTION']}"
+                                                 value="#{lblForm.add}"
+                                                 reRender="actionEditForm"
+                                                 action="#{MbOrgStructActions.add}"
+                                                 limitToList="true"
+                                                 oncomplete="#{rich:component('actionModalPanel')}.show()"
+                                                 image="/images/create_doc.gif"/>
+
+                        <bre:taggedCommandButton id="deleteBtn"
+                                                 rendered="#{usession.inRole['REMOVE_FORBID_ACTION']}"
+                                                 value="#{lblForm.delete}"
+                                                 action="#{MbOrgStructActions.remove}"
+                                                 disabled="#{MbOrgStructActions.activeAction == null}"
+                                                 image="/images/delete.gif"
+                                                 oncomplete="#{rich:component('deleteActionView:confirmPanel')}.show()"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <!-- Tabs -->
+        <h:form>
+            <a4j:jsFunction name="storeTab"
+                            ajaxSingle="true"
+                            limitToList="true"
+                            ignoreDupResponses="true"
+                            eventsQueue="queue"
+                            requestDelay="500"
+                            reRender="#{MbOrgStructActions.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbOrgStructActions.tabName}"/>
+            </a4j:jsFunction>
+        </h:form>
+
+        <h:panelGroup id="workplacePanel" styleClass="workplace" layout="block">
+            <rich:tabPanel id="details"
+                           switchType="client"
+                           tabClass="tab-cell"
+                           style="overflow: visible;"
+                           activeTabClass="active-tab-cell"
+                           headerClass="tabs"
+                           headerSpacing="0px"
+                           contentClass="tab-content"
+                           selectedTab="#{MbOrgStructActions.tabName}">
+            <rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab" >
+                <f:facet name="label">
+                    <h:panelGroup styleClass="tab-label" layout="block">
+                        <h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+                    </h:panelGroup>
+                </f:facet>
+
+                <h:panelGroup id="detailsTab" layout="block">
+                    <ui:include src="/pages/org_struct/actions/action_details_bottom.jspx" />
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+                </h:panelGroup>
+            </rich:tab>
+            </rich:tabPanel>
+        </h:panelGroup>
+
+        <ui:include src="/pages/org_struct/actions/edit_forbidden_action.jspx"/>
+
+        <ui:include src="/pages/utils/confirmPanel.jspx">
+            <ui:param name="backingBean" value="#{MbOrgStructActions}"/>
+            <ui:param name="yesAction" value="delete"/>
+            <ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+            <ui:param name="rerenderList" value="actionsForm, actionsBtnForm, #{MbOrgStructActions.tabName}"/>
+            <ui:param name="subviewId" value="deleteActionView"/>
+            <ui:param name="yes" value="#{lblForm.ok}"/>
+            <ui:param name="no" value="#{lblForm.cancel}"/>
+        </ui:include>
+
+        <script>
+            //<![CDATA[
+            function updateHeight(){
+                updateGridHeight();
+            }
+            layout = {
+                SEARCH_FORM_ID:                 'actionsSearchForm',
+                SEARCH_RESULT_FORM_ID:          'actionsForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID:  'actionsTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID:   'actionsBtnForm',
+                TAB_PANEL_ID:                   'workplacePanel',
+
+                TAB_DATA:      [{
+                    TAB_FORM_ID:                'actionsDetailsForm',
+                    TAB_FORM_WRAPPER_ID:        'actionsDetailsWrapper',
+                    CORRECTING_HEIGHT:          Stretch.TABS + Stretch.BUTTONS
+                }]
+            };
+            jQuery(window).resize(updateHeight);
+            updateHeight();
+            //]]>
+        </script>
+    </ui:define>
+</ui:composition>
+</html>

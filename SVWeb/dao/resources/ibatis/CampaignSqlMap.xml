@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="campaign">
+    <sql id="limitationOpen">
+        select * from (
+    </sql>
+
+    <sql id="limitationOpenCount">
+        select count(*) from (
+    </sql>
+
+    <sql id="limitationClose">
+        ) q
+        <isNotNull property="limitation" prepend=" where ">$limitation$</isNotNull>
+    </sql>
+
+    <sql id="paginatedOpen">
+        select * from (
+            select a.*
+                 , rownum r
+              from (
+        <include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+        <include refid="limitationClose"/>
+        ) a
+        where rownum <![CDATA[<]]>= (#range.end# + 1)
+        )
+        where r >= (#range.start# + 1)
+    </sql>
+
+    <select id="get-campaigns" parameterClass="qparams" resultClass="ru.bpc.sv2.campaign.Campaign">
+        <include refid="paginatedOpen"/>
+            select c.id                 as id
+                 , c.inst_id            as instId
+                 , c.institution_name   as instName
+                 , c.seqnum             as seqNum
+                 , c.start_date         as startDate
+                 , c.end_date           as endDate
+                 , c.name               as label
+                 , c.description        as description
+                 , c.campaign_number    as campaignNumber
+                 , c.campaign_type      as campaignType
+                 , c.campaign_type_desc as typeDescription
+                 , c.lang               as lang
+              from cpn_ui_campaign_vw c
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="label">upper(c.name) like upper(#filters[].value#)</isEqual>
+                <isEqual property="filters[].element" compareValue="startDateFrom">c.start_date >= to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="startDate">c.start_date = to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="startDateTo">c.start_date <![CDATA[<=]]> to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="endDateFrom">c.end_date >= to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="endDate">c.end_date = to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="endDateTo">c.end_date <![CDATA[<=]]> to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignType">c.campaign_type = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignNumber">c.campaign_number = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">c.lang = #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend=" order by " conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="auto">
+                    <isEqual property="sorting[].property" compareValue="id">c.id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="instId">c.inst_id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="startDate">c.start_date $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="endDate">c.end_date $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="campaignType">c.campaign_type $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="campaignNumber">c.campaign_number $sorting[].direction$</isEqual>
+                </isNotEqual>
+            </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-campaigns-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select c.*
+              from cpn_ui_campaign_vw c
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="label">upper(c.name) like upper(#filters[].value#)</isEqual>
+                <isEqual property="filters[].element" compareValue="startDateFrom">c.start_date >= to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="startDate">c.start_date = to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="startDateTo">c.start_date <![CDATA[<=]]> to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="endDateFrom">c.end_date >= to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="endDate">c.end_date = to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="endDateTo">c.end_date <![CDATA[<=]]> to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignType">c.campaign_type = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignNumber">c.campaign_number = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">c.lang = #filters[].value#</isEqual>
+            </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="insert-campaign" parameterClass="ru.bpc.sv2.campaign.Campaign">
+        {call cpn_ui_campaign_pkg.add_campaign (
+              o_id               => #id,jdbcType=NUMERIC,mode=OUT#
+            , o_seqnum           => #seqNum,jdbcType=NUMERIC,mode=OUT#
+            , i_inst_id          => #instId#
+            , i_lang             => #lang#
+            , i_label            => #label#
+            , i_description      => #description#
+            , i_start_date       => #startDate#
+            , i_end_date         => #endDate#
+            , i_campaign_type    => #campaignType#
+            , i_campaign_number  => #campaignNumber#
+        )}
+    </procedure>
+
+    <procedure id="update-campaign" parameterClass="ru.bpc.sv2.campaign.Campaign">
+        {call cpn_ui_campaign_pkg.modify_campaign (
+              i_id               => #id#
+            , io_seqnum          => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+            , i_lang             => #lang#
+            , i_label            => #label#
+            , i_description      => #description#
+            , i_start_date       => #startDate#
+            , i_end_date         => #endDate#
+            , i_campaign_type    => #campaignType#
+            , i_campaign_number  => #campaignNumber#
+        )}
+    </procedure>
+
+    <procedure id="remove-campaign" parameterClass="ru.bpc.sv2.campaign.Campaign">
+        {call cpn_ui_campaign_pkg.remove_campaign (
+              i_id      => #id#
+            , i_seqnum  => #seqNum#
+        )}
+    </procedure>
+
+    <select id="get-products" parameterClass="qparams" resultClass="ru.bpc.sv2.campaign.CampaignProduct">
+        <include refid="paginatedOpen"/>
+            select cp.id                as id
+                 , cp.campaign_id       as campaignId
+                 , cp.inst_id           as instId
+                 , cp.product_id        as productId
+                 , cp.product_label     as productLabel
+                 , cp.product_type      as productType
+                 , cp.product_type_desc as productTypeDesc
+                 , cp.lang              as lang
+              from cpn_ui_campaign_product_vw cp
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">cp.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignId">cp.campaign_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="instId">cp.inst_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="productId">cp.product_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="productType">cp.product_type = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">cp.lang = #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend=" order by " conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="auto">
+                    <isEqual property="sorting[].property" compareValue="id">cp.id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="campaignId">cp.campaign_id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="productId">cp.product_id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="productType">cp.product_type $sorting[].direction$</isEqual>
+                </isNotEqual>
+            </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-products-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select cp.*
+              from cpn_ui_campaign_product_vw cp
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">cp.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignId">cp.campaign_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="instId">cp.inst_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="productId">cp.product_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="productType">cp.product_type = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">cp.lang = #filters[].value#</isEqual>
+            </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="insert-product" parameterClass="ru.bpc.sv2.campaign.CampaignProduct">
+        {call cpn_ui_campaign_pkg.add_campaign_product (
+              o_id           => #id,jdbcType=NUMERIC,mode=OUT#
+            , i_campaign_id  => #campaignId#
+            , i_product_id   => #productId#
+        )}
+    </procedure>
+
+    <procedure id="remove-product" parameterClass="ru.bpc.sv2.campaign.CampaignProduct">
+        {call cpn_ui_campaign_pkg.remove_campaign_product (
+            i_id  => #id#
+        )}
+    </procedure>
+
+    <select id="get-services" parameterClass="qparams" resultClass="ru.bpc.sv2.campaign.CampaignService">
+        <include refid="paginatedOpen"/>
+            select cs.id            as id
+                 , cs.campaign_id   as campaignId
+                 , cs.product_id    as productId
+                 , cs.product_label as productLabel
+                 , cs.service_id    as serviceId
+                 , cs.service_label as serviceLabel
+                 , cs.lang          as lang
+              from cpn_ui_campaign_service_vw cs
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">cs.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignId">cs.campaign_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="productId">cs.product_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="serviceId">cs.service_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">cs.lang = #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend=" order by " conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="auto">
+                    <isEqual property="sorting[].property" compareValue="id">cs.id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="campaignId">cs.campaign_id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="productId">cs.product_id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="serviceId">cs.service_id $sorting[].direction$</isEqual>
+                </isNotEqual>
+            </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-services-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select cs.*
+              from cpn_ui_campaign_service_vw cs
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">cs.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignId">cs.campaign_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="productId">cs.product_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="serviceId">cs.service_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">cs.lang = #filters[].value#</isEqual>
+            </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <select id="get-service-list" parameterClass="qparams" resultClass="ru.bpc.sv2.campaign.CampaignService">
+        <include refid="paginatedOpen"/>
+            select ss.id             as serviceId
+                 , ss.service_number as serviceNumber
+                 , ss.label          as serviceLabel
+                 , ps.product_id     as productId
+                 , pp.product_number as productNumber
+                 , get_text (
+                       i_table_name  => 'prd_product'
+                     , i_column_name => 'label'
+                     , i_object_id   => ps.product_id
+                     , i_lang        => ss.lang
+                   )                 as productLabel
+                 , pp.product_type   as productType
+                 , ss.lang           as lang
+              from prd_ui_service_vw ss
+                 , prd_ui_product_service_vw ps
+                 , prd_ui_product_vw pp
+             where ss.id = ps.service_id
+               and ps.product_id = pp.id
+               and pp.lang = ss.lang
+            <iterate prepend=" and " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="campaignId">
+                    ps.product_id in (select product_id
+                                        from cpn_ui_campaign_product_vw
+                                       where campaign_id = #filters[].value#)
+                </isEqual>
+                <isEqual property="filters[].element" compareValue="productId">ps.product_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="productNumber">pp.product_number = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">ss.lang = #filters[].value#</isEqual>
+            </iterate>
+            order by ps.product_id asc
+                   , ss.id asc
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-service-list-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select s.*
+              from prd_ui_service_vw s
+                 , prd_ui_product_service_vw p
+             where s.id = p.service_id
+        <iterate prepend=" and " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="campaignId">
+                p.product_id in (select product_id
+                                   from cpn_ui_campaign_product_vw
+                                  where campaign_id = #filters[].value#)
+            </isEqual>
+            <isEqual property="filters[].element" compareValue="productId">p.product_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="insert-service" parameterClass="ru.bpc.sv2.campaign.CampaignService">
+        {call cpn_ui_campaign_pkg.add_campaign_service (
+              o_id           => #id,jdbcType=NUMERIC,mode=OUT#
+            , i_campaign_id  => #campaignId#
+            , i_product_id   => #productId#
+            , i_service_id   => #serviceId#
+        )}
+    </procedure>
+
+    <procedure id="remove-service" parameterClass="ru.bpc.sv2.campaign.CampaignService">
+        {call cpn_ui_campaign_pkg.remove_campaign_service (
+            i_id  => #id#
+        )}
+    </procedure>
+
+    <select id="get-attributes" parameterClass="qparams" resultClass="ru.bpc.sv2.campaign.CampaignAttribute">
+        select distinct q.*
+          from (select (level + 1)                             as attrLevel
+                     , ca.id                                   as id
+                     , ca.label                                as label
+                     , ca.attribute_id                         as attributeId
+                     , ca.campaign_id                          as campaignId
+                     , ca.product_id                           as productId
+                     , (select p.product_label
+                          from cpn_ui_campaign_product_vw p
+                         where p.product_id  = ca.product_id
+                           and p.campaign_id = ca.campaign_id
+                           and p.lang        = ca.lang
+                       )                                       as productLabel
+                     , ca.service_id                           as serviceId
+                     , (select s.service_label
+                          from cpn_ui_campaign_service_vw s
+                         where s.service_id  = ca.service_id
+                           and s.product_id  = ca.product_id
+                           and s.campaign_id = ca.campaign_id
+                           and s.lang        = ca.lang
+                       )                                       as serviceLabel
+                     , ca.description                          as description
+                     , ca.short_name                           as shortName
+                     , case
+                           when (level + 1) = 2 then ca.service_id
+                           else pa.parent_id
+                       end                                     as parentId
+                     , pa.entity_type                          as entityType
+                     , pa.object_type                          as objectType
+                     , pa.data_type                            as dataType
+                     , ca.lang                                 as lang
+                  from cpn_ui_campaign_attribute_vw ca
+                     , prd_ui_attribute_vw pa
+                 where pa.id          = ca.attribute_id
+                   and pa.lang(+)     = ca.lang
+        <iterate prepend=" and " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="id">ca.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="campaignId">ca.campaign_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="productId">ca.product_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="serviceId">ca.service_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="attributeId">ca.attribute_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="label">ca.label = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">ca.lang = #filters[].value#</isEqual>
+        </iterate>
+              start with (select count(1)
+                            from cpn_ui_campaign_attribute_vw v
+                           where v.attribute_id = pa.parent_id) = 0
+        connect by prior pa.id = pa.parent_id
+          order siblings by pa.display_order
+          ) q
+    </select>
+
+    <select id="get-attributes-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select ca.*
+              from cpn_ui_campaign_attribute_vw ca
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">ca.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignId">ca.campaign_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="productId">ca.product_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="serviceId">ca.service_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="attributeId">ca.attribute_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="label">ca.label = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">ca.lang = #filters[].value#</isEqual>
+            </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="insert-attribute" parameterClass="ru.bpc.sv2.campaign.CampaignAttribute">
+        {call cpn_ui_campaign_pkg.add_campaign_attribute (
+              o_id            => #id,jdbcType=NUMERIC,mode=OUT#
+            , i_campaign_id   => #campaignId#
+            , i_product_id    => #productId#
+            , i_service_id    => #serviceId#
+            , i_attribute_id  => #attributeId#
+        )}
+    </procedure>
+
+    <procedure id="remove-attribute" parameterClass="ru.bpc.sv2.campaign.CampaignAttribute">
+        {call cpn_ui_campaign_pkg.remove_campaign_attribute (
+            i_id  => #id#
+        )}
+    </procedure>
+
+    <select id="get-attribute-values" parameterClass="qparams" resultClass="ru.bpc.sv2.campaign.CampaignAttributeValue">
+        <include refid="paginatedOpen"/>
+            select a.id                 as id
+                 , a.campaign_id        as campaignId
+                 , a.attribute_value_id as attributeValueId
+                 , a.lang               as lang
+              from cpn_ui_attribute_value_vw a
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignId">a.campaign_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="attributeValueId">a.attribute_value_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend=" order by " conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="auto">
+                    <isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="campaignId">a.campaign_id $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="attributeValueId">a.attribute_value_id $sorting[].direction$</isEqual>
+                </isNotEqual>
+            </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-attribute-values-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select a.*
+              from cpn_ui_attribute_value_vw a
+            <iterate prepend=" where " conjunction=" and " property="filters">
+                <isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="campaignId">a.campaign_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="attributeValueId">a.attribute_value_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+            </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <select id="get-attributes-base" parameterClass="qparams" resultClass="ru.bpc.sv2.campaign.CampaignAttribute">
+        select 0             as attrLevel
+             , product_id    as id
+             , product_label as label
+             , null          as attributeId
+             , campaign_id   as campaignId
+             , product_id    as productId
+             , product_label as productLabel
+             , null          as serviceId
+             , null          as serviceLabel
+             , null          as description
+             , null          as shortName
+             , null          as parentId
+             , 'ENTTPROD'    as entityType
+             , null          as objectType
+             , null          as dataType
+             , lang          as lang
+          from cpn_ui_campaign_product_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="campaignId">campaign_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="productId">product_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+           and product_id in (select product_id from cpn_ui_campaign_attribute_vw)
+         union
+        select 1             as attrLevel
+             , service_id    as id
+             , service_label as label
+             , null          as attributeId
+             , campaign_id   as campaignId
+             , product_id    as productId
+             , product_label as productLabel
+             , service_id    as serviceId
+             , service_label as serviceLabel
+             , null          as description
+             , null          as shortName
+             , product_id    as parentId
+             , 'ENTTSRVC'    as entityType
+             , null          as objectType
+             , null          as dataType
+             , lang          as lang
+          from cpn_ui_campaign_service_vw
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="campaignId">campaign_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="productId">product_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="serviceId">service_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+           and service_id in (select service_id from cpn_ui_campaign_attribute_vw)
+    </select>
+
+    <select id="get-campaign-app-flows" parameterClass="qparams" resultClass="ru.bpc.sv2.application.ApplicationFlow">
+        select f.id                                              as id
+             , f.seqnum                                          as seqnum
+             , f.appl_type                                       as appType
+             , f.inst_id                                         as instId
+             , ost_ui_institution_pkg.get_inst_name(
+                   i_inst_id => f.inst_id
+                 , i_lang    => l.lang
+               )                                                 as instName
+             , f.template_appl_id                                as templateAppId
+             , f.is_customer_exist                               as customerExist
+             , f.is_contract_exist                               as contractExist
+             , f.customer_type                                   as customerType
+             , f.contract_type                                   as contractType
+             , f.mod_id                                          as modId
+             , (select name
+                  from rul_ui_mod_vw
+                 where id(+) = f.mod_id
+                   and lang(+) = l.lang
+               )                                                 as modName
+             , f.xslt_source                                     as xsltSource
+             , f.xsd_source                                      as xsdSource
+             , get_text('app_flow', 'label', f.id, l.lang)       as name
+             , get_text('app_flow', 'description', f.id, l.lang) as description
+             , l.lang                                            as lang
+          from app_flow_vw f
+             , com_language_vw l
+        <iterate prepend=" where " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="applType">f.appl_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">f.inst_id in (#filters[].value#, 9999)</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">l.lang = #filters[].value#</isEqual>
+        </iterate>
+            order by f.id asc
+    </select>
+
+    <select id="get-campaign-products-list" parameterClass="qparams" resultClass="ru.bpc.sv2.products.Product">
+            select p.id                                     as id
+                 , p.product_number                         as productNumber
+                 , lpad('-',(level - 1) * 4,'-') || p.label as name
+                 , sys_connect_by_path(p.label,'\')         as path
+                 , p.inst_id                                as instId
+                 , p.product_type                           as productType
+                 , p.contract_type                          as contractType
+                 , p.status                                 as status
+              from prd_ui_product_vw p
+        connect by prior p.id = p.parent_id
+               and p.lang = prior p.lang
+               and p.status not in ('PRDS0200')
+        start with parent_id is null
+        <iterate prepend=" and " conjunction=" and " property="filters">
+            <isEqual property="filters[].element" compareValue="instId">p.inst_id in (#filters[].value#, 9999)</isEqual>
+            <isEqual property="filters[].element" compareValue="productType">p.product_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+        </iterate>
+          order by path
+    </select>
+</sqlMap>

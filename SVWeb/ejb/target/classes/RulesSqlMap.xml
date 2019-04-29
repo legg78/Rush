@@ -1,0 +1,1853 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="rules">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql> 
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>                  
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap class="ru.bpc.sv2.rules.ModScale" id="mapping-scale">
+		<result property="id" column="id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="scaleType" column="scale_type"/>
+		<result property="name" column="name"/>
+		<result property="instName" column="inst_name"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.rules.ModParam" id="mapping-param">
+		<result property="id" column="id"/>
+		<result property="systemName" column="name"/>
+		<result property="dataType" column="data_type"/>		
+		<result property="lovId" column="lov_id"/>
+		<result property="lovName" column="lov_name"/>
+		<result property="lang" column="lang"/>
+		<result property="name" column="short_description"/>
+		<result property="description" column="description"/>
+	</resultMap>
+	
+	<resultMap class="ru.bpc.sv2.rules.Modifier" id="mapping-modifier">
+		<result property="id" column="id"/>
+		<result property="scaleId" column="scale_id"/>
+		<result property="condition" column="condition"/>
+		<result property="priority" column="priority"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="name"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+	
+	<resultMap class="ru.bpc.sv2.rules.Rule" id="mapping-rule">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="ruleSetId" column="rule_set_id"/>
+		<result property="procedureId" column="proc_id"/>
+		<result property="execOrder" column="exec_order"/>
+		<result property="procedureName" column="proc_name"/>
+		<result property="name" column="name"/>
+		<result property="description" column="description"/>
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.rules.RuleParam" id="mapping-rule-param">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="ruleId" column="rule_id"/>
+		<result property="paramId" column="param_id"/>
+		<result property="systemName" column="param_name"/>
+		<result property="lovValue" column="lov_value"/>
+		<result property="name" column="label"/>
+		<result property="lovId" column="lov_id"/>
+		<result property="mandatory" column="is_mandatory"/>
+		<result property="dataType" column="data_type"/>
+		<result property="valueV" column="value_v"/>
+        <result property="valueN" column="value_n"/>
+        <result property="valueD" column="value_d"/>
+        <result property="description" column="description"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="param-scale-mapping">
+		<parameter property="paramId" jdbcType="NUMBER" mode="IN"/>
+		<parameter property="scaleId" jdbcType="NUMBER" mode="IN"/>
+		<parameter property="seqNum" jdbcType="NUMBER" mode="IN"/>
+	</parameterMap>
+	
+	<parameterMap class="java.util.HashMap" id="request-scale-mapping">
+		<parameter property="instId" jdbcType="NUMBER"/>
+		<parameter property="objectType" jdbcType="VARCHAR"/>
+	</parameterMap>
+
+	<select id="get-scale-by-id" 
+			parameterClass="ru.bpc.sv2.rules.ModScale"
+			resultMap="mapping-scale">
+		SELECT 	  id
+		        , inst_id
+		        , seqnum
+		        , scale_type
+		        , lang
+		        , name
+		        , description
+		FROM rul_ui_mod_scale_vw
+		WHERE id = #id#
+				AND inst_id = #instId#
+				AND lang = #lang#
+	</select>
+
+	<select id="get-scales" 
+			parameterClass="qparams"
+			resultMap="mapping-scale">
+		<include refid="paginatedOpen"/>
+			SELECT 	  msc.id
+			        , msc.inst_id
+			        , msc.seqnum
+			        , msc.scale_type
+			        , msc.lang
+			        , msc.name
+			        , msc.description
+			        , inst.name inst_name
+			FROM 
+				rul_ui_mod_scale_vw msc, ost_ui_institution_sys_vw inst
+			WHERE 
+				inst.lang(+) = msc.lang
+				AND inst.id(+) = msc.inst_id
+            <iterate prepend="AND" conjunction="AND" property="filters">
+                <isEqual property="filters[].element" compareValue="id">msc.id like #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">msc.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">msc.inst_id IN (#filters[].value#, 9999)</isEqual>
+				<isEqual property="filters[].element" compareValue="instOnly">msc.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="scaleType">msc.scale_type = #filters[].value#</isEqual>	
+				<isEqual property="filters[].element" compareValue="scaleTypeList">msc.scale_type IN (
+						<iterate conjunction="," property="filters[].valueList">
+							#filters[].valueList[]#
+						</iterate>)</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(msc.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(msc.description) like #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">msc.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="instName">upper(inst.name) $sorting[].direction$</isEqual>	
+					<isEqual property="sorting[].property" compareValue="scaleType">msc.scale_type $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(msc.name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="description">upper(msc.description) $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">msc.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-scales-count" 
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			id 
+		FROM 
+			rul_ui_mod_scale_vw		
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id IN (#filters[].value#, 9999)</isEqual>
+			<isEqual property="filters[].element" compareValue="instOnly">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="scaleType">scale_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(description) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-scale"
+			parameterClass="ru.bpc.sv2.rules.ModScale">
+		{call RUL_UI_MOD_PKG.add_scale(
+				  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id			=> #instId#
+				, i_type			=> #scaleType#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="modify-scale"
+			parameterClass="ru.bpc.sv2.rules.ModScale">
+		{call RUL_UI_MOD_PKG.modify_scale(
+				  i_id				=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_type			=> #scaleType#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-scale"
+			parameterClass="ru.bpc.sv2.rules.ModScale">
+		{call RUL_UI_MOD_PKG.remove_scale(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#)}
+	</procedure>
+
+	<select id="get-params" 
+			parameterClass="qparams"
+			resultMap="mapping-param">
+		<include refid="paginatedOpen"/>
+			SELECT 	  mp.id
+			        , mp.data_type
+			        , mp.lov_id
+			        , lov.name AS lov_name
+			        , mp.lang
+			        , mp.name
+			        , mp.short_description
+			        , mp.description
+			FROM rul_ui_mod_param_vw mp, com_ui_lov_vw lov
+			WHERE 
+				lov.id(+) = mp.lov_id
+				AND lov.lang(+) = mp.lang
+            <iterate prepend="AND" conjunction="AND" property="filters">
+                <isEqual property="filters[].element" compareValue="id">mp.id LIKE #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">mp.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dataType">mp.data_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">UPPER(mp.name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="shortDesc">UPPER(mp.short_description) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="excludeScale">
+					mp.id NOT IN (
+						SELECT param_id FROM rul_ui_mod_scale_param_vw
+						WHERE scale_id = #filters[].value# AND lang = #lang#
+					)
+				</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">mp.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="dataType">mp.data_type $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">UPPER(mp.name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="description">UPPER(mp.short_description) $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">mp.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-params-count" 
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			* 
+		FROM 
+			rul_ui_mod_param_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">UPPER(name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="shortDesc">UPPER(short_description) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="excludeScale">
+				id NOT IN (
+					SELECT param_id FROM rul_ui_mod_scale_param_vw
+					WHERE scale_id = #filters[].value# AND lang = #lang#
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-params-by-scale-id" 
+			parameterClass="qparams"
+			resultMap="mapping-param">
+		<include refid="paginatedOpen"/>
+			SELECT 	  mp.id as id
+			        , mp.data_type
+			        , mp.lov_id
+			        , lov.name as lov_name
+			        , mp.lang
+			        , mp.name
+			        , mp.short_description
+			        , mp.description
+			FROM rul_ui_mod_param_vw mp, rul_ui_mod_scale_param_vw msp, com_ui_lov_vw lov
+			WHERE 
+				msp.param_id = mp.id
+                AND msp.lang = mp.lang
+                AND lov.id(+) = mp.lov_id
+                AND lov.lang(+) = mp.lang
+            <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="scaleId">msp.scale_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="id">mp.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">mp.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dataType">mp.data_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(mp.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="shortDesc">upper(mp.short_description) like #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">mp.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="dataType">mp.data_type $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(mp.name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="description">upper(mp.short_description) $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">mp.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-params-by-scale-id-count" 
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			*
+		FROM 
+			rul_ui_mod_param_vw mp, rul_ui_mod_scale_param_vw msp
+		WHERE 
+			msp.param_id = mp.id
+			AND msp.lang = mp.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="scaleId">msp.scale_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">mp.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">mp.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dataType">mp.data_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(mp.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="shortDesc">upper(mp.short_description) like #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-param"
+			parameterClass="ru.bpc.sv2.rules.ModParam"
+			resultClass="ru.bpc.sv2.rules.ModParam">
+		{call RUL_UI_MOD_PKG.add_param(
+				  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_name				=> #systemName#
+				, i_data_type			=> #dataType#
+				, i_lov_id				=> #lovId#
+				, i_lang				=> #lang#
+				, i_short_description	=> #name#
+				, i_description			=> #description#
+				)}
+	</procedure>
+
+	<procedure id="modify-param"
+			parameterClass="ru.bpc.sv2.rules.ModParam">
+		{call RUL_UI_MOD_PKG.modify_param(
+				  i_id					=> #id#
+				, i_data_type  			=> #dataType#
+				, i_lov_id				=> #lovId#
+				, i_lang				=> #lang#
+				, i_short_description	=> #name#
+				, i_description			=> #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-param"
+			parameterClass="int">
+		{call RUL_UI_MOD_PKG.remove_param(#value#)}
+	</procedure>
+	
+	<select id="get-modifiers" 
+			parameterClass="qparams"
+			resultMap="mapping-modifier" fetchSize="1000">
+		<include refid="paginatedOpen"/>
+			SELECT 	  id
+			        , scale_id
+			        , condition
+			        , priority
+			        , seqnum
+			        , lang
+			        , name
+			        , description
+			FROM 
+				rul_ui_mod_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+                <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="scaleId">scale_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">
+					scale_id IN (
+						SELECT id FROM rul_ui_mod_scale_vw
+						WHERE inst_id IN ($filters[].value$)
+					)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="scaleType">scale_id IN (SELECT id FROM rul_ui_mod_scale_vw WHERE scale_type = #filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="condition">upper(condition) like #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="scaleId">scale_id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="description">upper(description) $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-modifiers-count" 
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			id 
+		FROM 
+			rul_ui_mod_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="scaleId">scale_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">
+				scale_id IN (
+					SELECT id FROM rul_ui_mod_scale_vw
+					WHERE inst_id IN ($filters[].value$)
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="scaleType">scale_id IN (SELECT id FROM rul_ui_mod_scale_vw WHERE scale_type = #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="condition">upper(condition) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-modifier"
+			parameterClass="ru.bpc.sv2.rules.Modifier">
+		{call RUL_UI_MOD_PKG.add_mod(
+				  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_scale_id		=> #scaleId#
+				, i_condition		=> #condition#
+				, i_priority		=> #priority#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="modify-modifier"
+			parameterClass="ru.bpc.sv2.rules.Modifier">
+		{call RUL_UI_MOD_PKG.modify_mod(
+				  i_id				=> #id#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_condition		=> #condition#
+				, i_priority		=> #priority#
+				, i_lang			=> #lang#
+				, i_name			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-modifier"
+			parameterClass="ru.bpc.sv2.rules.Modifier">
+		{call RUL_UI_MOD_PKG.remove_mod(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+	</procedure>
+	
+	<procedure id="include-param-in-scale"
+			parameterMap="param-scale-mapping">
+		{call RUL_UI_MOD_PKG.include_param_in_scale(
+				  i_param_id		=> ?
+				, i_scale_id		=> ?
+				, i_seqnum			=> ?
+				)}
+	</procedure>
+
+	<procedure id="remove-param-from-scale"
+			parameterMap="param-scale-mapping">
+		{call RUL_UI_MOD_PKG.remove_param_from_scale(
+				  i_param_id		=> ?
+				, i_scale_id		=> ?
+				, i_seqnum			=> ?
+				)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.rules.Procedure" id="mapping-procedure">
+		<result property="id" column="id"/>
+		<result property="procedureName" column="proc_name"/>
+		<result property="name" column="name"/>
+		<result property="lang" column="lang"/>
+		<result property="category" column="category"/>
+		<result property="description" column="description"/>
+	</resultMap>
+
+	<select	id="get-procedures"
+		    parameterClass="qparams"
+		    resultMap="mapping-procedure" >
+		<include refid="paginatedOpen"/>
+			SELECT 	  id
+					, proc_name
+					, name
+					, lang
+					, category
+					, description
+			FROM 
+				rul_ui_proc_vw
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+                <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="procedureName">upper(proc_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="category">category = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="ruleSetId">
+					category = (
+						SELECT category FROM rul_ui_rule_set_vw
+						WHERE 
+							id = #filters[].value#
+							AND lang = 'LANGENG'
+					)
+				</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="procedureName">upper(proc_name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="category">category $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-procedures-count"
+		    parameterClass="qparams"
+	    	resultClass="int" >
+	    <include refid="limitationOpenCount"/>
+		SELECT 
+			id 
+		FROM 
+			rul_ui_proc_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+        	<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureName">upper(proc_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="category">category = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ruleSetId">
+				category = (
+					SELECT category FROM rul_ui_rule_set_vw
+					WHERE id = #filters[].value#
+				)
+			</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+	</select>
+
+    <procedure id="add-procedure"
+    		parameterClass="ru.bpc.sv2.rules.Procedure">
+    	{call RUL_UI_PROC_PKG.add(
+    			  o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+    			, i_proc_name	=> #procedureName#
+    			, i_category	=> #category#
+    			, i_lang		=> #lang#
+    			, i_name		=> #name#		
+    			, i_description => #description#    			
+    			)}
+    </procedure>
+
+    <procedure id="modify-procedure"
+    		parameterClass="ru.bpc.sv2.rules.Procedure">
+    	{call RUL_UI_PROC_PKG.modify(
+    			  i_id			=> #id#
+    			, i_proc_name	=> #procedureName#
+    			, i_category	=> #category#
+    			, i_lang		=> #lang#
+    			, i_name		=> #name#
+    			, i_description => #description#
+    			)}
+    </procedure>
+    
+    <procedure id="remove-procedure"
+    		parameterClass="ru.bpc.sv2.rules.Procedure">
+    	{call RUL_UI_PROC_PKG.remove(
+    			  i_id			=> #id#
+    			)}
+    </procedure>
+
+	<resultMap class="ru.bpc.sv2.rules.ProcedureParam" id="mapping-proc-param">
+		<result property="id" column="id"/>
+		<result property="procedureId" column="proc_id"/>
+		<result property="systemName" column="param_name"/>
+		<result property="name" column="label"/>
+		<result property="lang" column="lang"/>
+		<result property="lovId" column="lov_id"/>
+		<result property="lovName" column="lov_name"/>
+		<result property="displayOrder" column="display_order"/>
+		<result property="mandatory" column="is_mandatory"/>
+		<result property="dataType" column="data_type"/>
+		<result property="description" column="description"/>		
+	</resultMap>
+
+	<select id="get-procedure-params"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-proc-param" >
+	    <include refid="limitationOpen"/>
+		SELECT 	  p.id
+				, p.proc_id
+				, p.param_name
+				, p.label
+				, p.lang
+				, p.lov_id
+				, p.data_type
+				, lov.name lov_name
+				, display_order
+				, p.is_mandatory
+				, p.description
+		FROM 
+			rul_ui_proc_param_vw p, com_ui_lov_vw lov
+		WHERE
+			lov.id(+) = p.lov_id
+			AND lov.lang(+) = p.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureId">p.proc_id like #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+            	<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="paramName">p.param_name $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="name">upper(p.label) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="displayOrder">p.display_order $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="lovId">p.lov_id $sorting[].direction$</isEqual>        
+                <isEqual property="sorting[].property" compareValue="mandatory">p.is_mandatory $sorting[].direction$</isEqual>        
+            </isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">p.display_order ASC</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-procedure-params-count"
+		    parameterClass="qparams"
+	    	resultClass="int" >
+	    <include refid="limitationOpenCount"/>
+		SELECT 
+			id
+		FROM 
+			rul_ui_proc_param_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(param_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureId">proc_id like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-procedure-param"
+    		parameterClass="ru.bpc.sv2.rules.ProcedureParam">
+    	{call RUL_UI_PROC_PKG.add_param(
+    			  o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+    			, i_proc_id		=> #procedureId#
+    			, i_param_name	=> #systemName#
+    			, i_lov_id		=> #lovId#
+    			, i_order		=> #displayOrder#	
+    			, i_is_mandatory=> #mandatory#	
+    			, i_param_id	=> #paramId#
+    			, i_lang		=> #lang#
+    			, i_name		=> #name#
+    			, i_description	=> #description#
+    			)}
+    </procedure>
+
+    <procedure id="modify-procedure-param"
+    		parameterClass="ru.bpc.sv2.rules.ProcedureParam">
+    	{call RUL_UI_PROC_PKG.modify_param(
+    			  i_id			=> #id#
+    			, i_lov_id		=> #lovId#
+    			, i_order		=> #displayOrder#
+    			, i_is_mandatory=> #mandatory#
+    			, i_lang		=> #lang#
+    			, i_name		=> #name#
+    			, i_description	=> #description#    			
+    			)}
+    </procedure>
+    
+    <procedure id="remove-procedure-param"
+    		parameterClass="ru.bpc.sv2.rules.ProcedureParam">
+    	{call RUL_UI_PROC_PKG.remove_param(i_id	=> #id#)}
+    </procedure>
+    
+	<resultMap class="ru.bpc.sv2.rules.RuleSet" id="mapping-rule-set">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="name"/>
+		<result property="lang" column="lang"/>
+		<result property="category" column="category"/>
+	</resultMap>
+	
+	<select id="get-rule-sets"
+			parameterClass="qparams"
+			resultMap="mapping-rule-set">
+		<include refid="paginatedOpen"/>
+			SELECT	  rs.id
+					, rs.seqnum as seqNum
+					, rs.name
+					, rs.lang
+					, rs.category
+			FROM rul_ui_rule_set_vw rs
+			<iterate prepend="WHERE" conjunction="AND" property="filters">			
+				<isEqual property="filters[].element" compareValue="id">rs.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">rs.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(rs.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="category">rs.category = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="ruleId">exists (select rr.id from rul_ui_rule_vw rr where rs.id = rr.rule_set_id and rr.proc_id = #filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="ruleName">exists (select rr.id from rul_ui_rule_vw rr where rs.id = rr.rule_set_id and rr.proc_id in (select id from rul_ui_proc_vw rp where rp.lang = rs.lang and upper(rp.name) like #filters[].value#))</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+	            	<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+	                <isEqual property="sorting[].property" compareValue="category">category $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-rule-sets-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			rs.id
+		FROM 
+			rul_ui_rule_set_vw rs
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="category">category = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ruleId">exists (select rr.id from rul_ui_rule_vw rr where rs.id = rr.rule_set_id and rr.proc_id = #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="ruleName">exists (select rr.id from rul_ui_rule_vw rr where rs.id = rr.rule_set_id and rr.proc_id in (select id from rul_ui_proc_vw rp where rp.lang = rs.lang and upper(rp.name) like #filters[].value#))</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+    <procedure id="add-rule-set"
+            parameterClass="ru.bpc.sv2.rules.RuleSet">
+        {call RUL_UI_RULE_SET_PKG.add(
+   				  o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+   				, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+   				, i_name		=> #name#
+   				, i_lang		=> #lang#
+   				, i_category	=> #category#
+   				)}
+    </procedure>
+
+    <procedure id="modify-rule-set"
+            parameterClass="ru.bpc.sv2.rules.RuleSet">
+        {call RUL_UI_RULE_SET_PKG.modify(
+   				  i_id			=> #id#
+   				, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+   				, i_name		=> #name#
+   				, i_lang		=> #lang#
+   				, i_category	=> #category#
+   				)}
+    </procedure>
+
+    <procedure id="remove-rule-set"
+            parameterClass="ru.bpc.sv2.rules.RuleSet">
+        {call RUL_UI_RULE_SET_PKG.remove(
+   				  i_id			=> #id#
+   				, i_seqnum		=> #seqNum#
+   				)}
+    </procedure>
+
+	<select id="get-rules"
+			parameterClass="qparams"
+			resultMap="mapping-rule">
+		<include refid="paginatedOpen"/>
+			SELECT 	  a.id
+					, a.rule_set_id
+					, a.proc_id
+					, a.exec_order
+					, a.seqnum
+					, p.proc_name
+					, p.name
+					, p.description
+			FROM 
+				rul_ui_rule_vw a, rul_ui_proc_vw p
+			WHERE 
+				a.proc_id = p.id
+				<iterate prepend=" AND " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="ruleSetId">a.rule_set_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">p.name like #filters[].value#</isEqual>
+				</iterate>
+				<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+		        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+		            	<isEqual property="sorting[].property" compareValue="execOrder">a.exec_order $sorting[].direction$</isEqual>
+		                <isEqual property="sorting[].property" compareValue="name">p.name $sorting[].direction$</isEqual>
+		                <isEqual property="sorting[].property" compareValue="proc_name">p.proc_name $sorting[].direction$</isEqual>
+		            </isNotEqual>
+				</iterate>
+				<isEmpty property="sorting" prepend=" ORDER BY ">p.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-rules-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			a.id 
+		FROM 
+			rul_ui_rule_vw a, rul_ui_proc_vw p
+		WHERE 
+			a.proc_id = p.id					
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ruleSetId">a.rule_set_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">p.name like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>			
+	</select>
+
+    <procedure id="add-rule"
+            parameterClass="ru.bpc.sv2.rules.Rule">
+        {call RUL_UI_RULE_PKG.add(
+   				  o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+   				, o_seqnum 		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+   				, i_rule_set_id => #ruleSetId#
+   				, i_proc_id 	=> #procedureId#
+   				, i_exec_order 	=> #execOrder#
+   				)}
+    </procedure>
+
+    <procedure id="modify-rule"
+            parameterClass="ru.bpc.sv2.rules.Rule">
+        {call RUL_UI_RULE_PKG.modify(
+				  i_id			=> #id#
+				, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_rule_set_id => #ruleSetId#
+				, i_proc_id 	=> #procedureId#
+				, i_exec_order 	=> #execOrder#
+				)}
+    </procedure>
+
+    <procedure id="remove-rule"
+            parameterClass="ru.bpc.sv2.rules.Rule">
+        {call RUL_UI_RULE_PKG.remove(
+   				  i_id			=> #id#
+   				, i_seqnum 		=> #seqNum#
+   				)}
+    </procedure>
+
+	<select id="get-rule-params"
+			parameterClass="qparams"
+			resultMap="mapping-rule-param">
+		<include refid="paginatedOpen"/>
+			SELECT 	  ap.id
+					, ap.seqnum
+					, ap.rule_id
+					, ap.param_id
+					, pp.param_name
+					, ap.lov_id
+					, pp.label
+					, ap.param_lov_value lov_value
+					, pp.is_mandatory
+					, ap.data_type
+					, ap.param_char_value value_v
+					, ap.param_number_value value_n
+					, ap.param_date_value value_d
+					, pp.description description
+			FROM 
+				rul_ui_rule_param_value_vw ap, rul_ui_proc_param_vw pp
+			WHERE 
+				ap.param_id = pp.id
+				<iterate prepend=" AND " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="actionId">ap.rule_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">pp.lang = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(pp.name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="paramName">upper(pp.param_name) like #filters[].value#</isEqual>
+				</iterate>
+				<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+		        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+		            	<isEqual property="sorting[].property" compareValue="name">pp.name $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="paramName">pp.param_name $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="displayOrder">pp.display_order $sorting[].direction$</isEqual>
+		            </isNotEqual>
+				</iterate>
+				<isEmpty property="sorting" prepend=" ORDER BY ">pp.display_order ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-rule-params-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT 
+			count(*)
+		FROM 
+			rul_ui_rule_param_value_vw ap, rul_ui_proc_param_vw pp
+		WHERE 
+			ap.param_id = pp.id
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="actionId">ap.rule_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">pp.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(pp.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="paramName">upper(pp.param_name) like #filters[].value#</isEqual>
+			</iterate>
+	</select>
+
+    <procedure id="set-value-char-rule-param"
+            parameterClass="ru.bpc.sv2.rules.RuleParam">
+        {call RUL_UI_RULE_PARAM_VALUE_PKG.set_value_char(
+        				  io_id				=> #id,jdbcType=NUMERIC,mode=INOUT#
+        				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+        				, i_rule_id			=> #ruleId#
+        				, i_proc_param_id	=> #paramId#
+        				, i_param_value		=> #valueV#
+        				)}
+    </procedure>
+    
+    <procedure id="set-value-num-rule-param"
+            parameterClass="ru.bpc.sv2.rules.RuleParam">
+        {call RUL_UI_RULE_PARAM_VALUE_PKG.set_value_num(
+        				  io_id				=> #id,jdbcType=NUMERIC,mode=INOUT#
+        				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+        				, i_rule_id			=> #ruleId#
+        				, i_proc_param_id	=> #paramId#
+        				, i_param_value		=> #valueN#
+        				)}
+    </procedure>
+    
+    <procedure id="set-value-date-rule-param"
+            parameterClass="ru.bpc.sv2.rules.RuleParam">
+        {call RUL_UI_RULE_PARAM_VALUE_PKG.set_value_date(
+        				  io_id				=> #id,jdbcType=NUMERIC,mode=INOUT#
+        				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+        				, i_rule_id			=> #ruleId#
+        				, i_proc_param_id	=> #paramId#
+        				, i_param_value		=> #valueD#
+        				)}
+    </procedure>
+
+    <procedure id="remove-rule-param"
+            parameterClass="ru.bpc.sv2.rules.RuleParam">
+        {call RUL_UI_RULE_PARAM_VALUE_PKG.remove(
+        				  i_id			=> #id#
+        				, i_seqnum		=> #seqNum#
+						)}
+    </procedure>
+
+	<select id="get-modifiers-by-scale-type" 
+			parameterClass="String"
+			resultMap="mapping-modifier">
+		SELECT 	  id
+		        , scale_id
+		        , condition
+		        , priority
+		        , seqnum
+		        , lang
+		        , nvl(name, '{ID = ' || id || '}') name
+		        , description
+		FROM rul_ui_mod_vw
+		WHERE lang = com_ui_user_env_pkg.get_user_lang
+			AND scale_id IN (SELECT id FROM rul_ui_mod_scale_vw WHERE scale_type = #value#) 
+        ORDER BY upper(name) ASC
+	</select>
+
+	<select id="get-modifiers-for-scenario" 
+			parameterClass="ru.bpc.sv2.invocation.SelectionParams"
+			resultMap="mapping-modifier">
+		SELECT 	  id
+		        , scale_id
+		        , condition
+		        , priority
+		        , seqnum
+		        , lang
+		        , nvl(name, '{ID = ' || id || '}') name
+		        , description
+		FROM rul_ui_mod_vw
+		WHERE lang = com_ui_user_env_pkg.get_user_lang
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="scaleType">scale_id IN (SELECT id FROM rul_ui_mod_scale_vw WHERE scale_type = #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="scenarioId">id not in (select mod_id from asc_ui_scenario_selection_vw where scenario_id = #filters[].value# and mod_id is not null)</isEqual>
+		</iterate>			
+        ORDER BY upper(name) ASC
+	</select>
+
+	<select	id="get-product-mods"
+	    	parameterClass="int"
+	    	resultClass="ru.bpc.sv2.rules.Modifier">
+		SELECT    id
+		        , scale_id as scaleId
+		        , condition
+		        , priority
+		        , seqnum as seqNum
+		        , lang
+		        , name
+		        , description
+		FROM RUL_UI_MOD_VW
+		WHERE scale_id = #value#
+		    AND lang = com_ui_user_env_pkg.get_user_lang
+		ORDER BY priority
+	</select>
+	
+    <procedure id="refresh-mat-views">
+    	{call RUL_API_PRODUCT_PKG.refresh_mvw}
+    </procedure>
+
+	<select id="get-scale-by-object-type-and-product"
+			parameterMap="request-scale-mapping"
+			resultClass="int">
+		SELECT scale_id FROM rul_ui_attr_vw 
+        WHERE inst_id = ?
+        AND lang = com_ui_user_env_pkg.get_user_lang
+        AND object_type = ?
+	</select>
+	
+	
+	<resultMap  id="mapping-name-format"
+                class="ru.bpc.sv2.rules.naming.NameFormat"  >
+        <result property="id" column="id" />
+        <result property="instId" column="inst_id" />
+        <result property="seqNum" column="seqnum" />
+        <result property="instName" column="inst_name" />
+        <result property="entityType" column="entity_type" />
+       	<result property="nameLength" column="name_length" />
+       	<result property="padType" column="pad_type" />
+       	<result property="padString" column="pad_string" />
+       	<result property="checkAlgorithm" column="check_algorithm" />
+       	<result property="checkPosition" column="check_position" />
+       	<result property="checkBasePosition" column="check_base_position" />
+       	<result property="checkBaseLength" column="check_base_length" />
+       	<result property="indexRangeId" column="index_range_id" />
+       	<result property="indexRangeName" column="index_range_name" />
+       	<result property="label" column="label" />
+       	<result property="lang" column="lang" />
+       	<result property="check" column="check_name"/>
+	</resultMap>
+	
+	<select id="get-name-formats"
+			parameterClass="qparams"
+			resultMap="mapping-name-format">
+		<include refid="paginatedOpen"/>
+			SELECT 	 
+					r.ID
+					, r.inst_id
+					, i.name inst_name
+					, r.seqnum
+					, r.entity_type
+					, r.name_length
+					, r.pad_type
+					, r.pad_string
+					, r.check_algorithm
+					, r.check_position
+					, r.check_base_position
+					, r.check_base_length
+					, r.index_range_id
+					, r.lang
+					, r.label
+					, r.check_name
+					, ir.name index_range_name
+			FROM 
+				rul_ui_name_format_vw r, ost_ui_institution_sys_vw i, rul_ui_name_index_range_vw ir
+			WHERE 
+				r.inst_id = i.id(+)
+				AND i.lang(+)=r.lang
+				AND r.index_range_id = ir.id(+)
+				AND r.lang = ir.lang(+)
+				<iterate prepend=" AND " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="label">upper(r.label) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="entityType">r.entity_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+				</iterate>
+				<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+		        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+		            	<isEqual property="sorting[].property" compareValue="id">r.id $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="label">r.label $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="entityType">r.entity_type $sorting[].direction$</isEqual>
+		            </isNotEqual>
+				</iterate>
+				<isEmpty property="sorting" prepend=" ORDER BY ">label ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-name-formats-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			r.id
+		FROM 
+			rul_ui_name_format_vw r
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(r.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">r.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="sync-name-format"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameFormat">
+    	{call RUL_UI_NAME_PKG.sync_name_format(
+    			  io_id                 => #id,jdbcType=NUMERIC,mode=INOUT#
+				, i_inst                => #instId#
+				, io_seqnum             => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_entity_type         => #entityType#
+				, i_name_length         => #nameLength#
+				, i_pad_type            => #padType#
+				, i_pad_string          => #padString#
+				, i_check_algorithm     => #checkAlgorithm#
+				, i_check_base_position => #checkBasePosition#
+				, i_check_base_length   => #checkBaseLength#
+				, i_check_position      => #checkPosition#
+				, i_index_range_id      => #indexRangeId#
+				, i_lang                => #lang#
+				, i_label               => #label#
+				, i_check_name          => #check#
+				)}
+    </procedure>
+    
+    <procedure id="remove-name-format"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameFormat">
+    	{call RUL_UI_NAME_PKG.remove_name_format(
+    			  i_id     => #id#
+				, i_seqnum => #seqNum#												
+				)}
+    </procedure>
+    
+    
+    <resultMap  id="mapping-name-base-param"
+                class="ru.bpc.sv2.rules.naming.NameBaseParam"  >
+        <result property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="entityType" column="entity_type" />
+       	<result property="description" column="description" />
+       	<result property="lang" column="lang" />
+	</resultMap>
+	
+	<select id="get-name-base-params"
+			parameterClass="qparams"
+			resultMap="mapping-name-base-param">
+		<include refid="paginatedOpen"/>
+			SELECT 	 
+					r.ID
+					, r.name
+					, r.entity_type
+					, r.lang
+					, r.description
+			FROM 
+				rul_ui_name_base_param_vw r
+				<iterate prepend=" WHERE " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="description">upper(r.description) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(r.name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="entityType">r.entity_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+				</iterate>
+				<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+		        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+		            	<isEqual property="sorting[].property" compareValue="description">r.description $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="name">r.name $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="id">r.id $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="entityType">r.entity_type $sorting[].direction$</isEqual>
+		            </isNotEqual>
+				</iterate>
+				<isEmpty property="sorting" prepend=" ORDER BY ">name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-name-base-params-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			r.id
+		FROM 
+			rul_ui_name_base_param_vw r
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="description">upper(r.description) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(r.name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="entityType">r.entity_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<parameterMap class="ru.bpc.sv2.rules.naming.NameBaseParam" id="mapping-name-base-param">
+		<parameter property="id" javaType="java.lang.Integer" mode="INOUT" jdbcType="NUMERIC"/>
+		<parameter property="entityType" javaType="java.lang.String" mode="IN" jdbcType="VARCHAR"/>
+		<parameter property="name" javaType="java.lang.String" mode="IN" jdbcType="VARCHAR"/>
+		<parameter property="lang" javaType="java.lang.String" mode="IN" jdbcType="VARCHAR"/>
+		<parameter property="description" javaType="java.lang.String" mode="IN" jdbcType="VARCHAR"/>		
+	</parameterMap>
+	
+	<procedure id="add-name-base-param"
+    		parameterMap="mapping-name-base-param">
+    	{call RUL_UI_NAME_BASE_PARAM_PKG.add(
+								    			  o_id                 =>?
+												, i_entity_type        =>?
+												, i_name		       =>?
+												, i_lang               =>?
+												, i_description        =>?
+    											)}
+    </procedure>
+    
+    
+    <resultMap  id="mapping-name-component"
+                class="ru.bpc.sv2.rules.naming.NameComponent"  >
+        <result property="id" column="id" />
+        <result property="formatId" column="format_id" />
+        <result property="componentOrder" column="part_order" />
+        <result property="baseValueType" column="base_value_type" />
+        <result property="baseValue" column="base_value" />
+        <result property="transformationType" column="transformation_type" />
+        <result property="transformationMask" column="transformation_mask" />        
+       	<result property="componentLength" column="part_length" />
+       	<result property="padType" column="pad_type" />
+       	<result property="padString" column="pad_string" />       	
+       	<result property="propertiesValues" column="prpt_value" />
+       	<result property="check" column="check_part" />
+	</resultMap>
+	
+	<select id="get-name-components"
+			parameterClass="qparams"
+			resultMap="mapping-name-component">
+		<include refid="paginatedOpen"/>
+			SELECT 	 
+					r.ID
+					, r.format_id
+					, r.part_order
+					, r.base_value_type
+					, r.base_value
+					, r.transformation_type
+					, r.transformation_mask
+					, r.part_length
+					, r.pad_type
+					, r.pad_string
+					, r.prpt_value
+					, r.check_part
+			FROM 
+				rul_ui_name_part_vw r
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="formatId">r.format_id = #filters[].value#</isEqual>					
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+	            	<isEqual property="sorting[].property" compareValue="order">r.part_order $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-name-components-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			r.id
+		FROM 
+			rul_ui_name_part_vw r
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="formatId">r.format_id = #filters[].value#</isEqual>					
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="sync-name-component"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameComponent">
+    	{call RUL_UI_NAME_PKG.sync_part(
+    			  io_id                 => #id,jdbcType=NUMERIC,mode=INOUT#
+				, i_format_id           => #formatId#
+				, i_part_order          => #componentOrder#
+				, i_base_value_type     => #baseValueType#
+				, i_base_value          => #baseValue#
+				, i_transformation_type => #transformationType#
+				, i_transformation_mask => #transformationMask#
+				, i_part_length         => #componentLength#
+				, i_pad_type            => #padType#
+				, i_pad_string          => #padString#
+				, i_check_part          => #check#											
+				)}
+    </procedure>
+    
+    <procedure id="remove-name-component"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameComponent">
+    	{call RUL_UI_NAME_PKG.remove_part(
+	   			  i_id                  => #id#
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-name-component-property"
+                class="ru.bpc.sv2.rules.naming.ComponentProperty"  >
+        <result property="id" column="id" />
+        <result property="entityType" column="entity_type" />
+       	<result property="name" column="property_name" />       	
+	</resultMap>
+	
+	<resultMap  id="mapping-name-component-property-value" extends="mapping-name-component-property"
+                class="ru.bpc.sv2.rules.naming.ComponentProperty"  >
+        <result property="componentId" column="part_id" />
+        <result property="propertyId" column="property_id" />
+       	<result property="value" column="property_value" />       	
+	</resultMap>
+	
+	<select id="get-name-component-properties-values"
+			parameterClass="qparams"
+			resultMap="mapping-name-component-property-value">
+		<include refid="paginatedOpen"/>
+			SELECT
+            	pv.id
+                , p.id property_id 
+                , p.entity_type
+                , p.property_name
+                , pv.property_value
+				, pv.part_id                       
+            FROM
+                rul_ui_name_part_prpt_vw p
+                , rul_ui_name_part_prpt_value_vw pv
+            WHERE
+            	 p.id = pv.property_id(+)
+				<iterate prepend=" AND " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="componentId">pv.part_id(+) = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="entityType">p.entity_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="propertyId">p.property_id = #filters[].value#</isEqual>					
+				</iterate>
+				<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+		        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+		            	<isEqual property="sorting[].property" compareValue="property_name">p.property_name $sorting[].direction$</isEqual>
+		            </isNotEqual>
+				</iterate>
+				<isEmpty property="sorting" prepend=" ORDER BY ">p.property_name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-name-component-properties-values-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+            	*                
+		FROM
+				rul_ui_name_part_prpt_vw p
+				, rul_ui_name_part_prpt_value_vw pv
+		WHERE
+				p.id = pv.property_id(+)
+				<iterate prepend=" AND " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="componentId">pv.part_id(+) = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="entityType">p.entity_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="propertyId">p.property_id = #filters[].value#</isEqual>					
+				</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="sync-property-value"
+    		parameterClass="ru.bpc.sv2.rules.naming.ComponentProperty">
+    	{call RUL_UI_NAME_PKG.sync_property_value(
+    			  io_id				=> #id,jdbcType=NUMERIC,mode=INOUT#
+				, i_part_id			=> #componentId#
+				, i_property_id		=> #propertyId#
+				, i_property_value	=> #value#
+				)}
+    </procedure>
+    
+    <procedure id="remove-property-value"
+    		parameterClass="ru.bpc.sv2.rules.naming.ComponentProperty">
+    	{call RUL_UI_NAME_PKG.remove_property_value(
+    			  i_id				=> #id#
+				)}
+    </procedure>
+    
+     <resultMap  id="mapping-name-index-range"
+                class="ru.bpc.sv2.rules.naming.NameIndexRange"  >
+        <result property="id" column="id"/>
+        <result property="lang" column="lang"/>
+        <result property="name" column="name"/>
+        <result property="lowValue" column="low_value"/>             	
+        <result property="highValue" column="high_value"/>
+        <result property="currentValue" column="current_value"/>
+        <result property="algorithm" column="algorithm"/>
+        <result property="instId" column="inst_id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+	
+	<select id="get-name-index-ranges"
+			parameterClass="qparams"
+			resultMap="mapping-name-index-range">
+		<include refid="paginatedOpen"/>
+			SELECT 	 
+					r.ID
+					, r.lang
+					, r.name
+					, r.algorithm
+					, r.low_value
+					, r.high_value
+					, r.current_value
+					, r.inst_id
+					, r.entity_type
+					, i.name AS inst_name
+			FROM rul_ui_name_index_range_vw r, ost_ui_institution_sys_vw i
+			WHERE r.inst_id = i.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					r.lang = #filters[].value# AND i.lang = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(r.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="algorithm">r.algorithm = #filters[].value#</isEqual>					
+				<isEqual property="filters[].element" compareValue="lowValue">r.low_value = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="highValue">r.high_value = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currentValue">r.current_value = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">r.inst_id IN (#filters[].value#, 9999)</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">r.entity_type = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+	        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+	            	<isEqual property="sorting[].property" compareValue="id">r.id $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="name">r.name $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="entityType">r.entity_type $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="algorithm">r.algorithm $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="lowValue">r.low_value $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="highValue">r.high_value $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="currentValue">r.current_value $sorting[].direction$</isEqual>
+	            	<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>
+	            </isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-name-index-ranges-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			r.id
+		FROM 
+			rul_ui_name_index_range_vw r
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(r.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="algorithm">r.algorithm = #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="lowValue">r.low_value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="highValue">r.high_value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currentValue">r.current_value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">r.inst_id IN (#filters[].value#, 9999)</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">r.entity_type = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="sync-name-index-range"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameIndexRange">
+    	{call RUL_UI_NAME_PKG.sync_range(
+	    		  io_id          	=> #id,jdbcType=NUMERIC,mode=INOUT#
+	    		, i_inst_id			=> #instId#
+	    		, i_entity_type		=> #entityType#
+				, i_algorithm    	=> #algorithm#
+				, i_low_value    	=> #lowValue#
+				, i_high_value   	=> #highValue#
+				, i_current_value	=> #currentValue#
+				, i_lang		 	=> #lang#
+				, i_name 		 	=> #name#										
+				)}
+    </procedure>
+    
+    <procedure id="remove-name-index-range"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameIndexRange">
+    	{call RUL_UI_NAME_PKG.remove_range(
+				  i_id		=>#id#
+				)}
+    </procedure>
+
+	<procedure id="regenerate-packages">
+		{call rul_mod_gen_pkg.generate_package()}
+	</procedure>
+
+     <resultMap  id="mapping-name-index-pool"
+                class="ru.bpc.sv2.rules.naming.NameIndexPool">
+        <result property="id" column="id"/>
+        <result property="indexRangeId" column="index_range_id"/>
+        <result property="value" column="value"/>
+        <result property="isUsed" column="is_used" javaType="boolean"/>             	
+	</resultMap>
+	
+	<select id="get-name-index-pools"
+			parameterClass="qparams"
+			resultMap="mapping-name-index-pool">
+		<include refid="limitationOpen"/>
+			<include refid="paginatedOpen"/>
+				SELECT 	 
+						p.id
+						, p.index_range_id
+						, p.value
+						, p.is_used
+				FROM rul_ui_name_index_pool_vw p
+				<iterate prepend="WHERE" conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="indexRangeId">p.index_range_id = #filters[].value#</isEqual>					
+					<isEqual property="filters[].element" compareValue="value">p.value = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="isUsed">p.is_used = #filters[].value#</isEqual>
+				</iterate>
+				<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+		        	<isNotEqual property="sorting[].direction" compareValue="AUTO">
+		            	<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="indexRangeId">p.index_range_id $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="value">p.value $sorting[].direction$</isEqual>
+		            	<isEqual property="sorting[].property" compareValue="isUsed">p.is_used $sorting[].direction$</isEqual>
+		            </isNotEqual>
+				</iterate>
+				<isEmpty property="sorting">ORDER BY p.value</isEmpty>
+			<include refid="paginatedClose"/>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-name-index-pools-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+			SELECT p.id
+			FROM rul_ui_name_index_pool_vw p
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="indexRangeId">p.index_range_id = #filters[].value#</isEqual>					
+				<isEqual property="filters[].element" compareValue="value">p.value = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isUsed">p.is_used = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-pool"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameIndexPool">
+    	{call RUL_UI_NAME_POOL_PKG.add_pool(
+	    		  i_index_range_id => #indexRangeId#
+	    		, i_low_value      => #lowValue#
+	    		, i_high_value     => #highValue#
+				)}
+    </procedure>
+
+    <procedure id="remove-pool"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameIndexPool">
+    	{call RUL_UI_NAME_POOL_PKG.remove_pool(
+				  i_index_range_id => #indexRangeId#
+				)}
+    </procedure>
+
+	<procedure id="remove-pool-range"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameIndexPool">
+    	{call RUL_UI_NAME_POOL_PKG.remove_pool_range(
+	    		  i_index_range_id => #indexRangeId#
+	    		, i_low_value      => #lowValue#
+	    		, i_high_value     => #highValue#
+				)}
+    </procedure>
+
+    <procedure id="clear-pool"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameIndexPool">
+    	{call RUL_UI_NAME_POOL_PKG.clear_pool(
+				  i_index_range_id => #indexRangeId#
+				)}
+    </procedure>
+
+	<procedure id="add-pool-value"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameIndexPool">
+    	{call RUL_UI_NAME_POOL_PKG.add_pool_value(
+	    		  o_id             => #id,jdbcType=NUMERIC,mode=OUT#
+	    		, i_index_range_id => #indexRangeId#
+	    		, i_value          => #value#
+				)}
+    </procedure>
+    
+    <procedure id="remove-pool-value-by-id"
+    		parameterClass="long">
+    	{call RUL_UI_NAME_POOL_PKG.remove_pool_value(
+				  i_id => #id#
+				)}
+    </procedure>
+
+    <procedure id="remove-pool-value"
+    		parameterClass="ru.bpc.sv2.rules.naming.NameIndexPool">
+    	{call RUL_UI_NAME_POOL_PKG.remove_pool_value(
+				  i_index_range_id => #indexRangeId#
+				, i_value          => #value#
+				)}
+	</procedure>
+
+    <procedure id="clone-rule-set"
+    		parameterClass="ru.bpc.sv2.rules.RuleSet">
+    	{call rul_ui_rule_set_pkg.clone_rule_set(
+    			  i_id 				=> #id,jdbcType=NUMERIC,mode=IN#
+				, i_name		 	=> #name#
+				, i_lang          	=> #lang#
+				, o_cloned_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+				)}
+	</procedure>
+	
+	<resultMap class="ru.bpc.sv2.rules.DspCondition" id="mapping-dsp-conditions">
+		<result property="id" column="id"/>
+		<result property="initRule" column="init_rule"/>
+		<result property="genRule" column="gen_rule"/>
+		<result property="funcOrder" column="func_order"/>
+		<result property="modId" column="mod_id"/>
+		<result property="online" column="is_online" javaType="boolean" nullValue="false"/>
+		<result property="name" column="type"/>
+		<result property="lang" column="lang"/>
+		<result property="scaleType" column="scale_type"/>
+	</resultMap>
+
+	<select id="get-dsp-conditions" 
+			parameterClass="qparams"
+			resultMap="mapping-dsp-conditions">
+		<include refid="paginatedOpen"/>
+			select d.id, 
+				d.init_rule, 
+				d.gen_rule, 
+				d.func_order, 
+				d.mod_id, 
+				d.type, 
+				d.is_online,
+				d.lang,
+				d.scale_type
+			from 
+				dsp_ui_list_condition_vw d
+            <iterate prepend="WHERE" conjunction="AND" property="filters">
+                <isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="initRule">d.init_rule = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="genRule">d.gen_rule = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="funcOrder">d.func_order = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="modId">d.mod_id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="isOnline">d.is_online = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="name">upper(d.type) like #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="scaleType">d.scale_type = #filters[].value#</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">d.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="initRule">d.init_rule $sorting[].direction$</isEqual>	
+					<isEqual property="sorting[].property" compareValue="genRule">d.gen_rule $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="funcOrder">d.func_order $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="modId">d.mod_id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="isOnline">d.is_online $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">d.type $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">d.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-dsp-conditions-count" 
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			id 
+		from 
+			dsp_ui_list_condition_vw d
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="initRule">d.init_rule = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="genRule">d.gen_rule = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="funcOrder">d.func_order = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="modId">d.mod_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="isOnline">d.is_online = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(d.type) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="scaleType">d.scale_type = #filters[].value#</isEqual>
+        </iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-condition"
+			parameterClass="ru.bpc.sv2.rules.DspCondition">
+		{call DSP_UI_LIST_CONDITION_PKG.add_condition(
+			    o_id              => #id,jdbcType=NUMERIC,mode=OUT#
+			  , i_init_rule       => #initRule#
+			  , i_gen_rule        => #genRule#
+			  , i_func_order      => #funcOrder#
+			  , i_mod_id          => #modId#
+			  , i_is_online       => #online#
+			  , i_name            => #name#
+			  , i_lang            => #lang#
+			)}
+	</procedure>
+	
+	<procedure id="modify-condition"
+			parameterClass="ru.bpc.sv2.rules.DspCondition">
+		{call DSP_UI_LIST_CONDITION_PKG.modify_condition(
+			    i_id              => #id#
+			  , i_init_rule       => #initRule#
+			  , i_gen_rule        => #genRule#
+			  , i_func_order      => #funcOrder#
+			  , i_mod_id          => #modId#
+			  , i_is_online       => #online#
+			  , i_name            => #name#
+			  , i_lang            => #lang#
+			)}
+	</procedure>
+	
+	<procedure id="remove-condition"
+			parameterClass="ru.bpc.sv2.rules.DspCondition">
+		{call DSP_UI_LIST_CONDITION_PKG.remove_condition(
+    			i_id      => #id#
+			)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.rules.DspScale" id="mapping-dsp-scales">
+		<result property="id" column="id"/>
+		<result property="seqnum" column="seqnum"/>
+		<result property="scaleType" column="scale_type"/>
+		<result property="label" column="label"/>
+		<result property="description" column="description"/>
+		<result property="modId" column="mod_id"/>
+		<result property="modName" column="mod_name"/>
+		<result property="lang" column="lang"/>
+		<result property="initRuleId" column="init_rule_id"/>
+		<result property="initRuleName" column="init_rule_name"/>
+	</resultMap>
+
+	<select id="get-dsp-scales" parameterClass="qparams" resultMap="mapping-dsp-scales">
+		<include refid="paginatedOpen"/>
+			select d.id,
+				d.seqnum,
+				d.scale_type,
+				d.label,
+				d.description,
+				d.mod_id,
+				d.mod_name,
+				d.lang,
+				d.init_rule_id,
+				d.init_rule_name
+			from
+				dsp_ui_scale_selection_vw d
+            <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="seqnum">d.seqnum = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="scaleType">d.scale_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(d.label) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(d.description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="modId">d.mod_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="modName">upper(d.mod_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="initRuleId">d.init_rule_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="initRuleName">upper(d.init_rule_name) like #filters[].value#</isEqual>
+			</iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">d.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="seqnum">d.seqnum $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="scaleType">d.scale_type $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="label">d.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">d.description $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="modId">d.mod_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="modName">d.mod_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="initRuleId">d.init_rule_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="initRuleName">d.init_rule_name $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">d.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-dsp-scales-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			id
+		from
+			dsp_ui_scale_selection_vw d
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">d.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="scaleType">d.scale_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(d.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(d.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modId">d.mod_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modName">upper(d.mod_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initRuleId">d.init_rule_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="initRuleName">upper(d.init_rule_name) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-dsp-scale" parameterClass="ru.bpc.sv2.rules.DspScale">
+		{call DSP_UI_SCALE_SELECTION_PKG.add(
+			    o_id              => #id,jdbcType=NUMERIC,mode=OUT#
+		      , o_seqnum          => #seqnum,jdbcType=NUMERIC,mode=OUT#
+			  , i_scale_type      => #scaleType#
+			  , i_mod_id          => #modId#
+		      , i_init_rule_id    => #initRuleId#
+			  , i_label           => #label#
+			  , i_description     => #description#
+			  , i_lang            => #lang#
+			)}
+	</procedure>
+
+	<procedure id="modify-dsp-scale"
+			parameterClass="ru.bpc.sv2.rules.DspScale">
+		{call DSP_UI_SCALE_SELECTION_PKG.modify(
+		        i_id              => #id,jdbcType=NUMERIC,mode=IN#
+		      , io_seqnum         => #seqnum,jdbcType=NUMERIC,mode=INOUT#
+              , i_scale_type      => #scaleType#
+              , i_mod_id          => #modId#
+		      , i_init_rule_id    => #initRuleId#
+              , i_label           => #label#
+              , i_description     => #description#
+              , i_lang            => #lang#
+			)}
+	</procedure>
+
+	<procedure id="remove-dsp-scale" parameterClass="ru.bpc.sv2.rules.DspScale">
+		{call DSP_UI_SCALE_SELECTION_PKG.remove(
+    			i_id      => #id#
+		      , i_seqnum  => #seqnum#
+			)}
+	</procedure>
+</sqlMap>

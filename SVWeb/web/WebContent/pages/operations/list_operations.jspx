@@ -1,0 +1,1783 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+      xmlns:fmt="http://www.bpc.ru/el/formatter"
+      xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+
+        <link rel="stylesheet" type="text/css"
+              href="#{facesContext.externalContext.requestContextPath}/css/stretch.css"/>
+        <a4j:loadScript src="/js/stretch.js"/>
+
+
+        <h:inputHidden value="#{MbOperations.operTypeHidden}"/>
+
+        <bpct:customerSearchModalPanels id="custSearchPanels"/>
+
+        <style type="text/css">
+            .leftAligned {
+                text-align: left;
+            }
+        </style>
+
+        <script type="text/javascript">
+            //<![CDATA[
+            x$(document).ready(function() {
+                x$('#operationSearchForm:authCode').inputValidation({maxLength: 6, alphaNumOnly: true});
+            });
+            function selectTab(tabName) {
+                submittingTab = tabName;
+                if (checkTabLoaded(tabName)) {
+                    //set only tab name to managed bean (in order to use it in the future)
+                    setTabName(tabName);
+                    return false;
+                }
+                refreshOperTab(tabName);
+                return true;
+            }
+
+            function checkFilter() {
+                var dateFrom = document.getElementById("operationSearchForm:dateFrom").value;
+                var dateTo = document.getElementById("operationSearchForm:dateTo").value;
+                var operId = document.getElementById("operationSearchForm:operId").value;
+                var filled = true;
+                if (dateFrom != null && dateFrom != "") {
+                    filled = true;
+                }
+                if (dateTo != null && dateTo != "") {
+                    filled = true;
+                }
+                if (operId != null && operId != "") {
+                    filled = true;
+                }
+                return filled;
+            }
+
+            var colorOk = "#FFFFFF";
+            var colorMandatory = "#FF5555";
+
+            function checkOperTab() {
+                var hostResult = true;
+                var operIdResult = true;
+                var sessionIdResult = true;
+                var operHostDate = document.getElementById("operationSearchForm:dateFrom").value;
+                var operId = document.getElementById("operationSearchForm:operId").value;
+                var sessionId = document.getElementById("operationSearchForm:sessionId").value;
+                if (operHostDate == null || operHostDate == "") {
+                    hostResult = false;
+                }
+                if (operId == null || operId == "") {
+                    operIdResult = false;
+                }
+                if (sessionId == null || sessionId == "") {
+                    sessionIdResult = false;
+                }
+                var result = operIdResult || hostResult || sessionId;
+                if (!result) {
+                    document.getElementById("operationSearchForm:dateFrom").style.backgroundColor = colorMandatory;
+                    document.getElementById("operationSearchForm:operId").style.backgroundColor = colorMandatory;
+                    document.getElementById("operationSearchForm:sessionId").style.backgroundColor = colorMandatory;
+                } else {
+                    document.getElementById("operationSearchForm:dateFrom").style.backgroundColor = colorOk;
+                    document.getElementById("operationSearchForm:operId").style.backgroundColor = colorOk;
+                    document.getElementById("operationSearchForm:sessionId").style.backgroundColor = colorOk;
+                }
+                return result;
+            }
+
+            function checkDocumTab() {
+                var dateResult = true;
+                var numberResult = true;
+                var docNumber = document.getElementById("operationSearchForm:docNumber").value;
+                var docDate = document.getElementById("operationSearchForm:docDate").value;
+
+                if (docNumber == null || docNumber == "") {
+                    numberResult = false;
+                }
+                if (docDate == null || docDate == "") {
+                    dateResult = false;
+                }
+
+                var result = dateResult && numberResult;
+                if (!result) {
+                    document.getElementById("operationSearchForm:docNumber").style.backgroundColor = colorOk;
+                    document.getElementById("operationSearchForm:docDate").style.backgroundColor = colorOk;
+                    if (!numberResult && dateResult) {
+                        document.getElementById("operationSearchForm:docNumber").style.backgroundColor = colorMandatory;
+                    } else if (numberResult && !dateResult) {
+                        document.getElementById("operationSearchForm:docDate").style.backgroundColor = colorMandatory;
+                    } else {
+                        document.getElementById("operationSearchForm:docNumber").style.backgroundColor = colorMandatory;
+                        document.getElementById("operationSearchForm:docDate").style.backgroundColor = colorMandatory;
+                    }
+                } else {
+                    document.getElementById("operationSearchForm:docNumber").style.backgroundColor = colorOk;
+                    document.getElementById("operationSearchForm:docDate").style.backgroundColor = colorOk;
+                }
+                return result;
+            }
+
+            function checkTagTab() {
+                var valueResult = true;
+                var typeResult = true;
+                var tagValue = document.getElementById("operationSearchForm:tagValue").value;
+                var tagType = document.getElementById("operationSearchForm:tagType").value;
+
+
+                if (tagValue == null || tagValue == "") {
+                    valueResult = false;
+                }
+                if (tagType == null || tagType == "") {
+                    typeResult = false;
+                }
+
+
+                var result = valueResult && typeResult;
+                if (!result) {
+                    document.getElementById("operationSearchForm:tagValue").style.backgroundColor = colorOk;
+                    document.getElementById("operationSearchForm:tagType").style.backgroundColor = colorOk;
+                    if (!valueResult && typeResult) {
+                        document.getElementById("operationSearchForm:tagValue").style.backgroundColor = colorMandatory;
+                    } else if (valueResult && !typeResult) {
+                        document.getElementById("operationSearchForm:tagType").style.backgroundColor = colorMandatory;
+                    } else {
+                        document.getElementById("operationSearchForm:tagValue").style.backgroundColor = colorMandatory;
+                        document.getElementById("operationSearchForm:tagType").style.backgroundColor = colorMandatory;
+                    }
+                } else {
+                    document.getElementById("operationSearchForm:tagValue").style.backgroundColor = colorOk;
+                    document.getElementById("operationSearchForm:tagType").style.backgroundColor = colorOk;
+                }
+                return result;
+            }
+
+            function adjustCardNumber() {
+                var cardNumber = document.getElementById("operationSearchForm:cardMask").value;
+                var indexOfStar = cardNumber.lastIndexOf('*');
+                var indexOfPerc = cardNumber.lastIndexOf('%');
+                var length = cardNumber.length;
+                if (indexOfStar == -1 && indexOfPerc == -1 && cardNumber.length > 3 && cardNumber.length < 10) {
+                    document.getElementById("operationSearchForm:cardMask").value = '*' + cardNumber;
+                }
+            }
+
+            function checkParticipantTab() {
+                adjustCardNumber();
+                var result = true;
+                var accountNumberId = 'operationSearchForm:accountNumber';
+                document.getElementById("operationSearchForm:dateFrom").style.backgroundColor = colorOk;
+                document.getElementById("operationSearchForm:cardMask").style.backgroundColor = colorOk;
+                document.getElementById(accountNumberId).style.backgroundColor = colorOk;
+                var accountNumber = document.getElementById(accountNumberId).value;
+                if (accountNumber) accountNumber = accountNumber.replace(/[ \s\t]/g, '');
+                var error = app.checkMaskValue(accountNumber, {errorMessage: '#{lblCrd.account_number}: #{lblMsg.number_mask_invalid}'});
+                if (error) {
+                    document.getElementById(accountNumberId).style.backgroundColor = colorMandatory;
+                    result = false;
+                }
+                var docHostDate = document.getElementById("operationSearchForm:dateFrom").value;
+
+                if (docHostDate == null || docHostDate == "") {
+                    document.getElementById("operationSearchForm:dateFrom").style.backgroundColor = colorMandatory;
+                    result = false;
+                }
+                if (!result && error) {
+                    app.showWarning(error);
+                }
+                return result;
+            }
+
+            function checkPmoTab() {
+                var result = true;
+
+                var docHostDate = document.getElementById("operationSearchForm:dateFrom").value;
+
+                if (docHostDate == null || docHostDate == "") {
+                    result = false;
+                }
+
+                if (!result) {
+                    document.getElementById("operationSearchForm:dateFrom").style.backgroundColor = colorMandatory;
+                } else {
+                    document.getElementById("operationSearchForm:dateFrom").style.backgroundColor = colorOk;
+                }
+                return result;
+            }
+
+            function checkCustomerTab() {
+                var result = true;
+                return true;
+            }
+
+
+            var operTabs = new Tabs(null, 'detailsTab');
+            function setTabName(tabName) {
+                console.log('setTabName()...');
+                console.log('tabName: ' + tabName);
+                console.log('Tab is loaded: ' + operTabs.loaded(tabName));
+                setTabName(tabName);
+                if (!operTabs.loaded(tabName)) {
+                    refreshOperTab(tabName);
+                }
+                operTabs.set(tabName);
+            }
+
+            function storeTab(current) {
+                //nothing to do
+            }
+
+            function handleEnter(event, tabname) {
+                if (event.keyCode == 13) {
+                    document.getElementById(tabname + ':searchBtn').click();
+                    return false;
+                }
+                return true;
+            }
+
+            //]]>
+        </script>
+
+        <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+        <f:loadBundle var="lblPmo" basename="ru.bpc.sv2.ui.bundles.Pmo"/>
+        <f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+        <f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+        <f:loadBundle var="lblAup" basename="ru.bpc.sv2.ui.bundles.Aup"/>
+        <f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+        <f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+        <f:loadBundle var="lblEvt" basename="ru.bpc.sv2.ui.bundles.Evt"/>
+        <f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+        <f:loadBundle var="lblRej" basename="ru.bpc.sv2.ui.bundles.Reject"/>
+        <f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+        <f:loadBundle var="lblLty" basename="ru.bpc.sv2.ui.bundles.Lty"/>
+
+        <a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+
+        <rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"
+                       timeZone="#{CommonUtils.timeZone}"
+                       onchanged="if(#{rich:component('calendar')}.customInput.value!=event.rich.component.getSelectedDateString()){
+						#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();
+						#{rich:component('calendar')}.customInput.onchange();
+					}" zindex="1000"
+                       inputClass="hidden" buttonClass="hidden" showApplyButton="true" defaultTime="00:00"/>
+
+        <script>
+            #{rich:component('calendar')}.customExpand = customExpand;
+        </script>
+
+        <!-- navigation bar -->
+        <bpct:navBar pageName="#{lblOpr.operations}"/>
+        <bpct:filterBarModalPanels id="filterPanels"
+                                   rerenderList="filtersTable, opersTable, operBtnForm:dsRules, operBtnForm:pagesNum, operBtnForm:btnPanel, #{MbOperations.tabName}, save_filter_panel_div"
+                                   selectedFilter="#{MbOperations.selectedSectionFilter}"
+                                   sectionFilter="#{MbOperations.sectionFilter}"
+                                   sectionFilterModeEdit="#{MbOperations.sectionFilterModeEdit}"
+                                   searchAutomatically="#{MbOperations.searchAutomatically}"
+                                   sectionId="#{MbOperations.sectionId}"
+                                   beanName="MbOperations"/>
+
+
+        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+        <h:form id="opersSearchForm">
+            <ui:include src="/pages/operations/list_operationsChecks.jspx"></ui:include>
+            <a4j:region>
+                <a4j:status id="ajaxStatus1"/>
+                <a4j:jsFunction name="setSearchTabName" reRender="err_ajax" limitToList="true" ajaxSingle="true"
+                                status="ajaxStatus1">
+                    <a4j:actionparam name="tabName" assignTo="#{MbOperations.searchTabName}"/>
+                </a4j:jsFunction>
+            </a4j:region>
+
+            <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1"
+                       sizeExceededBehavior="dropNew"/>
+            <h:inputHidden value="#{MbOperations.tabName}"
+                           id="tabNameInput"/>
+            <script type="text/javascript">
+                load("opersSearchForm:tabNameInput");
+            </script>
+
+            <a4j:jsFunction name="refreshOperTab" eventsQueue="queue2"
+                            requestDelay="500" limitToList="true" ajaxSingle="true"
+                            reRender="#{MbOperations.tabName}, err_ajax"
+                            action="#{MbOperations.loadOperTabs}"
+                            oncomplete="setTabLoaded(submittingTab);updateHeight();">
+                <a4j:actionparam name="tabName"
+                                 assignTo="#{MbOperations.tabName}"/>
+            </a4j:jsFunction>
+
+            <a4j:jsFunction name="setTabName" reRender="err_ajax"
+                            limitToList="true" ajaxSingle="true"
+                            oncomplete="setTabLoaded(submittingTab); updateHeight();">
+                <a4j:actionparam name="tabName"
+                                 assignTo="#{MbOperations.tabName}"/>
+            </a4j:jsFunction>
+
+        </h:form>
+
+        <h:form id="operationSearchForm">
+
+        <!-- search panel -->
+        <h:panelGroup layout="block" styleClass="search_block_tabs" id="operationSearchFormDiv">
+            <h:panelGroup layout="block" styleClass="search_block_tabs_inner1">
+                    <h:panelGrid columns="2" columnClasses="search_block_oper, search_block_tabPanel" cellspacing="0"
+                                 cellpadding="0">
+                        <h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width: 100%">
+                            <h:panelGroup layout="block" style="height: 27px; background: #ffffff"/>
+                            <h:panelGroup layout="block" style="border-top: 1px outset; padding-top:10px;">
+                                <h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden"
+                                              id="operationSearchFormWrapper">
+
+                                    <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                        <a4j:outputPanel id="operationPanel">
+                                            <h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+                                                         columnClasses="firstCol,secondCol,firstCol,secondCol"
+                                                         id="filtersTable">
+                                                <h:outputLabel for="dateFrom" value="#{lblOpr.host_date_from}: "
+                                                               title="#{lblOpr.host_date_from}"/>
+                                                <h:panelGroup>
+                                                    <h:inputText id="dateFrom" style="max-width:145px"
+                                                                 value="#{MbOperations.hostDateFrom}"
+                                                                 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationSearchForm:dateFrom')}, #{rich:element('operationSearchForm:dateFromBtn')});">
+                                                        <f:convertDateTime pattern="#{usession.fullDatePattern}"
+                                                                           timeZone="#{CommonUtils.timeZone}"/>
+                                                        <a4j:support event="onchange" ajaxSingle="true"
+                                                                     limitToList="true"/>
+                                                    </h:inputText>
+                                                    <h:graphicImage
+                                                            value="/images/calendar.gif"
+                                                            onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationSearchForm:dateFrom')}, #{rich:element('operationSearchForm:dateFromBtn')});"
+                                                            id="dateFromBtn"/>
+                                                </h:panelGroup>
+
+                                                <h:outputLabel for="operId" value="#{lblOpr.operation_id}: "
+                                                               title="#{lblOpr.operation_id}"/>
+                                                <h:inputText id="operId" value="#{MbOperations.filter.id}"
+                                                             label="#{lblOpr.operation_id}"
+                                                             onkeypress="if (!numbersOnly(this, event) || !limitText(event,this,16)) return false; ">
+                                                    <f:validateLength maximum="16"/>
+                                                </h:inputText>
+
+                                                <h:outputLabel for="dateTo" value="#{lblOpr.host_date_to}: "
+                                                               title="#{lblOpr.host_date_to}"/>
+                                                <h:panelGroup>
+                                                    <h:inputText id="dateTo" style="max-width:145px"
+                                                                 value="#{MbOperations.hostDateTo}"
+                                                                 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationSearchForm:dateTo')}, #{rich:element('operationSearchForm:dateToBtn')});">
+                                                        <f:convertDateTime pattern="#{usession.fullDatePattern}"
+                                                                           timeZone="#{CommonUtils.timeZone}"/>
+                                                        <a4j:support event="onchange" ajaxSingle="true"
+                                                                     limitToList="true"/>
+                                                    </h:inputText>
+                                                    <h:graphicImage
+                                                            value="/images/calendar.gif"
+                                                            onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationSearchForm:dateTo')}, #{rich:element('operationSearchForm:dateToBtn')});"
+                                                            id="dateToBtn"/>
+                                                </h:panelGroup>
+
+                                                <h:outputLabel value="#{lblAcq.terminal_number}: "
+                                                               title="#{lblAcq.terminal_number}"/>
+                                                <h:inputText id="terminalNumber" value="#{MbOperations.filter.terminalNumber}"/>
+
+                                                <h:outputLabel value="#{lblCommon.status}: " title="#{lblCommon.status}"/>
+                                                <h:selectOneMenu id="status" value="#{MbOperations.filter.status}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperations.statuses}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel value="#{lblOpr.oper_type}: " title="#{lblOpr.oper_type}"/>
+                                                <h:selectOneMenu value="#{MbOperations.filter.operType}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperations.operTypes}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel value="#{lblOpr.status_reason}: " title="#{lblOpr.status_reason}"/>
+                                                <h:selectOneMenu id="statusReason"
+                                                                 value="#{MbOperations.filter.statusReason}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperations.statusReasons}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel value="#{lblCommon.session_id}: "
+                                                               title="#{lblCommon.session_id}"/>
+                                                <h:inputText id="sessionId" value="#{MbOperations.filter.sessionId}"/>
+
+                                                <h:outputLabel value="#{lblOpr.msg_type}: " title="#{lblOpr.msg_type}"/>
+                                                <h:selectOneMenu value="#{MbOperations.filter.msgType}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperations.messageTypes}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel value="#{lblOpr.rrn}: " title="#{lblOpr.rrn}"/>
+                                                <h:inputText id="rrn" value="#{MbOperations.rrn}"/>
+
+                                                <h:outputLabel value="#{lblOpr.sttl_type}: " title="#{lblOpr.sttl_type}"/>
+                                                <h:selectOneMenu value="#{MbOperations.filter.sttlType}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperations.settlementTypes}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel value="ARN: " title="ARN"/>
+                                                <h:inputText id="arn" value="#{MbOperations.arn}"/>
+
+                                                <h:outputLabel value="#{lblOpr.auth_code}: " title="#{lblOpr.auth_code}" rendered="#{!MbOperations.isAcqOperation()}"/>
+                                                <h:inputText id="authCode" value="#{MbOperations.authCode}" rendered="#{!MbOperations.isAcqOperation()}">
+                                                </h:inputText>
+
+                                                <h:outputLabel for="dateOperFrom"
+                                                               value="#{lblAcq.operation_date_from}: "
+                                                               title="#{lblAcq.operation_date_from}"/>
+                                                <h:panelGroup>
+                                                    <h:inputText id="dateOperFrom" style="max-width:145px"
+                                                                 value="#{MbOperations.operDateFrom}"
+                                                                 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationSearchForm:dateOperFrom')}, #{rich:element('operationSearchForm:dateOperFromBtn')});">
+                                                        <f:convertDateTime pattern="#{usession.fullDatePattern}"
+                                                                           timeZone="#{CommonUtils.timeZone}"/>
+                                                    </h:inputText>
+                                                    <h:graphicImage
+                                                            value="/images/calendar.gif"
+                                                            onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationSearchForm:dateOperFrom')}, #{rich:element('operationSearchForm:dateOperFromBtn')});"
+                                                            id="dateOperFromBtn"/>
+                                                </h:panelGroup>
+
+                                                <h:outputLabel for="reversal" value="#{lblOpr.reversal}: "
+                                                               title="#{lblOpr.reversal}"/>
+                                                <h:selectOneMenu id="reversal" value="#{MbOperations.reversal}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperations.yesNoLov}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel for="mcc" value="#{lblAcq.mcc}: " title="#{lblAcq.mcc}"/>
+                                                <h:selectOneMenu id="mcc" value="#{MbOperations.filter.mccCode}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperations.mcc}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel for="terminalType" value="#{lblAcq.terminal_type}: "
+                                                               title="#{lblAcq.terminal_type}"/>
+                                                <h:selectOneMenu id="terminalType"
+                                                                 value="#{MbOperations.filter.terminalType}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperations.terminalType}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel for="dateOperTo" value="#{lblAcq.operation_date_to}: "
+                                                               title="#{lblAcq.operation_date_to}"/>
+                                                <h:panelGroup>
+                                                    <h:inputText id="dateOperTo" style="max-width:145px"
+                                                                 value="#{MbOperations.operDateTo}"
+                                                                 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationSearchForm:dateOperTo')}, #{rich:element('operationSearchForm:dateOperToBtn')});">
+                                                        <f:convertDateTime pattern="#{usession.fullDatePattern}"
+                                                                           timeZone="#{CommonUtils.timeZone}"/>
+                                                    </h:inputText>
+                                                    <h:graphicImage id="dateOperToBtn"
+                                                                    onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operationSearchForm:dateOperTo')}, #{rich:element('operationSearchForm:dateOperToBtn')});"
+                                                                    value="/images/calendar.gif"/>
+                                                </h:panelGroup>
+
+                                                <h:outputLabel for="externalAuthId" value="#{lblOpr.external_auth_id}: "
+                                                               title="#{lblOpr.external_auth_id}"/>
+                                                <h:inputText id="externalAuthId"
+                                                             value="#{MbOperations.filter.externalAuthId}"
+                                                             label="#{lblOpr.external_auth_id}"
+                                                             onkeypress="if (!limitText(event,this,30)) return false; ">
+                                                    <f:validateLength maximum="30"/>
+                                                </h:inputText>
+
+                                            </h:panelGrid>
+                                        </a4j:outputPanel>
+                                    </h:panelGrid>
+                                </h:panelGroup>
+                            </h:panelGroup>
+                        </h:panelGrid>
+                        <h:panelGroup style="height: 100%" layout="block">
+                            <rich:tabPanel switchType="client" id="opFilterTabs" tabClass="tab-cell"
+                                           style="height: 100%"
+                                           activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+                                           contentClass="search_block"
+                                           selectedTab="#{MbOperations.searchTabName}">
+
+                                <rich:tab label="#{lblOpr.participant}" name="participantTab"
+                                          onlabelclick="setSearchTabName('participantTab')"
+                                          onkeypress="return handleEnter(event,'participantSearchForm')">
+                                    <f:facet name="label">
+                                        <h:panelGroup styleClass="first tab-label" layout="block">
+                                            <h:outputText value="#{lblOpr.participant}" title="#{lblOpr.participant}"/>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <h:panelGroup layout="block" styleClass="search_block_tab">
+                                        <h:panelGroup layout="block"
+                                                      styleClass="search_block_inner search_block_inner-hidden">
+
+
+                                            <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                                <a4j:outputPanel id="participantPanel">
+                                                    <h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+                                                                 columns="4"
+                                                                 columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+                                                        <h:outputLabel value="#{lblOpr.party_type}: " title="#{lblOpr.party_type}"/>
+                                                        <h:selectOneMenu value="#{MbOperations.participantFilter.participantType}">
+                                                            <f:selectItem itemValue=""/>
+                                                            <f:selectItems value="#{MbOperations.participantTypes}"/>
+                                                        </h:selectOneMenu>
+
+                                                        <h:outputLabel value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+                                                        <h:selectOneMenu value="#{MbOperations.participantFilter.instId}">
+                                                            <f:selectItem itemValue=""/>
+                                                            <f:selectItems value="#{MbOperations.institutions}"/>
+                                                        </h:selectOneMenu>
+
+                                                        <h:outputLabel value="#{lblIss.card_number}: " title="#{lblIss.card_number}"/>
+                                                        <h:inputText id="cardMask" value="#{MbOperations.participantFilter.cardMask}"/>
+
+                                                        <h:outputLabel value="#{lblIss.account_number}: " title="#{lblIss.account_number}"/>
+                                                        <h:inputText id="accountNumber" value="#{MbOperations.accountNumber}"/>
+
+                                                        <h:outputLabel value="#{lblCommon.client_id_value}: " title="#{lblCommon.client_id_value}"/>
+                                                        <h:inputText id="clientIdValue" value="#{MbOperations.clientIdValue}"/>
+
+                                                        <h:outputLabel value="#{lblCommon.client_id_type}: " title="#{lblCommon.client_id_type}"/>
+                                                        <h:selectOneMenu id="clientIdType" value="#{MbOperations.clientIdType}">
+                                                            <f:selectItem itemValue=""/>
+                                                            <f:selectItems value="#{MbOperations.clientIdTypes}"/>
+                                                        </h:selectOneMenu>
+
+                                                        <h:outputLabel value="#{lblAcq.merchant_name}: " title="#{lblAcq.merchant_name}"/>
+                                                        <h:inputText id="merchantName" value="#{MbOperations.filter.merchantName}"/>
+
+                                                        <h:outputLabel value="#{lblAcq.merchant_number}: " title="#{lblAcq.merchant_number}"/>
+                                                        <h:inputText id="merchantNumber" value="#{MbOperations.filter.merchantNumber}"/>
+
+                                                        <h:outputLabel value="#{lblOpr.acq_inst_bin}: " title="#{lblOpr.acq_inst_bin}"/>
+                                                        <h:inputText id="acqInstBin" value="#{MbOperations.filter.acqInstBin}"/>
+
+                                                        <h:outputLabel value="#{lblIss.card_token}: " title="#{lblIss.card_token}"/>
+                                                        <h:inputText id="cardToken" value="#{MbOperations.participantFilter.cardToken}"/>
+                                                    </h:panelGrid>
+                                                </a4j:outputPanel>
+                                                <h:panelGrid columns="1">
+                                                    <bre:taggedCommandButton id="participantSearchId"
+                                                                             eventsQueue="queue"
+                                                                             onclick="if (!checkParticipantTab()){return false;} disableModalPanelBtns(this);flushTabs()"
+                                                                             action="#{MbOperations.searchByParticipant}"
+                                                                             oncomplete="if(#{MbOperations.needOpenSelectObjectDialog}) {Richfaces.showModalPanel('#{MbIssSelectObject.modalId}');} updateHeight(); enableModalPanelBtns(this);"
+                                                                             reRender="#{MbOperations.rerenderList}"
+                                                                             image="/_img/icon_search.png" type="submit"
+                                                                             value="#{lblForm.search}"
+                                                                             style="width:85px;">
+                                                        <a4j:actionparam assignTo="#{MbOperations.searchTabName}" value="participantTab"/>
+                                                        <f:setPropertyActionListener value="participantSearchId" target="#{MbOperations.searchButtonId}"/>
+                                                        <f:setPropertyActionListener value="operForm:opersTable,operBtnForm:dsRules,operBtnForm:pagesNum,operBtnForm:btnPanel,workplacePanel,operationSearchForm:accountNumber" target="#{MbOperations.rerenderList}"/>
+                                                    </bre:taggedCommandButton>
+
+                                                    <h:panelGrid columns="1">
+                                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                                            <h:graphicImage url="/_img/icon_clear.png"/>
+                                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                                             oncomplete="updateHeight();"
+                                                                             action="#{MbOperations.clearFilter}"
+                                                                             reRender="operForm, operationSearchForm, operBtnForm, details"
+                                                            >
+                                                            </a4j:commandLink>
+
+                                                        </h:panelGroup>
+
+                                                        <h:panelGroup>
+
+                                                        </h:panelGroup>
+                                                    </h:panelGrid>
+                                                </h:panelGrid>
+                                            </h:panelGrid>
+                                        </h:panelGroup>
+                                    </h:panelGroup>
+                                </rich:tab>
+
+                                <rich:tab label="#{lblRpt.tags}" name="tag" onlabelclick="setSearchTabName('tag')"
+                                          onkeypress="return handleEnter(event,'tagsFilterForm')">
+                                    <f:facet name="label">
+                                        <h:panelGroup styleClass="first tab-label" layout="block">
+                                            <h:outputText value="#{lblRpt.tags}" title="#{lblRpt.tags}"/>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <h:panelGroup layout="block" styleClass="search_block_tab">
+                                        <h:panelGroup layout="block"
+                                                      styleClass="search_block_inner search_block_inner-hidden">
+                                            <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                                <a4j:outputPanel id="tagPanel">
+                                                    <h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+                                                                 columns="4"
+                                                                 columnClasses="firstCol,secondCol,firstCol,secondCol">
+                                                        <h:outputLabel for="tagValue" value="#{lblRpt.tag_value}: "
+                                                                       title="#{lblRpt.tag_value}"/>
+                                                        <h:inputText id="tagValue"
+                                                                     value="#{MbOperations.tagFilter.tagValue}"/>
+
+                                                        <h:outputLabel for="tagType" value="#{lblRpt.tag_type}: "
+                                                                       title="#{lblRpt.tag_type}"/>
+                                                        <h:selectOneMenu id="tagType"
+                                                                         value="#{MbOperations.tagFilter.tagType}">
+                                                            <f:selectItem itemValue=""/>
+                                                            <f:selectItems value="#{MbOperations.tagTypes}"/>
+                                                        </h:selectOneMenu>
+
+                                                    </h:panelGrid>
+                                                </a4j:outputPanel>
+                                                <h:panelGrid columns="1">
+                                                    <bre:taggedCommandButton eventsQueue="queue"
+                                                                             onclick="if (!checkTagFilters()){return false;} if (!checkTagTab()){return false;} disableModalPanelBtns(this);flushTabs()"
+                                                                             action="#{MbOperations.searchByTag}"
+                                                                             oncomplete="updateHeight();enableModalPanelBtns(this)"
+                                                                             reRender="opersTable, operBtnForm:dsRules, operBtnForm:pagesNum, operBtnForm:btnPanel, operationSearchForm, workplacePanel"
+                                                                             image="/_img/icon_search.png" type="submit"
+                                                                             value="#{lblForm.search}"
+                                                                             style="width:85px;"
+                                                    >
+                                                        <a4j:actionparam assignTo="#{MbOperations.searchTabName}"
+                                                                         value="tag"/>
+                                                    </bre:taggedCommandButton>
+
+                                                    <h:panelGrid columns="1">
+                                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                                            <h:graphicImage url="/_img/icon_clear.png"/>
+                                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                                             oncomplete="updateHeight();"
+                                                                             action="#{MbOperations.clearFilter}"
+                                                                             reRender="operForm, tagFilterForm, operBtnForm, details"
+                                                            >
+                                                            </a4j:commandLink>
+
+                                                        </h:panelGroup>
+
+                                                        <h:panelGroup>
+
+                                                        </h:panelGroup>
+                                                    </h:panelGrid>
+                                                </h:panelGrid>
+                                            </h:panelGrid>
+                                        </h:panelGroup>
+                                    </h:panelGroup>
+                                </rich:tab>
+
+                                <rich:tab label="#{lblPmo.payment_order}" name="pmoSearchTab"
+                                          onlabelclick="setSearchTabName('pmoSearchTab')"
+                                          onkeypress="return handleEnter(event,'pmoSearchForm')">
+                                    <f:facet name="label">
+                                        <h:panelGroup styleClass="first tab-label" layout="block">
+                                            <h:outputText value="#{lblPmo.payment_order}"
+                                                          title="#{lblPmo.payment_order}"/>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <h:panelGroup layout="block" styleClass="search_block_tab">
+                                        <h:panelGroup layout="block"
+                                                      styleClass="search_block_inner search_block_inner-hidden">
+
+                                            <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                                <a4j:outputPanel id="pmoPanel">
+                                                    <h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+                                                                 columns="4"
+                                                                 columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+                                                        <h:outputLabel value="#{lblPmo.purpose}: "
+                                                                       title="#{lblPmo.purpose}"/>
+                                                        <h:selectOneMenu value="#{MbOperations.pmoFilter.purposeId}">
+                                                            <f:selectItem itemValue=""/>
+                                                            <f:selectItems value="#{MbOperations.pmoPurposes}"/>
+                                                        </h:selectOneMenu>
+
+                                                        <h:outputLabel value="#{lblCommon.status}: "
+                                                                       title="#{lblCommon.status}"/>
+                                                        <h:selectOneMenu value="#{MbOperations.pmoFilter.status}">
+                                                            <f:selectItem itemValue=""/>
+                                                            <f:selectItems value="#{MbOperations.pmoStatuses}"/>
+                                                        </h:selectOneMenu>
+
+                                                        <h:outputLabel value="#{lblPrd.customer_number}: "
+                                                                       title="#{lblPrd.customer_number}"/>
+                                                        <bm:selectCustomer
+                                                                viewIdColon="customerNumberVw"
+                                                                valueNumber="#{MbOperations.filterCustomerNumber}"
+                                                                custInfoField="#{MbOperations.filterCustomerInfo}"
+                                                                beanName="MbOperations"
+                                                                modalPanel="customerSearchModalPanel"
+                                                                readonly="false"
+                                                                style="max-width: 164px;"
+                                                                iconStyle="padding-left: 4px;"
+                                                                formName="operationSearchForm"
+                                                                methodName="selectCustomer"
+                                                                manualInput="true"
+                                                                disabled="false" rendered="true"/>
+
+                                                        <h:outputLabel value="#{lblPrd.receiver_customer_number}: "
+                                                                       title="#{lblPrd.receiver_customer_number}"/>
+                                                        <bm:selectCustomer
+                                                                viewIdColon="recieverCustomerNumberVw"
+                                                                valueNumber="#{MbOperations.filterRecieverCustomerNumber}"
+                                                                custInfoField="#{MbOperations.filterRecieverCustomerInfo}"
+                                                                beanName="MbOperations"
+                                                                modalPanel="customerSearchModalPanel"
+                                                                readonly="false"
+                                                                style="max-width: 164px;"
+                                                                iconStyle="padding-left: 4px;"
+                                                                formName="operationSearchForm"
+                                                                methodName="selectRecieverCustomer"
+                                                                manualInput="true"
+                                                                disabled="false" rendered="true"/>
+
+                                                    </h:panelGrid>
+                                                </a4j:outputPanel>
+                                                <h:panelGrid columns="1">
+                                                    <bre:taggedCommandButton eventsQueue="queue"
+                                                                             onclick="if (!checkPmoTab()){return false;} disableModalPanelBtns(this);flushTabs()"
+                                                                             action="#{MbOperations.searchByPaymentOrder}"
+                                                                             oncomplete="updateHeight();enableModalPanelBtns(this)"
+                                                                             reRender="opersTable, operBtnForm:dsRules, operBtnForm:pagesNum, operBtnForm:btnPanel, workplacePanel"
+                                                                             image="/_img/icon_search.png" type="submit"
+                                                                             value="#{lblForm.search}"
+                                                                             style="width:85px;"
+                                                    >
+                                                        <a4j:actionparam assignTo="#{MbOperations.searchTabName}"
+                                                                         value="pmoSearchTab"/>
+                                                    </bre:taggedCommandButton>
+
+                                                    <h:panelGrid columns="1">
+                                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                                            <h:graphicImage url="/_img/icon_clear.png"/>
+                                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                                             oncomplete="updateHeight();"
+                                                                             action="#{MbOperations.clearFilter}"
+                                                                             reRender="operForm, operationSearchForm, operBtnForm, details"
+                                                            >
+                                                            </a4j:commandLink>
+
+                                                        </h:panelGroup>
+
+                                                        <h:panelGroup>
+
+                                                        </h:panelGroup>
+                                                    </h:panelGrid>
+                                                </h:panelGrid>
+                                            </h:panelGrid>
+                                        </h:panelGroup>
+                                    </h:panelGroup>
+                                </rich:tab>
+
+                                <rich:tab label="#{lblRpt.document}" name="documentsTab"
+                                          onlabelclick="setSearchTabName('documentsTab')"
+                                          onkeypress="return handleEnter(event,'documentFilterForm')"
+                                          style="height: 100%">
+                                    <f:facet name="label">
+                                        <h:panelGroup styleClass="first tab-label" layout="block">
+                                            <h:outputText value="#{lblRpt.document}" title="#{lblRpt.document}"/>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <h:panelGroup layout="block" styleClass="search_block_tab" style="height: 100%">
+                                        <h:panelGroup layout="block"
+                                                      styleClass="search_block_inner search_block_inner-hidden">
+                                            <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                                <a4j:outputPanel id="documentPanel">
+                                                    <h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+                                                                 columns="4"
+                                                                 columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+                                                        <h:outputLabel for="docNumber"
+                                                                       value="#{lblRpt.document_number}: "
+                                                                       title="#{lblRpt.document_number}"/>
+                                                        <h:inputText id="docNumber"
+                                                                     value="#{MbOperations.documentFilter.documentNumber}"/>
+
+                                                        <h:outputLabel for="docType" value="#{lblRpt.document_type}: "
+                                                                       title="#{lblRpt.document_type}"/>
+                                                        <h:selectOneMenu id="docType"
+                                                                         value="#{MbOperations.documentFilter.documentType}">
+                                                            <f:selectItem itemValue=""/>
+                                                            <f:selectItems value="#{MbOperations.documentTypes}"/>
+                                                        </h:selectOneMenu>
+
+                                                        <h:outputLabel for="docDate" value="#{lblRpt.document_date}: "
+                                                                       title="#{lblRpt.document_date}"/>
+                                                        <h:panelGroup>
+                                                            <h:inputText id="docDate" style="max-width:145px"
+                                                                         value="#{MbOperations.documentFilter.documentDate}"
+                                                                         onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('docDate')}, #{rich:element('docDateBtn')});">
+                                                                <f:convertDateTime pattern="#{usession.datePattern}"
+                                                                                   timeZone="#{CommonUtils.timeZone}"/>
+                                                            </h:inputText>
+                                                            <h:graphicImage
+                                                                    value="/images/calendar.gif"
+                                                                    onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('docDate')}, #{rich:element('docDateBtn')});"
+                                                                    id="docDateBtn"/>
+                                                        </h:panelGroup>
+
+                                                    </h:panelGrid>
+                                                </a4j:outputPanel>
+                                                <h:panelGrid columns="1">
+                                                    <bre:taggedCommandButton eventsQueue="queue"
+                                                                             onclick="if (!checkDocumentFilters()){return false;} if (!checkDocumTab()){return false;} disableModalPanelBtns(this);flushTabs()"
+                                                                             action="#{MbOperations.searchByDocument}"
+                                                                             oncomplete="updateHeight();enableModalPanelBtns(this)"
+                                                                             reRender="opersTable, operBtnForm:dsRules, operBtnForm:pagesNum, operBtnForm:btnPanel, workplacePanel"
+                                                                             image="/_img/icon_search.png" type="submit"
+                                                                             value="#{lblForm.search}"
+                                                                             style="width:85px;"
+                                                    >
+                                                        <a4j:actionparam assignTo="#{MbOperations.searchTabName}"
+                                                                         value="documentsTab"/>
+                                                    </bre:taggedCommandButton>
+
+                                                    <h:panelGrid columns="1">
+                                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                                            <h:graphicImage url="/_img/icon_clear.png"/>
+                                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                                             oncomplete="updateHeight();"
+                                                                             action="#{MbOperations.clearFilter}"
+                                                                             reRender="operForm, operationSearchForm, operBtnForm, details"
+                                                            >
+                                                            </a4j:commandLink>
+
+                                                        </h:panelGroup>
+
+                                                        <h:panelGroup>
+
+                                                        </h:panelGroup>
+                                                    </h:panelGrid>
+                                                </h:panelGrid>
+                                            </h:panelGrid>
+                                        </h:panelGroup>
+                                    </h:panelGroup>
+                                </rich:tab>
+
+                                <rich:tab label="#{lblIss.customer}" name="customerTab"
+                                          onlabelclick="setSearchTabName('customerTab')"
+                                          onkeypress="return handleEnter(event,'customerFilterForm')">
+                                    <f:facet name="label">
+                                        <h:panelGroup styleClass="first tab-label" layout="block">
+                                            <h:outputText value="#{lblIss.customer}" title="#{lblIss.customer}"/>
+                                        </h:panelGroup>
+                                    </f:facet>
+                                    <h:panelGroup layout="block" styleClass="search_block_tab">
+                                        <h:panelGroup layout="block"
+                                                      styleClass="search_block_inner search_block_inner-hidden">
+                                            <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                                                <a4j:outputPanel id="customerPanel">
+                                                    <h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+                                                                 columns="4"
+                                                                 columnClasses="firstCol,secondCol,firstCol,secondCol">
+                                                        <h:outputLabel value="#{lblPrd.customer_number}: "
+                                                                       title="#{lblPrd.customer_number}"/>
+                                                        <bm:selectCustomer viewIdColon="customerNumber"
+                                                                           valueNumber="#{MbOperations.filterCustomerNumber}"
+                                                                           custInfoField="#{MbOperations.filterCustomerInfo}"
+                                                                           beanName="MbOperations"
+                                                                           modalPanel="customerSearchModalPanel"
+                                                                           readonly="false"
+                                                                           formName="operationSearchForm"
+                                                                           methodName="selectCustomer"
+                                                                           immediate="true"
+                                                                           manualInput="true"
+                                                                           disabled="false" rendered="true"/>
+
+                                                        <h:outputLabel value="#{lblRej.customer_id}: "
+                                                                       title="#{lblRej.customer_id}"/>
+                                                        <h:inputText id="customerId"
+                                                                     value="#{MbOperations.customerFilter.id}"
+                                                                     style="width: 100%; max-width: 100%"/>
+                                                    </h:panelGrid>
+                                                </a4j:outputPanel>
+                                                <h:panelGrid columns="1">
+                                                    <bre:taggedCommandButton eventsQueue="queue"
+                                                                             onclick="if (!checkCustomerTab()){return false;}
+                                                                                      disableModalPanelBtns(this);
+                                                                                      flushTabs();"
+                                                                             action="#{MbOperations.searchByCustomer}"
+                                                                             oncomplete="updateHeight();enableModalPanelBtns(this)"
+                                                                             reRender="opersTable, operBtnForm:dsRules, operBtnForm:pagesNum, operBtnForm:btnPanel, workplacePanel, #{MbOperations.searchTabName}, customerNumber"
+                                                                             image="/_img/icon_search.png" type="submit"
+                                                                             value="#{lblForm.search}"
+                                                                             style="width:85px;">
+                                                        <a4j:actionparam assignTo="#{MbOperations.searchTabName}"
+                                                                         value="customerTab"/>
+                                                    </bre:taggedCommandButton>
+
+                                                    <h:panelGrid columns="1">
+                                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                                            <h:graphicImage url="/_img/icon_clear.png"/>
+                                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                                             oncomplete="updateHeight();"
+                                                                             action="#{MbOperations.clearFilter}"
+                                                                             reRender="operForm, operationSearchForm, operBtnForm, details"
+                                                            >
+                                                            </a4j:commandLink>
+
+                                                        </h:panelGroup>
+
+                                                        <h:panelGroup>
+
+                                                        </h:panelGroup>
+                                                    </h:panelGrid>
+                                                </h:panelGrid>
+                                            </h:panelGrid>
+                                        </h:panelGroup>
+                                    </h:panelGroup>
+                                </rich:tab>
+
+                            </rich:tabPanel>
+                        </h:panelGroup>
+                    </h:panelGrid>
+            </h:panelGroup>
+            <a4j:outputPanel ajaxRendered="true">
+                <h:panelGroup styleClass="show-more-vert show-more-vert-tab" layout="block"/>
+                <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                <h:panelGroup styleClass="collapse-vert collapse-vert-tab" layout="block"/>
+            </a4j:outputPanel>
+        </h:panelGroup>
+        </h:form>
+
+        <h:panelGroup id="init">
+            <script type="text/javascript">
+                //<![CDATA[
+                flushTabs();
+                //]]>
+            </script>
+        </h:panelGroup>
+
+        <h:form id="operForm">
+
+            <a4j:jsFunction name="changeSelection" ignoreDupResponses="true" eventsQueue="queue"
+                            reRender="operBtnForm:btnPanel, workplacePanel, togglePanel"
+                            oncomplete="flushTabs();setTabLoaded(currentTab); toggleTabs(currentTab); updateHeight();">
+            </a4j:jsFunction>
+
+            <h:panelGroup styleClass="search_result_block" layout="block">
+                <h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+                    <h:panelGroup id="mainTableWrapper" layout="block" styleClass="search_result_block_inner">
+                        <rich:extendedDataTable
+                                id="opersTable"
+                                tableState="#{MbOperations.tableState}"
+                                styleClass="res-table"
+                                headerClass="res-table-header"
+                                rowClasses=",odd"
+                                selectedClass="res-table-selected"
+                                var="item"
+                                value="#{MbOperations.operations}"
+                                selection="#{MbOperations.itemSelection}"
+                                rows="#{MbOperations.rowsNum}"
+                                selectionMode="single"
+                                width="100%"
+                                height="255px"
+                                enableContextMenu="true"
+                                onRowMouseDown="handleMouseClick(event)"
+                                onselectionchange="changeSelection(currentTab);"
+                                noDataLabel="#{MbOperations.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+                                reRender="init, operBtnForm:btnPanel, #{MbOperations.tabName}, togglePanel"
+                        >
+                            <rich:column id="operation_id" label="#{lblOpr.operation_id}" width="12%"
+                                         sortBy="#{'id'}" sortOrder="DESCENDING">
+                                <f:facet name="header">
+                                    <h:panelGroup>
+                                        <script>updateHeight();</script>
+                                        <h:outputText value="#{lblOpr.operation_id}" title="#{lblOpr.operation_id}"/>
+                                    </h:panelGroup>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations" entityId="#{item.id}"
+                                                  description="#{item.id}"/>
+                            </rich:column>
+
+                            <rich:column id="operation_type" label="#{lblOpr.operation_type}" width="13%"
+                                         sortBy="#{'oper_type'}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.operation_type}" title="#{lblOpr.operation_type}"/>
+                                </f:facet>
+                                <h:panelGroup layout="block" style="float:left; margin-right: 5px;"
+                                              rendered="#{item.isReversalExists}">
+                                    <div class="default_icon is_reversal_exists" title="#{lblOpr.reversed}"/>
+                                </h:panelGroup>
+                                <h:panelGroup layout="block" style="float:left; margin-right: 5px;"
+                                              rendered="#{item.isReversal}">
+                                    <div class="default_icon is_reversal" title="#{lblOpr.reversal}"/>
+                                </h:panelGroup>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{DictUtils.articles[item.operType]}"
+                                                  rendered="#{item.operType != null}"/>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations" value=""
+                                                  rendered="#{item.operType == null}"/>
+                            </rich:column>
+
+                            <rich:column id="msgType" label="#{lblOpr.msg_type}" width="3%"
+                                         style="overflow-x:hidden" sortBy="#{'msg_type'}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.msg_type}" title="#{lblOpr.msg_type}"/>
+                                </f:facet>
+                                <div class="default_icon #{EntityIcons.objectsMap['ENTT0047'][item.msgType]}"
+                                     title="#{DictUtils.articles[item.msgType]}"/>
+
+                            </rich:column>
+
+                            <rich:column id="sttlType" label="#{lblOpr.sttl_type}" width="3%"
+                                         style="overflow-x:hidden" sortBy="#{'sttl_type'}" visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.sttl_type}" title="#{lblOpr.sttl_type}"/>
+                                </f:facet>
+                                <div class="default_icon sttl_type #{EntityIcons.objectsMap['ENTT0047'][item.sttlType]}"
+                                     title="#{DictUtils.articles[item.sttlType]}"/>
+                            </rich:column>
+
+                            <rich:column id="iss_network" label="#{lblOpr.issuer_network}" width="4%"
+                                         style="overflow-x:hidden"
+                                         title="#{lblOpr.issuer_network}"
+                                         visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.issuer_network_short}"
+                                                  title="#{lblOpr.issuer_network}"/>
+                                </f:facet>
+                                <div class="default_icon #{EntityIcons.objectsMap['ENTTNETW'][item.issNetworkId]}"
+                                     title="#{item.issNetworkId} - #{item.issNetworkName}"/>
+                            </rich:column>
+
+                            <rich:column id="iss_inst" label="#{lblOpr.issuer_inst}" width="3%"
+                                         style="overflow-x:hidden"
+                                         title="#{lblOpr.issuer_inst}" rendered="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.issuer_inst_short}" title="#{lblOpr.issuer_inst}"/>
+                                </f:facet>
+                                <div class="default_icon #{EntityIcons.objectsMap['ENTTINST'][item.issInstId]}"
+                                     title="#{item.issInstId} - #{item.issInstName}"/>
+                            </rich:column>
+
+                            <rich:column id="acq_network" label="#{lblOpr.acquirer_network}" width="4%"
+                                         style="overflow-x:hidden"
+                                         title="#{lblOpr.acquirer_network}"
+                                         visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.acquirer_network_short}"
+                                                  title="#{lblOpr.acquirer_network}"/>
+                                </f:facet>
+                                <div class="default_icon #{EntityIcons.objectsMap['ENTTNETW'][item.acqNetworkId]}"
+                                     title="#{item.acqNetworkId} - #{item.acqNetworkName}"/>
+                            </rich:column>
+
+                            <rich:column id="acq_inst" label="#{lblOpr.acquirer_inst}" width="3%"
+                                         style="overflow-x:hidden"
+                                         title="#{lblOpr.acquirer_inst}" rendered="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.acquirer_inst_short}"
+                                                  title="#{lblOpr.acquirer_inst}"/>
+                                </f:facet>
+                                <div class="default_icon #{EntityIcons.objectsMap['ENTTINST'][item.acqInstId]}"
+                                     title="#{item.acqInstId} - #{item.acqInstName}"/>
+                            </rich:column>
+
+                            <rich:column id="card_network" label="#{lblOpr.card_network}" width="4%"
+                                         style="overflow-x:hidden"
+                                         title="#{lblOpr.card_network}"
+                                         visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.card_network_short}" title="#{lblOpr.card_network}"/>
+                                </f:facet>
+                                <div class="default_icon #{EntityIcons.objectsMap['ENTTNETW'][item.cardNetworkId]}"
+                                     title="#{item.cardNetworkId} - #{item.cardNetworkName}"/>
+                            </rich:column>
+
+                            <rich:column id="terminal_number" label="#{lblAcq.terminal_number}" width="5%">
+                                <f:facet name="header">
+                                    <h:panelGroup>
+                                        <script>updateHeight();</script>
+                                        <h:outputText value="#{lblAcq.terminal_number}" title="#{lblAcq.terminal_number}"/>
+                                    </h:panelGroup>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations" entityId="#{item.terminalNumber}"
+                                                  description="#{item.terminalNumber}"/>
+                            </rich:column>
+
+                            <rich:column id="merchant_number" label="#{lblAcq.merchant_number}" width="5%">
+                                <f:facet name="header">
+                                    <h:panelGroup>
+                                        <script>updateHeight();</script>
+                                        <h:outputText value="#{lblAcq.merchant_number}" title="#{lblAcq.merchant_number}"/>
+                                    </h:panelGroup>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations" entityId="#{item.merchantNumber}"
+                                                  description="#{item.merchantNumber}"/>
+                            </rich:column>
+
+                            <rich:column id="merchant_name" label="#{lblAcq.merchant_name}" width="5%">
+                                <f:facet name="header">
+                                    <h:panelGroup>
+                                        <script>updateHeight();</script>
+                                        <h:outputText value="#{lblAcq.merchant_name}" title="#{lblAcq.merchant_name}"/>
+                                    </h:panelGroup>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations" entityId="#{item.merchantName}"
+                                                  description="#{item.merchantName}"/>
+                            </rich:column>
+
+                            <rich:column id="operation_amount" label="#{lblOpr.operation_amount}" width="12%"
+                                         style="text-align: right" sortBy="#{'oper_amount'}">
+                                <f:facet name="header">
+                                    <h:panelGroup style="overflow-x:hidden">
+                                        <h:outputText value="#{lblOpr.operation_amount}"
+                                                      title="#{lblOpr.operation_amount}"/>
+                                    </h:panelGroup>
+                                </f:facet>
+                                <div class="#{EntityIcons.objectsMapS['ENTT0046'][item.operCurrency]}"
+                                     style="float:right; margin: 0 0 0 10px;"/>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{fmt:formatMoney(item.operAmount, CurrencyUtils.currencyObjectsMap[item.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.operCurrency]}"/>
+                            </rich:column>
+
+                            <rich:column id="sttl_amount" label="#{lblOpr.sttl_amount}" width="12%"
+                                         style="text-align: right" visible="false">
+                                <f:facet name="header">
+                                    <h:panelGroup style="overflow-x:hidden">
+                                        <h:outputText value="#{lblOpr.sttl_amount}" title="#{lblOpr.sttl_amount}"/>
+                                    </h:panelGroup>
+                                </f:facet>
+                                <div class="#{EntityIcons.objectsMapS['ENTT0046'][item.sttlCurrency]}"
+                                     style="float:right; margin: 0 0 0 10px;"/>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{fmt:formatMoney(item.sttlAmount, CurrencyUtils.currencyObjectsMap[item.sttlCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.sttlCurrency]}"/>
+                            </rich:column>
+
+                            <rich:column id="host_date_n_time" label="#{lblOpr.host_date_n_time}"
+                                         width="12%" sortBy="#{'host_date'}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.host_date_n_time}"
+                                                  title="#{lblOpr.host_date_n_time}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{fmt:formatDate(item.hostDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"/>
+                            </rich:column>
+
+                            <rich:column id="oper_date_n_time" label="#{lblOpr.oper_date}"
+                                         width="12%" sortBy="#{'host_date'}" visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.oper_date}" title="#{lblOpr.oper_date}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{fmt:formatDate(item.operDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"/>
+                            </rich:column>
+
+                            <rich:column id="status" label="#{lblCommon.status}" width="6%"
+                                         style="overflow-x:hidden" sortBy="#{'status'}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+                                </f:facet>
+                                <div class="default_icon #{EntityIcons.objectsMap['ENTT0047'][item.status]}"
+                                     title="#{DictUtils.articles[item.status]}" rendered="#{item.status != null}"/>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations" value=""
+                                                  rendered="#{item.status == null}"/>
+                            </rich:column>
+
+                            <!-- TODO status description -->
+
+                            <rich:column id="status_detailed" label="#{lblCommon.status_detailed}" width="12%"
+                                         style="overflow-x:hidden" sortBy="#{'status'}" visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.status_detailed}"
+                                                  title="#{lblCommon.status_detailed}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{DictUtils.articles[item.status]}"
+                                                  rendered="#{item.status != null}"/>
+                            </rich:column>
+
+                            <!-- TODO end of status description -->
+
+
+                            <rich:column id="status_reason" label="Status reason" width="12%"
+                                         style="overflow-x:hidden" sortBy="#{'status_reason'}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.status_reason}" title="#{lblOpr.status_reason}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{DictUtils.articles[item.statusReason]}"
+                                                  rendered="#{item.statusReason != null}"/>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations" value=""
+                                                  rendered="#{item.statusReason == null}"/>
+                            </rich:column>
+
+                            <rich:column id="client_id_value" label="#{lblOpr.client_id_value}" width="13%"
+                                         style="overflow-x:hidden">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.client_id_value}" title="#{lblOpr.client_id_value}"/>
+                                </f:facet>
+                                <div class="default_icon #{EntityIcons.objectsMap['ENTT0047'][item.clientIdType]}"
+                                     title="#{DictUtils.articles[item.clientIdType]}"
+                                     style="float:right; margin: 0 0 0 10px;"/>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{item.clientIdValue}"/>
+                            </rich:column>
+
+                            <rich:column id="auth_code" label="#{lblOpr.auth_code}" width="7%"
+                                         style="overflow-x:hidden" visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.auth_code}" title="#{lblOpr.auth_code}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations" value="#{item.authCode}"/>
+                            </rich:column>
+
+                            <rich:column id="sttlTypeFull" label="#{lblOpr.sttl_type}" width="10%"
+                                         style="overflow-x:hidden" visible="false" sortBy="#{'sttl_type'}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.sttl_type}" title="#{lblOpr.sttl_type}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{DictUtils.articles[item.sttlType]}"/>
+                            </rich:column>
+
+                            <rich:column id="msgTypeFull" label="#{lblOpr.msg_type}" width="10%"
+                                         style="overflow-x:hidden" sortBy="#{'msg_type'}" visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.msg_type}" title="#{lblOpr.msg_type}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  value="#{DictUtils.articles[item.msgType]}"/>
+                            </rich:column>
+
+                            <rich:column id="externalAuthId" label="#{lblOpr.external_auth_id}" width="9%"
+                                         style="overflow-x:hidden" sortBy="#{'external_auth_id'}" visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.external_auth_id}"
+                                                  title="#{lblOpr.external_auth_id}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  entityId="#{item.externalAuthId}"
+                                                  description="#{item.externalAuthId}"/>
+                            </rich:column>
+
+                            <rich:column id="originatorRefnum" label="#{lblOpr.originator_refnum}" width="15%"
+                                         style="overflow-x:hidden" sortBy="#{'originator_refnum'}" visible="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.originator_refnum}"
+                                                  title="#{lblOpr.originator_refnum}"/>
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTOPER" bean="MbOperations"
+                                                  entityId="#{item.originatorRefnum}"
+                                                  description="#{item.originatorRefnum}"/>
+                            </rich:column>
+
+                        </rich:extendedDataTable>
+                    </h:panelGroup>
+                    <a4j:outputPanel ajaxRendered="true">
+                        <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab"
+                                      layout="block"/>
+                        <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+                        <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+                    </a4j:outputPanel>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <h:form id="operBtnForm">
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+                    <h:panelGroup layout="block" styleClass="table_tools">
+                        <h:panelGrid styleClass="fw field-cont" columns="5" id="operDS"
+                                     columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+                            <h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}"
+                                           title="#{lblCommon.rows_per_page}"/>
+                            <h:selectOneMenu id="rows_num" value="#{MbOperations.rowsNum}" styleClass="row_per_page">
+                                <a4j:support event="onchange"
+                                             reRender="opersTable, dsRules, pagesNum, operBtnForm, detailsTab, issuerTab, acquirerTab, sttlTab, accTab, traceTab, paymentOrdersTab, dstTab, authTab, partTab, disputesTab, additionalAmountsTab, notesTab"/>
+                                <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                            </h:selectOneMenu>
+
+                            <rich:datascroller maxPages="10" fastControls="hide"
+                                               pagesVar="pages" styleClass="res-datascroller"
+                                               id="dsRules" for="opersTable" page="#{MbOperations.pageNumber}"
+                                               reRender="operBtnForm:btnPanel, detailsTab, issuerTab, acquirerTab, sttlTab, accTab, traceTab, paymentOrdersTab, dstTab, authTab, partTab, disputesTab, additionalAmountsTab, notesTab, #{MbOperations.tabName}">
+                                <f:facet name="first">
+                                    <h:outputText value="&lt;&lt;" styleClass="prev-next"/>
+                                </f:facet>
+                                <f:facet name="first_disabled">
+                                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis"/>
+                                </f:facet>
+                                <f:facet name="last">
+                                    <h:outputText value="&gt;&gt;" styleClass="prev-next"/>
+                                </f:facet>
+                                <f:facet name="last_disabled">
+                                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis"/>
+                                </f:facet>
+                                <f:facet name="previous">
+                                    <h:outputText value="#{lblCommon.prev}" styleClass="prev-next"/>
+                                </f:facet>
+                                <f:facet name="previous_disabled">
+                                    <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis"/>
+                                </f:facet>
+                                <f:facet name="next">
+                                    <h:outputText value="#{lblCommon.next}" styleClass="prev-next"/>
+                                </f:facet>
+                                <f:facet name="next_disabled">
+                                    <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis"/>
+                                </f:facet>
+                                <f:facet name="pages">
+                                </f:facet>
+                            </rich:datascroller>
+
+                            <h:panelGroup id="pagesNum">
+                                <h:outputText styleClass="strongClass" value="#{pages} "/>
+                                <h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                                <h:outputText styleClass="strongClass" value="#{MbOperations.operations.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                            </h:panelGroup>
+
+                            <h:panelGroup>
+                                <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}"
+                                                styleClass="action_icon"
+                                                onclick="saveTableState();"/>
+                                <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}"
+                                                styleClass="action_icon"
+                                                onclick="deleteTableState();"/>
+                                <a4j:queue name="tablestatequeue"/>
+                                <a4j:jsFunction name="saveTableState" action="#{MbOperations.saveTableStateDB}"
+                                                eventsQueue="tablestatequeue"/>
+                                <a4j:jsFunction name="deleteTableState" action="#{MbOperations.deleteTableStateDB}"
+                                                eventsQueue="tablestatequeue"/>
+                            </h:panelGroup>
+                        </h:panelGrid>
+                    </h:panelGroup>
+
+                    <h:panelGrid id="btnPanel" columns="4" styleClass="buttons_block">
+                        <bre:taggedCommandButton id="backBtn" value="#{lblForm.back}"
+                                                 action="#{MbOperations.back}" rendered="#{MbOperations.showBackBtn}"/>
+                        <bre:taggedCommandButton id="operBtn"
+                                                 value="#{lblCommon.actions}"
+                                                 action="#{MbOperations.setupOperTypeSelection}" reRender="wizardWindow"
+                                                 rendered="#{usession.inRole['VIEW_OPERATION_WIZARD'] and not MbOperations.h2hType}"
+                                                 oncomplete="if (#{usession.noErrorResponse}){Richfaces.showModalPanel('wizardWindow');}"
+                        />
+                        <bre:taggedCommandButton id="addCase" value="#{lblMsg.ADD_CASE}" reRender="addDspCaseForm"
+                                                 disabled="#{MbOperations.activeOperation == null}"
+                                                 rendered="#{usession.inRole['ADD_DISPUTE_CASE_OPERATION'] and not MbOperations.h2hType}"
+                                                 onclick="Richfaces.showModalPanel('addDspCaseMP')"
+
+                        />
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+
+        <rich:modalPanel id="addDspCaseMP" autosized="true" minWidth="300" minHeight="100">
+            <f:facet name="header">
+                <h:panelGroup>
+                    <h:outputText value="Create dispute case" />
+                </h:panelGroup>
+            </f:facet>
+            <f:facet name="controls">
+            </f:facet>
+            <h:form id="addDspCaseForm">
+                <h:panelGrid columns="2">
+                    <h:outputText value="#{lblOpr.operation_id}" />
+                    <h:outputText value="#{MbOperations.activeOperation.id}" />
+
+                    <h:outputText value="#{lblOpr.operation_type}" />
+                    <h:outputText value="#{DictUtils.articlesByLang[MbOperations.curLang][MbOperations.activeOperation.operType]}" />
+
+                </h:panelGrid>
+
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                    <bre:taggedCommandButton value="Create" type="submit"
+                                             action="#{MbOperations.createDspCaseFromOperation}"
+                                             oncomplete="if (#{usession.noErrorResponse}) #{rich:component('addDspCaseMP')}.hide()" />
+
+                    <bre:taggedCommandButton value="#{lblForm.cancel}" immediate="true" onclick="Richfaces.hideModalPanel('addDspCaseMP')">
+                        <f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                    </bre:taggedCommandButton>
+                </h:panelGroup>
+            </h:form>
+        </rich:modalPanel>
+
+        <h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+            <rich:tabPanel switchType="ajax" id="details" tabClass="tab-cell"
+                           activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+                           contentClass="tab-content" selectedTab="#{MbOperations.tabName}">
+
+                <rich:tab label="#{lblCommon.details}" name="detailsTab"
+                          onlabelclick="selectTab('detailsTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="first tab-label" layout="block">
+                            <h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="detailsTab" layout="block">
+                        <ui:include src="/pages/operations/operDetails.jspx"/>
+                        <h:panelGroup layout="block"
+                                      styleClass="bottom_search_result_block_buttons"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Accounting" name="accTab" style="height:100%;"
+                          onlabelclick="selectTab('accTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblOpr.accounting}" title="#{lblOpr.accounting}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="accTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='accTab' ? '/pages/accounts/list_entries_oper_bottom.jspx' : null}"/>
+                        <h:panelGroup layout="block"
+                                      styleClass="bottom_search_result_block_buttons"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab id="_paymentOrdersTab" name="paymentOrdersTab" rendered="#{usession.inRole['VIEW_PMO_ORDER']}"
+                          onlabelclick="selectTab('paymentOrdersTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblPmo.payment_order}" title="#{lblPmo.payment_order}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="paymentOrdersTab" layout="block">
+                        <h:panelGroup id="paymentOrdersTabContents">
+                            <ui:include
+                                    src="#{MbOperations.tabName=='paymentOrdersTab' ? '/pages/pmo/paymentOrderDetails.jspx' : null}">
+                                <ui:param name="ordersBean" value="#{MbPmoPaymentOrdersDependent}"/>
+                            </ui:include>
+                            <h:panelGroup layout="block"
+                                          styleClass="bottom_search_result_block_buttons"/>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Trace" name="traceTab" style="height:100%;"
+                          onlabelclick="selectTab('traceTab')" rendered="#{usession.inRole['VIEW_TRACE']}">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblProcess.trace}" title="#{lblProcess.trace}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="traceTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='traceTab' ? '/pages/trace/list_trace_bottom.jspx' : null}"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Tags" name="tagsTab" style="height:100%;"
+                          onlabelclick="selectTab('tagsTab')" rendered="#{usession.inRole['VIEW_TAG_OPERATIONS']}">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblAup.tags}" title="#{lblAup.tags}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="tagsTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='tagsTab' ? '/pages/aup/tagValuesListBottom.jspx' : null}"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Authorization" name="authTab"
+                          onlabelclick="selectTab('authTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblOpr.auth}" title="#{lblOpr.auth}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="authTab" layout="block">
+                        <ui:include src="#{MbOperations.tabName=='authTab' ? '/pages/aut/authDetails.jspx' : null}"/>
+                        <h:panelGroup layout="block"
+                                      styleClass="bottom_search_result_block_buttons"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Participants" name="partTab"
+                          onlabelclick="selectTab('partTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblOpr.participants}" title="#{lblOpr.participants}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="partTab" layout="block">
+                        <ui:include
+                                src="#{MbOperations.tabName=='partTab' ? '/pages/operations/participantsDetailsList.jspx' : null}"/>
+                        <h:panelGroup layout="block"
+                                      styleClass="bottom_search_result_block_buttons"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Messages" name="messagesTab" style="height:100%;"
+                          onlabelclick="selectTab('messagesTab')" rendered="#{usession.inRole['VIEW_TECHNICAL_MSG']}">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblOpr.messages}" title="#{lblOpr.messages}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="messagesTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='messagesTab' ? '/pages/operations/technicalMessagesListBottom.jspx' : null}"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Associated operations" name="disputesTab" style="height:100%;"
+                          onlabelclick="selectTab('disputesTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblOpr.disputes}" title="#{lblOpr.disputes}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="disputesTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='disputesTab' ? '/pages/operations/associatedOperationsList.jspx' : null}">
+	                        <ui:param name="associatedOperationsRerenderList" value="assOpersForm"/>
+                        </ui:include>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Additional amounts" name="additionalAmountsTab" style="height:100%;"
+                          onlabelclick="selectTab('additionalAmountsTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblOpr.additional_amounts}" title="#{lblOpr.additional_amounts}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="additionalAmountsTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='additionalAmountsTab' ? '/pages/operations/additionalAmountsList.jspx' : null}"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Additional" name="flexibleFieldsTab"
+                          onlabelclick="selectTab('flexibleFieldsTab')" style="height:100%;">
+
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="flexibleFieldsTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='flexibleFieldsTab' ? '/pages/common/flexible/flexFieldsTableBottom.jspx' : null}">
+                        </ui:include>
+                    </h:panelGroup>
+                </rich:tab>
+
+
+                <rich:tab label="Notes" name="notesTab"
+                          onlabelclick="selectTab('notesTab')" style="height:100%;">
+
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <h:panelGroup id="notesTabContents">
+                            <ui:include
+                                    src="#{MbOperations.tabName=='notesTab' ? '/pages/notes/list_notes_bottom.jspx' : null}"/>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Status logs" name="statusLogsTab"
+                          onlabelclick="selectTab('statusLogsTab')" style="height:100%;">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblEvt.status_logs}" title="#{lblEvt.status_logs}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="statusLogsTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='statusLogsTab' ? '/pages/events/statusLogsList.jspx' : null}">
+                            <ui:param name="renderColumnEventType" value="true"></ui:param>
+                            <ui:param name="renderColumnSessionId" value="true"></ui:param>
+                            <ui:param name="renderColumnUserName" value="true"></ui:param>
+
+                        </ui:include>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="#{lblOpr.pos_batch}" name="posBatch"
+                          rendered="#{usession.inRole['VIEW_POS_BATCH'] and MbOperations.activeOperation.msgType=='MSGTBTCH'}"
+                          onlabelclick="selectTab('posBatchTab')" style="height:100%;">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblOpr.pos_batch}" title="#{lblOpr.pos_batch}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="posBatchTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='posBatchTab' ? '/pages/operations/list_pos_batch_details.jspx' : null}"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="#{lblApp.stages}" name="operationStagesTab" style="height:100%;"
+                          onlabelclick="selectTab('operationStagesTab')" rendered="#{usession.inRole['VIEW_OPER_STAGES']}">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblApp.stages}" title="#{lblApp.stages}"/>
+                        </h:panelGroup>
+                    </f:facet>
+
+                    <h:panelGroup id="operationStagesTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <ui:include
+                                src="#{MbOperations.tabName=='operationStagesTab' ? '/pages/operations/operationStagesListBottom.jspx' : null}"/>
+                    </h:panelGroup>
+                </rich:tab>
+
+                <rich:tab label="Reward Loyalty" name="rewardLoyaltyTab"
+                          rendered="#{MbOperations.acquiringType}"
+                          onlabelclick="selectTab('rewardLoyaltyTab')" style="height:100%;">
+
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblLty.reward_loyalty}" title="#{lblLty.reward_loyalty}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="rewardLoyaltyTab" layout="block" styleClass="carddata-wrapper"
+                                  style="height: 100%; overflow: hidden;position:relative;">
+                        <h:panelGroup id="rewardLoyaltyTabContents">
+                            <ui:include
+                                 src="#{MbOperations.tabName=='rewardLoyaltyTab' ? '/pages/loyalty/list_spent_operations.jspx' : null}"/>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </rich:tab>
+            </rich:tabPanel>
+        </h:panelGroup>
+
+        <rich:modalPanel id="opr_fill_filter_modal_panel" autosized="true" minWidth="300" minHeight="50"
+                         onshow="showPanel('opr_fill_filter_modal_div:cancel_btn')" onhide="hidePanel()">
+            <h:form id="opr_fill_filter_modal_div">
+                <h:outputText value="Please, fill one of the filter's fields"/>
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                        <h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+                            <h:outputText/>
+                            <bre:taggedCommandButton id="cancel_btn"
+                                                     value="#{lblForm.close}" ajaxSingle="true" limitToList="true"
+                                                     onclick="#{rich:component('opr_fill_filter_modal_panel')}.hide()">
+                            </bre:taggedCommandButton>
+                        </h:panelGrid>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+        </rich:modalPanel>
+
+        <ui:include src="/pages/common/wizard/commonWizard.jspx">
+            <ui:param name="bean" value="MbOperations"/>
+            <ui:param name="action" value="updateOperations"/>
+            <ui:param name="reRender" value="opersTable, detailsTab"/>
+        </ui:include>
+
+        <script type="text/javascript">
+
+            function updateHeight() {
+                updateGridHeight();
+            }
+
+            layout =
+            {
+                SEARCH_FORM_ID: 'operationSearchForm',
+                SEARCH_RESULT_FORM_ID: 'operForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID: 'mainTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID: 'operBtnForm',
+                TAB_PANEL_ID: 'workplacePanel',
+
+                TAB_DATA: [{
+                    TAB_FORM_ID: 'operDetailsForm',
+                    TAB_FORM_WRAPPER_ID: 'operDetailsWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                }, {
+                    TAB_FORM_ID: 'operEntriesForm',
+                    TAB_FORM_WRAPPER_ID: 'operEntriesTreeWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS + Stretch.CHECKBOX
+                }, {
+                    TAB_FORM_ID: 'operEntriesForm',
+                    TAB_FORM_WRAPPER_ID: 'operEntriesTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS + Stretch.CHECKBOX
+                }, {
+                    TAB_FORM_ID: 'pmoDetailsForm',
+                    TAB_FORM_WRAPPER_ID: 'pmoDetailsWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'tracesForm',
+                    TAB_FORM_WRAPPER_ID: 'tracesTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'tagValuesBtmForm',
+                    TAB_FORM_WRAPPER_ID: 'tagValuesTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'amountsBtmForm',
+                    TAB_FORM_WRAPPER_ID: 'amountsTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'techMessagesBtmForm',
+                    TAB_FORM_WRAPPER_ID: 'techMessagesTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS + Stretch.CAPTION
+                }, {
+                    TAB_FORM_ID: 'techMessageDetailsBtmForm',
+                    TAB_FORM_WRAPPER_ID: 'techMessageDetailsTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS + Stretch.CAPTION
+                }, {
+                    TAB_FORM_ID: 'assOpersForm',
+                    TAB_FORM_WRAPPER_ID: 'assOpersTreeTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'notesBtmForm',
+                    TAB_FORM_WRAPPER_ID: 'notesTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS + Stretch.CAPTION
+                }, {
+                    TAB_FORM_ID: 'authDetailsForm',
+                    TAB_FORM_WRAPPER_ID: 'authDetailsWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'participantsDetailsForm',
+                    TAB_FORM_WRAPPER_ID: 'participantsDetailsWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'statusLogsForm',
+                    TAB_FORM_WRAPPER_ID: 'statusLogsTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'posBatchDetailsForm',
+                    TAB_FORM_WRAPPER_ID: 'posBatchDetailsWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'operationStagesBtmForm',
+                    TAB_FORM_WRAPPER_ID: 'operationStagesTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }, {
+                    TAB_FORM_ID: 'spentOperationsForm',
+                    TAB_FORM_WRAPPER_ID: 'spentOperationsTableWrapper',
+                    CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                }]
+            };
+
+            //addLoadEvent(function() { makeScrollableTabs('details');});
+            updateHeight();
+            jQuery(window).resize(updateHeight);
+        </script>
+        <ui:include src="/pages/issuing/iss_com_select_object.jspx"/>
+    </ui:define>
+</ui:composition>
+</html>

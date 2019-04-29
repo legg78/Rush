@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+
+    <script type="text/javascript">
+        //<![CDATA[
+        var colorOk = "#FFFFFF";
+        var colorMandatory = "#FF5555";
+
+        function checkOperSearchModalFields() {
+            var accountNumberId = 'stepPageInclude:operationSearchForm:accountNumber';
+            document.getElementById(accountNumberId).style.backgroundColor = colorOk;
+            var accountNumber = document.getElementById(accountNumberId).value;
+            if (accountNumber) accountNumber = accountNumber.replace(/[ \s\t]/g, '');
+            var error = app.checkMaskValue(accountNumber, {errorMessage: '#{lblCrd.account_number}: #{lblMsg.number_mask_invalid}'});
+            if (error) {
+                document.getElementById(accountNumberId).style.backgroundColor = colorMandatory;
+                app.showWarning(error);
+                return false;
+            }
+            return true;
+        }
+
+        //]]>
+    </script>
+    <f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+    <f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+    <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+    <f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+    <f:loadBundle var="lblRej" basename="ru.bpc.sv2.ui.bundles.Reject"/>
+
+    <a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+
+    <rich:calendar id="operationCalendar" buttonIcon="/images/calendar.gif" datePattern="#{usession.fullDatePattern}"
+                   timeZone="#{CommonUtils.timeZone}" zindex="1000"
+                   onchanged="if(#{rich:component('operationCalendar')}.customInput.value!=event.rich.component.getSelectedDateString()){
+                                 #{rich:component('operationCalendar')}.customInput.value=event.rich.component.getSelectedDateString();
+                                 #{rich:component('operationCalendar')}.customInput.onchange();}"
+                   inputClass="hidden" buttonClass="hidden" showApplyButton="true" defaultTime="00:00"/>
+    <script>
+        #{rich:component('operationCalendar')}.customExpand = customExpand;
+    </script>
+
+    <rich:modalPanel id="#{viewIdColon}operationSearchModalPanel" autosized="true" minWidth="900" minHeight="200">
+        <f:facet name="header">
+            <h:outputText value="#{lblOpr.operations}" />
+        </f:facet>
+        <f:facet name="controls"/>
+        <h:form id="operationsSearchForm">
+            <a4j:region>
+                <a4j:status id="ajaxStatus1" />
+                <a4j:jsFunction name="setSearchTabName" reRender="err_ajax"
+                                limitToList="true" ajaxSingle="true"
+                                status="ajaxStatus1">
+                    <a4j:actionparam name="tabName" assignTo="#{MbOperationSearchModal.searchTabName}" />
+                </a4j:jsFunction>
+            </a4j:region>
+        </h:form>
+
+        <!-- search panel -->
+        <h:panelGroup layout="block" styleClass="search_block_tabs">
+            <h:panelGroup layout="block" styleClass="search-block-tabs-head" >
+                <h:panelGroup layout="block" styleClass="search-block-tabs-head-inner1">
+                    <a4j:form id="operationSearchForm">
+                        <h:panelGroup styleClass="search_block" layout="block">
+                            <h:panelGroup layout="block" styleClass="search_block_inner1">
+                                <h:panelGroup layout="block" styleClass="search_block_inner2">
+                                    <h:panelGroup styleClass="search_block_left" layout="block">
+                                        <h:panelGrid styleClass="cardholderdata-wrapper" columns="2" columnClasses="top ,link-cont">
+                                            <h:panelGrid columns="4" styleClass="filter-table field-cont twoColumnTable"
+                                                         columnClasses="firstCol,secondCol,firstCol,secondCol">
+                                                <h:outputLabel for="customerId" value="#{lblRej.customer_id}: " title="#{lblRej.customer_id}"/>
+                                                <h:inputText id="customerId" value="#{MbOperationSearchModal.disputeFilter.customerId}"
+                                                             readonly="true"/>
+
+                                                <h:outputLabel for="customerNumber" value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}"/>
+                                                <h:inputText id="customerNumber" value="#{MbOperationSearchModal.disputeFilter.customerNumber}"
+                                                             readonly="true"/>
+
+                                                <h:outputLabel for="dateFrom" value="#{lblOpr.host_date_from}: " title="#{lblOpr.host_date_from}"/>
+                                                <h:panelGroup>
+                                                    <h:inputText id="dateFrom" style="max-width:138px" value="#{MbOperationSearchModal.hostDateFrom}"
+                                                                 onclick="#{rich:component('operationCalendar')}.customExpand(event,
+                                                                                                                     #{rich:element('operationSearchForm:dateFrom')},
+                                                                                                                     #{rich:element('operationSearchForm:dateFromBtn')});">
+                                                        <f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+                                                        <a4j:support event="onchange" ajaxSingle="true" limitToList="true"/>
+                                                    </h:inputText>
+                                                    <h:graphicImage id="dateFromBtn" value="/images/calendar.gif"
+                                                                    onclick="#{rich:component('operationCalendar')}.customExpand(event,
+                                                                                                                        #{rich:element('operationSearchForm:dateFrom')},
+                                                                                                                        #{rich:element('operationSearchForm:dateFromBtn')});"/>
+                                                </h:panelGroup>
+
+                                                <h:outputLabel for="dateTo" value="#{lblOpr.host_date_to}: " title="#{lblOpr.host_date_to}"/>
+                                                <h:panelGroup>
+                                                    <h:inputText id="dateTo" style="max-width:138px"
+                                                                 value="#{MbOperationSearchModal.hostDateTo}"
+                                                                 onclick="#{rich:component('operationCalendar')}.customExpand(event,
+                                                                                                                     #{rich:element('operationSearchForm:dateTo')},
+                                                                                                                     #{rich:element('operationSearchForm:dateToBtn')});">
+                                                        <f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+                                                        <a4j:support event="onchange" ajaxSingle="true" limitToList="true"/>
+                                                    </h:inputText>
+                                                    <h:graphicImage id="dateToBtn" value="/images/calendar.gif"
+                                                                    onclick="#{rich:component('operationCalendar')}.customExpand(event,
+                                                                                                                        #{rich:element('operationSearchForm:dateTo')},
+                                                                                                                        #{rich:element('operationSearchForm:dateToBtn')});"/>
+                                                </h:panelGroup>
+
+                                                <h:outputLabel value="#{lblIss.card_number}: " title="#{lblIss.card_number}"/>
+                                                <h:inputText id="cardMask" value="#{MbOperationSearchModal.disputeFilter.cardMask}"/>
+
+                                                <h:outputLabel value="#{lblIss.account_number}: " title="#{lblIss.account_number}"/>
+                                                <h:inputText id="accountNumber" value="#{MbOperationSearchModal.accountNumber}"/>
+
+                                                <h:outputLabel value="#{lblAcq.merchant_name}: " title="#{lblAcq.merchant_name}"/>
+                                                <h:inputText id="merchantName" value="#{MbOperationSearchModal.filter.merchantName}"/>
+
+                                                <h:outputLabel value="#{lblAcq.merchant_number}: " title="#{lblAcq.merchant_number}"/>
+                                                <h:inputText id="merchantNumber" value="#{MbOperationSearchModal.filter.merchantNumber}"/>
+
+                                                <h:outputLabel for="terminalType" value="#{lblAcq.terminal_type}: " title="#{lblAcq.terminal_type}"/>
+                                                <h:selectOneMenu id="terminalType"
+                                                                 value="#{MbOperationSearchModal.filter.terminalType}">
+                                                    <f:selectItem itemValue=""/>
+                                                    <f:selectItems value="#{MbOperationSearchModal.terminalType}"/>
+                                                </h:selectOneMenu>
+
+                                                <h:outputLabel for="terminalNumber" value="#{lblAcq.terminal_number}: " title="#{lblAcq.terminal_number}"/>
+                                                <h:inputText id="terminalNumber" value="#{MbOperationSearchModal.filter.terminalNumber}"/>
+                                            </h:panelGrid>
+                                            <h:panelGroup layout="block" styleClass="search_block_tabs_inner1">
+                                                <h:panelGrid columns="1">
+                                                    <bre:taggedCommandButton id="disputeOperSearchId"
+                                                                             eventsQueue="queue"
+                                                                             onclick="if (!checkOperSearchModalFields()){return false;}"
+                                                                             action="#{MbOperationSearchModal.searchByDispute}"
+                                                                             oncomplete="if(#{MbOperationSearchModal.needOpenSelectObjectDialog}) {Richfaces.showModalPanel('#{MbIssSelectObject.modalId}');} enableModalPanelBtns(this);"
+                                                                             reRender="#{MbOperationSearchModal.rerenderList}"
+                                                                             image="/_img/icon_search.png" type="submit"
+                                                                             value="#{lblForm.search}" style="width:85px;">
+                                                        <a4j:actionparam assignTo="#{MbOperationSearchModal.searchTabName}" value="disputeTab"/>
+                                                        <f:setPropertyActionListener value="disputeOperSearchId" target="#{MbOperationSearchModal.searchButtonId}"/>
+                                                        <f:setPropertyActionListener value="#{extraIdColon}#{viewIdColon}operationSearchModalForm,operationSearchForm:accountNumber" target="#{MbOperationSearchModal.rerenderList}"/>
+                                                    </bre:taggedCommandButton>
+                                                    <h:panelGrid columns="1">
+                                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                                            <h:graphicImage url="/_img/icon_clear.png"/>
+                                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                                             action="#{MbOperationSearchModal.clearFilter}"
+                                                                             reRender="#{extraIdColon}#{viewIdColon}operationsSearchForm,
+                                                                                       #{extraIdColon}#{viewIdColon}operationForm,
+                                                                                       #{extraIdColon}#{viewIdColon}operationSearchModalForm">
+                                                            </a4j:commandLink>
+                                                        </h:panelGroup>
+                                                    </h:panelGrid>
+                                                </h:panelGrid>
+                                            </h:panelGroup>
+                                        </h:panelGrid>
+                                    </h:panelGroup>
+                                </h:panelGroup>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                    </a4j:form>
+                </h:panelGroup>
+            </h:panelGroup>
+            <a4j:outputPanel ajaxRendered="true">
+                <h:panelGroup id="show_more_operation_panel" styleClass="show-more-vert show-more-vert-tab" layout="block"/>
+                <h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+                <h:panelGroup styleClass="collapse-vert collapse-vert-tab" layout="block"/>
+            </a4j:outputPanel>
+        </h:panelGroup>
+
+        <h:form id="#{viewIdColon}operationSearchModalForm">
+            <rich:extendedDataTable id="operationsTable"
+                                    tableState="#{MbOperationSearchModal.tableState}"
+                                    styleClass="res-table" headerClass="res-table-header"
+                                    rowClasses=",odd" selectedClass="res-table-selected" var="item"
+                                    value="#{MbOperationSearchModal.operations}"
+                                    selection="#{MbOperationSearchModal.itemSelection}"
+                                    rows="#{MbOperationSearchModal.rowsNum}"
+                                    height="255px" selectionMode="single" width="100%"
+                                    enableContextMenu="true"
+                                    noDataLabel="#{MbOperationSearchModal.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}">
+
+                <rich:column id="operation_id" label="#{lblOpr.operation_id}" width="14%"
+                             sortBy="#{'id'}" sortOrder="DESCENDING">
+                    <f:facet name="header">
+                        <h:panelGroup>
+                            <script>updateHeight();</script>
+                            <h:outputText value="#{lblOpr.operation_id}" title="#{lblOpr.operation_id}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <bm:entityDisplay contextType="ENTTOPER" bean="MbOperationSearchModal" entityId="#{item.id}"
+                                      description="#{item.id}"/>
+                </rich:column>
+
+                <rich:column id="operation_type" label="#{lblOpr.operation_type}" width="15%"
+                             sortBy="#{'oper_type'}">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblOpr.operation_type}" title="#{lblOpr.operation_type}"/>
+                    </f:facet>
+                    <h:panelGroup layout="block" style="float:left; margin-right: 5px;"
+                                  rendered="#{item.isReversalExists}">
+                        <div class="default_icon is_reversal_exists" title="#{lblOpr.reversed}"/>
+                    </h:panelGroup>
+                    <h:panelGroup layout="block" style="float:left; margin-right: 5px;"
+                                  rendered="#{item.isReversal}">
+                        <div class="default_icon is_reversal" title="#{lblOpr.reversal}"/>
+                    </h:panelGroup>
+                    <bm:entityDisplay contextType="ENTTOPER" bean="MbOperationSearchModal"
+                                      value="#{DictUtils.articles[item.operType]}"
+                                      rendered="#{item.operType != null}"/>
+                    <bm:entityDisplay contextType="ENTTOPER" bean="MbOperationSearchModal" value=""
+                                      rendered="#{item.operType == null}"/>
+                </rich:column>
+
+                <rich:column id="msgType" label="#{lblOpr.msg_type}" width="6%"
+                             style="overflow-x:hidden" sortBy="#{'msg_type'}">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblOpr.msg_type}" title="#{lblOpr.msg_type}"/>
+                    </f:facet>
+                    <div class="default_icon #{EntityIcons.objectsMap['ENTT0047'][item.msgType]}"
+                         title="#{DictUtils.articles[item.msgType]}"/>
+
+                </rich:column>
+
+                <rich:column id="card_network" label="#{lblOpr.card_network}" width="6%"
+                             style="overflow-x:hidden"
+                             title="#{lblOpr.card_network}">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblOpr.card_network_short}" title="#{lblOpr.card_network}"/>
+                    </f:facet>
+                    <div class="default_icon #{EntityIcons.objectsMap['ENTTNETW'][item.cardNetworkId]}"
+                         title="#{item.cardNetworkId} - #{item.cardNetworkName}"/>
+                </rich:column>
+
+                <rich:column id="operation_amount" label="#{lblOpr.operation_amount}" width="17%"
+                             style="text-align: right" sortBy="#{'oper_amount'}">
+                    <f:facet name="header">
+                        <h:panelGroup style="overflow-x:hidden">
+                            <h:outputText value="#{lblOpr.operation_amount}"
+                                          title="#{lblOpr.operation_amount}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <div class="#{EntityIcons.objectsMapS['ENTT0046'][item.operCurrency]}"
+                         style="float:right; margin: 0 0 0 10px;"/>
+                    <bm:entityDisplay contextType="ENTTOPER" bean="MbOperationSearchModal"
+                                      value="#{fmt:formatMoney(item.operAmount, CurrencyUtils.currencyObjectsMap[item.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.operCurrency]}"/>
+                </rich:column>
+
+                <rich:column id="oper_date_n_time" label="#{lblOpr.oper_date}" width="12%"
+                             sortBy="#{'host_date'}" visible="false">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblOpr.oper_date}" title="#{lblOpr.oper_date}"/>
+                    </f:facet>
+                    <bm:entityDisplay contextType="ENTTOPER" bean="MbOperationSearchModal"
+                                      value="#{fmt:formatDate(item.operDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"/>
+                </rich:column>
+
+                <rich:column id="status" label="#{lblCommon.status}" width="6%"
+                             style="overflow-x:hidden" sortBy="#{'status'}">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+                    </f:facet>
+                    <div class="default_icon #{EntityIcons.objectsMap['ENTT0047'][item.status]}"
+                         title="#{DictUtils.articles[item.status]}" rendered="#{item.status != null}"/>
+                    <bm:entityDisplay contextType="ENTTOPER" bean="MbOperationSearchModal" value=""
+                                      rendered="#{item.status == null}"/>
+                </rich:column>
+
+                <rich:column id="client_id_value" label="#{lblOpr.client_id_value}" width="15%"
+                             style="overflow-x:hidden">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblOpr.client_id_value}" title="#{lblOpr.client_id_value}"/>
+                    </f:facet>
+                    <div class="default_icon #{EntityIcons.objectsMap['ENTT0047'][item.clientIdType]}"
+                         title="#{DictUtils.articles[item.clientIdType]}"
+                         style="float:right; margin: 0 0 0 10px;"/>
+                    <bm:entityDisplay contextType="ENTTOPER" bean="MbOperationSearchModal" value="#{item.clientIdValue}"/>
+                </rich:column>
+
+                <rich:column id="auth_code" label="#{lblOpr.auth_code}" width="7%"
+                             style="overflow-x:hidden" visible="false">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblOpr.auth_code}" title="#{lblOpr.auth_code}"/>
+                    </f:facet>
+                    <bm:entityDisplay contextType="ENTTOPER" bean="MbOperationSearchModal" value="#{item.authCode}"/>
+                </rich:column>
+
+            </rich:extendedDataTable>
+
+            <h:panelGroup layout="block"
+                          styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block"
+                              styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                        <h:outputText />
+                        <bre:taggedCommandButton id="selectBtn" value="#{lblApp.select}"
+                                                 action="#{viewScope[MbOperationSearchModal.beanName][MbOperationSearchModal.methodName]}"
+                                                 reRender="${MbOperationSearchModal.rerenderList}"
+                                                 oncomplete="if (#{usession.noErrorResponse}) Richfaces.hideModalPanel('#{extraIdColon}#{viewIdColon}operationSearchModalPanel');" />
+                        <bre:taggedCommandButton value="#{lblForm.cancel}"
+                                                 immediate="true" limitToList="true"
+                                                 oncomplete="Richfaces.hideModalPanel('#{extraIdColon}#{viewIdColon}operationSearchModalPanel')" />
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+
+
+        </h:form>
+    </rich:modalPanel>
+    <ui:include src="/pages/issuing/iss_com_select_object.jspx"/>
+</ui:composition>
+</html>

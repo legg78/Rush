@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="dpp">
+	<!-- Common sql configuration not included in SqlMapConfig -->
+	<sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql> 
+	
+	<sql id="paginatedOpen">
+		SELECT *
+		FROM(
+		SELECT a.*, rownum r
+		FROM(
+			<include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedClose">
+			<include refid="limitationClose"/>
+		) a
+		WHERE rownum <![CDATA[<]]>=
+		(#range.end# + 1)
+		)
+		WHERE r >= (#range.start# + 1)
+	</sql>
+ 
+	<resultMap  id="deffered-payment-plans-mapping"
+	            class="ru.bpc.sv2.dpp.DefferedPaymentPlan"  >
+	    <result property="id" column="id" />
+	    <result property="operId" column="oper_id" />
+	    <result property="operType" column="oper_type" />
+	    <result property="operDesc" column="oper_desc" />
+	    <result property="merchantName" column="merchant_name" />
+	    <result property="merchantCity" column="merchant_city" />
+	    <result property="merchantStreet" column="merchant_street" />
+	    <result property="instalmentAmount" column="instalment_amount" />
+	    <result property="instalmentTotal" column="instalment_total" />
+	    <result property="instalmentBilled" column="instalment_billed" />
+	    <result property="nextInstalmentDate" column="next_instalment_date" />
+	    <result property="debtBalance" column="debt_balance" />
+	    <result property="accountId" column="account_id" />
+	    <result property="accountNumber" column="account_number" />
+	    <result property="currency" column="currency" />
+	    <result property="cardId" column="card_id" />
+	    <result property="cardMask" column="card_mask" />
+	    <result property="productId" column="product_id" />
+	    <result property="operDate" column="oper_date" />
+	    <result property="operAmount" column="oper_amount" />
+	    <result property="operCurrency" column="oper_currency" />
+	    <result property="dppAmount" column="dpp_amount" />
+	    <result property="interestAmount" column="interest_amount" />
+	    <result property="status" column="status" />
+	    <result property="instId" column="inst_id" />
+	    <result property="splitHash" column="split_hash" />
+	    <result property="lang" column="lang" />
+		<result property="instalmentAlgorithm" column="value" />
+		<result property="regOperId" column="reg_oper_id" />
+	</resultMap>
+
+	<select id="get-deffered-payment-plans" parameterClass="qparams"
+		resultMap="deffered-payment-plans-mapping">
+		<include refid="paginatedOpen" />
+		SELECT
+			pp.id
+			,pp.oper_id
+			,pp.oper_type
+			,pp.oper_desc
+			,pp.merchant_name
+			,pp.merchant_city
+			,pp.merchant_street
+			,pp.instalment_amount
+			,pp.instalment_total
+			,pp.instalment_billed
+			,pp.next_instalment_date
+			,pp.debt_balance
+			,pp.account_id
+			,pp.account_number
+			,pp.card_id
+			,pp.card_mask
+			,pp.product_id
+			,pp.oper_date
+			,pp.oper_amount
+			,pp.oper_currency
+			,pp.currency
+			,pp.dpp_amount
+			,pp.interest_amount
+			,pp.status
+			,pp.inst_id
+			,pp.split_hash
+			,pp.lang
+			,av.value
+			,pp.reg_oper_id
+		FROM
+			dpp_ui_payment_plan_vw pp, dpp_ui_attribute_value_vw av
+		WHERE
+			pp.id = av.dpp_id(+)
+			and pp.lang = av.lang(+)
+			and av.attr_name = 'DPP_ALGORITHM'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">pp.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">reverse(pp.card_number) = reverse(#filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">reverse(pp.card_mask) $filters[].condition$ reverse(#filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">reverse(pp.account_number) like reverse(#filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operId">pp.oper_id = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">pp.id = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">pp.oper_date &lt;= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="dateFrom">pp.oper_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="status">pp.status = #filters[].value#
+			</isEqual>
+            <isEqual property="filters[].element" compareValue="cardId">pp.card_id = #filters[].value#
+            </isEqual>
+            <isEqual property="filters[].element" compareValue="accountId">pp.account_id = #filters[].value#
+            </isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="accountNumber">pp.account_number
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="operId">pp.oper_id
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="operDate">pp.oper_date
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="operAmount">pp.oper_amount
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="id">pp.id
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">pp.status
+					$sorting[].direction$
+				</isEqual>
+				<isEqual property="sorting[].property" compareValue="nextInstalmentDate">pp.next_instalment_date
+					$sorting[].direction$
+				</isEqual>
+			</isNotEqual>
+		</iterate>
+
+		<include refid="paginatedClose" />
+	</select>
+
+	<select id="get-deffered-payment-plans-count" parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			pp.id
+		FROM
+			dpp_ui_payment_plan_vw pp, dpp_ui_attribute_value_vw av
+		WHERE
+			pp.id = av.dpp_id(+)
+			and pp.lang = av.lang(+)
+			and av.attr_name = 'DPP_ALGORITHM'
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">pp.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">reverse(pp.card_number) = reverse(#filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">reverse(pp.card_mask) $filters[].condition$ reverse(#filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">reverse(pp.account_number) like reverse(#filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operId">pp.oper_id = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">pp.id = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">pp.oper_date &lt;= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="dateFrom">pp.oper_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="status">pp.status = #filters[].value#
+			</isEqual>
+            <isEqual property="filters[].element" compareValue="cardId">pp.card_id = #filters[].value#
+            </isEqual>
+            <isEqual property="filters[].element" compareValue="accountId">pp.account_id = #filters[].value#
+            </isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="macroses-mapping" class="ru.bpc.sv2.dpp.DppMacros"  >
+		<result property="accountId" column="account_id" />
+		<result property="accountNumber" column="account_number" />
+		<result property="cardId" column="card_id" />
+		<result property="cardNumber" column="card_number" />
+		<result property="cardMask" column="card_mask" />
+		<result property="macrosId" column="macros_id" />
+		<result property="macrosTypeId" column="macros_type_id" />
+		<result property="macrosTypeName" column="macros_type_name" />
+		<result property="macrosTypeDescription" column="macros_type_description" />
+		<result property="macrosTypeDetails" column="macros_type_details" />
+		<result property="operDate" column="oper_date" />
+		<result property="macrosAmount" column="macros_amount" />
+		<result property="macrosCurrency" column="macros_currency" />
+		<result property="postingDate" column="posting_date" />
+		<result property="operId" column="oper_id" />
+		<result property="operType" column="oper_type" />
+		<result property="operDescription" column="oper_description" />
+		<result property="instId" column="inst_id" />
+		<result property="lang" column="lang" />
+	</resultMap>
+	
+	<select id="get-macroses" parameterClass="qparams" resultMap="macroses-mapping">
+		select mc.account_id
+		     , mc.account_number
+		     , mc.card_id
+		     , mc.card_number
+		     , mc.card_mask
+		     , mc.macros_id
+		     , mc.macros_type_id
+		     , mc.macros_type_name
+		     , mc.macros_type_description
+		     , mc.macros_type_details
+		     , mc.oper_date
+		     , mc.macros_amount
+		     , mc.macros_currency
+		     , mc.posting_date
+		     , mc.oper_id
+		     , mc.oper_type
+		     , mc.oper_description
+		     , mc.inst_id
+		     , mc.lang
+		  from dpp_ui_macros_vw mc
+		<iterate prepend=" where " conjunction=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="accountNumber">mc.account_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">mc.card_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">trunc(mc.oper_date) <![CDATA[<=]]> to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="dateFrom">trunc(mc.oper_date) >= to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">mc.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend=" order by " conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="auto">
+				<isEqual property="sorting[].property" compareValue="accountId">mc.account_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="accountNumber">mc.account_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardId">mc.card_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="cardNumber">mc.card_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="macrosId">mc.macros_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="macrosTypeId">mc.macros_type_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="macrosTypeName">mc.macros_type_name $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="macrosTypeDescription">mc.macros_type_description $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="macrosTypeDetails">mc.macros_type_details $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operDate">mc.oper_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="macrosAmount">mc.macros_amount $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="macrosCurrency">mc.macros_currency $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="postingDate">mc.posting_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operId">mc.oper_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operType">mc.oper_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="operDescription">mc.oper_description $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="lang">mc.lang $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>
+	</select>
+	
+	<select id="get-macroses-count" parameterClass="qparams" resultClass="int">
+		select count(mc.account_id)
+		  from dpp_ui_macros_vw mc
+		<iterate prepend=" where " conjunction=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="accountNumber">mc.account_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">mc.card_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">trunc(mc.oper_date) <![CDATA[<=]]> to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="dateFrom">trunc(mc.oper_date) >= to_date(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">mc.lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<procedure id="register-dpp" parameterClass="ru.bpc.sv2.dpp.DefferedPaymentPlan">
+		{call dpp_ui_payment_plan_pkg.register_dpp(
+			    i_account_id        => #accountId#
+			  , i_instalment_count  => #instalmentTotal#
+			  , i_fee_id            => #feeId#
+			  , i_dpp_amount        => #dppAmount#
+			  , i_macros_id         => #macrosId#
+			  , i_oper_id           => #operId#
+		)}
+	</procedure>
+	
+	<procedure id="accelerate-dpp" parameterClass="ru.bpc.sv2.dpp.DefferedPaymentPlan">
+		{call dpp_ui_payment_plan_pkg.accelerate_dpp(
+			    i_dpp_id            => #id#
+			  , i_new_count         => #instalmentTotal#
+			  , i_payment_amount    => #instalmentAmount#
+			  , i_acceleration_type => #accelerationType#
+		)}
+	</procedure>
+	
+	<procedure id="cancel-dpp" parameterClass="ru.bpc.sv2.dpp.DefferedPaymentPlan">
+		{call dpp_ui_payment_plan_pkg.cancel_dpp(
+			    i_dpp_id            => #id#
+		)}
+	</procedure>
+	
+	<resultMap  id="get-dpp-instalments-mapping"
+            class="ru.bpc.sv2.dpp.DppInstalment"  >
+	    <result property="id" column="id" />
+	    <result property="dppId" column="dpp_id" />
+	    <result property="instalmentNumber" column="instalment_number" />
+	    <result property="instalmentDate" column="instalment_date" />
+	    <result property="instalmentAmount" column="instalment_amount" />
+	    <result property="paymentAmount" column="payment_amount" />
+	    <result property="interestAmount" column="interest_amount" />
+	    <result property="macrosId" column="macros_id" />
+	    <result property="bill" column="is_bill" />
+	    <result property="accelerationType" column="acceleration_type" />
+	    <result property="splitHash" column="split_hash" />
+	    <result property="currency" column="currency" />
+	</resultMap>
+	
+	<select id="get-dpp-instalments" parameterClass="qparams"
+		resultMap="get-dpp-instalments-mapping">
+		<include refid="limitationOpen"/>
+		SELECT
+			iv.id
+			,iv.dpp_id
+			,iv.instalment_number
+			,iv.instalment_date
+			,iv.instalment_amount
+			,iv.payment_amount
+			,iv.interest_amount
+			,iv.macros_id
+			,iv.is_bill
+			,iv.acceleration_type
+			,iv.split_hash
+			,iv.currency
+		FROM
+			dpp_ui_instalment_vw iv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="dppId">iv.dpp_id = #filters[].value#</isEqual>
+		</iterate>
+		
+		ORDER BY iv.instalment_number
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-dpp-instalments-count" parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpen"/>
+		SELECT
+			count(iv.id)
+		FROM
+			dpp_ui_instalment_vw iv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="dppId">iv.dpp_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="get-dpp-attribute-values-mapping"
+            class="ru.bpc.sv2.dpp.DppAttributeValue"  >
+	    <result property="attrId" column="attr_id" />
+	    <result property="parentId" column="parent_id" />
+	    <result property="attrName" column="attr_name" />
+	    <result property="name" column="label" />
+	    <result property="description" column="description" />
+	    <result property="displayOrder" column="display_order" />
+	    <result property="lang" column="lang" />
+	    <result property="dppId" column="dpp_id" />
+	    <result property="value" column="value" />
+	    <result property="attrEntityType" column="entity_type"/>
+	    <result property="dataType" column="data_type"/>
+	    <result property="value" column="value"/>
+		<result property="valueV" column="value_v"/>
+		<result property="valueN" column="value_n"/>
+		<result property="valueD" column="value_d"/>
+		<result property="lovValue" column="lov_value"/>
+		<result property="valueDesc" column="value_description"/>
+		<result property="level" column="level" />
+        <result property="isLeaf" javaType="boolean" column="is_leaf" />
+	</resultMap>
+
+	<select id="get-dpp-attribute-values" parameterClass="qparams"
+		resultMap="get-dpp-attribute-values-mapping">
+		SELECT
+			LEVEL
+			,CONNECT_BY_ISLEAF AS is_leaf
+			,attr_id
+			,entity_type
+			,parent_id
+			,attr_name
+			,label
+			,description
+			,display_order
+			,lang
+			,dpp_id
+			,VALUE
+			,data_type
+			,value_v
+			,value_n
+			,value_d
+			,lov_value
+			,value_description
+			,dpp_attr_val_id
+		FROM (
+			SELECT avv.attr_id
+				  ,avv.entity_type
+				  ,avv.parent_id
+				  ,avv.attr_name
+				  ,avv.label
+				  ,avv.description
+				  ,avv.display_order
+				  ,avv.lang
+				  ,avv.dpp_id
+				  ,avv.VALUE
+				  ,avv.data_type
+				  ,avv.char_value value_v
+				  ,avv.number_value value_n
+				  ,avv.date_value value_d
+				  ,avv.lov_value lov_value
+				  ,avv.value_description
+				  ,avv.dpp_attr_val_id
+			FROM
+				dpp_ui_attribute_value_vw avv
+			WHERE
+				dpp_attr_val_id IS NOT NULL
+				OR entity_type IN ('ENTTSRVT', 'ENTTAGRP')
+		) a
+		WHERE (a.entity_type = 'ENTTAGRP' AND CONNECT_BY_ISLEAF = 0)
+		    OR a.entity_type &lt;&gt; 'ENTTAGRP'
+		    OR a.entity_type is null
+		CONNECT BY
+			PRIOR a.attr_id = a.parent_id
+			AND PRIOR a.lang = a.lang
+			AND PRIOR a.dpp_id = a.dpp_id
+		START WITH
+		a.parent_id IS NULL
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="dppId">a.dpp_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			</iterate>
+		ORDER SIBLINGS BY
+		a.display_order, UPPER (a.label)
+	</select>
+
+	<select id="get-dpp-attribute-values-count" parameterClass="qparams"
+		resultClass="int">
+		SELECT
+			count(avv.attr_id)
+		FROM
+			dpp_ui_attribute_value_vw avv
+		WHERE
+			(dpp_attr_val_id IS NOT NULL
+			OR entity_type IN ('ENTTSRVT', 'ENTTAGRP'))
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="dppId">avv.dpp_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">avv.lang = #filters[].value#</isEqual>
+			</iterate>
+	</select>
+	
+</sqlMap>

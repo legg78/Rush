@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+		<ui:define name="navigatableContent">
+		<script type="text/javascript">
+			//<![CDATA[
+			function checkSearchFields() {
+				var scenarioId = document.getElementById("statesSearchForm:scenario");
+				if (scenarioId.value == null || scenarioId.value == "") {
+					scenarioId.style.backgroundColor = "#FF9999";
+					scenarioId.focus();
+					return false;
+				} else {
+					scenarioId.style.backgroundColor = "#FFFFFF";
+				}
+				return true;
+			}
+			//]]>
+		</script>
+		<a4j:loadScript src="/js/stretch.js" />
+		<f:loadBundle var="lblAsc" basename="ru.bpc.sv2.ui.bundles.Asc"/>
+		
+		<!-- navigation bar -->
+        <bpct:navBar pageName="#{lblAsc.auth_states}"/>
+        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+        
+        <script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('statesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>    
+    	<h:form id="statesSearchForm" onkeypress="handleEnter(event)">			
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+		            			<h:outputLabel for="scenario" value="#{lblAsc.scenario}: " title="#{lblAsc.scenario}" />
+		            			<h:selectOneMenu id="scenario" value="#{MbAuthStates.filter.scenarioId}">
+		            				<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbAuthStates.scenarios}"/>
+								</h:selectOneMenu>
+								
+								<h:outputLabel for="stDescr" value="#{lblCommon.description}: " title="#{lblCommon.description}" />
+		            			<h:inputText id="stDescr" value="#{MbAuthStates.filter.description}"/>
+		            			
+		            			<h:outputLabel for="type" value="#{lblCommon.type}: " title="#{lblCommon.type}" />
+		            			<h:selectOneMenu id="type" value="#{MbAuthStates.filter.stateType}">
+									<f:selectItems value="#{MbAuthStates.stateTypes}"/>
+								</h:selectOneMenu>
+								
+		            			<h:outputLabel for="stCode" value="#{lblCommon.code}: " title="#{lblCommon.code}" />
+		            			<h:inputText id="stCode" value="#{MbAuthStates.filter.code}" label="#{lblCommon.code}" maxlength="4"/>
+		            			
+                			</h:panelGrid>
+	                		<h:panelGrid columns="1">
+		                		<bre:taggedCommandButton
+			                			action="#{MbAuthStates.search}"
+			                			onclick="if (!checkSearchFields()) {return false;} disableModalPanelBtns(this);"
+			                			id="searchBtn"
+			                			oncomplete="enableModalPanelBtns(this);"
+	        							reRender="statesTable, statesBtnForm, #{MbAuthStates.tabName}"
+	                					image="/_img/icon_search.png" type="submit"
+	                					value="#{lblForm.search}" style="width:85px;"
+	                					eventsQueue="queue"/>
+	                			<h:panelGroup styleClass="link-clear" layout="block">
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+						        			action="#{MbAuthStates.clearFilter}"
+						        			reRender="statesSearchForm, statesForm, statesBtnForm, #{MbAuthStates.tabName}">
+						        	</a4j:commandLink>
+	            	    		</h:panelGroup>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+	               			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+	               			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+               			</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="statesForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		    		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="statesTable"
+							var="item"
+							tableState="#{MbAuthStates.tableState}"
+							value="#{MbAuthStates.states}"
+							selection="#{MbAuthStates.itemSelection}"
+							rows="#{MbAuthStates.rowsNum}"
+							height="255px"
+							selectionMode="single"
+							rowClasses=",odd"
+							headerClass="res-table-header"
+							selectedClass="res-table-selected"
+							styleClass="res-table"
+							enableContextMenu="true"
+							noDataLabel="#{MbAuthStates.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="#{MbAuthStates.tabName}, statesBtnForm:statesBtnPanel">
+			
+						<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="#{MbAuthStates.tabName}, statesBtnForm:statesBtnPanel"/>
+			
+						<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="10%">
+			                   <f:facet name="header">
+			                   		<a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+			                   </f:facet>
+			               		<h:outputText value="#{item.id}" />
+						</rich:column>
+			
+						<rich:column id="code" label="#{lblCommon.code}" sortBy="#{'code'}" width="10%">
+			                   <f:facet name="header">
+			                   	<h:outputText value="#{lblCommon.code}" title="#{lblCommon.code}" />
+			                   </f:facet>
+			               	<h:outputText value="#{item.code}" />
+						</rich:column>
+			
+				        <rich:column id="type" label="#{lblCommon.type}" sortBy="#{'stateType'}" width="35%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.type}" title="#{lblCommon.type}"/>
+			                </f:facet>
+			                <h:outputText value="#{DictUtils.articles[item.stateType]}" title="#{DictUtils.articles[item.stateType]}"
+			                		rendered="#{item.stateType != null}" />
+			                <h:outputText value="" title="" rendered="#{item.stateType == null}" />
+				        </rich:column>
+	
+				        <rich:column id="description" label="#{lblCommon.description}" sortBy="#{'description'}" width="40%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.description}" title="#{lblCommon.description}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.description}" title="#{item.description}" />
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+				    	<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+				    	<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="statesBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="5"
+							columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+							<h:selectOneMenu id="rows_num" value="#{MbAuthStates.rowsNum}"
+								styleClass="row_per_page">
+								<a4j:support event="onchange"
+									reRender="statesTable, statesDs, pagesNum, #{MbAuthStates.tabName}, statesBtnForm:statesBtnPanel" />
+								<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+							</h:selectOneMenu>
+
+							<rich:datascroller maxPages="10" fastControls="hide"
+								pagesVar="pages" styleClass="res-datascroller" id="statesDs"
+								for="statesTable" reRender="#{MbAuthStates.tabName}, statesBtnForm:statesBtnPanel">
+								<f:facet name="first">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="first_disabled">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="last">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="last_disabled">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="previous_disabled">
+									<h:outputText value="#{lblCommon.prev}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="next">
+									<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="next_disabled">
+									<h:outputText value="#{lblCommon.next}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="pages">
+								</f:facet>
+							</rich:datascroller>
+
+							<h:panelGroup id="pagesNum">
+								<h:outputText styleClass="strongClass" value="#{pages} " />
+								<h:outputText value=" #{lblCommon.pages}" />
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbAuthStates.states.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+							</h:panelGroup>
+							
+							<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbAuthStates.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbAuthStates.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGrid id="statesBtnPanel" columns="4" styleClass="itempanel">
+						<bre:taggedCommandButton id="addStateBtn"
+							reRender="asc_state_modal_header,stateEditForm"
+							value="#{lblForm.add}"
+							oncomplete="#{rich:component('asc_state_modal_panel')}.show()"
+							action="#{MbAuthStates.add}" image="/images/create_doc.gif" />
+						<bre:taggedCommandButton id="editStateBtn"
+							reRender="asc_state_modal_header,stateEditForm"
+							value="#{lblForm.edit}" action="#{MbAuthStates.edit}"
+							oncomplete="#{rich:component('asc_state_modal_panel')}.show()"
+							disabled="#{MbAuthStates.activeState == null}"
+							image="/images/edit.gif" />
+						<bre:taggedCommandButton id="deleteStateBtn"
+							value="#{lblForm.delete}"
+							oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()"
+							disabled="#{MbAuthStates.activeState == null}"
+							image="/images/delete.gif" />
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbAuthStates.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbAuthStates.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content">
+
+				<rich:tab ontabenter="storeTab('detailsTab')" label="Details">
+					<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+						<h:panelGroup id="detailsTab" layout="block">
+	      					<ui:include src="/pages/scenario/state_details.jspx" />
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+	       				</h:panelGroup>
+			    </rich:tab>
+			    
+				<rich:tab ontabenter="storeTab('parametersTab')" label="#{lblCommon.parameters}" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.parameters}" title="#{lblCommon.parameters}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup id="parametersTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/scenario/list_params_bottom.jspx" />
+       				</h:panelGroup>
+			    </rich:tab>
+		    </rich:tabPanel>
+        </h:panelGroup>
+
+		<ui:include src="/pages/scenario/stateEdit.jspx">
+			<ui:param name="rerenderList" value="statesTable, statesBtnForm, #{MbAuthStates.tabName}"/>
+		</ui:include>
+
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbAuthStates}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="statesTable, statesBtnForm, #{MbAuthStates.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteViewId"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel"¸ layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+		
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'statesSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'statesForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'statesBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'stateDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'stateDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'paramsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'stateParamsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>		
+	</ui:define>
+</ui:composition>
+</html>

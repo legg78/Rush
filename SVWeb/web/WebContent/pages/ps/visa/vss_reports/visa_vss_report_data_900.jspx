@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:o="http://openfaces.org/"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext" xmlns:fmt="http://www.bpc.ru/el/formatter">
+<ui:composition>
+	<f:loadBundle var="lblVis" basename="ru.bpc.sv2.ui.bundles.Vis"/>
+	<f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form"/>
+	<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+	<f:loadBundle var="lblAgg" basename="ru.bpc.sv2.ui.bundles.Aggregation"/>
+
+	<o:treeTable id="reportDataTable900" var="reportDataItem"
+				 headerHorizSeparator="1px solid #D7DAC2"
+				 headerVertSeparator="1px solid #D7DAC2"
+				 headerSectionClass="res-tree-table-header"
+				 commonHeaderRowClass="res-tree-table-header"
+				 sortableHeaderClass="res-tree-table-header"
+				 sortedColumnHeaderClass="res-tree-table-header"
+				 sortableHeaderRolloverClass="res-tree-table-header"
+				 styleClass="res-tree-table"
+				 bodyOddRowClass="res-tree-table-row odd-tree-table"
+				 bodyRowClass="res-tree-table-row"
+				 headerRowClass="res-tree-table-header"
+				 verticalGridLines="1px solid #D7DAC2" cellpadding="0"
+				 cellspacing="0" preloadedNodes="all" style="height:100%"
+				 onmousedown="handleMouseClick(event)">
+		<o:scrolling vertical="#{!MbVisaVssReports.singleReportMode}" />
+		<o:columnResizing minColWidth="70px" />
+		<f:facet name="noDataMessage">
+			<h:panelGroup>
+				<h:outputText value="#{lblVis.no_report_data}"/>
+			</h:panelGroup>
+		</f:facet>
+
+		<o:dynamicTreeStructure nodeChildren="#{MbVisaVssReports.nodeChildren}"
+								nodeHasChildren="#{MbVisaVssReports.nodeHasChildren}"
+								nodeKey="#{reportDataItem.id}" />
+
+		<!--@elvariable id="reportDataItem" type="ru.bpc.sv2.ps.visa.VisaVssReportDetailV6"-->
+
+		<o:row condition="#{reportDataItem.summaryLevel != null and reportDataItem.summaryLevel != '08'}" styleClass="bold">
+		</o:row>
+		<o:row condition="#{reportDataItem.summaryLevel == null}" styleClass="#{(!reportDataItem.expandCollapseNode and reportDataItem.parent == null) ? 'extdt-row-selected':''}">
+			<o:cell span="6" styleClass="rich-extdt-cell"/>
+		</o:row>
+		<o:row condition="#{reportDataItem.summaryLevel == '04'}" styleClass="extdt-row-selected">
+			<o:cell styleClass="rich-extdt-cell"/>
+			<o:cell styleClass="rich-extdt-cell"/>
+			<o:cell styleClass="rich-extdt-cell"/>
+			<o:cell styleClass="rich-extdt-cell"/>
+			<o:cell styleClass="rich-extdt-cell"/>
+			<o:cell styleClass="rich-extdt-cell"/>
+		</o:row>
+
+		<o:treeColumn width="40%">
+			<f:facet name="header">
+				<h:outputText value="#{lblCommon.name}" />
+			</f:facet>
+			<h:outputText value="#{reportDataItem.text}" styleClass="treeTableText" rendered="#{!reportDataItem.expandCollapseNode}"/>
+			<h:panelGrid columns="2" rendered="#{reportDataItem.expandCollapseNode}" style="padding-top: 10px">
+				<a4j:commandLink value="[+] #{lblVis.expand_all}" reRender="reportDataTable900" action="#{MbVisaVssReports.expandAll}" style="padding-right: 10px">
+					<f:param name="reportDataItemId" value="#{reportDataItem.id}"/>
+				</a4j:commandLink>
+				<a4j:commandLink value="[-] #{lblVis.collapse_all}" reRender="reportDataTable900" action="#{MbVisaVssReports.collapseAll}">
+					<f:param name="reportDataItemId" value="#{reportDataItem.id}"/>
+				</a4j:commandLink>
+			</h:panelGrid>
+		</o:treeColumn>
+
+		<o:column width="10%" style="text-align: right">
+			<f:facet name="header">
+				<h:outputText value="#{lblVis.crs_date}" />
+			</f:facet>
+			<h:outputText rendered="#{reportDataItem.crsDate!=null}" value="#{fmt:formatDate(reportDataItem.crsDate, usession.datePattern, CommonUtils.timeZoneId)}" styleClass="treeTableText"/>
+		</o:column>
+
+		<o:column width="10%" style="text-align: right">
+			<f:facet name="header">
+				<h:outputText value="#{lblAgg.count}" />
+			</f:facet>
+			<h:outputText rendered="#{reportDataItem.transCount!=null and !reportDataItem.summary}" value="#{reportDataItem.transCount}" styleClass="treeTableText"/>
+		</o:column>
+
+		<o:column width="15%" style="text-align: right">
+			<f:facet name="header">
+				<h:outputText value="#{lblVis.clearing_amount}"/>
+			</f:facet>
+			<h:outputText rendered="#{reportDataItem.amount!=null and !reportDataItem.summary}" value="#{fmt:formatMoney(reportDataItem.amount, CurrencyUtils.currencyObjectsMap[MbVisaVssReports.activeItem.settlementCurrency].exponent)}" styleClass="treeTableText"/>
+		</o:column>
+
+		<o:column width="10%" style="text-align: right">
+			<f:facet name="header">
+				<h:outputText value="#{lblVis.total_count}" />
+			</f:facet>
+			<h:outputText rendered="#{reportDataItem.transCount!=null and reportDataItem.summary}" value="#{reportDataItem.transCount}" styleClass="treeTableText"/>
+		</o:column>
+
+		<o:column width="15%" style="text-align: right">
+			<f:facet name="header">
+				<h:outputText value="#{lblVis.total_clearing_amount}"/>
+			</f:facet>
+			<h:outputText rendered="#{reportDataItem.amount!=null and reportDataItem.summary}" value="#{fmt:formatMoney(reportDataItem.amount, CurrencyUtils.currencyObjectsMap[MbVisaVssReports.activeItem.settlementCurrency].exponent)}" styleClass="treeTableText"/>
+		</o:column>
+	</o:treeTable>
+</ui:composition>
+</html>

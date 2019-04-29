@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition>
+	<f:loadBundle var="lblFrp" basename="ru.bpc.sv2.ui.bundles.Frp"/>
+	<f:loadBundle var="lblAup" basename="ru.bpc.sv2.ui.bundles.Aup" />
+	<script type="text/javascript">
+	//<!--	
+	function checksuiteObjectFields(){
+		var check=true;
+		if(document.getElementById('suiteObjectModalDiv:newSuite').value==""){
+			document.getElementById('suiteObjectModalDiv:newSuiteError').style.display = "inline";
+			check=false;
+		}
+		if(document.getElementById('suiteObjectModalDiv:startDateInputDate').value==""){
+			document.getElementById('suiteObjectModalDiv:startDateError').style.display = "inline";
+			check=false;
+		}
+		return check;
+	}	
+	//-->
+	</script>
+	<h:form id="fraudObjectsForm">				
+		<h:panelGroup id="fraudObjectsTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<script type="text/javascript">updateHeight();</script>
+			<rich:extendedDataTable
+					headerClass="res-table-header table-header-ext" 
+		           	selectedClass="res-table-selected" styleClass="res-table"           
+		           	rowClasses=",odd"
+		           	id="mainTable"
+		           	var="item"
+		           	value="#{MbFraudObjects.objects}"	
+		            selection="#{MbFraudObjects.itemSelection}"
+		           	rows="0"
+		           	height="220px" 
+		           	selectionMode="single" enableContextMenu="true"
+		           	tableState="#{MbFraudObjects.tableState}"
+		           	noDataLabel="#{lblCommon['no_records_found']}"
+		           	>
+				           
+				<a4j:support event="onselectionchange" reRender="btnPanel"/>
+					<rich:column id="suite" label="#{lblFrp.suite}" title="#{lblFrp.suite}" sortBy="#{'suite_name'}" width="70%">
+			           <f:facet name="header">
+		                    <h:outputText value="#{lblFrp.suite}" title="#{lblFrp.suite}" />
+		                </f:facet>
+		                <bm:entityDisplay value="#{item.suiteName}" />
+			        </rich:column>
+		
+					<rich:column id="start_date" label="#{lblAup.start_date}" title="lblAup.start_date" sortBy="#{'start_date'}" width="15%">
+			           <f:facet name="header">
+		                    <h:outputText value="#{lblAup.start_date}" title="#{lblAup.start_date}" />
+		                </f:facet>
+		                <h:outputText value="#{item.startDate}" title="#{item.startDate}">
+							<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+						</h:outputText>
+			        </rich:column>
+			        
+			        <rich:column id="end_date" label="#{lblAup.end_date}" title="#{lblAup.end_date}" sortBy="#{'end_date'}" width="15%">
+			           <f:facet name="header">
+		                    <h:outputText value="#{lblAup.end_date}" title="#{lblAup.end_date}" />
+		                </f:facet>
+                        <h:outputText value="#{item.endDate}" title="#{item.endDate}">
+							<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+						</h:outputText>
+			        </rich:column>
+					<f:facet name="footer">                      
+		            </f:facet>
+		    </rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block"
+					columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<h:panelGroup styleClass="stdButton">
+						<bre:taggedCommandButton id="addBtn"
+							reRender="suiteObjectModalPanel" value="#{lblForm.add}"
+							rendered="#{usession.inRole['ADD_SUITE']}"
+							limitToList="true" disabled="#{MbFraudObjects.objectId == null}"
+							oncomplete="#{rich:component('suiteObjectModalPanel')}.show()"
+							action="#{MbFraudObjects.add}" image="/images/create_doc.gif" />
+					</h:panelGroup>
+					<h:panelGroup styleClass="stdButton">
+						<bre:taggedCommandButton id="editBtn"
+							reRender="suiteObjectModalPanel" value="#{lblForm.edit}"
+							rendered="#{usession.inRole['MODIFY_SUITE']}"
+							limitToList="true" disabled="#{MbFraudObjects.activeObject == null}"
+							oncomplete="#{rich:component('suiteObjectModalPanel')}.show()"
+							action="#{MbFraudObjects.edit}" image="/images/edit.gif" />
+					</h:panelGroup>
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png"
+							title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveCardTableState();" />
+						<h:graphicImage url="/images/red-cross.png"
+							title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteCardTableState();" />
+						<a4j:queue name="tablestatequeue" />
+						<a4j:jsFunction name="saveCardTableState"
+							action="#{MbFraudObjects.saveTableStateDB}"
+							eventsQueue="tablestatequeue" />
+						<a4j:jsFunction name="deleteCardTableState"
+							action="#{MbFraudObjects.deleteTableStateDB}"
+							eventsQueue="tablestatequeue" />
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+
+	</h:form>
+	
+	<rich:modalPanel id="suiteObjectModalPanel" autosized="true" minWidth="375" minHeight="50"
+			rendered="#{(usession.inRole['ADD_SUITE'] and usession.inRole['ADD_CASE'])
+					or (usession.inRole['MODIFY_SUITE'] and usession.inRole['MODIFY_CASE'])}">
+ 	    <f:facet name="header">
+ 	    	<h:panelGroup id="suiteObjectModalHeader">
+ 	    		<h:outputText value="#{lblFrp.edit_suite}" rendered="#{MbFraudObjects.editMode}"/>
+ 	    		<h:outputText value="#{lblFrp.new_suite}" rendered="#{MbFraudObjects.newMode}"/>
+ 	    	</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:form id="suiteObjectModalDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					
+					<h:outputLabel value="* #{lblFrp.suite}" title="#{lblFrp.suite}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="newSuite" disabled="#{MbFraudObjects.editMode}"
+								value="#{MbFraudObjects.newSuiteObject.suiteId}"
+								label="#{lblFrp.suite}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbFraudObjects.suites}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newSuiteError" style="display:none;">
+							<f:param name="fieldName" value="#{lblFrp.suite}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel for="start_date" value="* #{lblAup.start_date}: " title="#{lblAup.start_date}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<rich:calendar zindex="1000" buttonIcon="/images/calendar.gif" id="startDate" value="#{MbFraudObjects.newSuiteObject.startDate}"
+								label="#{lblAup.start_date}" disabled="#{MbFraudObjects.editMode}" datePattern="#{usession.fullDatePattern}"
+								onchanged="hideErrorDateField(this)" inputStyle="width:230px">					
+						</rich:calendar>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="startDateError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAup.start_date}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel for="end_date" value="#{lblAup.end_date}: " title="#{lblAup.end_date}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<rich:calendar zindex="1000" buttonIcon="/images/calendar.gif" id="endDate" value="#{MbFraudObjects.newSuiteObject.endDate}"
+								label="#{lblAup.end_date}" datePattern="#{usession.fullDatePattern}" inputStyle="width:230px">					
+						</rich:calendar>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbFraudObjects.save}"
+                       			onclick="if (!checksuiteObjectFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('suiteObjectModalPanel')}.hide()"
+                       			reRender="fraudObjectsForm:mainTable,fraudObjectsForm:btnPanel"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" 
+                        		action="#{MbFraudObjects.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('suiteObjectModalPanel')}.hide()"
+                        		>
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                        </bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

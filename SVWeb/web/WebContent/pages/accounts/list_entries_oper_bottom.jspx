@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/"
+		xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition>
+	
+	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+	<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+	
+	<a4j:form>
+		<h:panelGrid>
+			<a4j:region>
+				<h:selectBooleanCheckbox value="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).tableView}">
+					<a4j:support event="onchange" reRender="operEntriesForm" limitToList="true"/>
+				</h:selectBooleanCheckbox>
+				<h:outputText value=" #{lblForm.simplified_view}"/>
+			</a4j:region>
+		</h:panelGrid>
+	</a4j:form>
+
+	<!-- main form -->
+	<h:form id="operEntriesForm">
+	   	<a4j:outputPanel ajaxRendered="true" id="q_bundle_entries">
+			<o:loadBundle var="lblAccQ" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+		   	<o:loadBundle var="lblCommonQ" basename="ru.bpc.sv2.ui.bundles.Common"/>
+	   	</a4j:outputPanel>
+
+		<a4j:jsFunction name="redrawOperEntriesMenu" action="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).initCtxMenu}"
+				reRender="operEntriesCtxForm:operEntriesCtxMenu" limitToList="true"
+				oncomplete="Richfaces.showModalPanel('operEntriesCtxForm:operEntriesCtxMenu', {}, savedEvent);">
+		</a4j:jsFunction>
+		<h:panelGroup id="operEntriesTreeWrapper"
+			style="position: relative; zoom: 1; padding:0px; margin:0px;"
+			layout="block"
+			rendered="#{!(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).tableView}">
+			<o:treeTable id="operEntriesTreeTable" var="item"
+				expansionState="allExpanded"
+				headerHorizSeparator="1px solid #D7DAC2"
+				headerVertSeparator="1px solid #D7DAC2"
+				headerSectionClass="res-tree-table-header"
+				commonHeaderRowClass="res-tree-table-header"
+				sortableHeaderClass="res-tree-table-header"
+				sortedColumnHeaderClass="res-tree-table-header"
+				sortableHeaderRolloverClass="res-tree-table-header"
+				styleClass="extdt-table-layout res-tree-table"
+				bodyOddRowClass="res-tree-table-row odd-tree-table"
+				bodyRowClass="res-tree-table-row"
+				headerRowClass="res-tree-table-header"
+				verticalGridLines="1px solid #D7DAC2" cellpadding="0"
+				cellspacing="0" preloadedNodes="all"
+				style="#{valueStyle == null ? 'height: 100%;' : valueStyle}">
+				<o:scrolling />
+				<o:columnResizing minColWidth="50px" />
+				<o:row onmousedown="handleMouseClick(event)"
+					onmouseup="if (showMenuForTree(this, 'operEntriesForm:operEntriesTreeTable', #{item.transaction}, event)) redrawOperEntriesMenu();"
+					styleClass="treeRow#{item.modelId}">
+				</o:row>
+
+				<f:facet name="noDataMessage">
+					<h:panelGroup>
+						<h:outputText value="#{lblCommon['no_records_found']}" />
+					</h:panelGroup>
+				</f:facet>
+				<a4j:support event="onChange" reRender="entriesListBtnsTree" />
+
+				<o:dynamicTreeStructure
+					nodeChildren="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).nodeChildren}"
+					nodeHasChildren="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).nodeHasChildren}"
+					nodeKey="#{item.modelId}" />
+
+				<o:singleNodeSelection
+					nodePath="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).nodePath}"
+					nodeData="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).node}"
+					keyboardSupport="false" required="true"
+					styleClass="treetable_selection">
+					<a4j:support event="onchange" eventsQueue="queue"
+						disableDefault="true" reRender="entriesListBtnsTree" />
+				</o:singleNodeSelection>
+				<o:treeColumn id="nodeName" width="10%"
+					style="padding: 0 2px 0 2px;">
+					<f:facet name="header">
+						<h:panelGroup>
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommonQ.description}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:outputText value="#{item.longId} - #{item.description}"
+						title="#{item.longId} - #{item.description}"
+						rendered="#{item.transaction}" />
+					<h:outputText value="#{item.description}"
+						title="#{item.description}"
+						rendered="#{!item.transaction and not item.macros}" />
+					<h:outputText
+						value="#{item.description} - #{DictUtils.allArticlesDescByLang[(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).curLang][item.amountPurpose]}"
+						title="#{item.description} - #{DictUtils.allArticlesDescByLang[(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).curLang][item.amountPurpose]}"
+						rendered="#{!item.transaction and item.macros}" />
+				</o:treeColumn>
+
+				<o:column width="10%" style="padding: 0 2px 0 2px;">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommonQ.entity_type}"
+							title="#{lblCommonQ.entity_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.entityType]}"
+						title="#{DictUtils.articles[item.entityType]}" />
+				</o:column>
+
+				<o:column width="10%" style="padding: 0 2px 0 2px;">
+					<f:facet name="header">
+						<h:outputText value="#{lblAccQ.debit_account}"
+							title="#{lblAccQ.debit_account}" />
+					</f:facet>
+					<h:graphicImage height="10"
+						style="margin-left:5px; margin-right:5px;"
+						url="/images/delete.gif"
+						rendered="#{item.debitStatus == 'ENTRCNCL' and item.transaction}"
+						title="#{lblCommon.canceled}" />
+					<h:graphicImage height="10"
+						style="margin-left:5px; margin-right:5px;" url="/images/ok.gif"
+						rendered="#{item.debitStatus == 'ENTRPOST' and item.transaction}"
+						title="#{lblCommon.posted}" />
+					<h:graphicImage height="10"
+						style="margin-left:5px; margin-right:5px;"
+						url="/images/minus-2.gif"
+						rendered="#{item.debitStatus == 'ENTRRVRS' and item.transaction}"
+						title="#{lblCommon.reversed}" />
+					<h:outputText value="#{item.debitAccountNumber}"
+						title="#{item.debitAccountNumber}" rendered="#{item.transaction}" />
+				</o:column>
+
+				<o:column width="15%" style="padding: 0 2px 0 2px;">
+					<f:facet name="header">
+						<h:outputText value="#{lblAccQ.debit_balance_type}"
+							title="#{lblAccQ.debit_balance_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.debitBalanceType]}"
+						title="#{DictUtils.articles[item.debitBalanceType]}"
+						rendered="#{item.transaction and item.debitBalanceType != null}" />
+					<h:outputText value=""
+						rendered="#{item.transaction and item.debitBalanceType == null}" />
+				</o:column>
+
+				<o:column width="10%"
+					style="padding: 0 2px 0 2px; text-align: right">
+					<f:facet name="header">
+						<h:outputText value="#{lblAccQ.debit_amount}"
+							title="#{lblAccQ.debit_amount}" />
+					</f:facet>
+					<h:outputText
+						rendered="#{item.transaction and item.debitAmount != null}"
+						value="#{fmt:formatMoney(item.debitAmount, CurrencyUtils.currencyObjectsMap[item.debitCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.debitCurrency]}"
+						title="#{fmt:formatMoney(item.debitAmount, CurrencyUtils.currencyObjectsMap[item.debitCurrency].exponent)} #{CurrencyUtils.currencyMap[item.debitCurrency]}" />
+				</o:column>
+
+				<o:column width="10%" style="padding: 0 2px 0 2px;">
+					<f:facet name="header">
+						<h:outputText value="#{lblAccQ.credit_account}"
+							title="#{lblAccQ.credit_account}" />
+					</f:facet>
+
+					<h:graphicImage height="10"
+						style="margin-left:5px; margin-right:5px;"
+						url="/images/delete.gif"
+						rendered="#{item.creditStatus == 'ENTRCNCL' and item.transaction}"
+						title="#{lblCommon.canceled}" />
+					<h:graphicImage height="10"
+						style="margin-left:5px; margin-right:5px;" url="/images/ok.gif"
+						rendered="#{item.creditStatus == 'ENTRPOST' and item.transaction}"
+						title="#{lblCommon.posted}" />
+					<h:graphicImage height="10"
+						style="margin-left:5px; margin-right:5px;"
+						url="/images/minus-2.gif"
+						rendered="#{item.creditStatus == 'ENTRRVRS' and item.transaction}"
+						title="#{lblCommon.reversed}" />
+					<h:outputText value="#{item.creditAccountNumber}"
+						title="#{item.creditAccountNumber}" rendered="#{item.transaction}" />
+				</o:column>
+
+				<o:column width="15%" style="padding: 0 2px 0 2px;">
+					<f:facet name="header">
+						<h:outputText value="#{lblAccQ.credit_balance_type}"
+							title="#{lblAccQ.credit_balance_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.creditBalanceType]}"
+						title="#{DictUtils.articles[item.creditBalanceType]}"
+						rendered="#{item.transaction and item.creditBalanceType != null}" />
+					<h:outputText value="" rendered="#{item.creditBalanceType == null}" />
+				</o:column>
+
+				<o:column width="10%"
+					style="padding: 0 2px 0 2px; text-align: right">
+					<f:facet name="header">
+						<h:outputText value="#{lblAccQ.credit_amount}"
+							title="#{lblAccQ.credit_amount}" />
+					</f:facet>
+					<h:outputText
+						rendered="#{item.transaction and item.creditAmount != null}"
+						value="#{fmt:formatMoney(item.creditAmount, CurrencyUtils.currencyObjectsMap[item.creditCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.creditCurrency]}"
+						title="#{fmt:formatMoney(item.creditAmount, CurrencyUtils.currencyObjectsMap[item.creditCurrency].exponent)} #{CurrencyUtils.currencyMap[item.creditCurrency]}" />
+				</o:column>
+
+			</o:treeTable>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons"
+					rendered="#{operEntriesBean==null}">
+					<h:panelGrid id="entriesListBtnsTree" styleClass="fw buttons_block"
+						columns="2" columnClasses=", table_tools_state">
+						<h:panelGroup>
+							<bre:taggedCommandButton id="viewBtnTree"
+								reRender="operEntriesModalPanel" value="#{lblForm.view}"
+								limitToList="true"
+								oncomplete="#{rich:component('operEntriesModalPanel')}.show()"
+								action="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).view}"
+								disabled="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).activeEntry == null || (operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).activeEntry.isMacros}" />
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:panelGroup>
+
+		<h:panelGroup id="operEntriesTableWrapper" layout="block" style="padding:0px;margin:0px;" rendered="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).tableView}">
+		<a4j:jsFunction name="changeSelectionEnt" ignoreDupResponses="true"  eventsQueue="queue"
+			reRender="entriesListBtns">
+		</a4j:jsFunction>
+			<rich:extendedDataTable id="operEntriesTable" enableContextMenu="true"
+					styleClass="res-table" headerClass="res-table-header table-header-ext"
+					selectedClass="res-table-selected" 
+					var="item"
+					rowClasses=",odd"
+					value="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).entries}"
+					selection="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).itemSelection}"
+					rows="0" height="200px"
+					selectionMode="single" 
+					tableState="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}"
+					onselectionchange="changeSelectionEnt"
+					onRowMouseDown="handleMouseClick(event)"
+					>
+				<a4j:support event="onRowMouseUp" onsubmit="if (!showMenu(this, true)) return false;"
+						action="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).initCtxMenu}" 
+						reRender="operEntriesCtxForm:operEntriesCtxMenu" limitToList="true"
+						oncomplete="Richfaces.showModalPanel('operEntriesCtxForm:operEntriesCtxMenu', {}, event);"
+						/>		
+				
+				<rich:column id="id" label="#{lblCommon.id}"  width="10%" sortBy="#{'id'}">
+					<f:facet name="header">
+						<h:panelGroup>
+							<script>updateHeight();</script>
+			        		<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+			        	</h:panelGroup>
+					</f:facet>
+					<h:outputText value="#{item.transactionId}" title="#{item.transactionId}"/>
+				</rich:column>
+				 
+				<rich:column id="description" label="#{lblCommon.description}"  width="10%" sortBy="#{'description'}">
+					<f:facet name="header">
+						<h:panelGroup>
+							<script>updateHeight();</script>
+			        		<h:outputText value="#{lblCommon.description}" title="#{lblCommon.description}"/>
+			        	</h:panelGroup>
+					</f:facet>
+					<h:outputText value="#{item.description}" title="#{item.description}"/>
+				</rich:column>
+	
+				<rich:column id="debit_account" label="#{lblAcc.debit_account}"  width="15%" sortBy="#{'debitAccount'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblAcc.debit_account}" title="#{lblAcc.debit_account}"/>
+	                </f:facet>
+					<h:graphicImage height="10" style="margin-left:5px; margin-right:5px;" url="/images/delete.gif" rendered="#{item.debitStatus == 'ENTRCNCL' and item.transaction}" title="#{lblCommon.canceled}"/>
+		        	<h:graphicImage height="10" style="margin-left:5px; margin-right:5px;" url="/images/ok.gif" rendered="#{item.debitStatus == 'ENTRPOST' and item.transaction}" title="#{lblCommon.posted}" />
+		        	<h:graphicImage height="10" style="margin-left:5px; margin-right:5px;" url="/images/minus-2.gif" rendered="#{item.debitStatus == 'ENTRRVRS' and item.transaction}" title="#{lblCommon.reversed}"/>	                
+	                <h:outputText value="#{item.debitAccountNumber}" title="#{item.debitAccountNumber}"/>
+				</rich:column>
+				
+				<rich:column id="debit_balance_type" label="#{lblAcc.debit_balance_type}"  width="15%" sortBy="#{'debitBalanceType'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblAcc.debit_balance_type}" title="#{lblAcc.debit_balance_type}"/>
+	                </f:facet>
+	                <h:outputText value="#{DictUtils.articles[item.debitBalanceType]}" 
+	                		title="#{DictUtils.articles[item.debitBalanceType]}"
+	                		rendered="#{item.debitBalanceType != null}"/>
+	                <h:outputText value="" rendered="#{item.debitBalanceType == null}"/>
+				</rich:column>
+				
+				<rich:column id="debit_amount" label="#{lblAcc.debit_amount}"  width="10%" sortBy="#{'debitAmount'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblAcc.debit_amount}" title="#{lblAcc.debit_amount}"/>
+	                </f:facet>
+	                <h:outputText rendered="#{item.transaction and item.debitAmount != null}"
+	                		value="#{fmt:formatMoney(item.debitAmount, CurrencyUtils.currencyObjectsMap[item.debitCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.debitCurrency]}"
+	                		title="#{fmt:formatMoney(item.debitAmount, CurrencyUtils.currencyObjectsMap[item.debitCurrency].exponent)} #{CurrencyUtils.currencyMap[item.debitCurrency]}"
+	                		/>
+	            </rich:column>
+
+				<rich:column id="credit_account" label="#{lblAcc.credit_account}"  width="15%" sortBy="#{'creditAccount'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblAcc.credit_account}" title="#{lblAcc.credit_account}"/>
+	                </f:facet>
+					<h:graphicImage height="10" style="margin-left:5px; margin-right:5px;" url="/images/delete.gif" rendered="#{item.creditStatus == 'ENTRCNCL' and item.transaction}" title="#{lblCommon.canceled}"/>
+		        	<h:graphicImage height="10" style="margin-left:5px; margin-right:5px;" url="/images/ok.gif" rendered="#{item.creditStatus == 'ENTRPOST' and item.transaction}" title="#{lblCommon.posted}" />
+		        	<h:graphicImage height="10" style="margin-left:5px; margin-right:5px;" url="/images/minus-2.gif" rendered="#{item.creditStatus == 'ENTRRVRS' and item.transaction}" title="#{lblCommon.reversed}"/>	                
+	                <h:outputText value="#{item.creditAccountNumber}" title="#{item.creditAccountNumber}"/>
+				</rich:column>
+				
+				<rich:column id="credit_balance_type" label="#{lblAcc.credit_balance_type}"  width="15%" sortBy="#{'creditBalanceType'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblAcc.credit_balance_type}" title="#{lblAcc.credit_balance_type}"/>
+	                </f:facet>
+	                <h:outputText value="#{DictUtils.articles[item.creditBalanceType]}" 
+	                		title="#{DictUtils.articles[item.creditBalanceType]}"
+	                		rendered="#{item.creditBalanceType != null}"/>
+	                <h:outputText value="" rendered="#{item.creditBalanceType == null}"/>
+				</rich:column>
+				
+				<rich:column id="credit_amount" label="#{lblAcc.credit_amount}"  width="10%" sortBy="#{'creditAmount'}">
+		           	<f:facet name="header">
+	                    <h:outputText value="#{lblAcc.credit_amount}" title="#{lblAcc.credit_amount}"/>
+	                </f:facet>
+	                <h:outputText rendered="#{item.transaction and item.creditAmount != null}"
+	                		value="#{fmt:formatMoney(item.creditAmount, CurrencyUtils.currencyObjectsMap[item.creditCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.creditCurrency]}"
+	                		title="#{fmt:formatMoney(item.creditAmount, CurrencyUtils.currencyObjectsMap[item.creditCurrency].exponent)} #{CurrencyUtils.currencyMap[item.creditCurrency]}"
+	                		/>
+	            </rich:column>
+			</rich:extendedDataTable>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{operEntriesBean==null}">
+					<h:panelGrid id="entriesListBtns" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+						<h:panelGroup>
+							<bre:taggedCommandButton id="viewBtn"
+								reRender="operEntriesModalPanel"
+								value="#{lblForm.view}" limitToList="true"
+								oncomplete="#{rich:component('operEntriesModalPanel')}.show()"
+								action="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).view}"
+								disabled="#{(operEntriesBean==null ? MbEntriesForOperation : operEntriesBean).activeEntry == null}"
+						        />		
+	                    </h:panelGroup>
+	                    <h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveEntryOperTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteEntryOperTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveEntryOperTableState" action="#{MbEntriesForOperation.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteEntryOperTableState" action="#{MbEntriesForOperation.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:panelGroup>
+		
+		
+    </h:form>
+	
+	<h:form id="operEntriesCtxForm">
+		<a4j:queue name="operEntriesCtxAjaxQueue"/>
+		
+		<a4j:jsFunction name="operEntriesCtxMenu_openModal"
+				action="#{MbEntriesForOperation.initCtxParams}" reRender="contextMenuModalPanel"
+				limitToList="true" eventsQueue="operEntriesCtxAjaxQueue"
+				oncomplete="returnFormFields(); Richfaces.showModalPanel('contextMenuModalPanel:' + savedPanelName);">
+			<a4j:actionparam name="ctxItemId" assignTo="#{MbContextMenu.selectedItemId}"/>
+		</a4j:jsFunction>
+		
+		<a4j:jsFunction name="operEntriesCtxMenu_runImmed"
+				action="#{MbEntriesForOperation.initCtxParams}" reRender="contextMenuModalPanel"
+				limitToList="true" eventsQueue="operEntriesCtxAjaxQueue"
+				oncomplete="returnFormFields(); contextMenuModalPanel_callAction();">
+			<a4j:actionparam name="ctxItemId" assignTo="#{MbContextMenu.selectedItemId}"/>			
+		</a4j:jsFunction>
+
+		<rich:contextMenu id="operEntriesCtxMenu" attached="false" 
+				submitMode="ajax" disableDefaultMenu="true"
+				selectItemClass="selected-menu-item">
+			<c:forEach items="#{MbContextMenu.currentMenuItems}" var="ctxItem">
+				<rich:menuItem
+						value="#{ctxItem.label}"
+						action="#{MbEntriesForOperation.ctxPageForward}"
+						rendered="#{ctxItem.actionItem}"
+						eventsQueue="operEntriesCtxAjaxQueue"
+						>
+					<f:setPropertyActionListener value="#{ctxItem}" target="#{MbContextMenu.selectedCtxItem}"/>
+				</rich:menuItem>
+				<rich:menuItem 
+						value="#{ctxItem.label}"
+						onclick="savedEvent = event; savedPanelName = '#{MbContextMenu.actionParams[ctxItem.action]['panelName']}'; operEntriesCtxMenu_openModal(#{ctxItem.id})"
+						rendered="#{ctxItem.modalItem}"
+						eventsQueue="operEntriesCtxAjaxQueue"
+						>
+				</rich:menuItem>
+				<rich:menuItem 
+						value="#{ctxItem.label}"
+						onclick="operEntriesCtxMenu_runImmed(#{ctxItem.id})"
+						rendered="#{ctxItem.runnableItem}"
+						eventsQueue="operEntriesCtxAjaxQueue"
+						>
+				</rich:menuItem>
+				<rich:menuGroup value="#{ctxItem.label}" rendered="#{ctxItem.group}">
+					<c:forEach items="#{ctxItem.children}" var="innerItem">
+						<rich:menuItem
+								value="#{innerItem.label}"
+								action="#{MbEntriesForOperation.ctxPageForward}"
+								rendered="#{innerItem.actionItem}"
+								eventsQueue="operEntriesCtxAjaxQueue"
+								>
+							<f:setPropertyActionListener value="#{innerItem}" target="#{MbContextMenu.selectedCtxItem}"/>
+						</rich:menuItem>
+						<rich:menuItem 
+								value="#{innerItem.label}"
+								onclick="savedEvent = event; savedPanelName = '#{MbContextMenu.actionParams[innerItem.action]['panelName']}'; operEntriesCtxMenu_openModal(#{innerItem.id})"
+								rendered="#{innerItem.modalItem}"
+								eventsQueue="operEntriesCtxAjaxQueue"
+								>
+						</rich:menuItem>
+						<rich:menuItem
+								value="#{innerItem.label}"
+								onclick="operEntriesCtxMenu_runImmed(#{innerItem.id})"
+								rendered="#{innerItem.runnableItem}"
+								eventsQueue="operEntriesCtxAjaxQueue"
+								>
+						</rich:menuItem>
+					</c:forEach>
+				</rich:menuGroup>
+			</c:forEach>
+		</rich:contextMenu>
+	</h:form>
+	<ui:include src="/pages/accounts/entriesOperationModalPanel.jspx"/>
+</ui:composition>
+</html>

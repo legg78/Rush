@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<script type="text/javascript">
+		function enableUnblockButtons() {
+			if (document.getElementById("btn_unblock") != null) {
+				document.getElementById("btn_unblock").disabled = false;
+			}
+		}
+	</script>
+   	<a4j:outputPanel ajaxRendered="true">
+   		<o:loadBundle var="lblAcqQ" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+   		<o:loadBundle var="lblCommonQ" basename="ru.bpc.sv2.ui.bundles.Common"/>
+   		<o:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+   	</a4j:outputPanel>
+	<h:form>
+	<h:panelGrid columns="2" style="width:100%" cellpadding="0" cellspacing="0" >
+	            <o:treeTable id="attrsTreeTable" var="prodAttr"
+		               expansionState="allExpanded"
+		               sortColumnId="nodeName"
+		               headerHorizSeparator="1px solid #D7DAC2"
+		               headerVertSeparator="1px solid #D7DAC2"
+		               headerSectionClass="res-tree-table-header"
+		               commonHeaderRowClass="res-tree-table-header"
+		               sortableHeaderClass="res-tree-table-header"
+		               sortedColumnHeaderClass="res-tree-table-header"
+		               sortableHeaderRolloverClass="res-tree-table-header"
+		               styleClass="extdt-table-layout res-tree-table"
+		               bodyOddRowClass="res-tree-table-row odd-tree-table"
+		               bodyRowClass="res-tree-table-row" headerRowClass="res-tree-table-header"
+		               verticalGridLines="1px solid #D7DAC2"
+		               cellpadding="0" cellspacing="0"
+		               preloadedNodes="all"
+		               style="width:100%; height: 220px"
+		        	>
+					<o:scrolling/>
+					<o:columnResizing/>
+					<f:facet name="noDataMessage">
+					  	<h:panelGroup>
+					       <h:outputText value="#{lblCommon['no_records_found']}"/>
+						</h:panelGroup>
+					</f:facet>
+					
+	       			<o:dynamicTreeStructure 
+	       					nodeChildren="#{MbObjectAttributes.nodeChildren}" 
+	       					nodeHasChildren="#{MbObjectAttributes.nodeHasChildren}" 
+	       					nodeKey="#{prodAttr.modelId}"/>
+	
+				    <o:singleNodeSelection nodePath="#{MbObjectAttributes.nodePath}"
+				          	nodeData="#{MbObjectAttributes.node}"
+	          				keyboardSupport="false"
+	          				styleClass="treetable_selection"
+	          				>
+	          			<a4j:support event="onchange"  
+			                    	reRender="attrValues, btnPanel, err_ajax"
+			                    	action="#{ManagedBean.prepareInitialService}"
+			                    	limitToList="true"
+									oncomplete="enableUnblockButtons();"/>
+	          		</o:singleNodeSelection>
+	
+			       	<o:column width="10%" style="padding:0;text-align: center">
+						<h:graphicImage value="/images/warning_16.png" 
+								rendered="#{prodAttr.defLevel != null and
+										((MbObjectAttributes.product and not prodAttr.defLevelProduct)
+										or (MbObjectAttributes.service and not prodAttr.defLevelService)
+										or (MbObjectAttributes.contract and not MbObjectAttributes.currentNodeContract)
+										or (MbObjectAttributes.object and not prodAttr.defLevelObject and not prodAttr.defLevelProduct))}"
+								title="#{MbObjectAttributes.attrLevelMsg}">
+						</h:graphicImage>
+			       	</o:column>
+	
+				    <o:treeColumn id="nodeName" width="55%">
+				    	<f:facet name="header">
+							<h:panelGroup>         
+								<script>updateHeight();</script>
+				        		<h:outputText value="#{lblCommonQ.name}"/>
+				        	</h:panelGroup>
+				      	</f:facet>
+				      	<h:outputText value="#{prodAttr.attributeName}" styleClass="treeTableText"
+				      			title="#{prodAttr.attributeName}"
+				      			rendered="#{prodAttr.systemName != null}"/>
+				      	<h:outputText value="#{prodAttr.attributeName}" styleClass="treeTableText"
+				      			title="#{prodAttr.attributeName}"
+				      			rendered="#{prodAttr.systemName == null and not (MbObjectAttributes.object or MbObjectAttributes.contract)}" style="font-weight: bold"/>
+				      	<h:outputText value="#{prodAttr.attributeName} (#{DictUtils.articles[prodAttr.serviceStatus]})" styleClass="treeTableText"
+				      			title="#{prodAttr.attributeName} (#{DictUtils.articles[prodAttr.serviceStatus]})"
+				      			rendered="#{prodAttr.systemName == null and (MbObjectAttributes.object or MbObjectAttributes.contract)}" style="font-weight: bold"/>
+				    </o:treeColumn>
+	
+				    <o:column id="scale" width="25%">
+				    	<f:facet name="header">
+				        	<h:outputText value="#{lblAcqQ.scale}"/>
+				      	</f:facet>
+				      	<h:outputText value="#{prodAttr.scaleName}" title="#{prodAttr.scaleName}"  styleClass="res-tree-table-cell"/>
+				    </o:column>
+				    <o:column width="10%" style="padding:0;text-align: center" rendered="#{show_buttom_change_visibility}">
+				    	<f:facet name="header">
+			        	<h:outputText value="#{lblPrd.visible}" title="#{lblPrd.visible}"/>
+				      	</f:facet>
+				      	<h:selectBooleanCheckbox value="#{prodAttr.visible}" disabled="true"/>
+				    </o:column>
+				</o:treeTable>
+			
+			<br/>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		            <h:panelGrid id="btnPanel" columns="5" style="vertical-align: top;" cellpadding="0" cellspacing="0">
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>			
+
+        	<script type="text/javascript">//<!--
+       			// select first row which for some reason doesn't want to do it automatically 
+       			var nodeKey = "#{MbObjectAttributes.node.modelId}";
+       			if (document.getElementById("attrsTreeTable").getSelectedNodeKey() == null
+       					&& nodeKey != null) {
+       				document.getElementById("attrsTreeTable").setSelectedNodeKey(nodeKey);
+       			}
+       			// -->
+        	</script>
+		</h:panelGrid>
+		</h:form>
+		<h:panelGroup id="attrValues" layout="block" styleClass="carddata-wrapper"
+				style="height: 230px;width:100%; overflow:auto;position:relative;">
+			<ui:include src="/pages/common/application/person/listAttr.jspx">
+				<ui:param name="disableEditing" value="false" />
+			</ui:include>
+		</h:panelGroup>
+	
+
+	<!--
+	 * Clears strange "width" attributes that appear on all tree table's header 
+	 * columns giving these columns equal width. This problem occurs only when 
+	 * this form is refreshed as part of rich:tab component (which usually has 
+	 * id="details"). When the form is rerendered directly by tab id or by 
+	 * form id this problem doesn't occur.
+	 * Implemented with jQuery because IEs 7-8 do not support 
+	 * getElementsByClassName() method.  
+	 * CAUTION: leads to malfunctioning of resizing columns mechanism. So,  
+	 * don't use it with <o:columnResizing>.
+	  -->
+	<rich:jQuery timing="onJScall" 
+			name="clearObjAttrsWidths" query="
+				ready(function(){
+					var table = jQuery('#attrsTreeTable');
+					var cols = table.find('.o_scrolling_area_table')[0].getElementsByTagName('col');
+					jQuery.each(cols, function(i, val) {
+						val.style.width = ''; 
+					});
+					cols = table.find('.o_scrolling_area_table')[1].getElementsByTagName('col');
+					jQuery.each(cols, function(i, val) {
+						val.style.width = '';
+					});
+				})
+			"/>
+</ui:composition>
+</html>

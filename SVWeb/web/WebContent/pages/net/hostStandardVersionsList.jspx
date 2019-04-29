@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<f:loadBundle var="lblCmn" basename="ru.bpc.sv2.ui.bundles.Cmn"/>
+	
+	<script type="text/javascript">
+//<!--
+	function enableHostStdVerButtons() {
+		var disableBottom = #{MbIfConfig.paramObjectId == null};
+		var rowId = "row_" + 
+				document.getElementById("hostStdVerForm:stdTreeTable").getSelectedNodeKey();
+		if (disableBottom || document.getElementById("hostStdVerForm:stdTreeTable").isSelectionEmpty()) {
+			document.getElementById("hostStdVerForm:addBtn").disabled = true;
+			document.getElementById("hostStdVerForm:editBtn").disabled = true;
+			document.getElementById("hostStdVerForm:deleteBtn").disabled = true;
+		} else {
+			document.getElementById("hostStdVerForm:addBtn").disabled = false;
+			if (document.getElementsByClassName(rowId)[0].className.indexOf("isStandard") >= 0) {
+				document.getElementById("hostStdVerForm:editBtn").disabled = true;
+				document.getElementById("hostStdVerForm:deleteBtn").disabled = true;
+			} else {
+				document.getElementById("hostStdVerForm:editBtn").disabled = false;
+				document.getElementById("hostStdVerForm:deleteBtn").disabled = false;
+			}
+		}
+	}
+
+	function checkStandardVersionFields() {
+		var checked = true;
+		checked = checkField('stdVerObjEditForm:versionId');
+		checked = checkDateField('stdVerObjEditForm:newStartDate') && checked;
+		return checked;
+	}
+	
+	//-->
+	</script>
+
+   	<h:form id="hostStdVerForm">
+		<h:panelGroup id="stdTreeTableWrapper" style="position: relative; zoom: 1;" layout="block">
+			<o:treeTable id="stdTreeTable" var="stdVer"
+					expansionState="allExpanded"
+					headerHorizSeparator="1px solid #D7DAC2"
+					headerVertSeparator="1px solid #D7DAC2"
+					headerSectionClass="res-tree-table-header"
+					commonHeaderRowClass="res-tree-table-header"
+					sortableHeaderClass="res-tree-table-header"
+					sortedColumnHeaderClass="res-tree-table-header"
+					sortableHeaderRolloverClass="res-tree-table-header"
+					styleClass="extdt-table-layout res-tree-table"
+					bodyOddRowClass="res-tree-table-row odd-tree-table"
+					bodyRowClass="res-tree-table-row" headerRowClass="res-tree-table-header"
+					verticalGridLines="1px solid #D7DAC2"
+					cellpadding="0" cellspacing="0"
+					preloadedNodes="all"
+					useAjax="true"
+					style="height: 100%;"
+					>
+				<o:scrolling/>
+				<f:facet name="noDataMessage">
+				  	<h:panelGroup>
+				       <h:outputText value="#{lblCommon['no_records_found']}"/>
+					</h:panelGroup>
+				</f:facet>
+				
+      			<o:dynamicTreeStructure 
+      					nodeChildren="#{MbIfConfig.nodeChildren}" 
+      					nodeHasChildren="#{MbIfConfig.nodeHasChildren}" 
+      					nodeKey="#{stdVer.modelId}"/>
+	
+			    <o:singleNodeSelection 
+			    		nodePath="#{MbIfConfig.nodePath}"
+			          	nodeData="#{MbIfConfig.node}"
+	         			keyboardSupport="false"
+	         			required="true"
+	         			onchange="enableHostStdVerButtons()"
+	         			styleClass="treetable_selection"
+	         			>
+				</o:singleNodeSelection>
+	
+			    <o:treeColumn id="nodeLabel" width="40%" >
+			    	<f:facet name="header">
+			        	<h:outputText value="#{lblCommon.name}"/>
+			      	</f:facet>
+			      	<h:outputText value="#{lblNet.online_standard}:"
+			      			style="font-weight: bold" styleClass="treeTableText"
+			      			rendered="#{stdVer.parentId == null 
+			      					and MbHosts.activeHost.onlineStdId == stdVer.standardId}"/>
+			      	<h:outputText value="#{lblNet.offline_standard}:"
+			      			style="font-weight: bold"  styleClass="treeTableText"
+			      			rendered="#{stdVer.parentId == null 
+			      					and MbHosts.activeHost.offlineStdId == stdVer.standardId}"/>
+			      	<h:outputText value="#{stdVer.objectName}" title="#{stdVer.objectName}"
+							styleClass="treeTableText isStandard row_#{stdVer.modelId}"
+			      			rendered="#{stdVer.parentId == null}"/>
+			      	<h:outputText value="#{stdVer.versionNumber}" title="#{stdVer.versionNumber}" 
+							styleClass="treeTableText row_#{stdVer.modelId}"
+							rendered="#{stdVer.parentId != null}"/>
+			    </o:treeColumn>
+	
+			    <o:column id="startDate" width="25%">
+			    	<f:facet name="header">
+			        	<h:outputText value="#{lblCommon.start_date}"/>
+			      	</f:facet>
+			      	<h:outputText styleClass="res-tree-table-cell"
+			      			value="#{stdVer.startDate}"
+			      			title="#{stdVer.startDate}">
+			      		<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+			      	</h:outputText>
+			    </o:column>
+			</o:treeTable>
+		</h:panelGroup>
+	
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	            <h:panelGrid id="btnPanel" columns="4" style="vertical-align: top;" cellpadding="0" cellspacing="0">
+		        	<bre:taggedCommandButton id="addBtn"
+		                	value="#{lblForm.add}" reRender="stdVerObjEditForm"
+							oncomplete="#{rich:component('stdVerObjModalPanel')}.show()"
+		                	action="#{MbIfConfig.add}"
+		        			image="/images/create_doc.gif"/>
+					<bre:taggedCommandButton id="editBtn"
+							value="#{lblForm.edit}"
+							reRender="stdVerObjEditForm"
+   							action="#{MbIfConfig.edit}"
+							oncomplete="#{rich:component('stdVerObjModalPanel')}.show()"
+							image="/images/edit.gif"/>
+		        	<bre:taggedCommandButton id="deleteBtn"
+		                	value="#{lblForm.delete}"
+		        			image="/images/delete.gif"
+		        			oncomplete="#{rich:component('deleteStdVerView:confirmPanel')}.show()"/>
+
+		        	<script type="text/javascript">
+//<!--
+	        			/*document.getElementById("hostStdVerForm:addBtn").disabled = false;
+		        		document.getElementById("hostStdVerForm:editBtn").disabled = true;
+	        			document.getElementById("hostStdVerForm:deleteBtn").disabled = true;*/
+
+	        			// select first row which for some reason doesn't want to do it automatically
+	        			var nodeKey = "#{MbIfConfig.node.modelId}";
+	        			if (document.getElementById("hostStdVerForm:stdTreeTable").getSelectedNodeKey() == null
+	        					&& nodeKey != null) {
+	        				document.getElementById("hostStdVerForm:stdTreeTable").setSelectedNodeKey(nodeKey);
+	        			}
+	        			enableHostStdVerButtons();
+	        			// -->
+		        	</script>
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+        <script>updateHeight();</script>
+    </h:form>
+
+
+	<rich:modalPanel id="stdVerObjModalPanel" autosized="true" minWidth="200" minHeight="80">
+      	<f:facet name="header">
+        	<h:outputText value="#{lblCmn.set_version}"/>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      		
+		<h:form id="stdVerObjEditForm">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+					<h:outputLabel value="* #{lblCmn.version}: " title="#{lblCmn.version}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="versionId"
+								value="#{MbIfConfig.newNode.versionId}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbIfConfig.versions}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="versionIdError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCmn.version}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel for="newStartDate" value="* #{lblCommon.start_date}: " title="#{lblCommon.start_date}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+            			<rich:calendar id="newStartDate" 
+            					value="#{MbIfConfig.newNode.startDate}" 
+            					label="#{lblCommon.start_date}"
+            					datePattern="#{usession.fullDatePattern}" inputStyle="width:225px" zindex="1000" 
+            					onchanged="hideErrorDateField(this)" defaultTime="00:00">
+            			</rich:calendar>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newStartDateError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.start_date}"/>
+						</h:outputFormat>
+           			</h:panelGrid>
+			    </h:panelGrid>
+		    </h:panelGroup>
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		   	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		   	    		<h:outputText/>
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+								action="#{MbIfConfig.save}"
+								reRender="hostStdVerForm"
+								onclick="if (!checkStandardVersionFields()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('stdVerObjModalPanel')}.hide()"
+								/>
+		               	<bre:taggedCommandButton
+		                       	value="#{lblForm.cancel}" action="#{MbIfConfig.cancel}"
+		                       	immediate="true" limitToList="true"
+		                       	reRender="stdVerObjEditForm"
+		                       	oncomplete="#{rich:component('stdVerObjModalPanel')}.hide()">
+		                	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbIfConfig}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="hostStdVerForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteStdVerView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

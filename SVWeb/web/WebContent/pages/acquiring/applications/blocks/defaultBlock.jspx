@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<h:form id="defaultEditForm">
+		<a4j:jsFunction action="#{mbDefaultEdit.init}"
+						name="initEditForm"
+						reRender="edit_block_div"
+						eventsQueue="queue"/>
+		<a4j:jsFunction action="#{mbDefaultEdit.addChildElementSync}"
+						name="addChildElementSync"
+						reRender="edit_block_div"
+						eventsQueue="queue"/>
+		<a4j:jsFunction action="#{mbDefaultEdit.formatObject}"
+						name="saveEditForm"
+						reRender="appForm:appTable"
+						eventsQueue="queue"/>
+		<a4j:jsFunction action="#{mbDefaultEdit.formatObject}"
+						name="saveEditFormExternal"
+						eventsQueue="queue"/>
+		<a4j:jsFunction action="#{mbDefaultEdit.formatObject}"
+						name="saveAndSwitch"
+						eventsQueue="queue"
+						oncomplete="switchToTree();"/>
+		<a4j:jsFunction action="#{MbApplication.switchToTree}"
+						name="switchToTree"
+						reRender="switchers, appGrid, appBtnForm, appPanelForm"
+						oncomplete="returnFormFields()"
+						eventsQueue="queue"/>
+
+		<style>
+			.firstCol label {
+				width: 160px;
+			}
+		</style>
+
+		<h:panelGroup id="edit_block_div">
+			<h:panelGroup styleClass="search_result_block app_edit" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+					<h:panelGroup layout="block" styleClass="cardholderdata-wrapper" style="padding-top:30px;">
+						<h:dataTable id="attrsTable" value="#{mbDefaultEdit.objectAttrsList}" var="attr">
+							<h:column>
+								<h:panelGrid columns="2"
+											 width="100%"
+											 styleClass="cardholderdata"
+											 columnClasses="firstCol, width250"
+											 rendered="#{mbDefaultEdit.isRendered(attr)}">
+									<h:outputLabel for="#{attr.name}"
+												   value="#{mbDefaultEdit.objectAttrs[attr.name].shortDesc} #{mbDefaultEdit.objectAttrs[attr.name].minCount == 1?'*':''}:"
+												   title="#{mbDefaultEdit.objectAttrs[attr.name].shortDesc}"/>
+
+									<h:panelGroup>
+										<h:panelGroup rendered="#{mbDefaultEdit.isString(attr)}">
+											<h:inputText value="#{mbDefaultEdit.objectAttrs[attr.name].valueV}"
+														 label="#{mbDefaultEdit.objectAttrs[attr.name].shortDesc}"
+														 disabled="#{!mbDefaultEdit.objectAttrs[attr.name].updatable}"
+														 rendered="#{mbDefaultEdit.objectAttrs[attr.name].visible}"
+														 maxlength="#{mbDefaultEdit.objectAttrs[attr.name].maxLength}">
+												<a4j:support event="onchange"
+															 rendered="#{mbDefaultEdit.objectAttrs[attr.name].dependence}"
+															 action="#{mbDefaultEdit.applyDependence}"
+															 reRender="attrsTable">
+												<f:setPropertyActionListener value="#{attr.name}" target="#{mbDefaultEdit.elementName}"/>
+											</a4j:support>
+											</h:inputText>
+										</h:panelGroup>
+
+										<h:panelGroup rendered="#{mbDefaultEdit.isStringList(attr)}">
+											<h:selectOneMenu value="#{mbDefaultEdit.objectAttrs[attr.name].valueV}"
+															 label="#{mbDefaultEdit.objectAttrs[attr.name].shortDesc}"
+															 disabled="#{!mbDefaultEdit.objectAttrs[attr.name].updatable}"
+															 rendered="#{mbDefaultEdit.objectAttrs[attr.name].visible}">
+												<a4j:support event="onchange"
+															 ajaxSingle="true"
+															 limitToList="true"
+															 rendered="#{mbDefaultEdit.objectAttrs[attr.name].dependence}"
+															 reRender="attrsTable"
+															 action="#{mbDefaultEdit.applyDependence}">
+													<f:setPropertyActionListener value="#{attr.name}" target="#{mbDefaultEdit.elementName}" />
+												</a4j:support>
+												<f:selectItem itemValue=""/>
+												<f:selectItems value="#{mbDefaultEdit.lovMap[attr.name]}"/>
+											</h:selectOneMenu>
+										</h:panelGroup>
+
+										<h:panelGroup rendered="#{mbDefaultEdit.isNumeric(attr)}">
+											<h:inputText value="#{mbDefaultEdit.objectAttrs[attr.name].valueN}"
+														 label="#{mbDefaultEdit.objectAttrs[attr.name].shortDesc}"
+														 disabled="#{!mbDefaultEdit.objectAttrs[attr.name].updatable}"
+														 rendered="#{mbDefaultEdit.objectAttrs[attr.name].visible}"
+														 maxlength="#{mbDefaultEdit.objectAttrs[attr.name].maxLength}">
+												<a4j:support event="onchange"
+															 rendered="#{mbDefaultEdit.objectAttrs[attr.name].dependence}"
+															 action="#{mbDefaultEdit.applyDependence}"
+															 reRender="attrsTable">
+													<f:setPropertyActionListener value="#{attr.name}" target="#{mbDefaultEdit.elementName}" />
+												</a4j:support>
+												<bm:convertNumberNew groupingUsed="false"
+																	 type="number"
+																	 maxIntegerDigits="20"
+																	 minFractionDigits="0" />
+											</h:inputText>
+										</h:panelGroup>
+
+										<h:panelGroup rendered="#{mbDefaultEdit.isNumericList(attr)}">
+											<h:selectOneMenu value="#{mbDefaultEdit.objectAttrs[attr.name].valueN}"
+															 label="#{mbDefaultEdit.objectAttrs[attr.name].shortDesc}"
+															 disabled="#{!mbDefaultEdit.objectAttrs[attr.name].updatable}"
+															 rendered="#{mbDefaultEdit.objectAttrs[attr.name].visible}">
+												<a4j:support event="onchange"
+															 ajaxSingle="true"
+															 limitToList="true"
+															 rendered="#{mbDefaultEdit.objectAttrs[attr.name].dependence}"
+															 reRender="attrsTable"
+															 action="#{mbDefaultEdit.applyDependence}">
+													<f:setPropertyActionListener value="#{attr.name}" target="#{mbDefaultEdit.elementName}" />
+												</a4j:support>
+												<f:selectItem itemValue="" />
+												<f:selectItems value="#{mbDefaultEdit.lovMap[attr.name]}"/>
+											</h:selectOneMenu>
+										</h:panelGroup>
+
+										<h:panelGroup rendered="#{mbDefaultEdit.isDate(attr)}">
+											<rich:calendar buttonIcon="/images/calendar.gif"
+														   value="#{mbDefaultEdit.objectAttrs[attr.name].valueD}"
+														   rendered="#{mbDefaultEdit.objectAttrs[attr.name].visible}"
+														   label="#{lblPrd.contract_number}"
+														   datePattern="#{usession.datePattern}"
+														   timeZone="#{CommonUtils.timeZone}">
+												<a4j:support event="onchange"
+															 rendered="#{mbDefaultEdit.objectAttrs[attr.name].dependence}"
+															 action="#{mbDefaultEdit.applyDependence}"
+															 reRender="attrsTable">
+													<f:setPropertyActionListener value="#{attr.name}" target="#{mbDefaultEdit.elementName}" />
+												</a4j:support>
+											</rich:calendar>
+										</h:panelGroup>
+
+										<h:panelGroup style="margin-left: 5px"
+													  rendered="#{mbDefaultEdit.objectAttrs[attr.name].visible}">
+											<h:graphicImage url="/images/icon_warning.png"
+															height="16px"
+															rendered="#{!mbDefaultEdit.objectAttrs[attr.name].valid}"
+															width="16px"
+															title="#{lblApp.element_invalid_format}"/>
+											<h:graphicImage url="/images/stop-icon.png"
+															height="16px"
+															rendered="#{!mbDefaultEdit.objectAttrs[attr.name].validRequired}"
+															width="16px"
+															title="#{lblApp.element_is_required}"/>
+										</h:panelGroup>
+									</h:panelGroup>
+								</h:panelGrid>
+							</h:column>
+						</h:dataTable>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons"/>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+</ui:composition>
+</html>

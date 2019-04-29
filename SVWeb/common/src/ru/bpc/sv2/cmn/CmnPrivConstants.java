@@ -1,0 +1,49 @@
+package ru.bpc.sv2.cmn;
+
+public class CmnPrivConstants {
+	public static final String VIEW_COMM_RESP_CODES = "VIEW_COMM_RESP_CODES";
+	public static final String ADD_COMM_RESP_CODES = "ADD_COMM_RESP_CODES";
+	public static final String MODIFY_COMM_RESP_CODES = "MODIFY_COMM_RESP_CODES";
+	public static final String REMOVE_COMM_RESP_CODES = "REMOVE_COMM_RESP_CODES";
+
+	public static final String VIEW_COMMUNIC_STANDARD = "VIEW_COMMUNIC_STANDARD";
+	public static final String ADD_COMMUNIC_STANDARD = "ADD_COMMUNIC_STANDARD";
+	public static final String MODIFY_COMMUNIC_STANDARD = "MODIFY_COMMUNIC_STANDARD";
+	public static final String REMOVE_COMMUNIC_STANDARD = "REMOVE_COMMUNIC_STANDARD";
+
+	public static final String VIEW_COMMUNIC_PARAMETER = "VIEW_COMMUNIC_PARAMETER";
+	public static final String ADD_COMMUNIC_PARAMETER = "ADD_COMMUNIC_PARAMETER";
+	public static final String MODIFY_COMMUNIC_PARAMETER = "MODIFY_COMMUNIC_PARAMETER";
+	public static final String REMOVE_COMMUNIC_PARAMETER = "REMOVE_COMMUNIC_PARAMETER";
+
+	public static final String VIEW_CMN_STANDARD_VERSION = "VIEW_CMN_STANDARD_VERSION";
+	public static final String ADD_CMN_STANDARD_VERSION = "ADD_CMN_STANDARD_VERSION";
+	public static final String MODIFY_CMN_STANDARD_VERSION = "MODIFY_CMN_STANDARD_VERSION";
+	public static final String REMOVE_CMN_STANDARD_VERSION = "REMOVE_CMN_STANDARD_VERSION";
+
+	public static final String VIEW_CMN_VERSION_PARAMETER = "VIEW_CMN_VERSION_PARAMETER";
+	public static final String ADD_CMN_VERSION_PARAMETER = "ADD_CMN_VERSION_PARAMETER";
+	public static final String REMOVE_CMN_VERSION_PARAMETER = "REMOVE_CMN_VERSION_PARAMETER";
+
+	public static final String VIEW_COMMUNIC_PARAMETER_VALUE = "VIEW_COMMUNIC_PARAMETER_VALUE";
+	public static final String SET_COMMUNIC_PARAMETER = "SET_COMMUNIC_PARAMETER";
+
+	public static final String VIEW_COMMUNIC_DEVICE = "VIEW_COMMUNIC_DEVICE";
+	public static final String ADD_COMMUNIC_DEVICE = "ADD_COMMUNIC_DEVICE";
+	public static final String MODIFY_COMMUNIC_DEVICE = "MODIFY_COMMUNIC_DEVICE";
+	public static final String REMOVE_COMMUNIC_DEVICE = "REMOVE_COMMUNIC_DEVICE";
+	public static final String VIEW_TAB_COMMUNIC_DEVICE = "VIEW_TAB_COMMUNIC_DEVICE";
+
+	public static final String VIEW_COMMUNIC_PROFILE = "VIEW_COMMUNIC_PROFILE";
+	public static final String ADD_COMMUNIC_PROFILE = "ADD_COMMUNIC_PROFILE";
+	public static final String MODIFY_COMMUNIC_PROFILE = "MODIFY_COMMUNIC_PROFILE";
+	public static final String REMOVE_COMMUNIC_PROFILE = "REMOVE_COMMUNIC_PROFILE";
+
+	public static final String VIEW_CMN_DEVICE_CONNECTION = "VIEW_CMN_DEVICE_CONNECTION";
+
+	public static final String VIEW_CMN_KEY_TYPE = "VIEW_CMN_KEY_TYPE";
+	public static final String ADD_CMN_KEY_TYPE = "ADD_CMN_KEY_TYPE";
+	public static final String MODIFY_CMN_KEY_TYPE = "MODIFY_CMN_KEY_TYPE";
+	public static final String REMOVE_CMN_KEY_TYPE = "REMOVE_CMN_KEY_TYPE";
+
+}

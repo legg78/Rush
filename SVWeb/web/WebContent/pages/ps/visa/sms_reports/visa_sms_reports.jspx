@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:o="http://openfaces.org/"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+      xmlns:fmt="http://www.bpc.ru/el/formatter">
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+        <f:loadBundle var="lblCom" basename="ru.bpc.sv2.ui.bundles.Common"/>
+        <f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+        <f:loadBundle var="lblCup" basename="ru.bpc.sv2.ui.bundles.Cup"/>
+        <f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form"/>
+        <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+        <f:loadBundle var="lblPrc" basename="ru.bpc.sv2.ui.bundles.Process"/>
+        <f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+        <f:loadBundle var="lblRec" basename="ru.bpc.sv2.ui.bundles.Rec"/>
+        <f:loadBundle var="lblVis" basename="ru.bpc.sv2.ui.bundles.Vis"/>
+
+        <a4j:loadScript src="/js/stretch.js"/>
+        <a4j:loadScript src="/js/calendarUtils.js"/>
+        <rich:calendar id="calendar"
+                       datePattern="#{usession.datePattern}"
+                       timeZone="#{CommonUtils.timeZone}"
+                       buttonIcon="/images/calendar.gif"
+                       onchanged="if(#{rich:component('calendar')}.customInput.value!=event.rich.component.getSelectedDateString()){
+                                     #{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();
+                                     #{rich:component('calendar')}.customInput.onchange();}"
+                       zindex="1000"
+                       inputClass="hidden"
+                       buttonClass="hidden"
+                       showApplyButton="true"
+                       defaultTime="00:00"/>
+
+        <!-- main panel -->
+        <h:panelGroup rendered="#{usession.inRole['VIEW_VISA_SMS_REPORTS']}">
+            <!-- navigation bar -->
+            <bpct:navBar pageName="#{lblVis.vss_reports}"/>
+            <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+            <!-- search form -->
+            <h:form id="searchForm" onkeypress="return handleEnter(event)">
+                <a4j:jsFunction name="setTabName"
+                                reRender="err_ajax, workplacePanel, details"
+                                limitToList="true"
+                                ajaxSingle="true"
+                                eventsQueue="queue">
+                    <a4j:actionparam name="tabName" assignTo="#{MbVisaSmsReports.tabName}" />
+                </a4j:jsFunction>
+
+                <h:panelGroup styleClass="search_block" layout="block">
+                    <h:panelGroup layout="block" styleClass="search_block_inner1">
+                        <h:panelGroup layout="block" styleClass="search_block_inner2">
+                            <h:panelGroup styleClass="search_block_left" layout="block">
+                                <h:panelGrid styleClass="fw" columns="2" columnClasses="top,link-cont">
+                                    <h:panelGrid id="filtersTable"
+                                                 styleClass="filter-table field-cont threeColumnTable"
+                                                 columns="6"
+                                                 columnClasses="firstCol,secondCol,firstCol,secondCol,firstCol,secondCol">
+                                        <h:outputLabel for="reportId" title="#{lblVis.report_id}" value="#{lblVis.report_id}: " />
+                                        <h:inputText id="reportId" value="#{MbVisaSmsReports.filter.id}" />
+
+                                        <h:outputLabel for="recordType" value="#{lblVis.record_type}: " title="#{lblVis.record_type}"/>
+                                        <h:selectOneMenu id="recordType" value="#{MbVisaSmsReports.filter.recordType}">
+                                            <f:selectItem itemValue=""/>
+                                            <f:selectItems value="#{MbVisaSmsReports.recordTypes}" />
+                                        </h:selectOneMenu>
+
+                                        <h:outputLabel for="settlementDate" value="#{lblCom.sttl_date}:" title="#{lblCom.sttl_date}"/>
+                                        <bm:calendarField id="settlementDate" value="#{MbVisaSmsReports.filter.sttlDate}"/>
+
+                                        <h:outputLabel for="instId" title="#{lblCom.inst_id}" value="#{lblCom.inst_id}: " />
+                                        <h:selectOneMenu id="instId" value="#{MbVisaSmsReports.filter.instId}">
+                                            <f:selectItem itemValue=""/>
+                                            <f:selectItems value="#{MbVisaSmsReports.institutions}" />
+                                        </h:selectOneMenu>
+
+                                        <h:outputLabel for="cardNum" title="#{lblCrd.card_number}" value="#{lblCrd.card_number}: "/>
+                                        <h:inputText id="cardNum" value="#{MbVisaSmsReports.filter.cardNumber}"/>
+
+                                        <h:outputLabel for="status" title="#{lblCom.status}" value="#{lblCom.status}: "/>
+                                        <h:selectOneMenu id="status" value="#{MbVisaSmsReports.filter.status}">
+                                            <f:selectItem itemValue=""/>
+                                            <f:selectItems value="#{MbVisaSmsReports.statuses}"/>
+                                        </h:selectOneMenu>
+                                    </h:panelGrid>
+
+                                    <h:panelGrid columns="1">
+                                        <bre:taggedCommandButton action="#{MbVisaSmsReports.search}"
+                                                                 reRender="searchResultsForm, searchResultBtn,
+                                                                           workplacePanel, details"
+                                                                 image="/_img/icon_search.png" type="submit"
+                                                                 value="#{lblForm.search}" style="width:85px;"
+                                                                 id="searchBtn"
+                                                                 onclick="disableModalPanelBtns(this);"
+                                                                 oncomplete="enableModalPanelBtns(this);"
+                                                                 eventsQueue="queue"/>
+                                        <h:panelGroup styleClass="link-clear" layout="block">
+                                            <h:graphicImage url="/_img/icon_clear.png" />
+                                            <a4j:commandLink value="#{lblForm.clear_all}"
+                                                             action="#{MbVisaSmsReports.clearFilter}"
+                                                             reRender="searchForm,
+                                                                       searchResultsForm, searchResultBtn,
+                                                                       workplacePanel, details">
+                                            </a4j:commandLink>
+                                        </h:panelGroup>
+                                        <h:panelGroup>
+                                            <bpct:filterBar sectionId="2371"/>
+                                        </h:panelGroup>
+                                    </h:panelGrid>
+                                </h:panelGrid>
+                                <a4j:outputPanel ajaxRendered="true">
+                                    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+                                    <h:panelGroup styleClass="collapse-vert" layout="block" />
+                                </a4j:outputPanel>
+                            </h:panelGroup>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+
+            <!-- main form -->
+            <h:form id="searchResultsForm">
+                <a4j:jsFunction name="changeSelection" eventsQueue="queue" reRender="#{MbVisaSmsReports.tabName}"/>
+
+                <h:panelGroup styleClass="search_result_block" layout="block">
+                    <h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+                        <h:panelGroup id="mainTableWrapper" layout="block" styleClass="search_result_block_inner">
+                            <rich:extendedDataTable id="searchResultTable"
+                                                    styleClass="res-table"
+                                                    headerClass="res-table-header"
+                                                    rowClasses=",odd"
+                                                    selectedClass="res-table-selected"
+                                                    var="item"
+                                                    value="#{MbVisaSmsReports.dataModel}"
+                                                    selection="#{MbVisaSmsReports.itemSelection}"
+                                                    rows="#{MbVisaSmsReports.rowsNum}"
+                                                    height="255px"
+                                                    selectionMode="single"
+                                                    width="100%"
+                                                    enableContextMenu="true"
+                                                    onselectionchange="changeSelection();"
+                                                    noDataLabel="#{MbVisaSmsReports.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+                                                    reRender="details">
+                                <!--@elvariable id="item" type="ru.bpc.sv2.ps.visa.VisaSmsReport"-->
+
+                                <rich:column sortBy="#{'id'}" width="10%" label="#{lblCommon.id}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.id}" title="#{item.id}" />
+                                </rich:column>
+
+                                <rich:column sortBy="#{'recordType'}" width="8%" label="#{lblVis.record_type}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblVis.record_type}" title="#{lblVis.record_type}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.recordType}" title="#{item.recordType}" />
+                                </rich:column>
+
+                                <rich:column sortBy="#{'instId'}" width="11%" label="#{lblCom.inst_id}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCom.inst_id}" title="#{lblCom.inst_id}"/>
+                                    </f:facet>
+                                    <h:outputText rendered="#{item.instId != null}"
+                                                  value="#{item.instId} - #{item.instName}"
+                                                  title="#{item.instId} - #{item.instName}"/>
+                                    <h:outputText rendered="#{item.instId == null}" value="" title=""/>
+                                </rich:column>
+
+                                <rich:column width="10%" label="#{lblCrd.card_number}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCrd.card_number}" title="#{lblCrd.card_number}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.cardNumber}" title="#{item.cardNumber}" />
+                                </rich:column>
+
+                                <rich:column sortBy="#{'sttlDate'}" width="10%" label="#{lblCom.sttl_date}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCom.sttl_date}" title="#{lblCom.sttl_date}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.sttlDate}" title="#{item.sttlDate}">
+                                        <f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+                                    </h:outputText>
+                                </rich:column>
+
+                                <rich:column width="3%" label="#{lblCup.sttl_sign}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCup.sttl_sign}" title="#{lblCup.sttl_sign}"/>
+                                    </f:facet>
+                                    <h:outputText value="#{item.sttlSign}" title="#{item.sttlSign}"/>
+                                </rich:column>
+
+                                <rich:column width="12%" label="#{lblOpr.sttl_amount}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblOpr.sttl_amount}" title="#{lblOpr.sttl_amount}"/>
+                                    </f:facet>
+                                    <div class="#{EntityIcons.objectsMapS['ENTT0046'][item.sttlCurrCode]}" style="float:right; margin: 0 0 0 10px;"/>
+                                    <h:outputText value="#{fmt:formatMoney(item.sttlAmount, CurrencyUtils.currencyObjectsMap[item.sttlCurrCode].exponent)}
+                                                         #{CurrencyUtils.currencyShortNamesMap[item.sttlCurrCode]}" />
+                                </rich:column>
+
+                                <rich:column sortBy="#{'status'}" width="10%" label="#{lblCom.status}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCom.status}" title="#{lblCom.status}" />
+                                    </f:facet>
+                                    <h:outputText rendered="#{item.status != null}"
+                                                  value="#{item.status} - #{item.statusDesc}"
+                                                  title="#{item.status} - #{item.statusDesc}"/>
+                                    <h:outputText rendered="#{item.status == null}" value="" title=""/>
+                                </rich:column>
+
+                                <rich:column width="10%" label="#{lblCom.reference_number}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblCom.reference_number}" title="#{lblCom.reference_number}" />
+                                    </f:facet>
+                                    <h:outputText value="#{item.refnum}" title="#{item.refnum}"/>
+                                </rich:column>
+
+                                <rich:column width="10%" label="#{lblRec.trace_number}">
+                                    <f:facet name="header">
+                                        <h:outputText value="#{lblRec.trace_number}" title="#{lblRec.trace_number}" />
+                                    </f:facet>
+                                    <h:outputText value="#{item.traceNum}" title="#{item.traceNum}"/>
+                                </rich:column>
+                            </rich:extendedDataTable>
+                        </h:panelGroup>
+
+                        <a4j:outputPanel ajaxRendered="true">
+                            <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+                            <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+                            <h:panelGroup styleClass="collapse-vert" layout="block" />
+                        </a4j:outputPanel>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+
+            <!-- buttons form -->
+            <h:form id="searchResultBtn">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+                        <h:panelGroup layout="block" styleClass="table_tools">
+                            <!--@elvariable id="pages" type="java.lang.Integer"-->
+                            <h:panelGrid styleClass="fw field-cont" columns="5" columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount">
+                                <h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+                                <h:selectOneMenu id="rows_num" value="#{MbVisaSmsReports.rowsNum}" styleClass="row_per_page">
+                                    <a4j:support event="onchange" limitToList="true"
+                                                 reRender="searchResultsForm, workplacePanel, details"/>
+                                    <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                                </h:selectOneMenu>
+
+                                <rich:datascroller maxPages="10" fastControls="hide" pagesVar="pages" styleClass="res-datascroller"
+                                                   id="dsreports" for="searchResultTable" reRender="workplacePanel, details">
+                                    <f:facet name="first">
+                                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+                                    </f:facet>
+                                    <f:facet name="first_disabled">
+                                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+                                    </f:facet>
+                                    <f:facet name="last">
+                                        <h:outputText value="&gt;&gt;" styleClass="prev-next" />
+                                    </f:facet>
+                                    <f:facet name="last_disabled">
+                                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+                                    </f:facet>
+                                    <f:facet name="previous">
+                                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+                                    </f:facet>
+                                    <f:facet name="previous_disabled">
+                                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+                                    </f:facet>
+                                    <f:facet name="next">
+                                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+                                    </f:facet>
+                                    <f:facet name="next_disabled">
+                                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+                                    </f:facet>
+                                    <f:facet name="pages">
+                                    </f:facet>
+                                </rich:datascroller>
+
+                                <h:panelGroup id="pagesNum">
+                                    <h:outputText styleClass="strongClass" value="#{pages} " />
+                                    <h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbVisaSmsReports.dataModel.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                </h:panelGroup>
+
+                                <h:panelGroup/>
+                            </h:panelGrid>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+
+            <!-- tabs form -->
+            <h:panelGroup id="workplacePanel" styleClass="workplace" layout="block">
+                <rich:tabPanel id="details"
+                               switchType="client"
+                               tabClass="tab-cell"
+                               activeTabClass="active-tab-cell"
+                               headerClass="tabs"
+                               headerSpacing="0px"
+                               contentClass="tab-content"
+                               selectedTab="#{MbVisaSmsReports.tabName}">
+                    <rich:tab label="#{lblCommon.details}"
+                              name="detailsTab"
+                              onlabelclick="setTabName('detailsTab')">
+                        <f:facet name="label">
+                            <h:panelGroup styleClass="first tab-label" layout="block">
+                                <h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+                            </h:panelGroup>
+                        </f:facet>
+
+                        <h:panelGroup id="detailsTab" layout="block">
+                            <ui:include src="/pages/ps/visa/sms_reports/visa_sms_report_details.jspx"/>
+                        </h:panelGroup>
+                    </rich:tab>
+                </rich:tabPanel>
+            </h:panelGroup>
+        </h:panelGroup>
+
+        <!-- no privileges panel -->
+        <h:panelGroup rendered="#{!usession.inRole['VIEW_VISA_SMS_REPORTS']}" style="text-align: center">
+            <h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em"/>
+        </h:panelGroup>
+    </ui:define>
+</ui:composition>
+</html>

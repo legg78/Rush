@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+        >
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+<ui:define name="navigatableContent">
+<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css"/>
+<script type="text/javascript" src="#{request.contextPath}/js/stretch.js"/>
+
+
+<f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+
+<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+<a4j:loadScript src="/js/stretch.js"/>
+<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+<script type="text/javascript">
+    //<![CDATA[
+
+
+    function handleEnter(event) {
+        if (event.keyCode == 13) {
+            document.getElementById('entitySearchForm:searchBtn').click();
+            return false;
+        }
+        return true;
+    }
+    //]]>
+</script>
+
+<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"
+               onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+               zindex="1000" inputClass="hidden" buttonClass="hidden"/>
+
+
+<script>
+    #{rich:component('calendar')}.customExpand = customExpand;
+</script>
+
+<!-- navigation bar -->
+
+<bpct:navBar pageName="#{lblCrd.debts}"/>
+
+
+<!-- search panel -->
+<h:form id="entitySearchForm" onkeypress="handleEnter(event)">
+    <h:panelGroup layout="block" styleClass="search_block" style="height: 35px">
+        <h:panelGroup layout="block" styleClass="search_block_inner1">
+            <h:panelGroup layout="block" styleClass="search_block_inner2">
+                <h:panelGroup layout="block" styleClass="search_block_left">
+                    <h:panelGroup styleClass="search_block_inner search_block_inner-hidden-filter"
+                                  layout="block">
+                        <h:panelGrid styleClass="fw" columns="2"
+                                     columnClasses="top ,link-cont">
+                            <h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+                                         columnClasses="firstCol,firstCol,firstCol,secondCol">
+                                <h:outputLabel for="fileSelect" title="Configuration file"
+                                               value="Configuration file:"/>
+                                <h:selectOneMenu id="fileSelect" value="#{MbConvertersConfig.selectedFile}">
+                                    <f:selectItems value="#{MbConvertersConfig.files}"/>
+                                </h:selectOneMenu>
+                                <bre:taggedCommandButton action="#{MbConvertersConfig.load}"
+                                                         reRender="entityForm, saveBtn"
+                                                         id="loadBtn"
+                                                         type="submit"
+                                                         value="#{lblForm.load}"
+                                                         style="width:85px;"/>
+                                <bre:taggedCommandButton onclick="if(document.getElementById('entityForm:configContent')!=null) save(document.getElementById('entityForm:configContent').value); else save(null);"
+                                                         id="saveBtn"
+                                                         value="#{lblForm.save}"
+                                                         disabled="#{MbConvertersConfig.items==null and MbConvertersConfig.configContent==null}"
+                                                         style="width:85px;"/>
+                            </h:panelGrid>
+
+                            <h:panelGrid columns="1">
+                                <h:panelGroup styleClass="link-clear" layout="block">
+                                    <h:graphicImage url="/_img/icon_clear.png"/>
+                                    <a4j:commandLink value="#{lblForm.clear_all}"
+                                                     action="#{MbConvertersConfig.clear}"
+                                                     reRender="entitySearchForm, entityForm, entityBtnForm, details">
+                                    </a4j:commandLink>
+                                </h:panelGroup>
+                            </h:panelGrid>
+
+                        </h:panelGrid>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+<rich:modalPanel id="editWindow" autosized="true" minWidth="300" minHeight="100">
+    <f:facet name="header">
+        <h:panelGroup id="editWindowHeader">
+            <h:outputText value="Add/edit code-value pair"/>
+        </h:panelGroup>
+    </f:facet>
+    <f:facet name="controls">
+    </f:facet>
+    <h:panelGroup id="editWindowDiv">
+        <h:form id="editWindowForm">
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal nowrap top, width250">
+                    <h:outputLabel value="Code: " title="Code"/>
+                    <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                        <h:inputText id="code" value="#{MbConvertersConfig.currentItem.key}" label="Code"
+                                     required="true"/>
+                        <rich:message for="code" styleClass="errorMarker" id="codeError"/>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="Value: " title="Value"/>
+                    <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                        <h:inputText id="value" value="#{MbConvertersConfig.currentItem.value}" label="Value"
+                                     required="true"/>
+                        <rich:message for="value" styleClass="errorMarker" id="valueError"/>
+                    </h:panelGrid>
+                </h:panelGrid>
+            </h:panelGroup>
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                        <h:outputText/>
+                        <bre:taggedCommandButton
+                                value="#{lblForm.save}" type="submit"
+                                id="saveBtn"
+                                reRender="entityForm"
+                                oncomplete="Richfaces.hideModalPanel('editWindow')"
+                                />
+                        <bre:taggedCommandButton
+                                value="#{lblForm.cancel}"
+                                immediate="true"
+                                id="cancelBtn"
+                                oncomplete="Richfaces.hideModalPanel('editWindow')"
+                                />
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:modalPanel>
+
+<h:form id="entityForm">
+    <!-- result panel -->
+    <h:panelGroup styleClass="search_result_block" layout="block">
+        <h:panelGroup styleClass="search_result_block_left fix-ff"
+                      layout="block">
+            <h:panelGroup id="mainTableWrapper" layout="block"
+                          styleClass="search_result_block_inner">
+                <h:inputTextarea style="max-width: 100%; width: 100%" rows="40" value="#{MbConvertersConfig.configContent}"
+                                 id="configContent" rendered="#{MbConvertersConfig.xml==false}"/>
+
+                <rich:extendedDataTable id="entityTable"
+                                        rendered="#{MbConvertersConfig.xml}"
+                                        styleClass="res-table"
+                                        headerClass="res-table-header"
+                                        rowClasses=",odd"
+                                        var="item"
+                                        value="#{MbConvertersConfig.items}"
+                                        onRowDblClick="prepareEdit()"
+                                        onRowClick="selRow('#{item.key}')"
+                                        width="100%"
+                                        height="255px">
+
+                    <rich:column label="Code" title="Code" sortBy="#{item.key}" width="30%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="Code" title="Code"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.key}" title="#{item.key}"/>
+                    </rich:column>
+
+                    <rich:column label="Value" title="Value" sortBy="#{item.value}" width="70%">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="Value" title="Value"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.value}" title="#{item.value}"/>
+                    </rich:column>
+
+                </rich:extendedDataTable>
+                <h:panelGroup id="buttonsPanel" layout="block"
+                              rendered="#{MbConvertersConfig.xml}"
+                              styleClass="bottom_search_result_left_buttons" style="width:150px">
+                    <a4j:region>
+                        <h:panelGrid styleClass="fw buttons_block" columns="2">
+                            <bre:taggedCommandButton id="addBtn"
+                                                     value="#{lblForm.add}"
+                                                     reRender="editWindow, entityTable"
+                                                     oncomplete="Richfaces.showModalPanel('editWindow')"
+                                                     action="#{MbConvertersConfig.add}"
+                                                     disabled="#{MbConvertersConfig.items==null}"
+                                                     image="/images/create_doc.gif"/>
+                            <bre:taggedCommandButton id="deleteBtn"
+                                                     value="#{lblForm.delete}"
+                                                     reRender="entityForm"
+                                                     action="#{MbConvertersConfig.delete}"
+                                                     disabled="#{MbConvertersConfig.currentKey == null}"
+                                                     image="/images/delete.gif"/>
+                        </h:panelGrid>
+                    </a4j:region>
+                </h:panelGroup>
+            </h:panelGroup>
+            <h:panelGrid id="jsGrid">
+                <a4j:jsFunction name="prepareEdit"
+                                oncomplete="Richfaces.showModalPanel('editWindow')"
+                                reRender="editWindow">
+                </a4j:jsFunction>
+                <a4j:jsFunction name="selRow" reRender="buttonsPanel">
+                    <a4j:actionparam name="param" assignTo="#{MbConvertersConfig.currentKey}"/>
+                </a4j:jsFunction>
+                <a4j:jsFunction name="save" action="#{MbConvertersConfig.save}" reRender="entityTable, configContent, saveBtn">
+                    <a4j:actionparam name="param" assignTo="#{MbConvertersConfig.configContent}"/>
+                </a4j:jsFunction>
+            </h:panelGrid>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+<script type="text/javascript">
+    function updateHeight() {
+        updateGridHeight();
+    }
+    //<![CDATA[
+    layout =
+    {
+        SEARCH_FORM_ID: 'entitySearchForm',
+        SEARCH_RESULT_FORM_ID: 'entityForm',
+        SEARCH_RESULT_FORM_WRAPPER_ID: 'mainTableWrapper',
+        SEARCH_RESULT_FOOTER_FORM_ID: 'entityBtnForm',
+        TAB_PANEL_ID: 'workplacePanel',
+
+        TAB_DATA: [
+            {
+                TAB_FORM_ID: 'entityDetailsForm',
+                TAB_FORM_WRAPPER_ID: 'entityDetailsWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            },
+            {
+                TAB_FORM_ID: 'addendumBottomForm',
+                TAB_FORM_WRAPPER_ID: 'addendumBottomTableWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            },
+            {
+                TAB_FORM_ID: 'visaFeeDetailsForm',
+                TAB_FORM_WRAPPER_ID: 'entityDetailsWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            }
+        ]
+    };
+    updateHeight();
+    jQuery(window).resize(updateHeight);
+    //]]>
+</script>
+</ui:define>
+</ui:composition>
+
+</html>

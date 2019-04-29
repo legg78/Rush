@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:o="http://openfaces.org/"
+		xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition>
+	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+	<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+	
+	<!-- main form -->
+	<h:form id="issMainForm">
+		<h:panelGroup id="issMainTableWrapper" style="position: relative; zoom: 1;" layout="block">
+            <o:treeTable id="issTreeTable" var="issObject" 
+					expansionState="allExpanded"
+					headerHorizSeparator="1px solid #D7DAC2"
+					headerVertSeparator="1px solid #D7DAC2"
+					headerSectionClass="res-tree-table-header"
+					commonHeaderRowClass="res-tree-table-header"
+					sortableHeaderClass="res-tree-table-header"
+					sortedColumnHeaderClass="res-tree-table-header"
+					sortableHeaderRolloverClass="res-tree-table-header"
+					styleClass="extdt-table-layout res-tree-table"
+					bodyOddRowClass="res-tree-table-row odd-tree-table"
+					bodyRowClass="res-tree-table-row" headerRowClass="res-tree-table-header"
+					verticalGridLines="1px solid #D7DAC2"
+					cellpadding="0" cellspacing="0"
+					preloadedNodes="all"
+					style="height:221px"
+					>
+				<o:scrolling/>
+				<f:facet name="noDataMessage">
+				  	<h:panelGroup>
+				       <h:outputText value="#{lblCommon['no_records_found']}"/>
+					</h:panelGroup>
+				</f:facet>
+				
+       			<o:dynamicTreeStructure 
+       					nodeChildren="#{(issHierBottomBean==null ? MbIssuingHierarchyBottom : issHierBottomBean).nodeChildren}" 
+       					nodeHasChildren="#{(issHierBottomBean==null ? MbIssuingHierarchyBottom : issHierBottomBean).nodeHasChildren}" 
+       					nodeKey="#{issObject.modelId}"/>
+
+			    <o:singleNodeSelection
+			          	nodeData="#{(issHierBottomBean==null ? MbIssuingHierarchyBottom : issHierBottomBean).node}"
+          				keyboardSupport="false"
+          				styleClass="treetable_selection"
+          				>          		
+          		</o:singleNodeSelection>
+
+			    <o:treeColumn id="nodeName" width="100%">
+			    	<f:facet name="header">
+			    		<h:panelGroup>
+			    			<script>
+			    				updateHeight();
+			    			</script>
+			    			<h:outputText value="#{lblCommonQ.name}"/>
+			    		</h:panelGroup>
+			      	</f:facet>
+			      	<h:outputText styleClass="treeTableText"
+			      			value="#{DictUtils.articles[issObject.entityType]}: #{issObject.name}"
+			      			title="#{DictUtils.articles[issObject.entityType]}: #{issObject.name}"
+			      			rendered="#{!issObject.errorNode}"/>
+			      	<h:panelGroup rendered="#{issObject.errorNode}">
+						<h:graphicImage value="/images/warning_16.png"/>
+				      	<h:outputText styleClass="treeTableText"
+				      			value="#{lblMsg.hier_tree_build_with_errors}"
+				      			title="#{lblMsg.hier_tree_build_with_errors}"
+				      			/>
+				      	<a4j:commandLink reRender="issHierarchyErrorPanelForm"
+				      			oncomplete="#{rich:component('issHierarchyErrorPanel')}.show()"
+				      			value=" #{lblCommon.details}">
+				      	</a4j:commandLink>
+			      	</h:panelGroup>
+			    </o:treeColumn>
+			</o:treeTable>
+		</h:panelGroup>
+
+        <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	            <h:panelGrid id="issBtnPanel" columns="3" cellpadding="0" cellspacing="0" width="auto">
+
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+    </h:form>
+
+	<rich:modalPanel id="issHierarchyErrorPanel" autosized="true" minWidth="300" minHeight="50" >
+        <f:facet name="header">
+            <h:panelGroup>
+                <h:outputText value="#{lblMsg.warning_exc}"/>
+            </h:panelGroup>
+        </f:facet>
+        <f:facet name="controls">
+			<h:panelGroup>
+				<h:outputText value="X" styleClass="hidelink" id="hideIssErrorLink"/>
+				<rich:componentControl for="issHierarchyErrorPanel" attachTo="hideIssErrorLink" 
+						operation="hide" event="onclick"/>
+			</h:panelGroup>
+        </f:facet>
+        <h:form id="issHierarchyErrorPanelForm">
+	        <h:panelGrid columns="2">
+		        <h:graphicImage url="/images/icon_warning.png" height="32" width="32"/>
+		        <h:panelGroup>
+			        <h:outputText value="#{lblMsg.error_list_preamb}"/>
+			        <br/><br/>
+			        <c:forEach items="#{(issHierBottomBean==null ? MbIssuingHierarchyBottom : issHierBottomBean).errorMessages}" var="errorMsg">
+			        	<h:outputText value="- #{errorMsg}"/><br/>
+			        </c:forEach>
+		        </h:panelGroup>
+	        </h:panelGrid>
+		    
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+		        		<bre:taggedCommandButton value="#{lblForm.close}" 
+		        				onclick="#{rich:component('issHierarchyErrorPanel')}.hide()"
+		        				/>
+			        </h:panelGrid>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+    </rich:modalPanel>
+
+	
+	
+</ui:composition>
+</html>

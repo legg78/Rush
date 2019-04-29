@@ -1,0 +1,2027 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="rpt">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>                  
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+	
+	<!-- Report without CLOB -->
+	<resultMap  id="mapping-report-light"
+                class="ru.bpc.sv2.reports.Report">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="label"/>
+		<result property="description" column="description"/>        
+        <result property="lang" column="lang"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+        <result property="sourceType" column="source_type"/>
+        <result property="isDeterministic" column="is_deterministic" javaType="boolean" nullValue="false"/>
+		<result property="isNotification" column="is_notification" javaType="boolean" nullValue="false"/>
+        <result property="nameFormatId" column="name_format_id"/>
+        <result property="nameFormatName" column="name_format_name"/>
+        <result property="documentType" column="document_type"/>
+	</resultMap>
+	
+	<!-- Complete report -->
+	<resultMap  id="mapping-report"
+                class="ru.bpc.sv2.reports.Report"
+                extends="mapping-report-light">
+        <result property="reportSource" column="data_source"/>
+        <result property="tagsLabel" column="tagsLabel"/>
+	</resultMap>
+
+	<resultMap  id="mapping-report-hier"
+                class="ru.bpc.sv2.reports.Report"  extends="mapping-report">
+    	<result property="level" column="level" />
+        <result property="isLeaf" javaType="boolean" column="is_leaf" />
+	</resultMap>
+	
+	<select	id="get-reports-hier"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-report-hier" >
+		SELECT	  level
+                , r1.id
+				, r1.seqnum
+				, r1.parent_id
+				, r1.label
+				, r1.description
+				, r1.lang
+				, r1.inst_id
+				, r1.source_type
+				, r2.data_source
+				, i.name inst_name
+				, r1.is_deterministic
+				, r1.is_notification
+				, r1.name_format_id
+				, nf.label name_format_name
+				, null tagsLabel
+				, CONNECT_BY_ISLEAF AS is_leaf
+	    FROM (
+		    SELECT DISTINCT
+		    	r.id
+                , r.seqnum
+                , r.parent_id
+                , r.label
+                , r.description
+                , r.lang
+                , r.inst_id
+                , r.source_type                 
+				, r.is_deterministic
+				, r.is_notification
+				, r.name_format_id
+		   FROM 
+				rpt_ui_report_vw r
+				<iterate prepend=" START WITH " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="lang">
+						r.lang = #filters[].value#
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(r.label) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="parentId">r.parent_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="sourceType">r.source_type = #filters[].value#</isEqual>
+				</iterate>
+			CONNECT BY prior r.parent_id = r.id
+				<iterate prepend="AND" conjunction="AND" property="filters">
+		        	<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+		        </iterate>
+		) r1
+			, rpt_ui_report_vw r2
+			, ost_ui_institution_sys_vw i
+			, rul_ui_name_format_vw nf
+		WHERE 
+            r1.id = r2.id
+            AND r1.lang = r2.lang
+            AND i.id = r1.inst_id
+            AND i.lang = r1.lang
+            AND nf.id(+) = r1.name_format_id
+            AND nf.lang(+) = r1.lang
+		START WITH 
+			r1.parent_id is NULL
+		CONNECT BY 
+			PRIOR r1.id = r1.parent_id  
+		ORDER SIBLINGS BY r1.label ASC
+	</select>
+	
+	<select id="get-reports"
+			parameterClass="qparams"
+			resultMap="mapping-report">
+		<include refid="paginatedOpen"/>
+			select * from (
+				select r.id
+					 , r.seqnum
+					 , r.label
+					 , r.description
+					 , r.lang
+					 , r.inst_id
+					 , r.source_type
+					 , r.data_source
+					 , i.name inst_name
+					 , r.is_deterministic
+					 , r.is_notification
+					 , r.name_format_id
+                     , r.document_type
+					 , nf.label name_format_name
+					 , (select listagg(tag_label, com_api_const_pkg.get_separator) within
+					     group (order by tag_label)
+					      from rpt_ui_report_tag_vw t
+					     where t.report_id = r.id
+					       and lang = #lang#) tagsLabel
+				 from rpt_ui_report_vw r
+					, ost_ui_institution_sys_vw i
+					, rul_ui_name_format_vw nf
+				where i.id = r.inst_id
+				  and i.lang = r.lang
+				  and nf.id(+) = r.name_format_id
+				  and nf.lang(+) = r.lang
+				<iterate prepend=" AND " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(r.label) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="sourceType">r.source_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="tagId">
+						r.id IN (select report_id from rpt_ui_report_tag_vw where tag_id = #filters[].value# and lang = #lang#)
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="isDeterministic">r.is_deterministic = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="isNotification">r.is_notification = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="nameFormatId">r.name_format_id = #filters[].value#</isEqual>
+				</iterate>
+				<iterate property="filters">
+					<isEqual prepend=" AND exists(select 1 from rpt_report_object where report_id(+)=r.id" property="filters[].element" compareValue="entityType" close=")">
+						<iterate prepend=" AND " conjunction="AND" property="filters">
+							<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+							<isEqual property="filters[].element" compareValue="objectType">((object_type = #filters[].value#) or (object_type = '%'))</isEqual>
+						</iterate>
+					</isEqual>
+				</iterate>
+			) r
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">r.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">r.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(inst_name) $sorting[].direction$</isEqual>					
+					<isEqual property="sorting[].property" compareValue="type">r.source_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="nameFormatName">upper(name_format_name) $sorting[].direction$</isEqual>					
+					<isEqual property="sorting[].property" compareValue="tags">upper(r.tagsLabel) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">r.label ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>		
+	
+	<select id="get-reports-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT 
+				count(r.id)
+		FROM 
+			rpt_ui_report_vw r
+			, ost_ui_institution_sys_vw i
+		WHERE 
+			i.id = r.inst_id 
+			AND i.lang = r.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="name">upper(r.label) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="sourceType">r.source_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="tagId">
+					r.id IN (select report_id from rpt_ui_report_tag_vw where tag_id = #filters[].value# and lang = #lang#)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="isDeterministic">r.is_deterministic = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isNotification">r.is_notification = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="nameFormatId">r.name_format_id = #filters[].value#</isEqual>
+			</iterate>
+			<iterate property="filters">
+				<isEqual prepend=" AND exists( select 1 from rpt_report_object where report_id(+)=r.id" property="filters[].element" compareValue="entityType" close=")">
+					<iterate prepend=" AND " conjunction="AND" property="filters">
+						<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="objectType">((object_type = #filters[].value#) or (object_type = '%'))</isEqual>
+					</iterate>
+				</isEqual>
+			</iterate>
+	</select>		
+	
+	<select id="get-reports-light"
+			parameterClass="qparams"
+			resultMap="mapping-report-light">
+		<include refid="paginatedOpen"/>
+			SELECT 	  r.id
+					, r.seqnum
+					, r.label
+					, r.description
+					, r.lang
+					, r.inst_id
+					, r.source_type
+					, i.name inst_name
+					, r.is_deterministic
+					, r.is_notification
+					, r.name_format_id
+					, nf.label name_format_name
+					, r.document_type
+			FROM 
+				rpt_ui_report_vw r
+				, ost_ui_institution_sys_vw i
+				, rul_ui_name_format_vw nf
+			WHERE
+				i.id = r.inst_id
+				AND i.lang = r.lang
+				AND nf.id(+) = r.name_format_id
+				AND nf.lang(+) = r.lang 
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(r.label) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">r.inst_id IN (#filters[].value#, 9999)</isEqual>
+				<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="parentId">r.parent_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="soureType">r.source_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="templatedOnly">
+					r.id IN (select distinct report_id from rpt_ui_template_vw)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="isDeterministic">r.is_deterministic = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isNotification">r.is_notification = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="nameFormatId">r.name_format_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="emptyNameFormat">r.name_format_id IS NULL</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">r.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">r.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>					
+					<isEqual property="sorting[].property" compareValue="type">r.source_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="nameFormatName">upper(name_format_name) $sorting[].direction$</isEqual>					
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">r.label ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<procedure id="add-report"
+    		parameterClass="ru.bpc.sv2.reports.Report">
+    	{call RPT_UI_REPORT_PKG.add_report(
+				  o_report_id        => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum           => #seqNum,jdbcType=NUMERIC,mode=OUT#
+    			, i_report_name      => #name#
+				, i_report_desc      => #description#
+				, i_source           => #reportSource,javaType=java.lang.String,jdbcType=CLOB#
+				, i_source_type      => #sourceType#
+				, i_inst_id          => #instId#
+				, i_lang             => #lang#
+				, i_is_deterministic => #isDeterministic#
+				, i_name_format_id   => #nameFormatId#
+				, i_is_notification  => #isNotification#
+                , i_document_type    => #documentType#
+				)}
+    </procedure>
+
+    <procedure id="modify-report"
+    		parameterClass="ru.bpc.sv2.reports.Report">
+    	{call RPT_UI_REPORT_PKG.modify_report(
+				  i_report_id        => #id#
+				, io_seqnum          => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+    			, i_report_name      => #name#
+				, i_report_desc      => #description#
+				, i_source           => #reportSource,javaType=java.lang.String,jdbcType=CLOB#
+				, i_source_type      => #sourceType#
+				, i_inst_id          => #instId#
+				, i_lang             => #lang#
+				, i_is_deterministic => #isDeterministic#
+				, i_name_format_id   => #nameFormatId#
+	            , i_is_notification  => #isNotification#
+                , i_document_type    => #documentType#
+				)}
+    </procedure>
+    
+    <procedure id="remove-report"
+    		parameterClass="ru.bpc.sv2.reports.Report">
+    	{call RPT_UI_REPORT_PKG.remove_report(
+				  i_report_id	=> #id#
+				, i_seqnum		=> #seqNum#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-parameter-tag"
+	            class="ru.bpc.sv2.reports.ReportTag"  >
+	    <result property="reportId" column="report_id" />
+	    <result property="id" column="tag_id" />
+	    <result property="label" column="tag_label" />
+	    <result property="description" column="tag_description" />
+	    <result property="lang" column="lang" />
+	</resultMap>
+
+	<select id="get-report-tags" parameterClass="qparams" resultMap="mapping-parameter-tag">
+		SELECT
+			rtv.report_id
+			,rtv.tag_id
+			,rtv.tag_label
+			,rtv.tag_description
+			,rtv.lang
+		FROM
+			rpt_ui_report_tag_vw rtv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="reportId">rtv.report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">rtv.lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+      
+    <parameterMap id="report-tag-map" class="java.util.Map">
+    	<parameter property="tagId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+    	<parameter property="reportId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+    
+    <procedure id="add-report-tag"
+    		parameterMap="report-tag-map">
+    	{call rpt_ui_tag_pkg.add_report_tag(
+				  i_tag_id			=> ?
+				, i_report_id		=> ?									
+				)}
+    </procedure>
+    
+	<procedure id="remove-report-tag"
+    		parameterMap="report-tag-map">
+    	{call rpt_ui_tag_pkg.remove_report_tag(
+				  i_tag_id			=> ?
+				, i_report_id		=> ?									
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-parameter"
+                class="ru.bpc.sv2.reports.ReportParameter">        
+        <result property="id" column="id" />
+        <result property="seqNum" column="seqnum" />
+        <result property="systemName" column="param_name" />
+        <result property="name" column="name" />
+        <result property="dataType" column="data_type" />
+        <result property="lang" column="lang" />
+        <result property="defaultValue" column="default_value" />
+        <result property="displayOrder" column="display_order" />
+        <result property="reportId" column="report_id" />
+        <result property="mandatory" column="is_mandatory" javaType="boolean" nullValue="false"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="valueV" column="value_v" />
+        <result property="valueN" column="value_n" />
+        <result property="valueD" column="value_d" />
+        <result property="lovValue" column="lov_value" />
+        <result property="selectionForm" column="selection_form" />
+	</resultMap>
+	
+     <select id="get-report-parameters"
+			parameterClass="qparams"
+			resultMap="mapping-parameter" >
+		<include refid="limitationOpen"/>
+        SELECT
+				  p.id
+				, p.param_name
+				, p.seqnum
+				, p.lang
+				, p.label name
+				, p.data_type
+				, p.default_value
+				, p.display_order
+				, p.report_id
+				, p.is_mandatory
+				, p.lov_id
+				, default_char_value value_v
+				, default_number_value value_n
+				, default_date_value value_d  
+				, default_lov_value lov_value
+				, selection_form                    
+		FROM 
+				rpt_ui_parameter_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">p.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">p.report_id = #filters[].value#</isEqual>						
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mandatory">p.is_mandatory = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">p.label $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="paramName">p.param_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="mandatory">p.is_mandatory $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="dataType">p.data_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">p.display_order ASC</isEmpty>
+		<include refid="limitationClose"/>	                    
+	</select>
+
+	<select id="get-report-parameters-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			  p.id                      
+		FROM
+			rpt_ui_parameter_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">p.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">p.report_id = #filters[].value#</isEqual>						
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mandatory">p.is_mandatory = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+    <procedure id="add-report-parameter"
+    		parameterClass="ru.bpc.sv2.reports.ReportParameter">
+    	{call RPT_UI_PARAMETER_PKG.add_parameter(
+				  o_param_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_report_id    	=> #reportId#
+				, i_system_name  	=> #systemName#
+				, i_param_label   	=> #name#
+				, i_data_type    	=> #dataType#
+				, i_default_value_v	=> #valueV#
+				, i_default_value_n	=> #valueN#
+				, i_default_value_d	=> #valueD#
+				, i_is_mandatory 	=> #mandatory#
+				, i_display_order	=> #displayOrder#
+				, i_lov_id			=> #lovId#
+				, i_lang			=> #lang#
+				, i_selection_form  => #selectionForm#
+				)}
+    </procedure>
+
+    <procedure id="modify-report-parameter"
+    		parameterClass="ru.bpc.sv2.reports.ReportParameter">
+    	{call RPT_UI_PARAMETER_PKG.modify_parameter(
+				  i_param_id		=> #id#
+				, i_system_name  	=> #systemName#
+				, i_param_label   	=> #name#
+				, i_is_mandatory 	=> #mandatory#
+				, i_default_value_n	=> #valueN#
+				, i_default_value_d	=> #valueD#
+				, i_default_value_v	=> #valueV#
+				, i_display_order	=> #displayOrder#
+				, i_lov_id			=> #lovId#
+				, i_lang			=> #lang#
+				, i_selection_form  => #selectionForm#
+				)}
+    </procedure>
+    
+    <procedure id="sync-report-parameters"
+    		parameterClass="int">
+    	{call RPT_UI_PARAMETER_PKG.sync_parameters(
+				  i_report_id		=> #reportId#    										
+				)}
+    </procedure>
+    
+    <procedure id="remove-report-parameter"
+    		parameterClass="ru.bpc.sv2.reports.ReportParameter">
+    	{call RPT_UI_PARAMETER_PKG.remove_parameter(
+				  i_param_id		=> #id#    										
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-report-run"
+                class="ru.bpc.sv2.reports.ReportRun">
+		<result property="id" column="id"/>
+		<result property="reportId" column="report_id"/>
+		<result property="name" column="label"/>
+		<result property="description" column="description"/>        
+        <result property="lang" column="lang"/>
+        <result property="instId" column="inst_id"/>
+        <result property="user" column="user_name"/>
+        <result property="userId" column="user_id"/>
+        <result property="status" column="status"/>
+        <result property="startDate" column="start_date"/>
+        <result property="finishDate" column="finish_date"/>
+	</resultMap>
+	
+	<select id="get-report-runs"
+			parameterClass="qparams"
+			resultMap="mapping-report-run">
+		<include refid="paginatedOpen"/>
+			SELECT 	  r.id
+					, r.report_id
+					, r.label
+					, r.description
+					, r.lang
+					, r.inst_id
+					, r.status
+					, r.start_date
+					, r.finish_date
+					, r.user_id		
+					, u.user_name
+			FROM 
+				rpt_ui_run_vw r
+				, acm_ui_user_vw u
+			WHERE
+				r.user_id = u.user_id(+)
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">
+					r.lang = #filters[].value#
+					AND u.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(r.label) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="reportId">r.report_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">r.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="user">upper(u.user_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="startDateFrom">r.start_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="startDateTo">r.start_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">r.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">r.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">r.status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="user">r.user_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="startDate">r.start_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="finishDate">r.finish_date $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">r.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-report-runs-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	  
+			r.id
+		FROM 
+			rpt_ui_run_vw r
+			, acm_ui_user_vw u
+		WHERE
+			r.user_id = u.user_id(+)
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				r.lang = #filters[].value#
+				AND u.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(r.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">r.report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">r.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="user">upper(u.user_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDateFrom">r.start_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="startDateTo">r.start_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+		</iterate>   
+		<include refid="limitationClose"/>
+	</select>
+	
+    <resultMap  id="mapping-run-parameter"
+                class="ru.bpc.sv2.reports.ReportRunParameter">        
+        <result property="id" column="id" />
+        <result property="runId" column="run_id" />
+        <result property="parameterId" column="param_id" />
+        <result property="name" column="name" />
+        <result property="description" column="description" />
+        <result property="dataType" column="data_type" />
+        <result property="lang" column="lang" />
+        <result property="lovValue" column="lov_value"/>
+        <result property="value" column="param_value" />
+        <result property="valueV" column="value_v" />
+        <result property="valueN" column="value_n" />
+        <result property="valueD" column="value_d" />
+        <result property="displayOrder" column="display_order" />        
+	</resultMap>
+	
+     <select id="get-run-parameters"
+			parameterClass="qparams"
+			resultMap="mapping-run-parameter" >
+		<include refid="limitationOpen"/>
+        SELECT
+				  p.id
+				, p.run_id
+				, p.param_id
+				, p.lang
+				, p.label name
+				, p.description
+				, p.data_type
+				, p.param_value
+				, p.display_order
+				, p.param_char_value value_v
+				, p.param_number_value value_n
+				, p.param_date_value value_d  
+				, p.param_lov_value lov_value                      
+		FROM rpt_ui_run_parameter_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+           	<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="id">p.id like #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="parameterId">p.param_id = #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="runId">p.run_id = #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>               
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">p.label $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="dataType">p.data_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">p.display_order ASC</isEmpty>
+		<include refid="limitationClose"/>             
+	</select>
+
+	<select id="get-run-parameters-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT p.id                      
+		FROM rpt_ui_run_parameter_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+           	<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="id">p.id like #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="parameterId">p.param_id = #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="runId">p.run_id = #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+           	<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>               
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+    <parameterMap  id="mapping-set-report-status"
+                class="java.util.HashMap">
+        <parameter property="runId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>    	
+        <parameter property="status" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+	
+    <procedure id="set-report-status"
+    		parameterMap="mapping-set-report-status">
+    	{call RPT_UI_RUN_PKG.set_report_status(
+				  i_run_id		=> ?
+				, i_status    	=> ?
+				)}
+    </procedure>
+    
+    <parameterMap id="start-report-map" class="java.util.Map">
+		<parameter property="reportId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="parameters" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+        <parameter property="templateId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="runId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="isDeterministic" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="OUT" nullValue="false"/>
+        <parameter property="isFirstRun" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="fileName" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+        <parameter property="savePath" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+        <parameter property="resultSet" jdbcType="ORACLECURSOR" mode="OUT" nullValue="null" typeHandler="ru.bpc.sv2.utils.EmptyCursorTypeHandler"/>
+        <parameter property="xml" javaType="java.io.File" jdbcType="CLOB" typeHandler="ru.bpc.sv2.utils.ReportXmlTypeHandler" mode="OUT" />
+    </parameterMap>
+    
+    <procedure id="start-report"
+            parameterMap="start-report-map">
+        {call RPT_UI_RUN_PKG.report_start(
+        		  i_report_id        => ?
+				, i_parameters       => ?
+				, i_template_id      => ?
+				, i_document_id      => null
+				, i_content_type     => null
+				, o_run_id           => ?
+				, o_is_deterministic => ?
+				, o_is_first_run     => ?
+				, o_file_name        => ?
+				, o_save_path        => ?
+				, o_resultset        => ?
+				, o_xml              => ?
+			 	)}
+    </procedure>
+    
+    <!-- Template without CLOB -->
+	<resultMap  id="mapping-template-light"
+                class="ru.bpc.sv2.reports.ReportTemplate">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+        <result property="reportId" column="report_id"/>
+		<result property="name" column="label"/>
+		<result property="description" column="description"/>        
+        <result property="lang" column="lang"/>
+        <result property="processor" column="report_processor"/>
+        <result property="format" column="report_format"/>
+        <result property="templateLang" column="template_lang"/>
+	</resultMap>
+	
+	<!-- Complete template -->
+	<resultMap  id="mapping-template"
+                class="ru.bpc.sv2.reports.ReportTemplate"
+                extends="mapping-template-light">
+        <result property="text" column="text"/>
+        <result property="textBase64" column="base64"/>
+	</resultMap>
+	
+    <select
+	    id="get-report-templates"
+	    parameterClass="qparams"
+	    resultMap="mapping-template" >
+	    <include refid="limitationOpen"/>	
+	        SELECT
+				  t.id
+				  , t.lang
+			      , t.label
+			      , t.description
+                  , t.seqnum
+                  , t.report_id
+                  , t.text
+                  , t.base64
+                  , t.template_lang  
+                  , t.report_processor
+                  , t.report_format                                
+            FROM
+            	rpt_ui_template_vw t
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+            	<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="templateLang">t.template_lang = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="id">t.id like #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="reportId">t.report_id = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="name">upper(t.label) like #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="reportProcessor">t.report_processor = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="notCompiled">t.base64 is null</isEqual>
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">t.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="templateLang">t.template_lang $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">t.label ASC</isEmpty>	 
+		<include refid="limitationClose"/>		                
+	</select>
+	
+	<select id="get-report-templates-light"
+			parameterClass="qparams"
+			resultMap="mapping-template-light" >
+		<include refid="limitationOpen"/>			
+        SELECT
+				  t.id
+				, t.lang
+				, t.label
+				, t.description
+				, t.seqnum
+				, t.report_id
+				, t.template_lang   
+				, t.report_processor
+				, t.report_format                 
+		FROM rpt_ui_template_vw t
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isNotNull property="filters[].element">
+	           	<isEqual property="filters[].element" compareValue="id">t.id like #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="templateLang">t.template_lang = #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="reportId">t.report_id = #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="name">upper(t.label) like #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="reportProcessor">t.report_processor = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="hasText">t.text is not null</isEqual>
+				<isEqual property="filters[].element" compareValue="notCompiled">t.base64 is null</isEqual>
+	           	<isEqual property="filters[].element" compareValue="notifId">
+					t.report_id = (
+						SELECT report_id FROM ntf_ui_notification_vw 
+						WHERE id = #filters[].value#
+							AND lang = t.lang
+					)
+	           	</isEqual>
+           	</isNotNull>              
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">t.label $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="templateLang">t.template_lang $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">t.label ASC</isEmpty>
+		<include refid="limitationClose"/>                    
+	</select>
+
+	<select
+        id="get-report-templates-count"
+        parameterClass="qparams"
+        resultClass="int">
+        <include refid="limitationOpenCount"/>
+        	SELECT
+				  t.id                      
+            FROM
+            	rpt_ui_template_vw t
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+           		<isEqual property="filters[].element" compareValue="id">t.id like #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="templateLang">t.template_lang = #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="reportId">t.report_id = #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="name">upper(t.label) like #filters[].value#</isEqual>
+	           	<isEqual property="filters[].element" compareValue="reportProcessor">t.report_processor = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="notCompiled">t.base64 is null</isEqual>
+	           	<isEqual property="filters[].element" compareValue="notifId">
+					t.report_id = (
+						SELECT report_id FROM ntf_ui_notification_vw 
+						WHERE id = #filters[].value#
+							AND lang = t.lang
+					)
+	           	</isEqual>           
+            </iterate>
+		<include refid="limitationClose"/>           
+    </select>
+    
+    <procedure id="add-report-template"
+    		parameterClass="ru.bpc.sv2.reports.ReportTemplate">
+    	{call RPT_UI_TEMPLATE_PKG.add_template(
+				  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+	   			, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_report_id		=> #reportId#
+				, i_template_lang	=> #templateLang#
+				, i_text			=> #text#
+				, i_base64			=> #textBase64#
+				, i_report_processor=> #processor#
+				, i_report_format	=> #format#
+				, i_label			=> #name#
+				, i_description		=> #description#
+				, i_lang			=> #lang#
+				)}
+    </procedure>
+
+    <procedure id="modify-report-template"
+    		parameterClass="ru.bpc.sv2.reports.ReportTemplate">
+    	{call RPT_UI_TEMPLATE_PKG.modify_template(
+				  i_id				=> #id#
+	   			, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_report_id		=> #reportId#
+				, i_template_lang	=> #templateLang#
+				, i_text			=> #text#
+				, i_base64			=> #textBase64#
+				, i_report_processor=> #processor#
+				, i_report_format	=> #format#
+				, i_label			=> #name#
+				, i_description		=> #description#
+				, i_lang			=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="remove-report-template"
+    		parameterClass="ru.bpc.sv2.reports.ReportTemplate">
+    	{call RPT_UI_TEMPLATE_PKG.remove_template(
+				  i_id				=> #id#    
+				, i_seqnum			=> #seqNum#										
+			 	)}
+    </procedure>
+    
+    <resultMap  id="mapping-banner"
+                class="ru.bpc.sv2.reports.ReportBanner">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+        <result property="status" column="status"/>
+        <result property="filename" column="filename"/>
+		<result property="name" column="label"/>
+		<result property="description" column="description"/>        
+        <result property="lang" column="lang"/>    
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+	
+	<select
+	    id="get-report-banners"
+	    parameterClass="qparams"
+	    resultMap="mapping-banner" >
+	    <include refid="limitationOpen"/>
+	        SELECT
+				  b.id
+				  , b.lang
+			      , b.label
+			      , b.description
+                  , b.seqnum
+                  , b.filename
+                  , b.status
+                  , b.inst_id
+                  , i.name inst_name                                      
+            FROM
+            	rpt_ui_banner_vw b
+            	, ost_ui_institution_sys_vw i
+            WHERE
+            	b.inst_id = i.id(+)
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+            	<isEqual property="filters[].element" compareValue="lang">
+            		b.lang = #filters[].value#
+            		AND i.lang(+) = #filters[].value#
+            	</isEqual>
+            	<isEqual property="filters[].element" compareValue="id">b.id like #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="instId">b.inst_id = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="status">b.status = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="name">upper(b.label) like #filters[].value#</isEqual>              
+            </iterate>
+            <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">b.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">b.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">b.status $sorting[].direction$</isEqual>					
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">b.label ASC</isEmpty>	      
+		<include refid="limitationClose"/>              
+	</select>
+	
+	<select
+        id="get-report-banners-count"
+        parameterClass="qparams"
+        resultClass="int">
+		<include refid="limitationOpenCount"/>        
+        	SELECT
+				  b.id                      
+            FROM
+            	rpt_ui_banner_vw b
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+            	<isEqual property="filters[].element" compareValue="lang">b.lang = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="id">b.id like #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="instId">b.inst_id = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="status">b.status = #filters[].value#</isEqual>
+            	<isEqual property="filters[].element" compareValue="name">upper(b.label) like #filters[].value#</isEqual>              
+            </iterate>
+		<include refid="limitationClose"/>           
+    </select>
+    
+    <procedure id="add-report-banner"
+    		parameterClass="ru.bpc.sv2.reports.ReportBanner">
+    	{call RPT_UI_BANNER_PKG.add_banner(
+				  o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+    			, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_status		=> #status#
+				, i_filename	=> #filename#
+				, i_inst_id		=> #instId#
+				, i_label		=> #name#
+				, i_description	=> #description#
+				, i_lang		=> #lang#
+				)}
+    </procedure>
+
+    <procedure id="modify-report-banner"
+    		parameterClass="ru.bpc.sv2.reports.ReportBanner">
+    	{call RPT_UI_BANNER_PKG.modify_banner(
+				  i_id			=> #id#
+    			, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_status		=> #status#
+				, i_filename	=> #filename#
+				, i_label		=> #name#
+				, i_description	=> #description#
+				, i_lang		=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="remove-report-banner"
+    		parameterClass="ru.bpc.sv2.reports.ReportBanner">
+    	{call RPT_UI_BANNER_PKG.remove_banner(
+				  i_id			=> #id#    
+				, i_seqnum  	=> #seqNum#										
+			 	)}
+    </procedure>
+    
+    <select id="execute-plain-report" 
+    		resultClass="java.util.TreeMap"
+    		parameterClass="String">
+    	$value$
+    </select>
+    
+	<resultMap  id="mapping-tag"
+	            class="ru.bpc.sv2.reports.ReportTag"  >
+	    <result property="id" column="id" />
+	    <result property="seqNum" column="seqnum" />
+	    <result property="instId" column="inst_id" />
+	    <result property="label" column="label" />
+	    <result property="description" column="description" />
+	    <result property="lang" column="lang" />
+	    <result property="instName" column="inst_name" />
+	</resultMap>    
+    
+	<select id="get-tags"
+			parameterClass="qparams" resultMap="mapping-tag">
+		<include refid="paginatedOpen" />
+			SELECT
+				rpt.id
+				,rpt.seqnum
+				,rpt.inst_id
+				,rpt.label
+				,rpt.description
+				,rpt.lang
+				,i.name inst_name
+			FROM
+				rpt_ui_tag_vw rpt
+			LEFT JOIN ost_ui_institution_sys_vw i
+			ON i.id = rpt.inst_id AND i.lang = rpt.lang
+			<iterate prepend="WHERE" conjunction="AND" property="filters">				
+				<isEqual property="filters[].element" compareValue="lang">rpt.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">rpt.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">rpt.id = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">rpt.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqNum">rpt.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="instId">rpt.inst_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="label">rpt.label $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="description">rpt.description $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lang">rpt.lang $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">inst_name $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-tags-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(rpt.id)
+		FROM
+			rpt_ui_tag_vw rpt
+		<iterate prepend="WHERE" conjunction="AND" property="filters">				
+			<isEqual property="filters[].element" compareValue="lang">rpt.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">rpt.inst_id = #filters[].value#</isEqual>
+		</iterate>			
+	</select>	  
+	
+	<procedure id="add-tag"
+			parameterClass="ru.bpc.sv2.reports.ReportTag">
+		{call rpt_ui_tag_pkg.add_tag(
+			  o_id			=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum		=> #seqNum,mode=OUT,jdbcType=NUMERIC#
+			, i_inst_id		=> #instId#
+			, i_label		=> #label#
+			, i_description	=> #description#
+			, i_lang		=> #lang#
+		)}
+	</procedure>
+	
+	<procedure id="modify-tag"
+			parameterClass="ru.bpc.sv2.reports.ReportTag">
+		{call rpt_ui_tag_pkg.modify_tag(
+			  i_id			=> #id#
+			, io_seqnum		=> #seqNum,mode=INOUT,jdbcType=NUMERIC#
+			, i_inst_id		=> #instId#
+			, i_label		=> #label#
+			, i_description	=> #description#
+			, i_lang		=> #lang#
+		)}
+	</procedure>
+	
+	<procedure id="remove-tag"
+			parameterClass="ru.bpc.sv2.reports.ReportTag">
+		{call rpt_ui_tag_pkg.remove_tag(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqNum#
+		)}
+	</procedure>
+	
+	<resultMap  id="mapping-order-document"
+	            class="ru.bpc.sv2.reports.RptDocument"  >
+	    <result property="orderId" column="order_id" />
+	    <result property="customerNumber" column="customer_number" />
+	    <result property="documentName" column="document_name" />
+	    <result property="documentNumber" column="document_number" />
+	    <result property="documentDate" column="document_date" javaType="java.util.Date"/>
+	    <result property="documentType" column="document_type" />
+	</resultMap>
+	  
+	<parameterMap class="java.util.Map" id="mapping-param-order-document">
+		<parameter property="customerNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="orderId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="orderList" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-order-document"/>
+	</parameterMap>
+	
+	
+	<procedure id="get-order-documents"
+	 		parameterMap="mapping-param-order-document">
+			{call cst_ui_application_pkg.get_document_list(
+							  i_customer_number	=> ?   
+							, i_order_id       	=> ?
+							, o_order_list     	=> ?
+			)}
+	</procedure>
+	
+	<parameterMap class="java.util.Map" id="get-document-mapping">
+		<parameter property="customerNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="documentNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="documentDate" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+		<parameter property="documentType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="savePath" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="datasource" javaType="java.lang.String" jdbcType="CLOB" mode="OUT"/>		
+	</parameterMap>
+	
+	<procedure id="get-document"
+			parameterMap="get-document-mapping">
+		{call CST_UI_APPLICATION_PKG.get_document(
+							i_customer_number 	=> ?
+							, i_document_number	=> ?
+							, i_document_date	=> ?
+							, i_document_type	=> ?
+							, o_save_path		=> ?
+							, o_xml_data 		=> ?
+							)}
+	</procedure>
+	
+	<resultMap  id="mapping-rpt-document-content"
+	            class="ru.bpc.sv2.reports.RptDocument">
+		<result property="id" column="id"/>
+	    <result property="documentType" column="document_type"/>
+	    <result property="documentNumber" column="document_number"/>
+	    <result property="documentDate" column="document_date"/>
+	    <result property="contentType" column="content_type"/>
+	    <result property="entityType" column="entity_type"/>
+	    <result property="objectId" column="object_id"/>
+	    <result property="reportId" column="report_id"/>
+	    <result property="templateId" column="template_id"/>
+	    <result property="fileName" column="file_name"/>
+	    <result property="mimeType" column="mime_type"/>
+	    <result property="savePath" column="save_path"/>
+	    <result property="instId" column="inst_id"/>
+	</resultMap>
+	
+	<select id="get-rpt-document-contents"
+	        parameterClass="qparams" 
+	        resultMap="mapping-rpt-document-content">
+		SELECT
+				  dv.id
+				, dv.document_type
+				, dv.document_number
+				, dv.document_date
+				, dv.content_type
+				, dv.entity_type
+				, dv.object_id
+				, dv.report_id
+				, dv.template_id
+				, dv.file_name
+				, dv.mime_type
+				, dv.save_path
+				, dv.inst_id
+		FROM rpt_ui_document_content_vw dv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentType">dv.document_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentNumber">dv.document_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentDate">dv.document_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">dv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">dv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contentType">dv.content_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="documentType">dv.document_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="documentNumber">dv.document_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="documentDate">dv.document_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="objectId">dv.object_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="fileName">dv.file_name $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>			
+	</select>
+	
+	<resultMap  id="mapping-rpt-document"
+	            class="ru.bpc.sv2.reports.RptDocument">
+		<result property="id" column="id"/>
+	    <result property="documentType" column="document_type"/>
+	    <result property="documentNumber" column="document_number"/>
+	    <result property="documentDate" column="document_date"/>
+	    <result property="entityType" column="entity_type"/>
+	    <result property="objectId" column="object_id"/>
+	    <result property="instId" column="inst_id"/>
+		<result property="startDate" column="start_date"/>
+		<result property="endDate" column="end_date"/>
+		<result property="status" column="status"/>
+	</resultMap>
+	
+	<select id="get-rpt-documents-sys"
+	        parameterClass="qparams" 
+	        resultMap="mapping-rpt-document">
+		SELECT
+				  dv.id
+				, dv.document_type
+				, dv.document_number
+				, dv.document_date
+				, dv.entity_type
+				, dv.object_id
+				, dv.inst_id
+				, dv.start_date
+				, dv.end_date
+				, dv.status
+		FROM rpt_document_vw dv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentType">dv.document_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentNumber">dv.document_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentDate">dv.document_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">dv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">dv.entity_type = #filters[].value#</isEqual>			
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">dv.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="documentType">dv.document_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="documentNumber">dv.document_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="documentDate">dv.document_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="objectId">dv.object_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="startDate">dv.start_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="endDate">dv.end_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">dv.status $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>			
+	</select>
+	
+	<select id="get-rpt-documents"
+	        parameterClass="qparams" 
+	        resultMap="mapping-rpt-document">
+		SELECT
+				  dv.id
+				, dv.document_type
+				, dv.document_number
+				, dv.document_date
+				, dv.entity_type
+				, dv.object_id
+				, dv.inst_id
+				, dv.start_date
+				, dv.end_date
+				, dv.status
+		FROM rpt_ui_document_vw dv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentType">dv.document_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentNumber">dv.document_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentDate">dv.document_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">dv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">dv.entity_type = #filters[].value#</isEqual>			
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">dv.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="documentType">dv.document_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="documentNumber">dv.document_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="documentDate">dv.document_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="objectId">dv.object_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="startDate">dv.start_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="endDate">dv.end_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">dv.status $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>			
+	</select>
+	
+	<select id="get-rpt-documents-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(dv.object_id)
+		FROM
+			rpt_ui_document_vw dv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentType">dv.document_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentNumber">dv.document_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentDate">dv.document_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">dv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">dv.entity_type = #filters[].value#</isEqual>			
+		</iterate>			
+	</select>		
+
+	<procedure id="add-document"
+			parameterClass="ru.bpc.sv2.reports.RptDocument">
+		{call RPT_API_DOCUMENT_PKG.add_document(
+			  io_document_id     => #id,jdbcType=NUMERIC,mode=INOUT#
+			, o_seqnum           => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_content_type     => #contentType#
+			, i_document_type    => #documentType#
+			, i_entity_type      => #entityType#
+			, i_object_id        => #objectId#
+			, i_report_id        => #reportId# <!-- default = null -->
+			, i_template_id      => #templateId# <!-- default = null -->
+			, i_file_name        => #fileName# <!-- default = null -->
+			, i_mime_type        => #mimeType# <!-- default = null -->
+			, i_save_path        => #savePath# <!-- default = null -->
+			, i_document_date    => #documentDate# <!-- default = null -->
+			, i_document_number  => #documentNumber# <!-- default = null -->
+			, i_inst_id          => #instId#
+		)}
+	</procedure>
+
+	<parameterMap class="ru.bpc.sv2.reports.RptDocument" id="mapping-document-params">
+		<parameter property="id" jdbcType="NUMERIC" mode="INOUT"/>
+		<parameter property="seqNum" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="contentType" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="documentType" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="entityType" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="objectId" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="reportId" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="templateId" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="fileName" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="mimeType" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="savePath" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="documentDate" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+		<parameter property="documentNumber" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="instId" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="params" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="add-document-params"
+			parameterMap="mapping-document-params">
+		{call RPT_API_DOCUMENT_PKG.add_document(
+			  io_document_id     => ?
+			, o_seqnum           => ?
+			, i_content_type     => ?
+			, i_document_type    => ?
+			, i_entity_type      => ?
+			, i_object_id        => ?
+			, i_report_id        => ? <!-- default = null -->
+			, i_template_id      => ? <!-- default = null -->
+			, i_file_name        => ? <!-- default = null -->
+			, i_mime_type        => ? <!-- default = null -->
+			, i_save_path        => ? <!-- default = null -->
+			, i_document_date    => ? <!-- default = null -->
+			, i_document_number  => ? <!-- default = null -->
+			, i_inst_id          => ?
+			, i_param_map        => ?
+		)}
+	</procedure>
+
+	<procedure id="add-document-xml"
+			parameterClass="ru.bpc.sv2.reports.RptDocument">
+		{call RPT_API_DOCUMENT_PKG.add_document(
+			  io_document_id     => #id,jdbcType=NUMERIC,mode=INOUT#
+			, o_seqnum           => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_content_type     => #contentType#
+			, i_document_type    => #documentType#
+			, i_entity_type      => #entityType#
+			, i_object_id        => #objectId#
+			, i_report_id        => #reportId# <!-- default = null -->
+			, i_template_id      => #templateId# <!-- default = null -->
+			, i_file_name        => #fileName# <!-- default = null -->
+			, i_mime_type        => #mimeType# <!-- default = null -->
+			, i_save_path        => #savePath# <!-- default = null -->
+			, i_document_date    => #documentDate# <!-- default = null -->
+			, i_document_number  => #documentNumber# <!-- default = null -->
+			, i_inst_id          => #instId#
+			, i_xml              => #xml#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-document-content"
+	            class="ru.bpc.sv2.reports.DocumentContent">
+		<result property="id" column="id"/>
+		<result property="documentId" column="document_id"/>
+		<result property="contentType" column="content_type"/>
+		<result property="reportId" column="report_id"/>
+		<result property="templateId" column="template_id"/>
+		<result property="fileName" column="file_name"/>
+	    <result property="mimeType" column="mime_type"/>
+	    <result property="savePath" column="save_path"/>
+	    <result property="documentContent" column="document_content" javaType="string" jdbcType="CLOB"/>
+	</resultMap>
+	
+	<select id="get-document-contents"
+			parameterClass="qparams" resultMap="mapping-document-content">
+		SELECT
+				  dc.id
+				, dc.document_id
+				, dc.content_type
+				, dc.report_id
+				, dc.template_id
+				, dc.file_name
+				, dc.mime_type
+				, dc.save_path
+				, dc.document_content
+		FROM rpt_document_content_vw dc
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dc.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentId">dc.document_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contentType">dc.content_type = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap  id="mapping-print-document"
+	            class="ru.bpc.sv2.reports.RptDocument"  >
+	    <result property="id" column="id" />
+	    <result property="documentType" column="document_type" />
+	    <result property="documentNumber" column="document_number" />
+	    <result property="documentDate" column="document_date" />
+	    <result property="entityType" column="entity_type" />
+	    <result property="objectId" column="object_id" />
+	    <result property="reportId" column="report_id" />
+	    <result property="templateId" column="template_id" />
+		<result property="contentType" column="content_type" />
+		<result property="startDate" column="start_date" />
+		<result property="endDate" column="end_date" />
+		<result property="status" column="status" />
+	</resultMap>
+
+	<select id="get-print-documents"
+			parameterClass="qparams" resultMap="mapping-print-document">
+		<include refid="paginatedOpen" />
+			SELECT
+				pdv.id
+				,pdv.document_type
+				,pdv.document_number
+				,pdv.document_date
+				,pdv.entity_type
+				,pdv.object_id
+				,pdv.report_id
+				,pdv.template_id
+				,pdv.content_type
+				,pdv.start_date
+				,pdv.end_date
+				,pdv.status
+			FROM
+				rpt_ui_print_document_vw pdv
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">pdv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="documentType">pdv.document_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="documentNumberFrom">pdv.document_number >= #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="documentNumberTo">pdv.document_number <![CDATA[<]]>= #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="documentDateFrom">trunc(pdv.document_date) >= #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="documentDateTo">trunc(pdv.document_date) <![CDATA[<]]>= #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">pdv.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">pdv.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="reportId">pdv.report_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="templateId">pdv.template_id = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">pdv.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="documentType">pdv.document_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="documentNumber">pdv.document_number $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="documentDate">pdv.document_date $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="entityType">pdv.entity_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="objectId">pdv.object_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="reportId">pdv.report_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="templateId">pdv.template_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="startDate">pdv.start_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="endDate">pdv.end_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">pdv.status $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">pdv.id ASC</isEmpty>			
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-print-documents-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(pdv.id)
+		FROM
+			rpt_ui_print_document_vw pdv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">pdv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentType">pdv.document_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentNumberFrom">pdv.document_number >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentNumberTo">pdv.document_number <![CDATA[<]]>= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentDateFrom">trunc(pdv.document_date) >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="documentDateTo">trunc(pdv.document_date) <![CDATA[<]]>= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">pdv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">pdv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">pdv.report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="templateId">pdv.template_id = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+	
+	<resultMap  id="mapping-process-documents"
+	            class="ru.bpc.sv2.reports.RptDocument"  >
+	    <result property="id" column="id" />
+	    <result property="documentType" column="document_type" />
+	    <result property="documentNumber" column="document_number" />
+	    <result property="documentDate" column="document_date" />
+	    <result property="entityType" column="entity_type" />
+	    <result property="objectId" column="object_id" />
+	    <result property="templateId" column="template_id" />
+	    <result property="reportId" column="report_id" />
+	</resultMap>
+
+	<select id="get-process-documents"
+			parameterClass="qparams" resultMap="mapping-process-documents">
+		<include refid="paginatedOpen" />
+			SELECT 
+              d.id,
+              d.document_type,
+              d.document_number,
+              d.document_date,
+              d.entity_type,
+              d.object_id,
+              d.template_id,
+              d.report_id
+            from evt_event_object_vw eo, rpt_ui_print_document_vw d
+            where eo.ENTITY_TYPE=d.ENTITY_TYPE
+              and eo.OBJECT_ID = d.OBJECT_ID 
+			<iterate prepend="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="procedureName">eo.procedure_name = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+
+	<resultMap class="ru.bpc.sv2.reports.ReportLog" id="mapping-report-run-logs">
+		<result property="objectId" column="object_id"/>
+		<result property="entityType" column="entity_type"/>
+		<result property="text" column="text"/>
+		<result property="userId" column="user_id"/>
+		<result property="sessionId" column="session_id"/>
+		<result property="traceText" column="trace_text"/>
+		<result property="traceLevel" column="trace_level"/>
+		<result property="traceTimeStape"  column="trace_timestamp" javaType="java.sql.Timestamp" jdbcType="TIMESTAMP"/>
+	</resultMap>	
+	
+	<select id="get-report-run-logs"
+		parameterClass="qparams" resultMap="mapping-report-run-logs">
+		<include refid="paginatedOpen"/>
+		select
+			object_id
+			, entity_type
+			, text
+			, user_id
+			, session_id
+			, trace_text
+			, trace_level
+			, trace_timestamp
+		from trc_ui_log_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="objectId">object_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="entityType">entity_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="userId">user_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="sessionId">session_id $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-report-run-logs-count"
+		parameterClass="qparams" resultClass="int">
+		
+		select
+			count(object_id)
+		from trc_ui_log_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<resultMap class="ru.bpc.sv2.reports.OutReportParameter" 
+		id="mapping-out-report-parameters">
+		<result property="dataType" column="data_type"/>
+		<result property="description" column="description"/>
+		<result property="displayOrder" column="display_order"/>
+		<result property="id" column="id"/>
+		<result property="grouping" column="is_grouping" javaType="boolean"/>
+		<result property="sorting" column="is_sorting" javaType="boolean"/>
+		<result property="label" column="label"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+	
+	<select id="get-out-report-parameters"
+		parameterClass="qparams" resultMap="mapping-out-report-parameters">
+		<include refid="paginatedOpen"/>
+		select
+			data_type
+			, description
+			, display_order
+			, id
+			, is_grouping
+			, is_sorting
+			, label
+			, lang
+		from rpt_ui_out_parameter_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="dataType">data_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="displayOrder">display_order $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="description">description $sorting[].direction$</isEqual>				
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-out-report-parameters-count"
+		parameterClass="qparams" resultClass="int">
+		
+		select
+			count(id)
+		from rpt_ui_out_parameter_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<procedure id="add-out-report-parameter"
+	 parameterClass="ru.bpc.sv2.reports.OutReportParameter">
+		{call rpt_ui_parameter_pkg.add_out_parameter(
+			   o_param_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_report_id    	=> #reportId#
+				, i_param_label  	=> #label#
+				, i_param_desc   	=> #description#
+				, i_data_type    	=> #dataType#
+				, i_display_order	=> #displayOrder#
+				, i_lang 			=> #lang#
+				, i_is_grouping		=> #grouping#
+				, i_is_sorting		=> #sorting#
+		)}
+	 </procedure>
+	 
+	 <procedure id="modify-out-report-parameter"
+	 parameterClass="ru.bpc.sv2.reports.OutReportParameter">
+		{call rpt_ui_parameter_pkg.modify_out_parameter(
+			   i_param_id			=> #id,jdbcType=NUMERIC,mode=IN#
+				, i_param_label  	=> #label#
+				, i_param_desc   	=> #description#
+				, i_display_order	=> #displayOrder#
+				, i_lang 			=> #lang#
+				, i_is_grouping		=> #grouping#
+				, i_is_sorting		=> #sorting#
+		)}
+	 </procedure>
+	 
+	 <procedure id="remove-out-report-parameter"
+    		parameterClass="ru.bpc.sv2.reports.OutReportParameter">
+    	{call RPT_UI_PARAMETER_PKG.remove_parameter(
+				  i_param_id		=> #id#    										
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-report-objects"
+                class="ru.bpc.sv2.reports.ReportEntity">
+		<result property="id" column="id"/>
+		<result property="reportId" column="report_id"/>
+		<result property="entityType" column="entity_type"/>
+		<result property="objectType" column="object_type"/>
+		<result property="seqNum" column="seqnum"/>
+	</resultMap>
+	
+    <select id="get-report-objects"
+		parameterClass="qparams" resultMap="mapping-report-objects">
+		<include refid="paginatedOpen"/>
+		select r.id, 
+			r.seqnum, 
+			r.report_id, 
+			r.entity_type, 
+			r.object_type 
+		from rpt_report_object r
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">r.report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">r.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectType">r.object_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="reportId">report_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">entity_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="objectType">object_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-report-objects-count"
+			parameterClass="qparams" 
+			resultClass="int">
+		select count(*) 
+		from rpt_report_object r
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">r.report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">r.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectType">r.object_type = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<procedure id="add-report-object"
+	 parameterClass="ru.bpc.sv2.reports.ReportEntity">
+		{call rpt_ui_report_pkg.add_report_object(
+			    o_report_object_id    =>  #id,jdbcType=NUMERIC,mode=OUT#
+			  , o_seqnum              =>  #seqNum,jdbcType=NUMERIC,mode=OUT#
+			  , i_report_id           =>  #reportId#
+			  , i_entity_type         =>  #entityType#
+			  , i_object_type         =>  #objectType#
+		)}
+	 </procedure>
+	 
+	 <procedure id="modify-report-object"
+	 parameterClass="ru.bpc.sv2.reports.ReportEntity">
+		{call rpt_ui_report_pkg.modify_report_object(
+			    i_report_object_id =>  #id#
+			  , io_seqnum          =>  #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			  , i_report_id        =>  #reportId#
+			  , i_entity_type      =>  #entityType#
+			  , i_object_type      =>  #objectType#
+			)}
+	 </procedure>
+	 
+	 <procedure id="remove-report-object"
+	 parameterClass="ru.bpc.sv2.reports.ReportEntity">
+		{call rpt_ui_report_pkg.remove_report_object(
+			    i_report_object_id =>  #id#
+			  , i_seqnum           =>  #seqNum#
+			  )}
+	 </procedure>
+	 
+	<resultMap class="ru.bpc.sv2.common.Parameter" id="mapping-entity-object-parameter">
+    	<result property="systemName" column="name"/>
+    	<result property="valueV" column="value"/>
+    </resultMap>
+	 
+	 <parameterMap class="java.util.Map" id="mapping-entity-object-info">
+		<parameter property="objectId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="objectType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="resultSet" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-entity-object-parameter"/>
+	 </parameterMap>
+
+	<procedure id="get-entity-object-info"
+	 		parameterMap="mapping-entity-object-info">
+			{call com_cst_object_pkg.get_ref_cur(
+					i_object_id        => ?
+                  , i_object_type      => ?
+                  , i_entity_type      => ?
+                  , o_ref_cur          => ?
+			)}
+	</procedure>
+
+	<select id="get-report-id-by-template" parameterClass="java.util.Map" resultClass="java.lang.Integer">
+		select report_id
+		from rpt_ui_template_vw
+		where id = #templateId#
+		and lang = #lang#
+		and rownum = 1
+	</select>
+
+	<parameterMap id="map-instant-credit-statement" class="java.util.Map">
+		<parameter property="statement" javaType="java.lang.String" jdbcType="CLOB" mode="OUT"/>
+		<parameter property="account" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="effDate" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+		<parameter property="language" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-instant-credit-statement" parameterMap="map-instant-credit-statement">
+		{call crd_api_report_pkg.instant_credit_statement(
+			  o_xml				=> ?
+			, i_account_number	=> ?
+			, i_settl_date		=> ?
+			, i_lang			=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="map-run-report" class="java.util.Map">
+		<parameter property="report" javaType="java.lang.String" jdbcType="CLOB" mode="OUT"/>
+		<parameter property="language" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="invoice" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-run-report" parameterMap="map-run-report">
+		{call crd_api_report_pkg.run_report(
+			  o_xml			=> ?
+			, i_lang		=> ?
+			, i_invoice_id	=> ?
+		)}
+	</procedure>
+
+	<select id="get-invoice-id-by-card-and-date" resultClass="java.lang.Long" parameterClass="java.util.Map">
+		select id
+		  from (select i.*
+		          from crd_ui_invoice_vw i
+		             , acc_ui_account_object_vw a
+		             , iss_ui_card_vw c
+		         where a.entity_type = 'ENTTCARD'
+		           and a.account_type = 'ACTP0130'
+		           and a.object_id = c.id
+		           and i.account_id = a.account_id
+		           and a.lang = #lang#
+		           and c.card_number like #card_number#
+		           and i.invoice_date <![CDATA[<=]]> #eff_date#
+		      order by i.invoice_date desc
+		             , i.id desc)
+		where rownum = 1
+	</select>
+
+	<select id="get-inst-id-by-card" resultClass="java.lang.Integer" parameterClass="java.lang.String">
+		select inst_id
+		  from (select * from iss_ui_card_vw where card_number like #value# order by id desc)
+		 where rownum = 1
+	</select>
+
+	<parameterMap id="map-get-name" class="java.util.Map">
+		<parameter property="name" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="parameters" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN" />
+	</parameterMap>
+
+	<procedure id="get-name" parameterMap="map-get-name">
+		{? = call rul_api_name_pkg.get_name (
+			  i_inst_id		=> ?
+			, i_entity_type	=> ?
+			, i_param_tab	=> ?
+		)}
+	</procedure>
+
+	<select id="get-report" parameterClass="java.util.Map" resultClass="ru.bpc.sv2.reports.Report">
+		select r.id               as id
+		     , r.seqnum           as seqNum
+		     , r.lang             as lang
+		     , r.label            as name
+		     , r.description      as description
+		     , r.inst_id          as instId
+		     , i.name             as instName
+		     , r.source_type      as sourceType
+		     , r.data_source      as reportSource
+		     , r.is_deterministic as isDeterministic
+			 , r.is_notification  as isNotification
+		     , r.name_format_id   as nameFormatId
+		     , f.label            as nameFormatName
+		     , (select listagg(tag_label, com_api_const_pkg.get_separator) within group (order by tag_label)
+		          from rpt_ui_report_tag_vw t
+		         where t.report_id = r.id
+		           and lang = #lang#) as tagsLabel
+		  from rpt_ui_report_vw r
+		     , ost_ui_institution_sys_vw i
+		     , rul_ui_name_format_vw f
+		 where i.id      = r.inst_id
+		   and i.lang    = r.lang
+		   and f.id(+)   = r.name_format_id
+		   and f.lang(+) = r.lang
+		   and r.lang    = #lang#
+		   and r.id      = #id#
+	</select>
+
+	<resultMap id="map-rpt-template" class="ru.bpc.sv2.reports.ReportTemplate">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="reportId" column="report_id"/>
+		<result property="templateLang" column="template_lang"/>
+		<result property="text" column="text"/>
+		<result property="textBase64" column="base64"/>
+		<result property="processor" column="report_processor"/>
+		<result property="format" column="report_format"/>
+		<result property="name" column="label"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-rpt-template" resultMap="map-rpt-template" parameterClass="java.util.Map">
+		select id
+		     , seqnum
+		     , report_id
+		     , template_lang
+		     , text
+		     , base64
+		     , report_processor
+		     , report_format
+		     , label
+		     , description
+		     , lang
+		  from rpt_ui_template_vw
+		 where id   = #id#
+		   and lang = #lang#
+	</select>
+
+	<resultMap id="map-rpt-template-param" class="ru.bpc.sv2.reports.ReportParameter">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="reportId" column="report_id"/>
+		<result property="systemName" column="param_name"/>
+		<result property="dataType" column="data_type"/>
+		<result property="defaultValue" column="default_value"/>
+		<result property="mandatory" column="is_mandatory" nullValue="false"/>
+		<result property="displayOrder" column="display_order"/>
+		<result property="lovId" column="lov_id"/>
+		<result property="name" column="label"/>
+		<result property="description" column="description"/>
+		<result property="valueN" column="default_number_value"/>
+		<result property="valueV" column="default_char_value"/>
+		<result property="valueD" column="default_date_value"/>
+		<result property="lovValue" column="default_lov_value"/>
+		<result property="lang" column="lang"/>
+		<result property="selectionForm" column="selection_form"/>
+	</resultMap>
+
+	<select id="get-rpt-template-params" resultMap="map-rpt-template-param" parameterClass="java.util.Map">
+		select id
+		     , seqnum
+		     , report_id
+		     , param_name
+		     , data_type
+		     , default_value
+		     , is_mandatory
+		     , display_order
+		     , lov_id
+		     , label
+		     , description
+		     , default_number_value
+		     , default_char_value
+		     , default_date_value
+		     , default_lov_value
+		     , lang
+		     , selection_form
+		  from rpt_ui_parameter_vw
+		 where report_id = #reportId#
+		   and lang      = #lang#
+	</select>
+
+	<resultMap id="get-report-images-map" class="ru.bpc.sv2.reports.ReportImage">
+		<result property="id" column="id"/>
+		<result property="bannerId" column="banner_id"/>
+		<result property="bannerName" column="label_banner"/>
+		<result property="bannerDescription" column="description_banner"/>
+		<result property="reportId" column="report_id"/>
+		<result property="reportName" column="label_report"/>
+		<result property="reportDescription" column="description_report"/>
+		<result property="fileName" column="filename"/>
+		<result property="status" column="status"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-report-images" resultMap="get-report-images-map" parameterClass="qparams">
+		select r.id
+		     , r.banner_id
+		     , r.label_banner
+		     , r.description_banner
+		     , r.report_id
+		     , r.label_report
+		     , r.description_report
+		     , b.filename
+		     , b.status
+		     , r.lang
+		  from rpt_ui_report_banner_vw r
+		     , rpt_ui_banner_vw b
+		 where b.id(+) = r.banner_id
+		   and b.lang(+) = r.lang
+		<iterate prepend=" and " conjunction=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">r.report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportName">upper(r.label_report) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="bannerId">r.banner_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="bannerName">upper(r.label_banner) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="status">b.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">r.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend=" order by " conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="auto">
+				<isEqual property="sorting[].property" compareValue="id">r.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="bannerId">r.banner_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="bannerName">r.label_banner $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="fileName">b.file_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">b.status $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" order by ">r.id asc</isEmpty>
+	</select>
+
+	<select id="get-report-images-count" resultClass="java.lang.Integer" parameterClass="qparams">
+		select count(*)
+		  from rpt_ui_report_banner_vw
+		<iterate prepend=" where " conjunction=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportId">report_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reportName">upper(label_report) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="bannerId">banner_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="bannerName">upper(label_banner) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+</sqlMap>

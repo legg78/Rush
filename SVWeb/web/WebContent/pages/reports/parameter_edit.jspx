@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		>
+		
+<f:view id="paramEditView">
+<ui:composition>
+	<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+	
+	<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"
+			buttonClass="hidden" inputClass="hidden"
+			onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"/>
+	
+	<script type="text/javascript">//<![CDATA[		
+		#{rich:component('calendar')}.customExpand=customExpand;
+		
+		function checkParameterFields() {
+			var checked = true;
+			
+			if (document.getElementById('rpt_parameter_modal_div:systemName')
+					&& document.getElementById('rpt_parameter_modal_div:systemName').value == "") {
+				document.getElementById('rpt_parameter_modal_div:systemNameError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('rpt_parameter_modal_div:name').value == "") {
+				document.getElementById('rpt_parameter_modal_div:nameError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('rpt_parameter_modal_div:dataType').value == "") {
+				document.getElementById('rpt_parameter_modal_div:dataTypeError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('rpt_parameter_modal_div:displayOrder').value == "") {
+				document.getElementById('rpt_parameter_modal_div:displayOrderError').style.display = "inline";
+				checked = false;
+			}
+
+			
+			return checked;
+		}
+		//]]>
+	</script>
+
+	<rich:modalPanel id="rpt_parameter_modal_panel" autosized="true" minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup id="rpt_parameter_modal_header">
+				<h:outputText value="#{lblRpt.new_parameter}" rendered="#{MbReportParametersSearch.newMode}"/>
+		    	<h:outputText value="#{lblRpt.edit_parameter}" rendered="#{MbReportParametersSearch.editMode}"/>
+			</h:panelGroup>
+		</f:facet>
+        <f:facet name="controls">
+   	    </f:facet>
+		<h:form id="rpt_parameter_modal_div">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+		
+					<h:outputLabel value="* #{lblCommon.system_name}: " title="#{lblCommon.system_name}"/>
+					<h:inputText id="systemNameXml" disabled="true" rendered="#{isXml}"
+							value="#{MbReportParametersSearch.newParameter.systemName}"
+							/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0" rendered="#{isSimple}">
+						<h:inputText id="systemName" disabled="#{MbReportParametersSearch.editMode}"
+								value="#{MbReportParametersSearch.newParameter.systemName}"
+								maxlength="200" 
+								label="#{lblCommon.system_name}"
+								onblur="hideErrorField(this)">
+						</h:inputText>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="systemNameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.system_name}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+		
+					<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+					<h:selectOneMenu id="lang" 
+							value="#{MbReportParametersSearch.newParameter.lang}"
+							onchange="if (#{MbReportParametersSearch.newMode}) {return true;} document.getElementById('paramEditView:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('paramEditView:confirmPanel')}.show()">
+					    <f:selectItems value="#{MbReportParametersSearch.languages}"/>
+					</h:selectOneMenu>
+		
+					<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="name" 
+								value="#{MbReportParametersSearch.newParameter.name}"
+								maxlength="200"
+								label="#{lblCommon.name}"
+								onblur="hideErrorField(this)">
+							<f:validateLength minimum="3"/>
+							<a4j:support event="onchange" reRender="nameErr" limitToList="true"/>
+						</h:inputText>
+						<rich:message for="name" id="nameErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="nameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblCommon.data_type}: " title="#{lblCommon.data_type}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="dataType" 
+								value="#{MbReportParametersSearch.newParameter.dataType}"
+								disabled="#{MbReportParametersSearch.editMode}"
+								label="#{lblCommon.data_type}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbReportParametersSearch.dataTypes}"/>
+							<a4j:support event="onchange" reRender="lov, defaultValue, dataTypeErr" 
+									limitToList="true" ajaxSingle="true"
+									action="#{MbReportParametersSearch.disableLov}"/>
+						</h:selectOneMenu>
+						<rich:message for="dataType" id="dataTypeErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="dataTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.data_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblCommon.display_order}: " title="#{lblCommon.display_order}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="displayOrder" 
+								value="#{MbReportParametersSearch.newParameter.displayOrder}"
+								maxlength="4"
+								label="#{lblCommon.display_order}"
+								onblur="hideErrorField(this)">
+							<f:converter converterId="javax.faces.Integer"/>
+						</h:inputText>
+						<rich:message for="displayOrder" id="displayOrderErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="displayOrderError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.display_order}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="#{lblRpt.mandatory}: " title="#{lblRpt.mandatory}"/>
+					<h:selectBooleanCheckbox id="mandatory"
+							value="#{MbReportParametersSearch.newParameter.mandatory}"
+							label="#{lblRpt.mandatory}"
+							disabled="#{isXml}"/>					
+					
+					<h:outputLabel id="lovLabel" value="#{lblCommon.lov}: " title="#{lblCommon.lov}"/>
+					<h:selectOneMenu id="lov" disabled="#{MbReportParametersSearch.newParameter.date}"
+								value="#{MbReportParametersSearch.newParameter.lovId}">
+							<a4j:support event="onchange" reRender="defaultValue"
+									limitToList="true" ajaxSingle="true"/>
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbReportParametersSearch.lovs}"/>
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblCommon.default}: " title="#{lblCommon.default}" />
+					<h:panelGrid id="defaultValue" cellspacing="0" cellpadding="0">
+						<h:inputText id="inplace1"
+							rendered="#{MbReportParametersSearch.newParameter.char 
+										and MbReportParametersSearch.newParameter.lovId == null}"
+							value="#{MbReportParametersSearch.newParameter.valueV}"
+							label="#{lblCommon.default}" />
+
+						<h:inputText id="inplace2"
+								rendered="#{MbReportParametersSearch.newParameter.number 
+										and MbReportParametersSearch.newParameter.lovId == null}"
+								value="#{MbReportParametersSearch.newParameter.valueN}"
+								label="#{lblCommon.default}" maxlength="23"
+								validator="#{MbReportParametersSearch.validateBigDecimal}"
+								onkeypress="if (!numbersOnly(this, event, true, true)) return false;">
+							<bm:convertNumberNew minFractionDigits="0" groupingUsed="false"/>
+						</h:inputText>
+
+						<rich:calendar buttonIcon="/images/calendar.gif" id="inplace3"
+           					value="#{MbReportParametersSearch.newParameter.valueD}" 
+           					rendered="#{MbReportParametersSearch.newParameter.date}"
+           					label="#{lblCommon.default}" zindex="1000"
+           					datePattern="#{usession.datePattern}" inputStyle="width:225px">
+           				</rich:calendar>
+						
+						<h:selectOneMenu id="defaultLovValueChar"
+							value="#{MbReportParametersSearch.newParameter.valueV}"
+							rendered="#{MbReportParametersSearch.newParameter.char 
+										and MbReportParametersSearch.newParameter.lovId != null}"
+							label="#{lblCommon.default}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbReportParametersSearch.lovValues}" />
+						</h:selectOneMenu>
+
+						<h:selectOneMenu id="defaultLovValueNum"
+							value="#{MbReportParametersSearch.newParameter.valueN}"
+							rendered="#{MbReportParametersSearch.newParameter.number 
+										and MbReportParametersSearch.newParameter.lovId != null}"
+							label="#{lblCommon.default}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbReportParametersSearch.lovValues}" />
+						</h:selectOneMenu>
+						
+						<rich:message for="inplace2" styleClass="errorMarker"/>
+						
+					</h:panelGrid>
+					
+					<h:outputLabel value="#{lblCommon.form}: " title="#{lblCommon.form}" />
+					
+					<h:inputText id="selectionFormNewValue"
+						value="#{MbReportParametersSearch.newParameter.selectionForm}"
+						label="#{lblCommon.form}" />
+				</h:panelGrid>
+		    </h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbReportParametersSearch.save}"
+                       			onclick="if (!checkParameterFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('rpt_parameter_modal_panel')}.hide()"
+                       			reRender="#{rerenderList}"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbReportParametersSearch.close}" immediate="true"
+                        		oncomplete="#{rich:component('rpt_parameter_modal_panel')}.hide()"
+                        		reRender="rpt_parameter_modal_div">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                        </bre:taggedCommandButton>			                        		
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+    	<ui:param name="backingBean" value="#{MbReportParametersSearch}"/>
+    	<ui:param name="rerenderList" value="rpt_parameter_modal_div:name, rpt_parameter_modal_div:dataType"/>
+    	<ui:param name="editElem" value="rpt_parameter_modal_div:lang"/>
+    	<ui:param name="newValue" value="#{MbReportParametersSearch.newParameter.lang}"/>
+    	<ui:param name="subviewId" value="paramEditView" />
+    	<ui:param name="formName" value="rpt_parameter_modal_div"/>
+    </ui:include>
+	
+</ui:composition>
+</f:view>
+</html>

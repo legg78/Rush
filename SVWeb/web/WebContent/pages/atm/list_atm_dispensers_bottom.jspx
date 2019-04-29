@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<!-- 
+		function checkAtmDispenserFields() {
+			var checked = true;
+			
+			checked = checkField('dispenserEditForm:newDispNumber');
+			checked = checkField('dispenserEditForm:newFaceValue') && checked;
+			checked = checkField('dispenserEditForm:newCurrency') && checked;
+			checked = checkField('dispenserEditForm:newDenominationId') && checked;
+			checked = checkField('dispenserEditForm:newDispenserType') && checked;
+			
+			return checked;
+		}
+	//-->
+	</script>
+
+	<f:loadBundle var="lblAtm" basename="ru.bpc.sv2.ui.bundles.Atm"/>
+	
+	<a4j:form rendered="#{!isTemplate}">
+		<h:panelGrid>
+			<a4j:region>
+				<h:selectBooleanCheckbox value="#{(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).groupByCurrency}">
+					<a4j:support event="onchange" reRender="mainDispensersForm" limitToList="true"
+						action="#{(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).search}"/>
+				</h:selectBooleanCheckbox>
+				<h:outputText value=" #{lblAtm.group_by_currency}"/>
+			</a4j:region>
+		</h:panelGrid>
+	</a4j:form>
+	
+	<h:form id="mainDispensersForm">
+		<h:panelGroup id="bottomDispensersTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable enableContextMenu="true"
+		           	id="bottomDispensersTable"
+		           	tableState="#{(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).tableState}"
+		           	styleClass="res-table"
+		           	headerClass="res-table-header table-header-ext"
+		           	selectedClass="res-table-selected"
+		           	rowClasses=",odd"
+		           	var="item"
+		           	value="#{(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).dispensers}"
+		           	selection="#{(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).dispenserSelection}"
+		           	rows="0"
+		           	height="${tableHeight == null ? '200px' : tableHeight}"
+					selectionMode="single"
+					noDataLabel="#{lblCommon['no_records_found']}">
+					
+				<a4j:support event="onselectionchange" reRender="dispenserListBtns" rendered="#{showButtons}"/>
+				
+		        <rich:column id="dispenser_number" label="#{lblAtm.dispenser_number}" sortBy="#{'dispNumber'}" width="5%" rendered="#{!(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).groupByCurrency}">
+		           <f:facet name="header">
+		           		<a4j:outputPanel layout="none">
+		           			<script>updateHeight();</script>
+		           			<h:outputText value="N" title="#{lblAtm.dispenser_number}"/>
+		           		</a4j:outputPanel>				         
+	                </f:facet>
+	                <h:panelGroup>
+	                	<h:outputText value="#{item.dispNumber}" title="#{item.dispNumber}"/>
+	                </h:panelGroup>
+		        </rich:column>
+	
+		        <rich:column id="face_value" label="#{lblAtm.face_value}" width="10%" sortBy="#{'faceValue'}" style="text-align: right;" rendered="#{!(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).groupByCurrency}">
+		        	<f:facet name="header">
+	            		<h:outputText value="#{lblAtm.face_value}" title="#{lblAtm.face_value}"/>
+	            	</f:facet>
+	            	<h:outputText value="#{item.faceValueName}" title="#{item.faceValueName}"/>
+	            	
+		        </rich:column>
+	
+		        <rich:column id="denomination_id" label="#{lblAtm.denomination_id}" width="10%" sortBy="#{'denominationId'}" style="text-align: right;" rendered="#{!(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).groupByCurrency}">
+		           	<f:facet name="header">
+	                	<h:outputText value="#{lblAtm.denomination_id}" title="#{lblAtm.denomination_id}"/>
+	               	</f:facet>
+	               	<h:outputText value="#{item.denominationId}" title="#{item.denominationId}"/>
+		        </rich:column>
+	
+		        <rich:column id="dispenser_type" label="#{lblAtm.dispenser_type}" width="15%" sortBy="#{'dispenserType'}" rendered="#{!(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).groupByCurrency}">
+		           	<f:facet name="header">
+	                   <h:outputText value="#{lblAtm.dispenser_type}" title="#{lblAtm.dispenser_type}"/>
+	               	</f:facet>
+	               	<h:outputText value="#{item.dispenserTypeName} (#{item.cassetteStatusName})" 
+	               		title="#{item.dispenserTypeName} (#{item.cassetteStatusName})"
+	               		rendered="#{item.dispenserType != null}"/>
+	               	<h:outputText value="" rendered="#{item.dispenserType == null}"/>
+		        </rich:column>
+		        
+		         <rich:column id="currency" label="#{lblCommon.currency}" width="25%" style="text-align: right;" rendered="#{(dispenserBean==null ? MbAtmDispensersSearch : dispenserBean).groupByCurrency}">
+		           	<f:facet name="header">
+	                	<h:outputText value="#{lblCommon.currency}" title="#{lblCommon.currency}"/>
+	               	</f:facet>
+	               	<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.currency]}"/>
+	               	<h:outputText value="#{item.currency} - #{CurrencyUtils.currencyObjectsMap[item.currency].currencyName}"
+				                		title="#{item.currency} - #{CurrencyUtils.currencyMap[item.currency]}"/>
+		        </rich:column>
+		        
+		        <rich:column id="remained" label="#{lblAtm.remained}" width="15%" style="text-align: right;" rendered="#{!isTemplate}">
+		           	<f:facet name="header">
+		           		<h:panelGroup>
+		           			<script>updateHeight();</script>
+	                		<h:outputText value="#{lblAtm.remained}" title="#{lblAtm.remained}"/>
+	                	</h:panelGroup>
+	               	</f:facet>
+	               	<h:outputText value="#{item.noteRemained} (#{item.sumRemained})" title="#{item.noteRemained} (#{item.sumRemained})"/>
+		        </rich:column>
+		        
+		        <rich:column id="loaded" label="#{lblAtm.loaded}" width="15%" style="text-align: right;" rendered="#{!isTemplate}">
+		           	<f:facet name="header">
+	                	<h:outputText value="#{lblAtm.loaded}" title="#{lblAtm.loaded}"/>
+	               	</f:facet>
+	               	<h:outputText value="#{item.noteLoaded} (#{item.sumLoaded})" title="#{item.noteLoaded} (#{item.sumLoaded})"/>
+		        </rich:column>
+		        
+		        <rich:column id="dispensed" label="#{lblAtm.dispensed}" width="15%" style="text-align: right;" rendered="#{!isTemplate}">
+		           	<f:facet name="header">
+	                	<h:outputText value="#{lblAtm.dispensed}" title="#{lblAtm.dispensed}"/>
+	               	</f:facet>
+	               	<h:outputText value="#{item.noteDispensed} (#{item.sumDispensed})" title="#{item.noteDispensed} (#{item.sumDispensed})"/>
+		        </rich:column>
+		        
+		        <rich:column id="rejected" label="#{lblAtm.rejected}" width="15%" style="text-align: right;" rendered="#{!isTemplate}">
+		           	<f:facet name="header">
+	                	<h:outputText value="#{lblAtm.rejected}" title="#{lblAtm.rejected}"/>
+	               	</f:facet>
+	               	<h:outputText value="#{item.noteRejected} (#{item.sumRejected})" title="#{item.noteRejected} (#{item.sumRejected})"/>
+		        </rich:column>        
+		        
+		    </rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{dispenserBean==null}">
+				<h:panelGrid styleClass="fw buttons_block" columns="3" columnClasses=", table_tools_state" >
+					<h:panelGroup rendered="#{showButtons}">
+					<bre:taggedCommandButton id="addDispenserBtn"
+                    		reRender="dispenserModalPanel"
+                    		value="#{lblForm.add}"	                      		
+                 			oncomplete="#{rich:component('dispenserModalPanel')}.show()"
+                    		action="#{MbAtmDispensersSearch.add}"
+                    		image="/images/create_doc.gif"
+                    		rendered="#{usession.inRole['ADD_ATM_DISPENSER']}"
+                    		disabled="#{MbAtmDispensersSearch.disableButtons}"
+                    		/>
+	            	<bre:taggedCommandButton id="editDispenserBtn"
+                    		reRender="dispenserModalPanel"
+                    		value="#{lblForm.edit}"
+                 			oncomplete="#{rich:component('dispenserModalPanel')}.show()"
+                    		action="#{MbAtmDispensersSearch.edit}"
+                    		disabled="#{MbAtmDispensersSearch.activeDispenser == null or MbAtmDispensersSearch.disableButtons}"
+                    		image="/images/edit.gif"
+                    		rendered="#{usession.inRole['MODIFY_ATM_DISPENSER']}"
+                    		/>
+					<bre:taggedCommandButton id="deleteDispenserBtn"
+                    		value="#{lblForm.delete}"
+                    		disabled="#{MbAtmDispensersSearch.activeDispenser == null or MbAtmDispensersSearch.disableButtons}"
+                    		image="/images/delete.gif"
+                    		rendered="#{usession.inRole['REMOVE_ATM_DISPENSER']}"
+                    		oncomplete="#{rich:component('deleteDispenserView:confirmPanel')}.show()"/>
+                    </h:panelGroup>
+                    <h:panelGroup></h:panelGroup>
+                    <h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveDispenserTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteDispenserTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveDispenserTableState" action="#{MbAtmDispensersSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteDispenserTableState" action="#{MbAtmDispensersSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+	
+	<rich:modalPanel id="dispenserModalPanel" autosized="true" minWidth="300" minHeight="100" rendered="#{showButtons}">
+	   	<f:facet name="header">
+	   		<h:panelGroup>
+	       	    <h:outputText value="#{lblAtm.edit_dispenser}" rendered="#{MbAtmDispensersSearch.editMode}"/>
+	       	    <h:outputText value="#{lblAtm.new_dispenser}" rendered="#{MbAtmDispensersSearch.newMode}"/>
+	   	    </h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+	    </f:facet>
+	   	<h:form id="dispenserEditForm">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					<h:outputLabel for="newTerminal" value="#{lblAtm.terminal}: " title="#{lblAtm.terminal}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+	         			<h:inputText id="newTerminal" value="#{MbAtmDispensersSearch.newDispenser.terminalId}" disabled="true"
+	         				title="#{MbAtmDispensersSearch.newDispenser.terminalId}"></h:inputText>
+	       			</h:panelGrid>
+				
+	       			<h:outputLabel for="newDispNumber" value="* #{lblAtm.dispenser_number}: " title="#{lblAtm.dispenser_number}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+	           			<h:inputText id="newDispNumber" value="#{MbAtmDispensersSearch.newDispenser.dispNumber}" 
+	           				label="#{lblAtm.dispenser_number}"
+	           				onkeypress="if (!numbersOnly(this, event)) return false;"
+	           				maxlength="4"
+	           				title="#{MbAtmDispensersSearch.newDispenser.dispNumber}"
+	           				onblur="hideErrorField(this)">
+	           			</h:inputText>
+	           			<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newDispNumberError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAtm.dispenser_number}"/>
+						</h:outputFormat>
+	       			</h:panelGrid>
+	          			
+	       			<h:outputLabel for="newFaceValue" value="* #{lblAtm.face_value}: " title="#{lblAtm.face_value}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+	         			<h:inputText id="newFaceValue" value="#{MbAtmDispensersSearch.newDispenser.faceValue}"
+	         				maxlength="23"
+	         				title="#{MbAtmDispensersSearch.newDispenser.faceValue}"
+	         				onblur="hideErrorField(this)">
+	           			</h:inputText>	
+	           			<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newFaceValueError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAtm.face_value}"/>
+						</h:outputFormat>
+	       			</h:panelGrid>
+	       			
+	       			<h:outputLabel for="newCurrency" value="* #{lblAtm.currency}: " title="#{lblAtm.currency}"/>
+	       			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		       			<h:selectOneMenu id="newCurrency" value="#{MbAtmDispensersSearch.newDispenser.currency}"
+		       				title="#{MbAtmDispensersSearch.newDispenser.currency}"
+		       				onblur="hideErrorField(this)">
+	           				<f:selectItem itemValue=""/>
+	           				<f:selectItems value="#{MbAtmDispensersSearch.currencies}"/>
+	           			</h:selectOneMenu>
+	           			<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newCurrencyError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAtm.currency}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+           			
+           			<h:outputLabel for="newDenominationId" value="* #{lblAtm.denomination_id}: " title="#{lblAtm.denomination_id}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+	         			<h:inputText id="newDenominationId" value="#{MbAtmDispensersSearch.newDispenser.denominationId}"
+	         				maxlength="1"
+	         				title="#{MbAtmDispensersSearch.newDispenser.denominationId}"
+	         				onblur="hideErrorField(this)">
+	           			</h:inputText>	
+	           			<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newDenominationIdError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAtm.denomination_id}"/>
+						</h:outputFormat>
+	       			</h:panelGrid>
+	       			
+	       			<h:outputLabel for="newDispenserType" value="* #{lblAtm.dispenser_type}: " title="#{lblAtm.dispenser_type}"/>
+	       			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		       			<h:selectOneMenu id="newDispenserType" value="#{MbAtmDispensersSearch.newDispenser.dispenserType}"
+		       				title="#{MbAtmDispensersSearch.newDispenser.dispenserType}"
+		       				onblur="hideErrorField(this)">
+	           				<f:selectItem itemValue=""/>
+	           				<f:selectItems value="#{MbAtmDispensersSearch.dispenserTypes}"/>
+	           			</h:selectOneMenu>
+	           			<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newDispenserTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAtm.dispenser_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+	
+	   	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+	                    <h:panelGroup styleClass="stdButton">
+	                       	<bre:taggedCommandButton
+	                       			value="#{lblForm.save}" type="submit" action="#{MbAtmDispensersSearch.save}"
+	                       			onclick="if (!checkAtmDispenserFields()) return false; disableModalPanelBtns(this)"
+				                   	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('dispenserModalPanel')}.hide()"
+	                       			reRender="mainDispensersForm"
+	                        		eventsQueue="queue"/>
+	                   	</h:panelGroup>
+	                    <h:panelGroup styleClass="stdButton">
+	                       	<bre:taggedCommandButton
+	                        		value="#{lblForm.cancel}" 
+	                        		action="#{MbAtmDispensersSearch.cancel}" 
+	                        		immediate="true" limitToList="true"
+	                        		oncomplete="#{rich:component('dispenserModalPanel')}.hide()"
+	                        		reRender="dispenserModalPanel">
+	                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                        </bre:taggedCommandButton>	
+	                   	</h:panelGroup>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>			
+	</rich:modalPanel>
+    
+    <ui:include src="/pages/utils/confirmPanel.jspx">
+        <ui:param name="backingBean" value="#{MbAtmDispensersSearch}"/>
+        <ui:param name="yesAction" value="delete"/>
+        <ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+        <ui:param name="rerenderList" value="mainDispensersForm"/>
+        <ui:param name="confirmQuestion" value=" "/>
+        <ui:param name="subviewId" value="deleteDispenserView"/>
+        <ui:param name="yes" value="#{lblForm.ok}"/>
+        <ui:param name="no" value="#{lblForm.cancel}"/>
+    </ui:include>
+
+	
+</ui:composition>
+</html>

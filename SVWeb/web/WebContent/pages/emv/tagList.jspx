@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<h:panelGroup rendered="#{usession.inRole['VIEW_EMV_TAGS']}">
+		
+			<f:loadBundle var="lblEmv" basename="ru.bpc.sv2.ui.bundles.Emv" />
+			<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt" />
+			<a4j:loadScript src="/js/stretch.js" />
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+			
+			<!-- navigation bar -->
+			<bpct:navBar pageName="#{lblEmv.tags}" />
+			
+			<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+							 if (event.keyCode == 13) {
+								 document.getElementById('emvTagSearchForm:searchBtn').click(); 
+								 return false; 
+							} 
+							return true;
+						 }	
+			//]]>
+			</script> 
+
+			<!-- search panel -->
+			<h:form id="emvTagSearchForm" onkeypress="handleEnter(event)">
+				<h:panelGroup layout="block" styleClass="search_block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+							<h:panelGroup layout="block" styleClass="search_block_left">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses="top ,link-cont">
+									<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+										columnClasses="firstCol,secondCol,firstCol,secondCol">
+										
+										<h:outputLabel for="tag" value="#{lblEmv.tag}:" title="#{lblEmv.tag}" />
+										<h:inputText
+											id="tag"
+											value="#{MbEmvTag.filter.tag}">
+										</h:inputText>
+
+										<h:outputLabel for="dataType" value="#{lblEmv.data_type}:" title="#{lblEmv.data_type}" />
+										<h:selectOneMenu 
+											id="dataType"
+											value="#{MbEmvTag.filter.dataType}">
+											<f:selectItem itemValue=""/>
+											<f:selectItems value="#{MbEmvTag.dataTypes}" />
+										</h:selectOneMenu>
+
+										<h:outputLabel for="dataFormat" value="#{lblEmv.data_format}:" title="#{lblEmv.data_format}" />
+										<h:inputText 
+											id="dataFormat"
+											value="#{MbEmvTag.filter.dataFormat}">
+										</h:inputText>
+
+										<h:outputLabel for="tagType" value="#{lblEmv.tag_type}:" title="#{lblEmv.tag_type}" />
+										<h:selectOneMenu 
+											id="tagType"
+											value="#{MbEmvTag.filter.tagType}">
+											<f:selectItem itemValue=""/>
+											<f:selectItems value="#{MbEmvTag.tagTypes}" />
+										</h:selectOneMenu>
+
+									</h:panelGrid>
+
+									<h:panelGrid columns="1">
+										<h:panelGroup styleClass="stdButton">
+											<bre:taggedCommandButton action="#{MbEmvTag.search}"
+												reRender="EmvTagTable, EmvTagDataScroller, pagesNum, emvTagBtnForm:btnPanel, detailsTab"
+												id="searchBtn"
+												image="/_img/icon_search.png" value="#{lblForm.search }"
+												style="width:85px;"
+												onclick="disableModalPanelBtns(this);"
+												oncomplete="enableModalPanelBtns(this);"
+												eventsQueue="queue"/>
+
+										</h:panelGroup>
+
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+												action="#{MbEmvTag.clearFilter}"
+												reRender="emvTagResultForm, emvTagSearchForm, emvTagBtnForm, details">
+											</a4j:commandLink>
+										</h:panelGroup>
+									</h:panelGrid>
+
+								</h:panelGrid>
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<!-- Result panel -->
+			<h:form id="emvTagResultForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+					<h:panelGroup styleClass="search_result_block_left fix-ff"
+						layout="block">
+						<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+						<rich:extendedDataTable id="EmvTagTable"
+							tableState="#{MbEmvTag.tableState}"
+							styleClass="res-table" headerClass="res-table-header"
+							rowClasses=",odd" selectedClass="res-table-selected" var="item"
+							value="#{MbEmvTag.dataModel}"
+							selection="#{MbEmvTag.itemSelection}"
+							rows="#{MbEmvTag.rowsNum}" height="200px"
+							selectionMode="single" width="100%" enableContextMenu="true"
+							noDataLabel="#{MbEmvTag.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+							reRender="emvTagBtnForm:btnPanel, detailsTab">
+	
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="emvTagBtnForm:btnPanel, detailsTab" />
+								
+							<rich:column id="id" label="#{lblCommon.id}" title="Id"
+								sortBy="#{'id'}" width="11%">
+								<f:facet name="header">
+									 <a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>	
+								</f:facet>
+								<h:outputText
+										value="#{item.id}"
+										title="#{item.id}"/>
+							</rich:column>
+							
+							<rich:column id="tag" label="#{lblEmv.tag}" title="Tag"
+								sortBy="#{'tag'}" width="11%">
+								<f:facet name="header">
+									<h:outputText value="#{lblEmv.tag}"
+										title="#{lblEmv.tag}" />
+								</f:facet>
+								<h:outputText
+										value="#{item.tag}"
+										title="#{item.tag}"/>
+							</rich:column>
+							
+							<rich:column id="description" label="#{lblEmv.description}" title="Description"
+								sortBy="#{'description'}" width="30%">
+								<f:facet name="header">
+									<h:outputText value="#{lblEmv.description}"
+										title="#{lblEmv.description}" />
+								</f:facet>
+								<h:outputText
+										value="#{item.description}"
+										title="#{item.description}"/>
+							</rich:column>
+							
+						</rich:extendedDataTable>
+						</h:panelGroup>
+						<a4j:outputPanel ajaxRendered="true">
+							<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+							<h:graphicImage url="/_img/hd_searchblock.gif"
+								styleClass="hd-searchblock" />
+							<h:panelGroup styleClass="collapse-vert table-collapse-vert"
+								layout="block" />
+						</a4j:outputPanel>
+					</h:panelGroup>
+				</h:panelGroup>
+            </h:form>
+
+            <h:form id="emvTagBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="5"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+	
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+	
+								<h:selectOneMenu id="rows_num"
+									value="#{MbEmvTag.rowsNum}" styleClass="row_per_page">
+									<a4j:support event="onchange"
+										reRender="EmvTagTable, EmvTagDataScroller, pagesNum, emvTagBtnForm, detailsTab" />
+									<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+								</h:selectOneMenu>
+	
+								<rich:datascroller id="EmvTagDataScroller" maxPages="10"
+									fastControls="hide" pagesVar="pages"
+									styleClass="res-datascroller" for="EmvTagTable"
+									reRender="emvTagBtnForm:btnPanel, detailsTab">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+	
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbEmvTag.dataModel.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+								
+								<h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbEmvTag.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbEmvTag.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+	
+						<h:panelGrid id="btnPanel" columns="3" styleClass="buttons_block">
+							<bre:taggedCommandButton id="addBtn"
+								reRender="tagEditModalPanel" value="#{lblForm.add}"
+								oncomplete="#{rich:component('tagEditModalPanel')}.show()"
+								action="#{MbEmvTag.createNewTag}" image="/images/create_doc.gif"
+								rendered="#{usession.inRole['ADD_EMV_TAG']}" />
+							<bre:taggedCommandButton id="editBtn"
+								reRender="tagEditModalPanel" value="#{lblForm.edit}"
+								action="#{MbEmvTag.editActiveTag}"
+								oncomplete="#{rich:component('tagEditModalPanel')}.show()"
+								disabled="#{MbEmvTag.activeItem == null}"
+								image="/images/edit.gif"
+								rendered="#{usession.inRole['MODIFY_EMV_TAG']}" />
+							<bre:taggedCommandButton id="deleteBtn"
+								value="#{lblForm.delete}" 
+								disabled="#{MbEmvTag.activeItem == null}"
+								image="/images/delete.gif"
+								rendered="#{usession.inRole['REMOVE_EMV_TAG']}" 
+								oncomplete="#{rich:component('deleteTagView:confirmPanel')}.show()"/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<!-- Working panel -->
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+				<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content">
+	
+					<rich:tab label="#{lblCommon.details}" name="detailsTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}"
+									title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+	
+						<h:panelGroup layout="block" id="detailsTab">
+							<ui:include src="/pages/emv/tagDetails.jspx"></ui:include>
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>								
+						</h:panelGroup>
+					</rich:tab>
+	
+				</rich:tabPanel>
+			</h:panelGroup>
+		
+			<ui:include src="/pages/emv/tagEditModalPanel.jspx"></ui:include>
+			
+			<ui:include src="/pages/utils/confirmPanel.jspx">
+				<ui:param name="backingBean" value="#{MbEmvTag}"/>
+				<ui:param name="yesAction" value="deleteActiveTag"/>
+				<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+				<ui:param name="rerenderList" value="EmvTagTable, EmvTagDataScroller, pagesNum, btnPanel, detailsTab"/>
+				<ui:param name="confirmQuestion" value=" "/> 
+				<ui:param name="subviewId" value="deleteTagView"/>
+				<ui:param name="yes" value="#{lblForm.ok}"/>
+				<ui:param name="no" value="#{lblForm.cancel}"/>
+			</ui:include>
+			
+			<script type="text/javascript">
+			
+				function updateHeight(){
+                    updateGridHeight();
+				}
+
+                layout =
+                        {
+                            SEARCH_FORM_ID:                 'emvTagSearchForm',
+                            SEARCH_RESULT_FORM_ID:          'emvTagResultForm',
+                            SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                            SEARCH_RESULT_FOOTER_FORM_ID:   'emvTagBtnForm',
+                            TAB_PANEL_ID:                   'workplacePanel',
+
+                            TAB_DATA:      [{
+                                TAB_FORM_ID:            'tagDetailsForm',
+                                TAB_FORM_WRAPPER_ID:    'tagDetailsWrapper',
+                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                            }]
+                        };
+
+				updateHeight();
+                jQuery(window).resize(updateHeight);
+			</script>				
+		</h:panelGroup>
+		
+	</ui:define>
+</ui:composition>
+</html>	

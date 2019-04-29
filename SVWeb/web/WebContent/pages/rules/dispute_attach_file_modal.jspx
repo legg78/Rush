@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+         xmlns:f="http://java.sun.com/jsf/core"
+         xmlns:h="http://java.sun.com/jsf/html"
+         xmlns:ui="http://java.sun.com/jsf/facelets"
+         xmlns:a4j="http://richfaces.org/a4j"
+         xmlns:rich="http://richfaces.org/rich"
+         xmlns:bm="http://www.bpc.ru/jsf/misc"
+         xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+         xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition>
+    <f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+    <style>
+        #dspApplAttachEditForm\:upload\:clean1 {
+            display: none;
+        }
+    </style>
+    <script type="text/javascript">
+        //<!--
+        function checkDpsApplicationAttFields() {
+            var checked = true;
+            if (document.getElementById('dspApplAttachEditForm:upload:fileItems').innerHTML == "") {
+                document.getElementById('dspApplAttachEditForm:uploadError').style.display = "inline";
+                checked = false;
+            }
+            if (document.getElementById('dspApplAttachEditForm:type').value == "") {
+                document.getElementById('dspApplAttachEditForm:typeError').style.display = "inline";
+                checked = false;
+            }
+            return checked;
+        }
+
+        function getChild(node, name) {
+            var child = null;
+            if (node != null && name != null) {
+                [].forEach.call(node.childNodes, function (element) {
+                    var tag = element.tagName + ' ' + element.className;
+                    if (name.toUpperCase() === tag.toUpperCase().trim()) {
+                        child = element;
+                    }
+                });
+            }
+            return child;
+        }
+
+        function extractFileName(element) {
+            var child = null;
+            child = getChild(element, 'div rich-fileupload-list-overflow');
+            child = getChild(child, 'table');
+            child = getChild(child, 'tbody');
+            child = getChild(child, 'tr');
+            child = getChild(child, 'td rich-fileupload-font rich-fileupload-name rich-fileupload-table-td');
+            child = getChild(child, 'div rich-fileupload-name-padding');
+            if (child != null && child.innerText) {
+                if (child.innerText.substr(0, 12) == "C:\\fakepath\\") {
+                    child.innerText = child.innerText.substr(12);
+                } else if (child.innerText.lastIndexOf('/') >= 0) {
+                    child.innerText = child.innerText.substr(child.innerText.lastIndexOf('/') + 1);
+                } else if (child.innerText.lastIndexOf('\\') >= 0) {
+                    child.innerText = child.innerText.substr(child.innerText.lastIndexOf('\\') + 1);
+                }
+            }
+        }
+        //-->
+    </script>
+
+    <f:loadBundle var="lblPrc" basename="ru.bpc.sv2.ui.bundles.Process"/>
+
+    <rich:modalPanel id="dsp_application_attach_modal" autosized="true" minWidth="300" minHeight="100">
+        <f:facet name="header">
+            <h:panelGroup id="dsp_appl_attach_modal_header">
+                <h:outputText value="#{lblPrc.new_file}" />
+            </h:panelGroup>
+        </f:facet>
+        <f:facet name="controls">
+        </f:facet>
+        <h:panelGroup id="dsp_appl_attach_modal_group">
+            <h:form id="dspApplAttachEditForm">
+                <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                    <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+                        <h:outputLabel value="#{lblCommon.file} *: " title="#{lblCommon.file}" />
+                        <h:panelGrid cellpadding="0" cellspacing="0" columns="1" width="100%">
+                            <rich:fileUpload id="upload"
+                                             addControlLabel="#{lblForm.add }"
+                                             fileUploadListener="#{MbAppWizDspNew.fileUploadListener}"
+                                             acceptedTypes="#{MbAppWizDspNew.getAcceptedFileTypes(null)}"
+                                             ontyperejected="alert('#{lblRpt.type_not_allowed}')"
+                                             maxFilesQuantity="1"
+                                             listHeight="50px;"
+                                             listWidth="100%"
+                                             immediateUpload="true"
+                                             onuploadcomplete="extractFileName(this)"
+                                             onclick="hideErrorField(this)">
+                                <a4j:support event="onuploadcomplete" reRender="fileName"/>
+                                <a4j:support event="onclear" reRender="upload"/>
+                            </rich:fileUpload>
+                            <h:outputFormat id="uploadError"
+                                            value="#{lblMsg.value_request}"
+                                            styleClass="errorMarker"
+                                            style="display:none;">
+                                <f:param name="fieldName" value="#{lblCommon.file}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+                        <h:outputLabel rendered="#{MbAppWizDspNew.editFileMode}"/>
+                        <h:outputText id="fileName"
+                                      value="#{(MbAppWizDspNew.newDspApplicationFile.name != null) ? MbAppWizDspNew.newDspApplicationFile.name : ' '}"
+                                      rendered="#{MbAppWizDspNew.editFileMode}"/>
+
+                        <h:outputLabel rendered="#{MbAppWizDspNew.editFileMode}"/>
+
+                        <h:outputLabel value="#{lblCommon.type} *: " title="#{lblCommon.type}" />
+                        <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+
+                            <h:selectOneMenu label="#{lblCommon.type}" id="type" onblur="hideErrorField(this)"
+                                             value="#{MbAppWizDspNew.newDspApplicationFile.type}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{MbAppWizDspNew.documentTypes}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                            id="typeError" style="display:none;">
+                                <f:param name="fieldName" value="#{lblCommon.type}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                </h:panelGroup>
+
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                        <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                            <h:outputText/>
+                            <bre:taggedCommandButton value="#{lblForm.save}"
+                                                     type="submit"
+                                                     action="#{MbAppWizDspNew.saveFilesInExistingAppl}"
+                                                     onclick="if (!checkDpsApplicationAttFields()) return false; disableModalPanelBtns(this)"
+                                                     oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('dsp_application_attach_modal')}.hide()"
+                                                     reRender="#{rerenderList}"/>
+                            <bre:taggedCommandButton value="#{lblForm.cancel}"
+                                                     action="#{MbAppWizDspNew.closeAttFile}"
+                                                     immediate="true"
+                                                     oncomplete="#{rich:component('dsp_application_attach_modal')}.hide()"/>
+                        </h:panelGrid>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+        </h:panelGroup>
+    </rich:modalPanel>
+
+</ui:composition>
+</html>

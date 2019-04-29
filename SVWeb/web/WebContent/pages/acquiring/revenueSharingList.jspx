@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	xmlns:fmt="http://www.bpc.ru/el/formatter"
+	>
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		
+		<script type="text/javascript">
+			//         
+			function selectTab(tabName) {
+				submittingTab = tabName;
+				if (checkTabLoaded(tabName)) {
+					//set only tab name to managed bean (in order to use it in the future)
+					setTabName(tabName);
+					return false;
+				}
+				refreshTab(tabName);
+				return true;
+			}
+			
+			function handleEnter(event) {
+				 if (event.keyCode == 13) { 
+					 document.getElementById('revenueSharingSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }
+			//
+		</script>
+		<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss" />
+		<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq" />
+		<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc" />
+		<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl" />
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblAcq.revenue_sharing}" />
+		<bpct:filterBarModalPanels id="filterPanels"
+			rerenderList="revenueSharingSearchForm, revenueSharing, dsaccounts, revenueSharingBtnForm, save_filter_panel_div, #{MbRevenueSharing.tabName}"
+			selectedFilter="#{MbRevenueSharing.selectedSectionFilter}"
+			sectionFilter="#{MbRevenueSharing.sectionFilter}"
+			sectionFilterModeEdit="#{MbRevenueSharing.sectionFilterModeEdit}"
+			searchAutomatically="#{MbRevenueSharing.searchAutomatically}"
+			sectionId="#{MbRevenueSharing.sectionId}"
+			beanName="MbRevenueSharing"/>
+
+		<bpct:customerSearchModalPanels id="custSearchPanels"/>
+
+		<bpct:terminalSearchModalPanels id="terminalSearchPanels"/>
+
+		<h:form id="revenueSharingSearchForm" onkeypress="return handleEnter(event)">
+			<h:inputHidden value="#{MbRevenueSharing.tabName}"
+				id="tabNameInput" />
+			<script type="text/javascript">
+				load("revenueSharingSearchForm:tabNameInput");
+			</script>
+
+			<a4j:jsFunction name="refreshTab" eventsQueue="queue"
+				limitToList="true" ajaxSingle="true"
+				reRender="#{MbRevenueSharing.tabName}, err_ajax"
+				action="#{MbRevenueSharing.loadCurrentTab}"
+				oncomplete="setTabLoaded(submittingTab)">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbRevenueSharing.tabName}" />
+			</a4j:jsFunction>
+
+			<a4j:jsFunction name="setTabName" reRender="err_ajax"
+				limitToList="true" ajaxSingle="true"
+				oncomplete="setTabLoaded(submittingTab)">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbRevenueSharing.tabName}" />
+			</a4j:jsFunction>
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+						<h:panelGroup styleClass="search_block_left" layout="block">
+							<h:panelGrid styleClass="fw" columns="2"
+								columnClasses="top ,link-cont">
+								<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+									columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+									<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"
+										/>
+									<h:selectOneMenu id="instId"
+										value="#{MbRevenueSharing.filter.instId}">
+										<f:selectItem itemValue="" itemLabel="" />
+										<f:selectItems value="#{MbRevenueSharing.institutions}" />
+										<a4j:support event="onchange" limitToList="true"
+											reRender="typeFilter" ajaxSingle="true" />
+									</h:selectOneMenu>
+									
+									<h:outputLabel for="feeTypeFilter" value="#{lblFcl.fee_type}: " 
+										title="#{lblFcl.fee_type}"/>
+									<h:selectOneMenu id="feeTypeFilter"
+										value="#{MbRevenueSharing.filter.feeType}">
+										<f:selectItem itemValue="" itemLabel="" />
+										<f:selectItems value="#{MbRevenueSharing.feeTypes}" />
+									</h:selectOneMenu>
+									
+									<h:outputLabel for="terminalNumberFilter" title="#{lblAcq.terminal_number}"
+										value="#{lblAcq.terminal_number}: " />
+									<bm:selectTerminal 
+										valueId="#{MbRevenueSharing.filter.terminalId}"
+										valueNumber="#{MbRevenueSharing.filter.terminalNumber}"
+										custInfoField="#{MbRevenueSharing.filter.terminalName}"
+										beanName="MbRevenueSharing" 
+										modalPanel="terminalSearchModalPanel"
+										formName="revenueSharingSearchForm"
+										rerenderList=""/>
+
+									<h:outputLabel for="accNumberFilter" title="#{lblAcc.account_number}"
+										value="#{lblAcc.account_number}: " />
+									<h:inputText id="accNumberFilter"
+										value="#{MbRevenueSharing.filter.accountNumber}" />
+																			
+									<h:outputLabel for="customerNumber" value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}" />
+									<bm:selectCustomer 
+										valueId="#{MbRevenueSharing.filter.customerId}"
+										valueNumber="#{MbRevenueSharing.filter.customerNumber}"
+										custInfoField="#{MbRevenueSharing.filter.customerName}"
+										beanName="MbRevenueSharing" 
+										modalPanel="customerSearchModalPanel"
+										formName="revenueSharingSearchForm"
+										searchButton="searchBtn"
+										rerenderList="revenueSharingSearchForm:instId"
+                                        manualInput="true"
+                                        disabled="false" rendered="true"/>
+									
+
+			            			<h:inputText style="display:none" 
+			            					value="IE hack for 'Enter' hit when there's only one input field 
+			            							on form. Stick it to the bottom to not to break layout"/>
+								</h:panelGrid>
+								<h:panelGrid columns="1">
+									<bre:taggedCommandButton
+											id="searchBtn"
+											action="#{MbRevenueSharing.search}" onclick="checkCustNumber('revenueSharingSearchForm'); disableModalPanelBtns(this); flushTabs()"
+											reRender="revenueSharing, dsRevenueSharing, revenueSharingBtnForm, #{MbRevenueSharing.tabName}"
+											oncomplete="updateHeight(); enableModalPanelBtns(this);"
+											image="/_img/icon_search.png" type="submit" value="#{lblForm.search}"
+											style="width:85px;" 
+											eventsQueue="queue"/>
+									<h:panelGrid columns="1" >
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png"/>
+											<a4j:commandLink value="#{lblForm.clear_all}"
+									        		action="#{MbRevenueSharing.clearFilter}"
+									        		oncomplete="updateHeight();"
+									        		reRender="revenueSharingSearchForm, revenueSharingForm, revenueSharingBtnForm,  details">
+									        </a4j:commandLink>
+										</h:panelGroup>
+										<h:panelGroup>
+				            	    		<bpct:filterBar sectionId="#{MbRevenueSharing.sectionId}"/>
+										</h:panelGroup>
+									</h:panelGrid>
+								</h:panelGrid>
+							</h:panelGrid>
+							<a4j:outputPanel ajaxRendered="true">
+								<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</a4j:outputPanel>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="revenueSharingForm">
+			<a4j:jsFunction name="changeSelection" eventsQueue="queue"
+				reRender="revenueSharingBtnForm, #{MbRevenueSharing.tabName}"
+				oncomplete="setTabLoaded(currentTab);updateHeight()">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbRevenueSharing.tabName}" />
+			</a4j:jsFunction>
+		
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff"
+					layout="block">
+					<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+					<rich:extendedDataTable id="revenueSharing" styleClass="res-table"
+						tableState="#{MbRevenueSharing.tableState}"
+						headerClass="res-table-header" rowClasses=",odd"
+						selectedClass="res-table-selected" var="item"
+						value="#{MbRevenueSharing.revenueSharings}"
+						selection="#{MbRevenueSharing.itemSelection}"
+						rows="#{MbRevenueSharing.rowsNum}" height="255px"
+						selectionMode="single" width="100%" enableContextMenu="true"
+						onselectionchange="flushTabs();changeSelection(currentTab);"
+						noDataLabel="#{MbRevenueSharing.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+						reRender="revenueSharingBtnForm,#{MbRevenueSharing.tabName}">
+
+						<rich:column id="provider_id" label="#{lblPmo.provider}" title="provider" sortBy="#{'providerId'}"
+							width="15%" sortOrder="ASCENDING">
+							<f:facet name="header">
+								 <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblPmo.provider}"
+										title="#{lblPmo.provider}" />
+								</a4j:outputPanel>
+							</f:facet>
+							<h:outputText value="#{item.providerId} - #{item.providerName}" />
+						</rich:column>
+						
+						<rich:column id="terminal_number" label="#{lblAcq.terminal_number}" title="terminal number" sortBy="#{'terminalNumber'}"
+							width="10%">
+							<f:facet name="header">
+								<h:outputText value="#{lblAcq.terminal_number}"
+									title="#{lblAcq.terminal_number}" />
+							</f:facet>
+
+							<h:outputText value="#{item.terminalNumber}" />
+						</rich:column>
+						
+						<rich:column id="customer_name" label="#{lblPrd.customer}" title="Customer" sortBy="#{'customerName'}"
+							width="20%">
+							<f:facet name="header">
+								<h:outputText value="#{lblPrd.customer}" title="#{lblPrd.customer}" />
+							</f:facet>
+							<h:outputText value="#{item.customerName}" title="#{item.customerName}"/>
+						</rich:column>
+
+						<rich:column id="account_number" label="#{lblAcc.account_number}" title="Account number" sortBy="#{'accountNumber'}"
+							width="15%">
+							<f:facet name="header">
+								<h:outputText value="#{lblAcc.account_number}"
+									title="#{lblAcc.account_number}" />
+							</f:facet>
+
+							<h:outputText value="#{item.accountNumber}" />
+						</rich:column>
+
+						<rich:column id="fee_type" label="#{lblFcl.fee_type}" title="Fee type" sortBy="#{'feeType'}"
+							width="15%">
+							<f:facet name="header">
+								<h:outputText value="#{lblFcl.fee_type}" title="#{lblFcl.fee_type}" />
+							</f:facet>
+
+							<h:outputText
+								value="#{DictUtils.articles[item.feeType]}" />
+						</rich:column>
+						
+						<rich:column id="fee_desc" label="#{lblFcl.fee}" title="Fee"
+							width="20%">
+							<f:facet name="header">
+								<h:outputText value="#{lblFcl.fee}" title="#{lblFcl.fee}" />
+							</f:facet>
+							
+							<h:outputText value="#{item.feeDesc}" title="#{item.feeDesc}"/>
+						</rich:column>
+
+
+					</rich:extendedDataTable>
+					</h:panelGroup>
+					<a4j:outputPanel ajaxRendered="true">
+						<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+						<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block" />
+					</a4j:outputPanel>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="revenueSharingBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="5"
+							columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+							<h:selectOneMenu id="rows_num"
+								value="#{MbRevenueSharing.rowsNum}" styleClass="row_per_page">
+								<a4j:support event="onchange"
+									reRender="revenueSharing, dsRevenueSharing, revenueSharingBtnForm, #{MbRevenueSharing.tabName}" />
+								<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+							</h:selectOneMenu>
+
+							<rich:datascroller maxPages="10" fastControls="hide"
+								pagesVar="pages" styleClass="res-datascroller" id="dsRevenueSharing"
+								for="revenueSharing" reRender="revenueSharingBtnForm,#{MbRevenueSharing.tabName}">
+								<f:facet name="first">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="first_disabled">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="last">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="last_disabled">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="previous_disabled">
+									<h:outputText value="#{lblCommon.prev}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="next">
+									<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="next_disabled">
+									<h:outputText value="#{lblCommon.next}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="pages">
+								</f:facet>
+							</rich:datascroller>
+
+							<h:panelGroup id="pagesNum">
+								<h:outputText styleClass="strongClass" value="#{pages} " />
+								<h:outputText value=" #{lblCommon.pages}" />
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbRevenueSharing.revenueSharings.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+							</h:panelGroup>
+							
+							<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbRevenueSharing.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbRevenueSharing.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGrid id="btnPanel" columns="4" styleClass="buttons_block">
+						<bre:taggedCommandButton id="addBtn"
+		                     		reRender="revenueSharingModalPanel"
+		                     		value="#{lblForm.add}"
+		                  			oncomplete="#{rich:component('revenueSharingModalPanel')}.show()"
+		                     		action="#{MbRevenueSharing.add}"
+		                     		image="/images/create_doc.gif"/>
+		            	<bre:taggedCommandButton id="editBtn"
+		                     		reRender="revenueSharingModalPanel"
+		                     		value="#{lblForm.edit}"
+		                  			oncomplete="#{rich:component('revenueSharingModalPanel')}.show()"
+		                     		action="#{MbRevenueSharing.edit}"
+		                     		disabled="#{MbRevenueSharing.activeRevenueSharing == null}"
+		                     		image="/images/edit.gif"/>
+						<bre:taggedCommandButton id="deleteBtn"
+		                     		value="#{lblForm.delete}"
+		                     		disabled="#{MbRevenueSharing.activeRevenueSharing == null}"
+		                     		image="/images/delete.gif"
+		                     		oncomplete="#{rich:component('deleteRevenueView:confirmPanel')}.show()"/>
+		
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1"
+			sizeExceededBehavior="dropNext" requestDelay="500" />
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content" selectedTab="#{MbRevenueSharing.tabName}">
+
+				<rich:tab label="Details" name="detailsTab" onlabelclick="selectTab('detailsTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="detailsTab">
+      					<ui:include src="/pages/acquiring/revenueSharingDetails.jspx"></ui:include>
+      					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+       				</h:panelGroup>
+				</rich:tab>
+				
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<ui:include src="/pages/acquiring/revenueSharingEdit.jspx">
+			<ui:param name="rerenderList" value="revenueSharing, dsRevenueSharing, revenueSharingBtnForm, #{MbRevenueSharing.tabName}"/>
+		</ui:include>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbRevenueSharing}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="revenueSharing, btnsPanel, #{MbRevenueSharing.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteRevenueView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel" и layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you've written.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+			
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'revenueSharingSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'revenueSharingForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'revenueSharingBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'revenueSharingDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'revenueSharingDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>		
+	</ui:define>
+</ui:composition>
+</html>

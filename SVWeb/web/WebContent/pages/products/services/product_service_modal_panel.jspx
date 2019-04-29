@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:o="http://openfaces.org/">
+    <ui:composition>
+        <script type="text/javascript">
+            //<![CDATA[
+            function setMaxCount(el){
+                var checked = el.checked;
+                var maxCountEl = document.getElementById("productServiceModalDiv:newMaxCount");
+                if (checked){
+                    maxCountEl.value = "#{lblFcl.unlimited}";
+                    maxCountEl.disabled = true;
+                } else {
+                    maxCountEl.value = 0;
+                    maxCountEl.disabled = false;
+                }
+            }
+
+            function setMandatory(el){
+                var checked = el.checked;
+                var minCountEl = document.getElementById("productServiceModalDiv:newMinCount");
+                if (minCountEl == null || minCountEl == "undefined") {
+                    return;
+                }
+                if (checked) {
+                    if (minCountEl.value > 0) {
+                        //nothing to do
+                    } else {
+                        minCountEl.value = 1;
+                    }
+                } else {
+                    if (minCountEl.value > 0) {
+                        minCountEl.value = 0;
+                    } else {
+                        //nothing to do
+                    }
+                }
+            }
+
+            function checkMandatory(el) {
+                var mandatoryEl = document.getElementById("productServiceModalDiv:newMandatory");
+                if (el.value > 0) {
+                    mandatoryEl.checked = true;
+                } else {
+                    if (mandatoryEl.checked) {
+                        el.value = 1;
+                    } else {
+                        el.value = 0;
+                    }
+                }
+            }
+
+            function checkProductServiceFields() {
+                var checked = true;
+
+                if (document.getElementById('productServiceModalDiv:newService') != null) {
+                    if (document.getElementById('productServiceModalDiv:newService').value == "") {
+                        document.getElementById('productServiceModalDiv:newServiceError').style.display = "inline";
+                        checked = false;
+                    }
+                }
+
+                if (document.getElementById('productServiceModalDiv:newMinCount').value == "") {
+                    document.getElementById('productServiceModalDiv:newMinCountError').style.display = "inline";
+                    checked = false;
+                }
+
+                if (document.getElementById('productServiceModalDiv:newMaxCount').value == "") {
+                    document.getElementById('productServiceModalDiv:newMaxCountError').style.display = "inline";
+                    checked = false;
+                }
+
+                return checked;
+            }
+            //]]>
+        </script>
+
+        <rich:modalPanel id="productServiceModalPanel" autosized="true" minWidth="300" minHeight="100">
+            <f:facet name="header">
+                <h:panelGroup id="productServiceModalHeader">
+                    <h:outputText value="#{lblPrd.edit_product_service}" rendered="#{(servicesBean==null ? MbProductServices : servicesBean).editMode}"/>
+                    <h:outputText value="#{lblPrd.new_product_service}" rendered="#{(servicesBean==null ? MbProductServices : servicesBean).newMode}"/>
+                </h:panelGroup>
+            </f:facet>
+            <f:facet name="controls">
+            </f:facet>
+            <h:form id="productServiceModalDiv">
+                <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                    <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+
+                        <h:outputLabel value="#{lblCommon.parent}: " title="#{lblCommon.parent}"/>
+                        <a4j:region>
+                            <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                                <h:selectOneMenu id="newParent"
+                                                 value="#{(servicesBean==null ? MbProductServices : servicesBean).newNode.parentId}"
+                                                 disabled="#{(servicesBean==null ? MbProductServices : servicesBean).editMode}">
+                                    <f:selectItem itemValue=""/>
+                                    <f:selectItems value="#{(servicesBean==null ? MbProductServices : servicesBean).parentServices}"/>
+                                    <a4j:support event="onchange"
+                                                 reRender="productServiceModalDiv,
+                                                           productServiceModalDiv:newService,
+                                                           productServiceModalDiv:condServicePanel,
+                                                           productServiceModalDiv:condService,
+                                                           productServiceModalDiv:condServiceLabel"
+                                                 ajaxSingle="true"
+                                                 limitToList="true"/>
+                                </h:selectOneMenu>
+                                <rich:message for="newParent" id="newParentError" styleClass="errorMarker"/>
+                            </h:panelGrid>
+                        </a4j:region>
+
+                        <h:outputLabel value="* #{lblPrd.service}: " title="#{lblPrd.service}"/>
+                        <h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+                            <h:inputText value="#{(servicesBean==null ? MbProductServices : servicesBean).newNode.serviceName}" readonly="true"
+                                         rendered="#{(servicesBean==null ? MbProductServices : servicesBean).editMode}"/>
+                            <h:selectOneMenu id="newService"
+                                             value="#{(servicesBean==null ? MbProductServices : servicesBean).newNode.serviceId}"
+                                             label="#{lblPrd.service}"
+                                             rendered="#{(servicesBean==null ? MbProductServices : servicesBean).newMode}"
+                                             onblur="hideErrorField(this)">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{(servicesBean==null ? MbProductServices : servicesBean).services}"/>
+                            </h:selectOneMenu>
+                            <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                            id="newServiceError" style="display:none;">
+                                <f:param name="fieldName" value="#{lblPrd.service}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+
+                        <h:outputLabel id="condServiceLabel" value="#{lblPrd.cond_service}: " title="#{lblPrd.cond_service}"/>
+                        <h:panelGrid id="condServicePanel" columns="1" cellspacing="0" cellpadding="0">
+                            <h:selectOneMenu id="condService"
+                                             value="#{(servicesBean==null ? MbProductServices : servicesBean).newNode.conditionalGroup}"
+                                             label="#{lblPrd.cond_service}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{(servicesBean==null ? MbProductServices : servicesBean).conditionalGroups}"/>
+                                <a4j:support event="onchange"
+                                             reRender="productServiceModalDiv:condService"
+                                             ajaxSingle="true"
+                                             limitToList="true"/>
+                            </h:selectOneMenu>
+                        </h:panelGrid>
+
+                        <h:outputLabel value="* #{lblPrd.min_count}: " title="#{lblPrd.min_count}"/>
+                        <h:panelGrid columns="3" cellspacing="0" cellpadding="0">
+                            <h:inputText id="newMinCount"
+                                         value="#{(servicesBean==null ? MbProductServices : servicesBean).newNode.minCount}"
+                                         label="#{lblPrd.min_count}"
+                                         maxlength="4" style="width:144px"
+                                         onkeypress="if (!numbersOnly(this, event)) return false;"
+                                         onblur="checkMandatory(this); hideErrorField(this)">
+                            </h:inputText>
+                            <h:outputLabel value="#{lblCommon.mandatory}:&#160;" title="#{lblCommon.mandatory}" style="min-width: 92px;"/>
+                            <h:selectBooleanCheckbox id="newMandatory"
+                                                     value="#{(servicesBean==null ? MbProductServices : servicesBean).newNode.mandatory}"
+                                                     label="#{lblCommon.mandatory}"
+                                                     onclick="setMandatory(this);">
+                            </h:selectBooleanCheckbox>
+                            <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                            id="newMinCountError" style="display:none;">
+                                <f:param name="fieldName" value="#{lblPrd.min_count}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+
+                        <h:outputLabel value="* #{lblPrd.max_count}:" title="#{lblPrd.max_count}"/>
+                        <h:panelGrid columns="3" cellspacing="0" cellpadding="0">
+                            <h:inputText id="newMaxCount"
+                                         value="#{(servicesBean==null ? MbProductServices : servicesBean).newNode.maxCount}"
+                                         label="#{lblPrd.max_count}" maxlength="4"
+                                         onkeypress="if (!numbersOnly(this, event)) return false;"
+                                         onblur="hideErrorField(this)" style="width:144px">
+                                <f:converter converterId="UnlimitedConv" />
+                            </h:inputText>
+                            <h:outputLabel value="#{lblFcl.unlimited}:&#160;" title="#{lblFcl.unlimited}" style="min-width: 92px;"/>
+                            <h:selectBooleanCheckbox value="#{(servicesBean==null ? MbProductServices : servicesBean).newNode.unlimited}"
+                                                     label="#{lblFcl.unlimited}"
+                                                     onclick="setMaxCount(this);" id="unlimited">
+                            </h:selectBooleanCheckbox>
+                            <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                            id="newMaxCountError" style="display:none;">
+                                <f:param name="fieldName" value="#{lblPrd.max_count}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                </h:panelGroup>
+
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                        <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                            <h:outputText/>
+                            <bre:taggedCommandButton
+                                    value="#{lblForm.save}" type="submit" action="#{(servicesBean==null ? MbProductServices : servicesBean).save}"
+                                    onclick="if (!checkProductServiceFields()) return false; disableModalPanelBtns(this)"
+                                    oncomplete="enableModalPanelBtns(this);
+                                                if (#{usession.noErrorResponse}) {
+                                                    #{rich:component('productServiceModalPanel')}.hide();
+                                                }"
+                                    reRender="productServicesForm"
+                            />
+                            <bre:taggedCommandButton
+                                    value="#{lblForm.cancel}"
+                                    action="#{(servicesBean==null ? MbProductServices : servicesBean).cancel}"
+                                    immediate="true" limitToList="true"
+                                    oncomplete="#{rich:component('productServiceModalPanel')}.hide()"
+                                    reRender="productServiceModalDiv">
+                                <f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                            </bre:taggedCommandButton>
+                        </h:panelGrid>
+                    </h:panelGroup>
+                </h:panelGroup>
+            </h:form>
+        </rich:modalPanel>
+    </ui:composition>
+</html>

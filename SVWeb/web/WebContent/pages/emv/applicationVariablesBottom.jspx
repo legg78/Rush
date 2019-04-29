@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:o="http://openfaces.org/">
+<ui:composition>
+
+	<h:panelGrid columns="2" cellpadding="0" cellspacing="0"
+		columnClasses="top width50, top width50" width="100%">
+		
+		<h:form id="applicationVarablesForm">
+		
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable" id="detailsData"
+				 columnClasses="firstCol,secondCol">
+					<h:outputLabel value="#{lblCommon.lang_selector}: " title="#{lblCommon.lang_selector}" />
+					<h:selectOneMenu disabled="#{MbEmvVariable.applicationId == null}"
+						value="#{MbEmvVariable.curLang}"
+						valueChangeListener="#{MbEmvVariable.changeLanguage}">
+						<a4j:support event="onchange" reRender="VariableTable"
+							limitToList="true" />
+						<f:selectItems value="#{MbEmvVariable.languages}" />
+					</h:selectOneMenu>
+				</h:panelGrid>
+			</h:panelGroup>
+			<h:panelGroup id="variableTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="VariableTable" rowClasses=",odd" headerClass="table-header-ext"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbEmvVariable.dataModel}"
+				selection="#{MbEmvVariable.itemSelection}"
+				rows="#{MbEmvVariable.rowsNum}" height="177px"
+				selectionMode="single" width="100%" enableContextMenu="true"
+				tableState="#{MbEmvVariable.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" requestDelay="500"
+					reRender="applicationVarablesForm:btnPanel, variableElementsForm" ajaxSingle="true"
+					limitToList="true" />
+
+				<rich:column id="id" label="#{lblCommon.id}" title="Id" sortBy="#{'id'}" width="20%">
+					<f:facet name="header">
+						<h:panelGroup>
+							<script>
+								updateHeight();
+							</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:outputText value="#{item.id}" title="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="variable_type" label="#{lblEmv.variable_type}" title="Variable Type" sortBy="#{'variableType'}"
+					width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblEmv.variable_type}"
+							title="#{lblEmv.variable_type}" />
+					</f:facet>
+					<h:outputText
+						value="#{DictUtils.articles[item.variableType]}"
+						title="#{DictUtils.articles[item.variableType]}"
+						rendered="#{item.variableType != null }" />
+					<h:outputText value="" title=""
+						rendered="#{item.variableType == null }" />
+				</rich:column>
+
+				<rich:column id="profile" label="#{lblEmv.profile}" title="Profile" sortBy="#{'profile'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblEmv.profile}" title="#{lblEmv.profile}" />
+					</f:facet>
+					<h:outputText
+						value="#{DictUtils.articles[item.profile]}"
+						title="#{DictUtils.articles[item.profile]}"
+						rendered="#{item.profile != null }" />
+					<h:outputText value="" title="" rendered="#{item.profile == null }" />
+				</rich:column>
+
+				<rich:column id="name" label="#{lblEmv.name}" title="Name" sortBy="#{'name'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblEmv.name}" title="#{lblEmv.name}" />
+					</f:facet>
+					<h:outputText value="#{item.name}" title="#{item.name}" />
+				</rich:column>
+
+			</rich:extendedDataTable>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+				<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						reRender="variableEditModalPanel" value="#{lblForm.add}"
+						oncomplete="#{rich:component('variableEditModalPanel')}.show()"
+						action="#{MbEmvVariable.createNewVariable}"
+						image="/images/create_doc.gif"
+						rendered="#{usession.inRole['ADD_EMV_DATA_VAR']}"
+						disabled="#{MbEmvVariable.applicationId == null }" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="variableEditModalPanel" value="#{lblForm.edit}"
+						action="#{MbEmvVariable.editActiveVariable}"
+						oncomplete="#{rich:component('variableEditModalPanel')}.show()"
+						disabled="#{MbEmvVariable.activeItem == null}"
+						image="/images/edit.gif"
+						rendered="#{usession.inRole['MODIFY_EMV_DATA_VAR']}" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						disabled="#{MbEmvVariable.activeItem == null}"
+						image="/images/delete.gif"
+						rendered="#{usession.inRole['REMOVE_EMV_DATA_VAR']}" 
+						oncomplete="#{rich:component('deleteVariableView:confirmPanel')}.show()"/>
+				</h:panelGroup>
+				<h:panelGroup>
+					<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+						onclick="saveVarTableState();"/>
+					<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+						onclick="deleteVarTableState();"/>
+					<a4j:queue name="tablestatequeue"/>
+					<a4j:jsFunction name="saveVarTableState" action="#{MbEmvVariable.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+					<a4j:jsFunction name="deleteVarTableState" action="#{MbEmvVariable.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+				</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:form>
+
+		<h:form id="variableElementsForm"
+			rendered="#{usession.inRole['VIEW_EMV_ELEMENTS']}">
+
+			<a4j:queue name="queue" requestDelay="500" />
+			
+			<h:panelGroup id="blockElementsTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<o:treeTable id="blockElementsTable" var="elementNode"
+				expansionState="allExpanded"
+				headerHorizSeparator="1px solid #D7DAC2"
+				headerVertSeparator="1px solid #D7DAC2"
+				headerSectionClass="res-tree-table-header"
+				commonHeaderRowClass="res-tree-table-header"
+				sortableHeaderClass="res-tree-table-header"
+				sortedColumnHeaderClass="res-tree-table-header"
+				sortableHeaderRolloverClass="res-tree-table-header"
+				styleClass="extdt-table-layout res-tree-table"
+				bodyOddRowClass="res-tree-table-row odd-tree-table"
+				bodyRowClass="res-tree-table-row"
+				headerRowClass="res-tree-table-header"
+				verticalGridLines="1px solid #D7DAC2" cellpadding="0"
+				cellspacing="0" preloadedNodes="all" style="height:100%;">
+
+				<o:scrolling />
+
+				<f:facet name="noDataMessage">
+					<h:panelGroup>
+						<h:outputText value="#{lblCommon['no_records_found']}" />
+					</h:panelGroup>
+				</f:facet>
+
+				<o:dynamicTreeStructure
+					nodeChildren="#{MbEmvElement.elementNodeChildren}"
+					nodeHasChildren="#{MbEmvElement.elementNodeHasChildren}"
+					nodeKey="#{elementNode.modelId}" />
+
+				<o:singleNodeSelection nodeData="#{MbEmvElement.activeItem}"
+					keyboardSupport="false" nodePath="#{MbEmvElement.nodePath}"
+					styleClass="treetable_selection">
+					<a4j:support event="onchange" eventsQueue="queue"
+						reRender="variableElementsForm:btnPanel, elementViewModalPanel" />
+				</o:singleNodeSelection>
+
+				<o:treeColumn id="code" sortBy="#{'code'}" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblEmv.code}" title="#{lblEmv.code}" />
+					</f:facet>
+					<h:outputText value="#{elementNode.code}"
+						title="#{elementNode.code}" />
+				</o:treeColumn>
+
+				<o:column id="tag">
+					<f:facet name="header">
+						<h:panelGroup>
+							<script>
+								updateHeight();
+							</script>
+							<h:outputText value="#{lblEmv.tag}" title="#{lblEmv.tag}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:outputText value="#{elementNode.tag}" title="#{elementNode.tag}" />
+				</o:column>
+
+				<o:column id="name" sortBy="#{'value'}" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblEmv.value}" title="#{lblEmv.value}" />
+					</f:facet>
+					<h:outputText value="#{elementNode.value}"
+						title="#{elementNode.value}" />
+				</o:column>
+
+				<o:column id="isOptional" sortBy="#{'isOptional'}" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblEmv.is_optional}"
+							title="#{lblEmv.is_optional}" />
+					</f:facet>
+					<h:selectBooleanCheckbox value="#{elementNode.isOptional}"
+						title="#{elementNode.isOptional}" disabled="true" />
+				</o:column>
+
+			</o:treeTable>
+			</h:panelGroup>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+
+				<h:panelGrid id="btnPanel" columns="4" styleClass="buttons_block">
+					<bre:taggedCommandButton id="viewBtn" value="#{lblForm.view}"
+						onclick="#{rich:component('elementViewModalPanel')}.show()"
+						disabled="#{MbEmvElement.activeItem == null}" />
+					<bre:taggedCommandButton id="addBtn"
+						reRender="elementEditModalPanel" value="#{lblForm.add}"
+						oncomplete="#{rich:component('elementEditModalPanel')}.show()"
+						action="#{MbEmvElement.createElement}"
+						image="/images/create_doc.gif"
+						rendered="#{usession.inRole['ADD_EMV_ELEMENT']}"
+						disabled="#{MbEmvElement.objectId == null}" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="elementEditModalPanel" value="#{lblForm.edit}"
+						action="#{MbEmvElement.editActiveElement}"
+						oncomplete="#{rich:component('elementEditModalPanel')}.show()"
+						disabled="#{MbEmvElement.activeItem == null}"
+						image="/images/edit.gif"
+						rendered="#{usession.inRole['MODIFY_EMV_ELEMENT']}" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						disabled="#{MbEmvElement.activeItem == null}"
+						image="/images/delete.gif"
+						rendered="#{usession.inRole['REMOVE_EMV_ELEMENT']}" 
+						oncomplete="#{rich:component('deleteElementView:confirmPanel')}.show()"/>
+
+				</h:panelGrid>
+
+			</h:panelGroup>
+
+			<script>
+			updateButtons();
+		</script>
+		</h:form>
+	</h:panelGrid>
+
+	<ui:include src="/pages/emv/variableEditModalPanel.jspx"></ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbEmvVariable}"/>
+		<ui:param name="yesAction" value="deleteActiveVariable"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="applicationVarablesForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteVariableView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbEmvElement}"/>
+		<ui:param name="yesAction" value="deleteActiveElement"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="blockElementsTable"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteElementView1"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

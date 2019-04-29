@@ -1,0 +1,544 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:param name="pageHelp" value="role_settings.htm"/>
+	<ui:param name="pageHelpModalAdd" value="role_create.htm" />
+	<ui:param name="pageHelpModalEdit" value="role_edit.htm" />
+	<ui:param name="showHelpModal" value="true" />
+	
+    <ui:define name="navigatableContent">
+    	<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm"/>
+    	<f:loadBundle var="lblNtf" basename="ru.bpc.sv2.ui.bundles.Ntf"/>
+    	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblAcm.roles}"/>
+        <bpct:greyMenu selectMode="#{lblAcm.roles}"/>
+        
+        <script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('rolesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+		
+		<h:form id="rolesSearchForm" onkeypress="handleEnter(event)">
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol"
+		                			rendered="#{not roles.showSubroles }">
+
+		                			<h:outputText value="#{lblCommon.system_name}:" title="#{lblCommon.system_name}" />
+		                			<h:inputText value="#{roles.roleFilter.name }"/>
+
+		                			<h:outputText value="#{lblAcm.privilege}:" title="#{lblAcm.privilege}" />
+		                			<h:selectOneMenu value="#{roles.roleFilter.privilege}">
+		                				<f:selectItem itemValue=""/>
+		                				<f:selectItems value="#{roles.priviliges}"/>
+		                			</h:selectOneMenu>
+
+		                			<h:outputText value="#{lblCommon.name}:" title="#{lblCommon.name}" />
+		                			<h:inputText value="#{roles.roleFilter.shortDesc}"/>
+		                	</h:panelGrid>
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol"
+		                			rendered="#{roles.showSubroles }">
+
+		                			<h:outputText value="#{lblCommon.system_name}:" title="#{lblCommon.system_name}"/>
+		                			<h:inputText value="#{roles.subroleFilter.name }"/>
+
+		                			<h:outputText value="#{lblCommon.name}:" title="#{lblCommon.name}"/>
+		                			<h:inputText value="#{roles.subroleFilter.shortDesc}"/>
+		                	</h:panelGrid>
+	                		<h:panelGrid columns="1" >
+		                		<bre:taggedCommandButton value="#{lblForm.search}" 
+		                				style="width:85px;"
+		                				reRender="mainTable, dsRoles, pagesNum, rolesBtns, #{roles.tabName}"
+		                				action="#{roles.search}"
+		                				id="searchBtn"
+		                				rendered="#{not roles.showSubroles}" 
+		                				image="/_img/icon_search.png" type="submit"
+		                				onclick="disableModalPanelBtns(this);"
+		                				oncomplete="enableModalPanelBtns(this);"
+		                				eventsQueue="queue"/>
+		                		<bre:taggedCommandButton value="#{lblForm.search}" 
+		                				style="width:85px;"
+		                				reRender="mainTable, dsRoles, pagesNum, rolesBtns,#{roles.tabName}" 
+		                				action="#{roles.searchSubroles}"
+		                				rendered="#{roles.showSubroles}"
+		                				image="/_img/icon_search.png" type="submit"
+		                				onclick="disableModalPanelBtns(this);"
+		                				oncomplete="enableModalPanelBtns(this);"
+		                				eventsQueue="queue"/>
+		                		<h:panelGroup styleClass="link-clear" layout="block"  >
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}" 
+		                					action="#{roles.clearFilter}"
+		                					reRender="rolesSearchForm, rolesForm, #{roles.tabName}, rolesBtnForm">
+		                			</a4j:commandLink>
+		                		</h:panelGroup>
+		                	</h:panelGrid>
+	                	</h:panelGrid>
+	                	<a4j:outputPanel ajaxRendered="true">
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>
+	                </h:panelGroup>
+	            </h:panelGroup>
+				</h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+        
+		<h:form id="rolesForm">
+            <h:panelGroup styleClass="search_result_block" layout="block">
+            	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+            		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner" rendered="#{not roles.showSubroles }">
+				    <rich:extendedDataTable enableContextMenu="true"
+				           id="mainTable"
+				           tableState="#{roles.tableState}"
+				           styleClass="res-table"
+				           headerClass="res-table-header"
+				           rowClasses=",odd"
+				           selectedClass="res-table-selected"
+				           var="role"
+				           value="#{roles.roles}"
+				           selection="#{roles.roleSelection}"
+				           rows="#{roles.rowsNum}"
+				           height="255px"
+				           selectionMode="#{roles.selectMode == true?'multi':'single' }"
+				           noDataLabel="#{roles.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+						   reRender="rolesBtns, #{roles.tabName}">
+
+	                    <a4j:support event="onselectionchange" eventsQueue="queue"
+	                    		reRender="rolesBtns, #{roles.tabName}" />
+
+		                <rich:column title="Name" id="system_name" label="#{lblCommon.system_name}" sortBy="#{'name'}"  width="20%">
+	                        <f:facet name="header">
+	                            <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.system_name}" title="#{lblCommon.system_name}"/>
+								</a4j:outputPanel>
+	                        </f:facet>
+	                        <h:outputText value="#{role.name}" />
+	                    </rich:column>
+	                    
+				        <rich:column id="name" label="#{lblCommon.name}" title="Desc" sortExpression="asc" sortBy="#{'shortDesc'}" width="60%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}"/>
+			                </f:facet>
+			                <h:outputText value="#{role.shortDesc}" />
+				        </rich:column>
+
+				        <rich:column id="notif_scheme" label="#{lblNtf.notif_scheme}" title="notifScheme" sortBy="#{'notifScheme'}" width="20%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblNtf.notif_scheme}" title="#{lblNtf.notif_scheme}"/>
+			                </f:facet>
+			                <h:outputText value="#{role.notifSchemeName}"/>
+				        </rich:column>
+				    </rich:extendedDataTable>
+					</h:panelGroup>
+					<h:panelGroup id="mainTableWrapper1" layout="block"
+						styleClass="search_result_block_inner" rendered="#{roles.showSubroles }">
+				    <rich:extendedDataTable enableContextMenu="true"
+				           id="mainTable1"
+				           tableState="#{roles.tableState}"
+				           styleClass="res-table"
+				           headerClass="res-table-header"
+				           rowClasses=",odd"
+				           selectedClass="res-table-selected"
+				           var="role"
+				           value="#{roles.subroles}"
+				           selection="#{roles.subroleSelection}"
+				           height="250px"
+				           selectionMode="multi"
+				           noDataLabel="#{roles.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+				           reRender="rolesBtns">
+
+	                    <a4j:support event="onselectionchange" eventsQueue="queue" reRender="rolesBtns, #{roles.tabName}" />
+
+		                <rich:column title="Name" id="system_name" label="#{lblCommon.system_name}" sortBy="#{'name'}"  width="20%">
+	                        <f:facet name="header">
+	                            <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.system_name}" title="#{lblCommon.system_name}"/>
+								</a4j:outputPanel>
+	                        </f:facet>
+	                        <h:outputText value="#{role.name}" />
+	                    </rich:column>
+				        <rich:column id="name" label="#{lblCommon.name}" title="Desc" sortBy="#{'shortDesc'}" width="60%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}"/>
+			                </f:facet>
+			                <h:outputText value="#{role.shortDesc}" />
+				        </rich:column>
+				        <rich:column id="notif_scheme" label="#{lblNtf.notif_scheme}" title="notifScheme" sortBy="#{'notifScheme'}" width="20%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblNtf.notif_scheme}" title="#{lblNtf.notif_scheme}"/>
+			                </f:facet>
+			                <h:outputText value="#{role.notifSchemeName}"/>
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+			
+			</h:form>
+			<h:form id="rolesBtnForm">
+
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="5"
+						       	columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+			        		<h:selectOneMenu id="rows_num" value="#{roles.rowsNum}" styleClass="row_per_page">
+			        			<a4j:support event="onchange" 
+			        				reRender="mainTable, dsRoles, pagesNum, #{roles.tabName}, rolesBtns" 	
+			        				/>
+				            	<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+				            </h:selectOneMenu>
+
+				            <rich:datascroller maxPages="10" fastControls="hide"
+						    		pagesVar="pages" styleClass="res-datascroller"
+						            id="dsRoles" for="mainTable" page="#{roles.pageNumber}"
+						            reRender="#{roles.tabName}, rolesBtns">
+			                    <f:facet name="first">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="first_disabled">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="last">
+			                        <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="last_disabled">
+			                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="previous">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="previous_disabled">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="next">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="next_disabled">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="pages">
+			                    </f:facet>
+			                </rich:datascroller>
+
+                        	<h:panelGroup id="pagesNum">
+	                        	<h:outputText styleClass="strongClass" value="#{pages} "/>
+	                        	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{roles.roles.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                        	</h:panelGroup>
+                        	
+                        	<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{roles.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{roles.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+                        </h:panelGrid>
+					</h:panelGroup>
+
+                    <h:panelGrid styleClass="buttons_block" columns="6" id="rolesBtns">
+				        <bre:taggedCommandButton id="btn_select_role"
+				        		value="#{lblForm.select}"
+                        		action="#{roles.addSelectedRolesToObject}"
+                        		disabled="#{roles.activeRole == null}"
+                        		rendered="#{roles.selectMode and not roles.showSubroles}"
+                        		/>
+				        <bre:taggedCommandButton id="btn_select_role_to_role"
+				        		value="#{lblForm.add_to_role}"
+                        		action="#{roles.addSelectedSubrolesToRole}"
+                        		disabled="#{roles.activeSubrole == null}"
+                        		rendered="#{roles.showSubroles}"
+                        		/>
+				        <bre:taggedCommandButton id="btn_cancel_select_role"
+				        		value="#{lblForm.cancel}"
+                        		action="#{roles.cancelSelect}"
+                        		rendered="#{roles.selectMode or roles.showSubroles}"
+                        		/>
+                        
+                    	<rich:spacer style="width:20px" rendered="#{roles.selectMode or roles.showSubroles}"/>
+                       	
+						<bre:taggedCommandButton
+                        		action="#{roles.createRole}"
+                        		value="#{lblForm.add}"
+                        		oncomplete="#{rich:component('rolePanel')}.show()"
+								reRender="roleDiv, rolePanel"
+								image="/images/create_doc.gif"
+								rendered="#{usession.inRole['ADD_NEW_ROLE']}"
+								/>
+						<bre:taggedCommandButton styleClass="stdButton"
+                        		action="#{roles.editExistingRole}"  oncomplete="#{rich:component('rolePanel')}.show()"
+                        		value="#{lblForm.edit}" disabled="#{roles.activeRole == null }"
+								reRender="rolePanel" image="/images/edit.gif"
+								rendered="#{usession.inRole['EDIT_ROLE']}"/>
+                        <bre:taggedCommandButton styleClass="stdButton"
+                        		disabled="#{roles.activeRole == null }"
+                        		value="#{lblForm.delete}"
+                        		oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()"
+                        		rendered="#{usession.inRole['REMOVE_ROLE']}"
+                        		image="/images/delete.gif"
+                        		/>
+                    </h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1" 
+				sizeExceededBehavior="dropNext" requestDelay="500"/>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" requestDelay="500"
+                            ignoreDupResponses="true" eventsQueue="queue" reRender="#{roles.rerenderList}">
+                <a4j:actionparam name="tabName" assignTo="#{roles.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" rendered="#{not roles.showSubroles }" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+		    		activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    		contentClass="tab-content" selectedTab="#{roles.tabName}">
+
+	   			<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup id="detailsTab" layout="block">
+						<h:form id="roleDetailsForm">
+							<h:panelGroup layout="block" styleClass="langSelector">
+								<h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable"
+										id="detailsData" columnClasses=",secondCol">
+									<h:outputLabel for="lang" value="#{lblCommon.lang_selector}: "
+											title="#{lblCommon.lang_selector}" />
+									<h:selectOneMenu id="lang"
+											disabled="#{roles.detailRole == null}"
+											value="#{roles.detailRole.lang}"
+											valueChangeListener="#{roles.changeLanguage}">
+										<a4j:support event="onchange" reRender="roleDetailsForm"
+												limitToList="true" oncomplete="updateHeight();"/>
+										<f:selectItems value="#{roles.languages}" />
+									</h:selectOneMenu>
+								</h:panelGrid>
+							</h:panelGroup>
+		                    <h:panelGroup id="roleDetailsWrapper" layout="block" styleClass="carddata-wrapper" 
+									style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+								<rich:dataTable id="roleDetailsTable"
+										value="#{roles.emptyTable}" 
+										var="field"
+										styleClass="res-table noHeader" width="100%">
+									<rich:columnGroup rowClasses=",odd" 
+											columnClasses="firstCol alignLeft width20, width80 width250 noPadding">
+										<rich:column styleClass="detailsCategory expandedBranch">
+											<h:graphicImage url="/images/minus.gif" onclick="showHideDetails(this)"/>
+											<h:outputLabel value="#{lblPrd.general_data}:" />
+										</rich:column>
+										<rich:column>
+											<script>updateHeight();</script>
+										</rich:column>					
+										
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblCommon.system_name}: " title="#{lblCommon.system_name}" />
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{roles.detailRole.name}"
+													title="#{roles.detailRole.name}" />
+										</rich:column>
+										
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{roles.detailRole.shortDesc}"
+													title="#{roles.detailRole.shortDesc}" />
+										</rich:column>
+						
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblNtf.notif_scheme}: " title="#{lblNtf.notif_scheme}" />
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{roles.detailRole.notifSchemeName}"
+													title="#{roles.detailRole.notifSchemeName}"/>
+										</rich:column>
+										
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}" />
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{roles.detailRole.fullDesc}"
+													title="#{roles.detailRole.fullDesc}"/>
+										</rich:column>				
+						
+									</rich:columnGroup>
+								</rich:dataTable>
+								<script>setDetailsState("roleDetailsForm:roleDetailsTable");</script>
+							</h:panelGroup>
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+								<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+									<h:panelGrid columns="2" style="vertical-align: top;"
+												id="rolesDetBtns" cellpadding="0" cellspacing="0">
+			                   			<h:panelGroup styleClass="stdButton" rendered="#{usession.inRole['EDIT_ROLE']}">
+					                        
+				                        </h:panelGroup>
+			                     	</h:panelGrid>
+	                        	</h:panelGroup>
+	                    	</h:panelGroup>
+			            </h:form>
+                    </h:panelGroup>
+            	</rich:tab>
+
+            	<rich:tab ontabenter="storeTab('subrolesTab')" label="Subroles" name="subrolesTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblAcm.subroles}" title="#{lblAcm.subroles}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+                    <h:panelGroup id="subrolesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">       					
+                    	<ui:include src="/pages/administrative/roles_management/roleSubrolesTableBottom.jspx" />
+      				</h:panelGroup>
+
+            	</rich:tab>
+
+            	<rich:tab ontabenter="storeTab('privsTab')" oncomplete="updateHeight();" label="Privileges" name="privsTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblAcm.privileges}" title="#{lblAcm.privileges}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+                    <h:panelGroup id="privsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       					<ui:include src="/pages/administrative/roles_management/privsTableBottom.jspx"></ui:include>
+ 					</h:panelGroup>
+
+            	</rich:tab>
+
+            	<rich:tab ontabenter="storeTab('usersTab')" label="Users" name="usersTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblAcm.users}" title="#{lblAcm.users}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+                    <h:panelGroup id="usersTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       					<ui:include src="/pages/administrative/users_management/list_users_bottom.jspx"></ui:include>
+ 					</h:panelGroup>
+
+            	</rich:tab>			
+
+	    	</rich:tabPanel>
+		</h:panelGroup>
+
+		<rich:modalPanel id="rolePanel" autosized="true" minWidth="100" minHeight="50"
+			onshow="actualHelp.setModeHelp('#{roles.newMode}')"
+			onhide="actualHelp.setHelp('#{pageHelp}')">
+			<f:facet name="header">
+	    		<h:panelGroup id="roleDivHeader">
+	        		<h:outputText value="#{lblAcm.add_role}" rendered="#{roles.newMode}"/>
+	        		<h:outputText value="#{lblAcm.edit_role}" rendered="#{roles.editMode}"/>
+	        	</h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+				<h:panelGroup id="roleDivControl" rendered="#{showHelpModal}">
+	   	        	<h:graphicImage value="/_img/icon_modal_help.png" style="cursor:pointer" 
+	   	        			onclick="showHelp(actualHelp.getURL())" width="15px"/>
+	   	        </h:panelGroup>
+			</f:facet>
+			
+	    	<ui:include src="/pages/administrative/roles_management/role_details.jspx"/>
+		</rich:modalPanel>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{roles}"/>
+			<ui:param name="yesAction" value="deleteRole"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="mainTable, dsRoles, pagesNum, rolesBtns, #{roles.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteViewId"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+
+		<script>
+		//<![CDATA[
+		function updateHeight(){
+            updateGridHeight();
+        }
+
+        layout =
+                {
+                    SEARCH_FORM_ID:                 'rolesSearchForm',
+                    SEARCH_RESULT_FORM_ID:          'rolesForm',
+                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                    SEARCH_RESULT_FOOTER_FORM_ID:   'rolesBtnForm',
+                    TAB_PANEL_ID:                   'workplacePanel',
+
+                    TAB_DATA:      [{
+                                    TAB_FORM_ID:            'roleDetailsForm',
+                                    TAB_FORM_WRAPPER_ID:    'roleDetailsWrapper',
+                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                                    },                    				
+                                    {
+                                     TAB_FORM_ID:            'subrolesTreeForm',
+                                     TAB_FORM_WRAPPER_ID:    'subrolesTreeTableWrapper',
+                                     CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                                     },
+                                     {
+                                     TAB_FORM_ID:            'bottomPrivsForm',
+                                     TAB_FORM_WRAPPER_ID:    'bottomPrivsTableWrapper',
+                                     CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                                     },
+                                     {
+                                      TAB_FORM_ID:            'bottomUsersForm',
+                                      TAB_FORM_WRAPPER_ID:    'bottomUsersTableWrapper',
+                                      CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                                      }]
+
+                };
+        jQuery(window).resize(updateHeight);
+		
+		updateHeight();
+		//]]>
+		</script>
+    </ui:define>
+</ui:composition>
+</html>

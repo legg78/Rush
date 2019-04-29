@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblFrp" basename="ru.bpc.sv2.ui.bundles.Frp"/>
+	
+	<script type="text/javascript">//<![CDATA[			
+		function checkSuiteCaseFields() {
+			var checked = true;
+			
+			if (document.getElementById('suiteCaseModalDiv:newSuite')
+					&& document.getElementById('suiteCaseModalDiv:newSuite').value == "") {
+				document.getElementById('suiteCaseModalDiv:newSuiteError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('suiteCaseModalDiv:newCase')
+					&& document.getElementById('suiteCaseModalDiv:newCase').value == "") {
+				document.getElementById('suiteCaseModalDiv:newCaseError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('suiteCaseModalDiv:newPriority').value == "") {
+				document.getElementById('suiteCaseModalDiv:newPriorityError').style.display = "inline";
+				checked = false;
+			}								
+			
+			return checked;
+		}
+		//]]>
+	</script>
+
+	<h:form id="suiteCasesBtmForm">
+		<h:panelGroup layout="block" style="padding:0px;margin:0px;"
+			id="suiteCasesTableWrapper">
+			<rich:extendedDataTable id="suiteCasesTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbSuiteCases.suiteCases}"
+				selection="#{MbSuiteCases.itemSelection}" rows="0"
+				enableContextMenu="true"
+				tableState="#{MbSuiteCases.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="suiteCasesBtmForm:btnPanel" />
+
+				<rich:column id="suite" label="#{lblFrp.suite}" sortBy="#{'suiteName'}" width="70%"
+					rendered="#{MbSuiteCases.filter.caseId != null}">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblFrp.suite}" title="#{lblFrp.suite}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.suiteName}" title="#{item.suiteName}" />
+				</rich:column>
+
+				<rich:column id="case" label="#{lblFrp.case}" sortBy="#{'caseName'}" width="70%"
+					rendered="#{MbSuiteCases.filter.suiteId != null}">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblFrp.case}" title="#{lblFrp.case}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.caseName}" title="#{item.caseName}" />
+				</rich:column>
+
+				<rich:column id="priority" label="#{lblCommon.priority}" title="priority" sortBy="#{'priority'}" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.priority}"
+							title="#{lblCommon.priority}" />
+					</f:facet>
+					<h:outputText value="#{item.priority}" title="#{item.priority}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						reRender="suiteCaseModalHeader, suiteCaseModalDiv"
+						value="#{lblForm.add}"
+						oncomplete="#{rich:component('suiteCaseModalPanel')}.show()"
+						action="#{MbSuiteCases.add}"
+						disabled="#{MbSuiteCases.filter.suiteId == null and MbSuiteCases.filter.caseId == null}"
+						image="/images/create_doc.gif"
+						rendered="#{usession.inRole['ADD_SUITE'] and usession.inRole['ADD_CASE']}" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="suiteCaseModalHeader, suiteCaseModalDiv"
+						value="#{lblForm.edit}"
+						oncomplete="#{rich:component('suiteCaseModalPanel')}.show()"
+						action="#{MbSuiteCases.edit}"
+						disabled="#{MbSuiteCases.activeSuiteCase == null}"
+						image="/images/edit.gif"
+						rendered="#{usession.inRole['MODIFY_SUITE'] and usession.inRole['MODIFY_CASE']}" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						oncomplete="#{rich:component('deleteSuiteViewId:confirmPanel')}.show()"
+						disabled="#{MbSuiteCases.activeSuiteCase == null}"
+						image="/images/delete.gif"
+						rendered="#{usession.inRole['REMOVE_SUITE'] and usession.inRole['REMOVE_CASE']}" />
+					</h:panelGroup>
+					
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveSuiteTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteSuiteTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveSuiteTableState" action="#{MbSuiteCases.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteSuiteTableState" action="#{MbSuiteCases.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="suiteCaseModalPanel" autosized="true" minWidth="300" minHeight="50"
+			rendered="#{(usession.inRole['ADD_SUITE'] and usession.inRole['ADD_CASE'])
+					or (usession.inRole['MODIFY_SUITE'] and usession.inRole['MODIFY_CASE'])}">
+ 	    <f:facet name="header">
+ 	    	<h:panelGroup id="suiteCaseModalHeader">
+ 	    		<h:outputText value="#{lblFrp.edit_suite_case}" rendered="#{MbSuiteCases.editMode}"/>
+ 	    		<h:outputText value="#{lblFrp.new_suite_case}" rendered="#{MbSuiteCases.newMode}"/>
+ 	    	</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:form id="suiteCaseModalDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					
+					<h:outputLabel value="* #{lblFrp.suite}" title="#{lblFrp.suite}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="newSuite"
+								value="#{MbSuiteCases.newSuiteCase.suiteId}"
+								label="#{lblFrp.suite}"
+								disabled="#{MbSuiteCases.blockSuite or MbSuiteCases.editMode}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbSuiteCases.suites}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newSuiteError" style="display:none;">
+							<f:param name="fieldName" value="#{lblFrp.suite}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblFrp.case}" title="#{lblFrp.case}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="newCase"
+								value="#{MbSuiteCases.newSuiteCase.caseId}"
+								label="#{lblFrp.case}"
+								disabled="#{MbSuiteCases.blockCase or MbSuiteCases.editMode}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbSuiteCases.cases}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newCaseError" style="display:none;">
+							<f:param name="fieldName" value="#{lblFrp.case}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.priority}" title="#{lblCommon.priority}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:inputText id="newPriority"
+								value="#{MbSuiteCases.newSuiteCase.priority}"
+								label="#{lblCommon.priority}"
+								onkeypress="if (!numbersOnly(this, event)) return false;"
+								maxlength="4"
+								onblur="hideErrorField(this)">
+							<f:validateLongRange minimum="1"/>
+							<a4j:support event="onchange" reRender="newPriorityErr" limitToList="true" ajaxSingle="true"/>	
+						</h:inputText>
+						<rich:message id="newPriorityErr" for="newPriority" styleClass="errorMarker"
+								showDetail="false" showSummary="true"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newPriorityError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.priority}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbSuiteCases.save}"
+                       			onclick="if (!checkSuiteCaseFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('suiteCaseModalPanel')}.hide()"
+                       			reRender="suiteCasesBtmForm"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" 
+                        		action="#{MbSuiteCases.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('suiteCaseModalPanel')}.hide()"
+                        		>
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                        </bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbSuiteCases}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="suiteCasesBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteSuiteViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

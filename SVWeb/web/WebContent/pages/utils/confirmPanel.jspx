@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<ui:remove>
+	<!-- 
+		Customizable confirmation panel to use when user needs to confirm some action. 
+		
+		@Parameters:
+		subviewId - additional id to distinguish confirmation panels if several panels 
+		            are needed on one page (note that in this case one will need to 
+		            call confirmPanel by its full id which is "<subviewId>:confirmPanel")
+		warningMsg - warning message
+		confirmQuestion - question that asks user whether he still wants to make his action or no
+		backingBean	- backing bean which will be used to call actions
+		yesAction - method name that will be called from <i>backingBean</i> if user clicks "Yes" button 
+		            (note that method name is passed without braces)
+		noAction - method name that will be called from <i>backingBean</i> if user clicks "No" button 
+		           (note that method name is passed without braces)
+		rerenderList - objects to be rerendered if user clicks "Yes" button
+		editElem - element which value is edited; its value will be reset with oldValue if user clicks 
+		           "No" button or it will be set to oldValue if user clicks "Yes" button
+		newValue - backing bean's property where new value will be set on confirm (it's put to hidden
+		           field which should be set via javascript prior to form submit) 
+		completeScript - a java script method will be executed when user click yes button. eg: 'deleteScript()'   
+	 -->
+	</ui:remove>
+	
+	<f:subview id="#{empty subviewId ? 'confirmPanelView' : subviewId}">
+		<rich:modalPanel id="confirmPanel" autosized="true" minWidth="300" minHeight="50">
+	        <f:facet name="header">
+	            <h:panelGroup>
+	                <h:outputText value="#{lblMsg.warning_exc}"/>
+	            </h:panelGroup>
+	        </f:facet>
+	        <f:facet name="controls">
+	        </f:facet>
+	        <h:form id="confirmPanelForm">
+		        <h:panelGrid columns="2">
+			        <h:graphicImage url="/images/icon_warning.png" height="32" width="32"/>
+			        <h:outputText id="warningMsg" value="#{warningMsg}"/>
+			        <h:outputText/>
+			        <h:outputText value="#{empty confirmQuestion ? lblMsg.continue_question_full : confirmQuestion}"/>
+		        </h:panelGrid>
+			    
+			    <h:inputHidden value="#{newValue}" id="newValue"/>
+			    
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+			        		<bre:taggedCommandButton value="#{empty yes ? lblCommon.yes : yes}" 
+			        				id="savebutton" action="#{backingBean[yesAction]}"
+			        				reRender="#{rerenderList}"
+			        				rendered="#{not empty yesAction}"
+			        				oncomplete="
+			        						if (document.getElementById('#{editElem}') != null) {
+		        								oldValue['#{formName}'] = document.getElementById('#{editElem}').value;
+			        						}
+			        						if ('#{completeScript}' != '') {#{completeScript};}
+			        						Richfaces.hideModalPanel('#{empty subviewId ? 'confirmPanelView' : subviewId}:confirmPanel')"
+			        				/>
+			        		<bre:taggedCommandButton value="#{empty no ? lblCommon.no : no}" 
+			        				onclick="
+											if (document.getElementById('#{editElem}') != null) {
+		        								document.getElementById('#{editElem}').value = oldValue['#{formName}'];
+			        						}
+			        						Richfaces.hideModalPanel('#{empty subviewId ? 'confirmPanelView' : subviewId}:confirmPanel');
+			        						return false;"
+			        				id="hidebutton"
+			        				rendered="#{empty noAction}"
+			        				/>
+			        		<bre:taggedCommandButton value="#{lblCommon.no}" 
+			        				action="#{backingBean[noAction]}"
+			        				oncomplete="Richfaces.hideModalPanel('#{empty subviewId ? 'confirmPanelView' : subviewId}:confirmPanel');"
+			        				id="hidebutton2"
+			        				rendered="#{not empty noAction}"
+			        				reRender="#{editElem}"
+			        				/>
+				        </h:panelGrid>
+				    </h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+	    </rich:modalPanel>
+	</f:subview>
+</ui:composition>
+</html>

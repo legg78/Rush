@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+    	<f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost"/>
+    	
+    	<script type="text/javascript">
+		//<!--
+			function checkInst() {
+				var instIdEl = document.getElementById("agentTypesSearchForm:instSelector");
+				if (instIdEl.value == null || instIdEl.value == "") {
+					instIdEl.style.backgroundColor = "#FF9999";
+					instIdEl.focus();
+					return false;
+				} else {
+					instIdEl.style.backgroundColor = "#FFFFFF";
+				}
+				return true;
+	    	}
+	    	
+			function checkAgentTypeFields() {
+				var checked = true;
+				
+				if (document.getElementById('agentTypeEditForm:freeNodes').value == "") {
+					document.getElementById('agentTypeEditForm:freeNodesError').style.display = "inline";
+					checked = false;
+				}
+				
+				return checked;
+			}
+    	//-->
+    	</script>
+    	
+    	<!-- navigation bar -->
+        <bpct:navBar pageName="#{lblOst.agent_type_hier}"/>
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+		function handleEnter(event) {
+			 if (event.keyCode == 13) {
+				 document.getElementById('agentTypesSearchForm:searchBtn').click(); 
+				 return false; 
+			} 
+			return true;
+		 }	
+		//]]>
+		</script>
+		
+		<h:form id="agentTypesSearchForm" onkeypress="handleEnter(event)">			
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont oneColumnTable" columns="4" columnClasses="firstCol,secondCol">
+
+	                			<h:outputLabel value="#{lblOst.institution}:" title="#{lblOst.institution}" />
+				      			<h:selectOneMenu id="instSelector" style="width:250px"
+				      						value="#{MbAgentType.instId}"
+					   						valueChangeListener="#{MbAgentType.changeInstitution}">
+					   				<f:selectItem itemValue=""/>
+					   				<f:selectItems value="#{MbAgentType.institutions}"/>
+				      			</h:selectOneMenu>
+
+		                	</h:panelGrid>
+		                	<h:panelGrid columns="1" >
+		                		<bre:taggedCommandButton image="/_img/icon_search.png" type="submit"
+		                				value="#{lblForm.search}" style="width:85px;"
+		                				id="searchBtn"
+		                				action="#{MbAgentType.searchAgentTypes}"
+		                				onclick="if (!checkInst()) return false; disableModalPanelBtns(this);"
+		                				oncomplete="enableModalPanelBtns(this);"
+		                				reRender="agentTypesForm"
+		                				eventsQueue="queue">
+			                		<a4j:actionparam name="stateKeeper" value="false" assignTo="#{menu.keepState}"/>
+			                	</bre:taggedCommandButton>
+
+		                		<h:panelGroup styleClass="link-clear" layout="block"  >
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<h:commandLink value="#{lblForm.clear_all}"
+		                				oncomplete="updateHeight();"
+		                				action="#{MbAgentType.clearFilter}">
+		                			</h:commandLink>
+		                		</h:panelGroup>
+		                	</h:panelGrid>
+	                	</h:panelGrid>
+	                	<a4j:outputPanel ajaxRendered="true">
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>
+	                </h:panelGroup>
+	            </h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="agentTypesForm">
+			<ui:include src="/pages/org_struct/agentTypesTree.jspx"/>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+		        	<h:panelGrid styleClass="buttons_block" columns="4" id="btnsAgentTypes">
+	                	<bre:taggedCommandButton id="addBranchBtn"
+	                    		value="#{lblForm.add}" reRender="newBranchDiv"
+	                    		action="#{MbAgentType.addBranch}"
+	                    		oncomplete="#{rich:component('newBranchPanel')}.show()"
+	                    		disabled="#{MbAgentType.instId == null}"
+	                    		rendered="#{usession.inRole['ADD_AGENT_TYPE_TREE_ELEMENT']}"
+	                    		image="/images/create_doc.gif" eventsQueue="addDeleteQueue" ignoreDupResponses="true"
+	                    		/>
+	                	<bre:taggedCommandButton id="deleteBranchBtn"
+	                    		value="#{lblForm.delete}" 
+	                    		disabled="#{MbAgentType.node.branchId == null}"
+	                    		rendered="#{usession.inRole['REMOVE_AGENT_TYPE_TREE_ELEMENT']}"
+	                    		image="/images/delete.gif" eventsQueue="addDeleteQueue" ignoreDupResponses="true"
+	                    		oncomplete="#{rich:component('deleteAgentTypeView:confirmPanel')}.show()"/>
+                	</h:panelGrid>
+               	</h:panelGroup>
+            </h:panelGroup>
+		</h:form>
+
+		<rich:modalPanel id="newBranchPanel" autosized="true" minWidth="300" minHeight="100"
+				rendered="#{usession.inRole['ADD_AGENT_TYPE_TREE_ELEMENT']}">
+       	    <f:facet name="header">
+           	    <h:outputText value="#{lblOst.add_node}" />
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+       	    <h:panelGroup id="newBranchDiv">
+       	    	<h:form id="agentTypeEditForm">
+
+					<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+						<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal nowrap, width250">
+							<h:outputLabel value="#{lblOst.parent_agent_type}: " title="#{lblOst.parent_agent_type}"/>
+							<h:selectOneMenu id="parentAgentTypes" value="#{MbAgentType.newNode.parentType}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbAgentType.usedNodes}"/>
+							</h:selectOneMenu>
+	
+							<h:outputLabel value="* #{lblOst.agent_type}: " title="#{lblOst.agent_type}"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+								<h:selectOneMenu id="freeNodes" value="#{MbAgentType.newNode.type}"
+										label="#{lblOst.agent_type}"
+										onblur="hideErrorField(this)">
+									<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbAgentType.freeNodes}"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="freeNodesError" style="display:none;">
+									<f:param name="fieldName" value="#{lblOst.agent_type}"/>
+								</h:outputFormat>
+								<a4j:commandLink value="#{lblOst.add_agent_type}"
+										oncomplete="#{rich:component('articlesView:articleModalPanel')}.show()"
+										reRender="articlesView:articleModalPanel"
+										immediate="true"
+										rendered="#{usession.inRole['ADD_DICTIONARY_ARTICLE']}">
+									<f:setPropertyActionListener
+											value="#{MbAgentType.dictAgentType}"
+											target="#{MbDictionary.newArticleExt}"/>
+							    </a4j:commandLink>
+							</h:panelGrid>
+						</h:panelGrid>
+
+					</h:panelGroup>
+
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+    	                    	<bre:taggedCommandButton 
+        	                			value="#{lblForm.save}" type="submit" action="#{MbAgentType.save}"
+        	                			onclick="if (!checkAgentTypeFields()) return false; disableModalPanelBtns(this)"
+        	                			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('newBranchPanel')}.hide()"
+            	            			reRender="agentTypeTreeTable, btnPanel, freeNodes, parentAgentTypes"
+	            	            		/>
+                        		<bre:taggedCommandButton
+	                        			value="#{lblForm.cancel}" immediate="true"
+	                        			onclick="#{rich:component('newBranchPanel')}.hide()"
+	                        			/>
+			    			</h:panelGrid>
+			    		</h:panelGroup>
+			    	</h:panelGroup>
+				</h:form>
+			</h:panelGroup>
+		</rich:modalPanel>
+
+		<ui:include src="/pages/common/dictionaries/editArticle.jspx">
+			<ui:param name="rerenderList" value="freeNodes"/>
+			<ui:param name="headerText" value="#{lblOst.new_agent_type}"/>
+		</ui:include>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbAgentType}"/>
+			<ui:param name="yesAction" value="deleteBranch"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="agentTypeTreeTable, details, btnPanel"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteAgentTypeView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+
+		<script type="text/javascript">
+			document.getElementById("agentTypesSearchForm:instSelector").focus();
+		</script>
+
+		
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.css" style and "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel"¸ layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+		
+			function updateHeight(){
+				// Workplace panel height calculation
+				// We have a page structure like this:
+				// * Header
+				// * Navigator
+				// * Search panel
+				// * Result panel
+				// * Workplace
+					var appsSearchForm = document.getElementById("agentTypesSearchForm");
+					var topHeight = 0;
+					topHeight = topHeight + appsSearchForm.clientHeight;
+					var header = 42; // height of the header in 'navigatable.jspx'
+					var navigator = 15/*body*/ + 10 /*padding-top*/ + 12 /*padding-bottom*/;
+					topHeight = topHeight + 10 /*search_block margin*/;
+					
+					var windowHeight = Stretch.getWindowHeight();
+					var workplacePanelHeight = windowHeight - header - navigator - topHeight;
+					if (workplacePanelHeight < Stretch.MIN_WORKPLACE_HEIGHT){
+						workplacePanelHeight = Stretch.MIN_WORKPLACE_HEIGHT;
+					}				
+					// In accordance with the width of workplace we setup the tables on tabs
+					
+					Stretch.updateTreeHeightByFixedHeight('agentTypesForm:mainTableWrapper', workplacePanelHeight - 69 /*buttons*/ - 12 /*top-padding*/);
+			}
+			updateHeight();
+			//]]>
+		</script>
+    </ui:define>
+
+</ui:composition>
+</html>

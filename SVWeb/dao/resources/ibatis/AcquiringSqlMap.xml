@@ -1,0 +1,2314 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="acquiring">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+     
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+     
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>             
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-terminal-common"
+                class="ru.bpc.sv2.acquiring.Terminal">
+		<result property="id" column="id"/>
+		<result property="isTemplate" javaType="boolean" column="is_template"/>
+		<result property="terminalType" column="terminal_type"/>
+		<result property="standardId" column="standard_id"/>
+		<result property="cardDataInputCap" column="card_data_input_cap"/>
+		<result property="crdhAuthCap" column="crdh_auth_cap"/>
+		<result property="cardCaptureCap" column="card_capture_cap"/>
+		<result property="termOperatingEnv" column="term_operating_env"/>
+		<result property="crdhDataPresent" column="crdh_data_present"/>
+		<result property="cardDataPresent" column="card_data_present"/>
+		<result property="cardDataInputMode" column="card_data_input_mode"/>
+		<result property="crdhAuthMethod" column="crdh_auth_method"/>
+		<result property="crdhAuthEntity" column="crdh_auth_entity"/>
+		<result property="cardDataOutputCap" column="card_data_output_cap"/>
+		<result property="termDataOutputCap" column="term_data_output_cap"/>
+		<result property="pinCaptureCap" column="pin_capture_cap"/>
+		<result property="status" column="status"/>
+		<result property="productId" column="product_id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="isMac" javaType="boolean" column="is_mac" nullValue="false"/>
+		<result property="gmtOffset" column="gmt_offset"/>
+		<result property="institutionName" column="inst_name"/>		
+		<result property="contractId" column="contract_id"/>
+		<result property="contractNumber" column="contract_number"/>
+		<result property="cashDispenserPresent" column="cash_dispenser_present" javaType="boolean"/>
+		<result property="paymentPossibility" column="payment_possibility" javaType="boolean"/>
+		<result property="useCardPossibility" column="use_card_possibility" javaType="boolean"/>
+		<result property="cashInPresent" column="cash_in_present" javaType="boolean"/>
+		<result property="availableNetwork" column="available_network"/>
+		<result property="availableOperation" column="available_operation"/>
+		<result property="availableCurrency" column="available_currency"/>
+		<result property="availableNetworkName" column="available_network_name"/>
+		<result property="availableOperationName" column="available_operation_name"/>
+		<result property="availableCurrencyName" column="available_currency_name"/>
+		<result property="catLevel" column="cat_level"/>
+	</resultMap>
+
+	<resultMap  id="mapping-terminal-template"
+                class="ru.bpc.sv2.acquiring.Terminal"
+                extends="mapping-terminal-common">
+		<result property="name" column="name"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+		<result property="mccTemplateId" column="mcc_template_id"/>
+		<result property="terminalProfile" column="terminal_profile"/>
+		<result property="pinBlockFormat" column="pin_block_format"/>
+    </resultMap>
+
+	<resultMap  id="mapping-terminal"
+                class="ru.bpc.sv2.acquiring.Terminal"
+                extends="mapping-terminal-common">
+		<result property="terminalNumber" column="terminal_number"/>
+		<result property="terminalName" column="terminal_name"/>
+		<result property="merchantId" column="merchant_id"/>
+		<result property="plasticNumber" column="plastic_number"/>
+		<result property="deviceId" column="device_id"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantNumber" column="merchant_number"/>
+		<result property="productName" column="product_name"/>
+		<result property="customerId" column="customer_id"/>
+		<result property="customerType" column="customer_type"/>
+		<result property="customerNumber" column="customer_number"/>
+		<result property="productType" column="product_type"/>
+		<result property="address" column="address"/>
+		<result property="mccTemplateId" column="mcc_template_id"/>
+        <result property="productNumber" column="product_number"/>
+        <result property="mcc" column="mcc"/>
+		<result property="mccName" column="mcc_name"/>
+        <result property="terminalProfile" column="terminal_profile"/>
+        <result property="pinBlockFormat" column="pin_block_format"/>
+		<result property="instalmentSupport" column="instalment_support" javaType="boolean" nullValue="false"/>
+	</resultMap>
+
+	<resultMap	id="mapping-mcc"
+				class="ru.bpc.sv2.acquiring.MCC">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="mcc" column="mcc"/>
+		<result property="tcc" column="tcc"/>
+		<result property="dinersCode" column="diners_code"/>
+		<result property="mastercardCabType" column="mastercard_cab_type"/>
+		<result property="name" column="name"/>
+		<result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-terminal-templates"
+        	parameterClass="qparams"
+        	resultMap="mapping-terminal-template">
+        <include refid="paginatedOpen"/>
+			SELECT 	  
+				t.id
+				, t.is_template
+				, t.terminal_type
+				, t.standard_id
+				, t.card_data_input_cap
+				, t.crdh_auth_cap
+				, t.card_capture_cap
+				, t.term_operating_env
+				, t.crdh_data_present
+				, t.card_data_present
+				, t.card_data_input_mode
+				, t.crdh_auth_method
+				, t.crdh_auth_entity
+				, t.card_data_output_cap
+				, t.term_data_output_cap
+				, t.pin_capture_cap
+				, t.cat_level
+				, t.status
+				, t.product_id
+				, t.inst_id
+				, t.seqnum
+				, t.is_mac
+				, t.gmt_offset
+				, t.name
+				, t.description
+				, t.lang
+				, t.contract_id
+				, t.cash_dispenser_present
+				, t.payment_possibility   
+				, t.use_card_possibility  
+				, t.cash_in_present       
+				, t.available_network  
+				, t.available_operation
+				, t.available_currency 
+				, t.available_network_name
+				, t.available_operation_name
+				, t.available_currency_name
+				, i.name inst_name
+				, c.contract_number
+				, t.mcc_template_id
+				, t.terminal_profile
+				, t.pin_block_format
+		 	FROM 
+		 		acq_ui_terminal_templ_vw t
+		 		, ost_ui_institution_sys_vw i
+		 		, prd_ui_contract_vw c
+		 	WHERE
+		 		t.inst_id = i.id
+		 		AND t.contract_id = c.id(+)
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+                <isEqual property="filters[].element" compareValue="lang">
+					t.lang = #filters[].value#
+                	AND i.lang = #filters[].value#                	
+                </isEqual>
+                <isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="instId">t.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">t.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="terminalType">t.terminal_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(t.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="mccTemplateId">t.mcc_template_id = #filters[].value#</isEqual>
+			</iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">t.name $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="terminalType">t.terminal_type $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="institutionName">i.name $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="status">t.status $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="isMac">t.is_mac $sorting[].direction$</isEqual>
+				</isNotEqual>
+            </iterate>
+            <isEmpty property="sorting" prepend=" ORDER BY ">t.description ASC</isEmpty>
+		<include refid="paginatedClose"/>
+    </select>
+
+	<select id="get-terminal-templates-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+		SELECT 	  
+			t.*
+	 	FROM 
+	 		acq_ui_terminal_templ_vw t
+	 	<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="productId">t.product_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">t.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">t.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalType">t.terminal_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(t.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mccTemplateId">t.mcc_template_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+
+	<select id="get-terminals"
+        	parameterClass="qparams"
+        	resultMap="mapping-terminal">
+		<include refid="paginatedOpen"/>
+		SELECT 	  t.id
+				, t.is_template
+				, t.terminal_number
+				, t.terminal_type
+				, t.standard_id
+				, t.merchant_id
+				, t.plastic_number
+				, t.card_data_input_cap
+				, t.crdh_auth_cap
+				, t.card_capture_cap
+				, t.term_operating_env
+				, t.crdh_data_present
+				, t.card_data_present
+				, t.card_data_input_mode
+				, t.crdh_auth_method
+				, t.crdh_auth_entity
+				, t.card_data_output_cap
+				, t.term_data_output_cap
+				, t.pin_capture_cap
+				, t.status
+				, t.product_id
+				, t.inst_id
+				, t.seqnum
+				, t.is_mac
+				, t.gmt_offset
+				, t.device_id
+				, t.description
+				, t.lang
+				, t.contract_id
+				, t.cash_dispenser_present
+				, t.payment_possibility   
+				, t.use_card_possibility  
+				, t.cash_in_present       
+				, t.available_network  
+				, t.available_operation
+				, t.available_currency 
+				, t.available_network_name
+				, t.available_operation_name
+				, t.available_currency_name
+				, t.mcc_template_id
+				, t.mcc
+				, null mcc_name
+				, t.cat_level
+				, get_object_desc('ENTTTRMN', t.id) terminal_name
+				, p.label AS product_name
+				, m.label AS merchant_name
+				, m.merchant_number
+				, inst.name AS inst_name
+				, c.contract_number
+				, c.customer_id
+				, cu.entity_type customer_type
+				, cu.customer_number
+				, com_api_address_pkg.get_address_string(
+                        acq_api_terminal_pkg.get_terminal_address_id(
+                            i_terminal_id => t.id
+                        )
+                    ) as address
+                , p.product_type
+                , p.product_number
+                , t.terminal_profile
+        		, t.pin_block_format
+				, null instalment_support
+		    FROM ost_ui_institution_sys_vw inst, acq_ui_terminal_vw t
+		        LEFT JOIN prd_ui_product_vw p
+		        ON t.product_id = p.id
+		            <iterate prepend="AND " property="filters">
+						<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+					</iterate>
+		        LEFT JOIN acq_ui_merchant_vw m
+		        ON  t.merchant_id = m.ID
+		            <iterate prepend="AND " property="filters">
+						<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+					</iterate>
+		        LEFT JOIN prd_ui_contract_vw c
+		        ON  t.contract_id = c.id
+		        LEFT JOIN prd_ui_customer_vw cu
+                ON c.customer_id = cu.id
+		    WHERE t.inst_id = inst.id
+		    	AND t.lang = inst.lang
+		    <isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>	    	
+		    <iterate prepend="AND" conjunction="AND" property="filters"> 
+			    <isEqual property="filters[].element" compareValue="accountId"> 
+			    	t.id IN (
+						SELECT a.object_id
+						FROM ACC_UI_ACCOUNT_OBJECT_VW a
+						WHERE a.account_id = #filters[].value#
+						AND a.entity_type = 'ENTTTRMN'				
+					)
+				</isEqual>
+                <isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="terminalNumber">upper(t.terminal_number) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="productId">t.product_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">t.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">t.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="merchantId">t.merchant_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="merchantNumber">upper(m.merchant_number) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="merchantName">upper(m.merchant_name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="contractId">t.contract_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isTemplate">t.is_template = #filters[].value#</isEqual>				
+				<isEqual property="filters[].element" compareValue="status">t.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="terminalType">t.terminal_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerId">c.customer_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerNumber">cu.customer_number like upper(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="authId">
+					t.id IN (
+					
+						SELECT p.terminal_id
+							FROM aut_ui_auth_vw a, 
+								opr_ui_operation_vw o, 
+								opr_ui_participant_vw p 
+							WHERE a.id = o.id AND 
+								O.ID = p.OPER_ID AND  
+								a.id = #filters[].value#
+					)  
+				</isEqual>
+			</iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="terminalNumber">t.terminal_number $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="type">t.terminal_type $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="status">t.status $sorting[].direction$</isEqual>
+				</isNotEqual>
+            </iterate>
+		<include refid="paginatedClose"/>
+    </select>
+
+	<select id="get-terminals-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+		SELECT * 
+		FROM ost_ui_institution_sys_vw inst, acq_ui_terminal_vw t
+	        LEFT JOIN acq_ui_merchant_vw m
+	        ON  t.merchant_id = m.ID
+	            <iterate prepend="AND " property="filters">
+					<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+				</iterate>
+			LEFT JOIN prd_ui_contract_vw c
+		        ON  t.contract_id = c.id
+		    LEFT JOIN prd_ui_customer_vw cu
+                ON c.customer_id = cu.id
+		WHERE t.inst_id = inst.id 
+			AND t.lang = inst.lang
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+		<iterate prepend="AND" conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="accountId"> 
+		    	t.id IN (
+					SELECT a.object_id
+					FROM ACC_UI_ACCOUNT_OBJECT_VW a
+					WHERE a.account_id = #filters[].value#
+					AND a.entity_type = 'ENTTTRMN'				
+				)
+			</isEqual>
+        	<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalNumber">t.terminal_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="productId">t.product_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">t.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">t.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantId">t.merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantNumber">upper(m.merchant_number) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantName">upper(m.merchant_name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractId">t.contract_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="isTemplate">t.is_template = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">t.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalType">t.terminal_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerId">c.customer_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">cu.customer_number like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">t.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="authId">
+				t.id IN (
+					SELECT
+						o.terminal_id
+					FROM 
+						opr_ui_operation_vw o
+					WHERE
+						o.entity_type = 'ENTTAUTH'
+						AND o.id = #filters[].value#
+				) 
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+    <parameterMap class="java.util.Map" id="get-terminals-cur-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-terminal"/>
+        <parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="first_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap> 
+    
+    <procedure id="get-terminals-cur" 
+		parameterMap="get-terminals-cur-map">
+		{ call acq_ui_terminal_search_pkg.get_ref_cur(
+			o_ref_cur		=> ?
+            , i_row_count 	=> ?
+			, i_first_row 	=> ?
+			, i_last_row	=> ?
+			, i_tab_name	=> ?
+			, i_param_tab	=> ?
+			, i_sorting_tab	=> ?
+		)}
+	</procedure>
+	
+	<parameterMap class="java.util.Map" id="get-terminals-cur-count-map">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap> 
+	
+	<procedure id="get-terminals-cur-count" 
+		parameterMap="get-terminals-cur-count-map">
+		{ call acq_ui_terminal_search_pkg.get_row_count(
+			o_row_count		=> ?
+			, i_tab_name	=> ?
+			, i_param_tab	=> ?
+		)}
+	</procedure>
+    
+    <resultMap  id="mapping-terminal-sys"
+                class="ru.bpc.sv2.acquiring.Terminal">
+		<result property="id" column="id"/>
+		<result property="isTemplate" javaType="boolean" column="is_template"/>
+		<result property="terminalType" column="terminal_type"/>
+		<result property="standardId" column="standard_id"/>
+		<result property="cardDataInputCap" column="card_data_input_cap"/>
+		<result property="crdhAuthCap" column="crdh_auth_cap"/>
+		<result property="cardCaptureCap" column="card_capture_cap"/>
+		<result property="termOperatingEnv" column="term_operating_env"/>
+		<result property="crdhDataPresent" column="crdh_data_present"/>
+		<result property="cardDataPresent" column="card_data_present"/>
+		<result property="cardDataInputMode" column="card_data_input_mode"/>
+		<result property="crdhAuthMethod" column="crdh_auth_method"/>
+		<result property="crdhAuthEntity" column="crdh_auth_entity"/>
+		<result property="cardDataOutputCap" column="card_data_output_cap"/>
+		<result property="termDataOutputCap" column="term_data_output_cap"/>
+		<result property="pinCaptureCap" column="pin_capture_cap"/>
+		<result property="status" column="status"/>
+		<result property="productId" column="product_id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="isMac" javaType="boolean" column="is_mac" nullValue="false"/>
+		<result property="gmtOffset" column="gmt_offset"/>
+		<result property="contractId" column="contract_id"/>
+		<result property="contractNumber" column="contract_number"/>
+		<result property="cashDispenserPresent" column="cash_dispenser_present" javaType="boolean"/>
+		<result property="paymentPossibility" column="payment_possibility" javaType="boolean"/>
+		<result property="useCardPossibility" column="use_card_possibility" javaType="boolean"/>
+		<result property="cashInPresent" column="cash_in_present" javaType="boolean"/>
+		<result property="availableNetwork" column="available_network"/>
+		<result property="availableOperation" column="available_operation"/>
+		<result property="availableCurrency" column="available_currency"/>
+		<result property="mccTemplateId" column="mcc_template_id"/>
+        <result property="productName" column="product_name"/>
+        <result property="productNumber" column="product_number"/>
+	</resultMap>
+	
+	<select id="get-terminals-sys"
+        	parameterClass="qparams"
+        	resultMap="mapping-terminal-sys">
+		<include refid="paginatedOpen"/>
+		SELECT       t.id
+                , t.is_template
+                , t.terminal_number
+                , t.terminal_type
+                , t.merchant_id
+                , t.plastic_number
+                , t.card_data_input_cap
+                , t.crdh_auth_cap
+                , t.card_capture_cap
+                , t.term_operating_env
+                , t.crdh_data_present
+                , t.card_data_present
+                , t.card_data_input_mode
+                , t.crdh_auth_method
+                , t.crdh_auth_entity
+                , t.card_data_output_cap
+                , t.term_data_output_cap
+                , t.pin_capture_cap
+                , t.status
+                , t.inst_id
+                , t.seqnum
+                , t.is_mac
+                , t.gmt_offset
+                , t.device_id
+                , t.contract_id
+				, t.cash_dispenser_present
+				, t.payment_possibility   
+				, t.use_card_possibility  
+				, t.cash_in_present       
+				, t.available_network  
+				, t.available_operation
+				, t.available_currency
+				, t.mcc_template_id 
+                , get_object_desc('ENTTTRMN', t.id) terminal_name
+                , c.contract_number
+                , c.customer_id
+                , so.standard_id
+                , c.product_id
+                , com_api_address_pkg.get_address_string(
+                        acq_api_terminal_pkg.get_terminal_address_id(
+                            i_terminal_id => t.id
+                        )
+                    ) as address
+                , p.label as product_name
+                , p.product_number
+            FROM acq_terminal_vw t
+		         , prd_contract_vw c
+		         , cmn_standard_object_vw so
+                 , prd_ui_product_vw p
+                WHERE t.contract_id = c.id
+	                AND so.entity_type(+) = 'ENTTTRMN'
+	                AND so.standard_type(+) = 'STDT0002'
+	                AND so.object_id = t.id
+                    AND c.product_id = p.id
+                    AND p.lang = COM_UI_USER_ENV_PKG.get_user_lang
+		    <iterate prepend="AND" conjunction="AND" property="filters"> 
+			    <isEqual property="filters[].element" compareValue="accountId"> 
+			    	t.id IN (
+						SELECT a.object_id
+						FROM ACC_ACCOUNT_OBJECT_VW a
+						WHERE a.account_id = #filters[].value#
+						AND a.entity_type = 'ENTTTRMN'				
+					)
+				</isEqual>
+                <isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="terminalNumber">upper(t.terminal_number) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="productId">t.product_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">t.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">t.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="merchantId">t.merchant_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="contractId">t.contract_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isTemplate">t.is_template = #filters[].value#</isEqual>				
+				<isEqual property="filters[].element" compareValue="status">t.status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="terminalType">t.terminal_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="customerId">c.customer_id = #filters[].value#</isEqual>				
+			</iterate>
+            <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="terminalNumber">t.terminal_number $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="type">t.terminal_type $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="status">t.status $sorting[].direction$</isEqual>
+				</isNotEqual>
+            </iterate>
+		<include refid="paginatedClose"/>
+    </select>
+
+    <procedure id="add-terminal-template"
+    		parameterClass="ru.bpc.sv2.acquiring.Terminal">
+    	{call ACQ_UI_TERMINAL_TEMPL_PKG.add_template(
+				  o_template_id            => #id,jdbcType=NUMERIC,mode=OUT#
+				, i_terminal_type          => #terminalType#
+				, i_standard_id            => #standardId#
+				, i_card_data_input_cap    => #cardDataInputCap#
+				, i_crdh_auth_cap          => #crdhAuthCap#
+				, i_card_capture_cap       => #cardCaptureCap#
+				, i_term_operating_env     => #termOperatingEnv#
+				, i_crdh_data_present      => #crdhDataPresent#
+				, i_card_data_present      => #cardDataPresent#
+				, i_card_data_input_mode   => #cardDataInputMode#
+				, i_crdh_auth_method       => #crdhAuthMethod#
+				, i_crdh_auth_entity       => #crdhAuthEntity#
+				, i_card_data_output_cap   => #cardDataOutputCap#
+				, i_term_data_output_cap   => #termDataOutputCap#
+				, i_pin_capture_cap        => #pinCaptureCap#
+				, i_cat_level              => #catLevel#
+				, i_status                 => #status#
+				, i_is_mac                 => #isMac#
+				, i_gmt_offset             => #gmtOffset#
+				, i_name                   => #name#
+				, i_description            => #description#
+				, i_lang                   => #lang#
+				, i_inst_id                => #instId#
+				, i_cash_dispenser_present => #cashDispenserPresent#  
+				, i_payment_possibility    => #paymentPossibility#
+				, i_use_card_possibility   => #useCardPossibility#
+				, i_cash_in_present        => #cashInPresent#
+				, i_available_network      => #availableNetwork#
+				, i_available_operation    => #availableOperation#
+				, i_available_currency     => #availableCurrency#
+				, i_mcc_template_id		   => #mccTemplateId#
+				, i_terminal_profile	   => #terminalProfile#
+				, i_pin_block_format	   => #pinBlockFormat# 
+				)}
+    </procedure>
+
+    <procedure id="modify-terminal-template"
+		   	parameterClass="ru.bpc.sv2.acquiring.Terminal">
+    	{call ACQ_UI_TERMINAL_TEMPL_PKG.modify_template(
+				  i_template_id            => #id#
+				, i_standard_id            => #standardId#
+				, i_card_data_input_cap    => #cardDataInputCap#
+				, i_crdh_auth_cap          => #crdhAuthCap#
+				, i_card_capture_cap       => #cardCaptureCap#
+				, i_term_operating_env     => #termOperatingEnv#
+				, i_crdh_data_present      => #crdhDataPresent#
+				, i_card_data_present      => #cardDataPresent#
+				, i_card_data_input_mode   => #cardDataInputMode#
+				, i_crdh_auth_method       => #crdhAuthMethod#
+				, i_crdh_auth_entity       => #crdhAuthEntity#
+				, i_card_data_output_cap   => #cardDataOutputCap#
+				, i_term_data_output_cap   => #termDataOutputCap#
+				, i_pin_capture_cap        => #pinCaptureCap#
+				, i_cat_level              => #catLevel#
+				, i_status                 => #status#
+				, i_is_mac                 => #isMac#
+				, i_gmt_offset             => #gmtOffset#
+				, i_name                   => #name#
+				, i_description            => #description#
+				, i_lang                   => #lang#
+				, i_cash_dispenser_present => #cashDispenserPresent#  
+				, i_payment_possibility    => #paymentPossibility#
+				, i_use_card_possibility   => #useCardPossibility#
+				, i_cash_in_present        => #cashInPresent#
+				, i_available_network      => #availableNetwork#
+				, i_available_operation    => #availableOperation#
+				, i_available_currency     => #availableCurrency#
+				, i_mcc_template_id		   => #mccTemplateId#
+				, i_terminal_profile	   => #terminalProfile#
+				, i_pin_block_format	   => #pinBlockFormat#
+				)}
+    </procedure>
+
+    <procedure id="remove-terminal-template"
+    		parameterClass="int">
+    	{call ACQ_UI_TERMINAL_TEMPL_PKG.remove_template(
+    			  i_template_id 			=> #id#
+    			)}
+    </procedure>
+
+	<resultMap	id="mapping-merchant-type"
+				class="ru.bpc.sv2.acquiring.MerchantType">
+		<result property="branchId" column="id"/>
+		<result property="type" column="merchant_type"/>
+		<result property="parentType" column="parent_merchant_type"/>
+		<result property="instId" column="inst_id"/>
+		<result property="seqNum" column="seqnum"/>
+	</resultMap>
+
+	<resultMap	id="mapping-merchant-type-hier"
+				class="ru.bpc.sv2.acquiring.MerchantType"
+				extends="mapping-merchant-type">
+		<result property="level" column="level"/>
+		<result property="isLeaf" column="is_leaf"/>
+		<result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<select id="get-merchant-types"
+	    	parameterClass="qparams"
+			resultMap="mapping-merchant-type-hier">
+		SELECT 	
+				  level
+				, id
+				, seqnum
+				, merchant_type
+				, inst_id
+				, inst_name
+				, parent_merchant_type
+				, CONNECT_BY_ISLEAF as is_leaf
+		FROM (
+			SELECT DISTINCT 
+				 m.id,
+				 m.seqnum,
+				 m.merchant_type,
+				 m.inst_id,
+				 i.name inst_name,
+				 m.parent_merchant_type
+			FROM acq_ui_merchant_type_tree_vw m
+			LEFT JOIN ost_ui_institution_sys_vw i
+	       		ON m.inst_id = i.id
+	       		<iterate prepend="AND" conjunction="AND" property="filters">
+		        	<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+				</iterate>
+			<iterate prepend=" START WITH " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>						
+			</iterate>        
+			CONNECT BY PRIOR m.parent_merchant_type = m.merchant_type AND PRIOR m.inst_id = m.inst_id					
+		)
+		START WITH (parent_merchant_type is null)
+		CONNECT BY PRIOR merchant_type = parent_merchant_type AND PRIOR inst_id = inst_id
+		ORDER SIBLINGS BY merchant_type
+	</select>
+
+	<select id="get-merchant-types-list"
+	    	parameterClass="qparams"
+			resultMap="mapping-merchant-type">
+		SELECT 	
+				  id
+				, seqnum
+				, merchant_type
+				, inst_id
+				, parent_merchant_type
+		FROM acq_ui_merchant_type_tree_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>						
+			<isEqual property="filters[].element" compareValue="merchantType">merchant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="parentType">parent_merchant_type = #filters[].value#</isEqual>
+		</iterate>        
+	</select>
+
+    <procedure id="add-merchant-type-branch"
+    		parameterClass="ru.bpc.sv2.acquiring.MerchantType">
+    	{call ACQ_UI_MERCHANT_TREE_PKG.add_merchant_branch(
+    			  io_branch_id		=> #branchId,jdbcType=NUMERIC,mode=INOUT#
+    			, i_merchant_type	=> #type#
+    			, i_parent_type		=> #parentType#
+    			, i_inst_id			=> #instId#
+    			)}
+    </procedure>
+
+    <procedure id="remove-merchant-type-branch"
+    		parameterClass="int">
+    	{call ACQ_UI_MERCHANT_TREE_PKG.remove_merchant_branch(#value#)}
+    </procedure>
+
+	<select id="get-mccs"
+			parameterClass="qparams"
+			resultMap="mapping-mcc">
+        <include refid="paginatedOpen"/>
+	    	SELECT
+	    			  id
+	    			, seqnum
+	    			, mcc
+	    			, tcc
+	    			, diners_code
+	    			, mastercard_cab_type
+	    			, name
+	    			, lang
+	    	FROM COM_UI_MCC_VW
+	   		<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="mcc">mcc = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dinersCode">diners_code = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="mastercardCabType">mastercard_cab_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+	   		</iterate>
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="mcc">mcc $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="dinersCode">diners_code $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="mastercardCabType">mastercard_cab_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="tcc">tcc $sorting[].direction$</isEqual>
+				</isNotEqual>
+	       	</iterate>
+	       	<isEmpty property="sorting">ORDER BY mcc ASC</isEmpty>
+		<include refid="paginatedClose"/>
+    </select>
+    
+    <select id="get-mccs-count"
+   			parameterClass="qparams"
+   			resultClass="int">
+   		SELECT count(*) FROM COM_UI_MCC_VW
+   		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mcc">mcc = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dinersCode">diners_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mastercardCabType">mastercard_cab_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">name LIKE #filters[].value#</isEqual>
+   		</iterate>
+   	</select>
+   	
+   	<procedure id="add-mcc"
+    		parameterClass="ru.bpc.sv2.acquiring.MCC">
+		{call COM_UI_MCC_PKG.add_mcc(
+				  o_id						=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_mcc         			=> #mcc#
+  				, i_tcc         			=> #tcc#
+				, i_diners_code 			=> #dinersCode#
+				, i_mastercard_cab_type		=> #mastercardCabType#
+				, i_name					=> #name#
+				, i_lang					=> #lang#
+				)}
+    </procedure>
+
+    <procedure id="edit-mcc"
+    		parameterClass="ru.bpc.sv2.acquiring.MCC">
+    	{call COM_UI_MCC_PKG.modify_mcc(
+    			  i_id						=> #id#
+				, io_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_mcc         			=> #mcc#
+  				, i_tcc         			=> #tcc#
+				, i_diners_code 			=> #dinersCode#
+				, i_mastercard_cab_type		=> #mastercardCabType#
+				, i_name					=> #name#
+				, i_lang					=> #lang#
+				)}
+    </procedure>
+
+	<procedure id="remove-mcc"
+    		parameterClass="ru.bpc.sv2.acquiring.MCC">
+    	{call COM_UI_MCC_PKG.remove_mcc(
+    			  i_id			=> #id#
+				, i_seqnum 		=> #seqNum#
+				)}
+    </procedure>
+
+	<select id="get-mcc-name-by-code"
+			parameterClass="string"
+			resultClass="string">
+		SELECT name FROM com_ui_mcc_vw WHERE mcc = #value# and lang=COM_UI_USER_ENV_PKG.get_user_lang
+    </select>
+
+	<resultMap	id="mapping-merchant"
+				class="ru.bpc.sv2.acquiring.Merchant">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="merchantNumber" column="merchant_number"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantType" column="merchant_type"/>
+		<result property="parentId" column="parent_id"/>
+		<result property="mcc" column="mcc"/>
+		<result property="status" column="status"/>
+		<result property="contractId" column="contract_id"/>
+		<result property="productId" column="product_id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="label" column="label"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+		<result property="productName" column="product_name"/>
+		<result property="instName" column="inst_name"/>
+		<result property="mccName" column="mcc_name"/>
+		<result property="customerNumber" column="customer_number"/>
+		<result property="customerType" column="customer_type"/>
+		<result property="customerId" column="customer_id"/>
+		<result property="companyName" column="company_name"/>
+		<result property="contractNumber" column="contract_number"/>
+		<result property="productType" column="product_type"/>
+        <result property="productNumber" column="product_number"/>
+		<result property="partnerIdCode" column="partner_id_code"/>
+		<result property="riskIndicator" column="risk_indicator"/>
+        <result property="mcAssignedId" column="mc_assigned_id"/>
+	</resultMap>
+	
+	<resultMap	id="mapping-merchant-hier"
+				class="ru.bpc.sv2.acquiring.Merchant"
+				extends="mapping-merchant">
+		<result property="level" column="level"/>
+		<result property="isLeaf" column="is_leaf"/>
+	</resultMap>
+	
+    <select id="get-merchants"
+    		parameterClass="qparams"
+    		resultMap="mapping-merchant-hier">
+    	SELECT	  mc.* 
+            	, level
+            	, CONNECT_BY_ISLEAF as is_leaf
+    	FROM (
+			SELECT DISTINCT
+	 			  m.id 
+	            , m.seqnum
+	            , m.merchant_number
+	            , m.merchant_name
+	            , m.merchant_type
+	            , m.parent_id
+	            , m.mcc
+	            , m.status
+	            , m.contract_id
+	            , m.product_id
+	            , m.inst_id
+	            , m.split_hash
+	            , m.label
+	            , m.description
+	            , m.lang
+	            , p.label product_name
+	            , i.name inst_name
+	            , mcc.name mcc_name
+	            , cu.customer_number
+	            , cu.entity_type customer_type
+	            , cu.id customer_id
+           		, co.label AS company_name
+           		, ct.contract_number
+           		, p.product_type
+                , p.product_number
+		        , m.partner_id_code
+				, m.risk_indicator
+                , m.mc_assigned_id
+	       	FROM 
+	       		acq_ui_merchant_vw m
+	       	LEFT JOIN prd_ui_product_vw p
+	       		ON m.product_id = p.id
+				<iterate prepend="AND" conjunction="AND" property="filters">
+		        	<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+				</iterate>
+	       	LEFT JOIN ost_ui_institution_sys_vw i
+	       		ON m.inst_id = i.id
+				<iterate prepend="AND" conjunction="AND" property="filters">
+		        	<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+				</iterate>
+	       	LEFT JOIN com_ui_mcc_vw mcc
+	       		ON m.mcc = mcc.mcc
+	       		<iterate prepend="AND" conjunction="AND" property="filters">
+		        	<isEqual property="filters[].element" compareValue="lang">mcc.lang = #filters[].value#</isEqual>
+				</iterate>
+			LEFT JOIN prd_ui_contract_vw ct
+				ON m.contract_id = ct.id				
+			LEFT JOIN prd_ui_contract_vw con
+                ON m.contract_id = con.id
+            LEFT JOIN prd_ui_customer_vw cu
+                ON con.customer_id = cu.id
+			LEFT JOIN com_ui_company_vw co
+				ON co.id = cu.object_id
+				<iterate prepend="AND" conjunction="AND" property="filters">
+		        	<isEqual property="filters[].element" compareValue="lang">co.lang = #filters[].value#</isEqual>
+				</iterate>
+			<iterate prepend="START WITH" conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="lang">
+	        		m.lang = #filters[].value#
+	        	</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">
+					m.inst_id = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="status">
+					m.status = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="merchantType">
+					m.merchant_type = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="merchantNumber">
+					UPPER(m.merchant_number) LIKE #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="contractId">
+					m.contract_id = #filters[].value#
+				</isEqual>
+	        	<isEqual property="filters[].element" compareValue="merchantName">
+	        		UPPER(m.merchant_name) LIKE #filters[].value#
+	        	</isEqual>
+	        	<isEqual property="filters[].element" compareValue="label">
+	        		UPPER(m.label) LIKE #filters[].value#
+	        	</isEqual>
+        		<isEqual property="filters[].element" compareValue="customerNumber">
+        			cu.customer_number LIKE #filters[].value#
+        		</isEqual>
+        		<isEqual property="filters[].element" compareValue="companyName">
+        			UPPER(co.label) LIKE #filters[].value#
+        		</isEqual>
+			</iterate>
+			CONNECT BY PRIOR m.parent_id = m.id
+			AND prior m.lang = m.lang
+		) mc
+		START WITH (parent_id is null or parent_id not in (select id from acq_ui_merchant_vw))
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+		CONNECT BY PRIOR id = parent_id
+		ORDER SIBLINGS BY id
+    </select>
+
+    <select id="get-merchants-list"
+    		parameterClass="qparams"
+    		resultMap="mapping-merchant">
+    	<include refid="limitationOpen"/>
+		SELECT  
+ 			  m.id 
+            , m.seqnum
+            , m.merchant_number
+            , m.merchant_name
+            , m.merchant_type
+            , m.parent_id
+            , m.mcc
+            , m.status
+            , m.contract_id
+            , m.product_id
+            , m.inst_id
+            , m.split_hash
+            , m.label
+            , m.description
+            , m.lang
+            , p.label product_name
+            , i.name inst_name
+            , mcc.name mcc_name
+            , cu.customer_number
+            , cu.entity_type customer_type
+            , cu.id AS customer_id
+            , co.label AS company_name
+            , ct.contract_number
+            , ct.product_type
+            , p.product_number
+		    , m.partner_id_code
+			, m.risk_indicator
+            , m.mc_assigned_id
+       	FROM 
+       		acq_ui_merchant_vw m
+       	LEFT JOIN prd_ui_product_vw p
+       		ON m.product_id = p.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			</iterate>
+       	LEFT JOIN ost_ui_institution_sys_vw i
+       		ON m.inst_id = i.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+			</iterate>
+       	LEFT JOIN com_ui_mcc_vw mcc
+       		ON m.mcc = mcc.mcc
+       		<iterate prepend="AND" conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="lang">mcc.lang = #filters[].value#</isEqual>
+			</iterate>
+		LEFT JOIN prd_ui_contract_vw ct
+			ON m.contract_id = ct.id			
+		LEFT JOIN prd_ui_customer_vw cu
+			ON m.contract_id = cu.contract_id
+		LEFT JOIN com_ui_company_vw co
+			ON co.id = cu.object_id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="lang">co.lang = #filters[].value#</isEqual>
+			</iterate>
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="accountId">
+				m.id IN (
+					SELECT a.object_id
+					FROM acc_ui_account_object_vw a
+					WHERE a.account_id = #filters[].value#
+							AND a.entity_type = 'ENTTMRCH'
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">m.id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">m.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantType">m.merchant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantNumber">m.merchant_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractId">m.contract_id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="merchantName">UPPER(m.merchant_name) LIKE #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="label">UPPER(m.label) LIKE #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="customerNumber">cu.customer_number LIKE upper(#filters[].value#)</isEqual>
+        	<isEqual property="filters[].element" compareValue="customerId">cu.id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="companyName">UPPER(co.label) LIKE #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">m.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="merchantNumber">m.merchant_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="label">upper(m.label) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="merchantType">m.merchant_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">upper(m.status) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">m.id ASC</isEmpty>
+		<include refid="limitationClose"/>
+    </select>
+
+    <select id="get-merchants-count"
+    		parameterClass="qparams"
+    		resultClass="int">
+    	<include refid="limitationOpenCount"/>
+		SELECT *  
+       	FROM acq_ui_merchant_vw m
+		LEFT JOIN prd_ui_customer_vw cu
+			ON m.contract_id = cu.contract_id
+		LEFT JOIN com_ui_company_vw co
+			ON co.id = cu.object_id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="lang">co.lang = #filters[].value#</isEqual>
+			</iterate>
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="accountId">
+				m.id IN (
+					SELECT a.object_id
+					FROM acc_ui_account_object_vw a
+					WHERE a.account_id = #filters[].value#
+							AND a.entity_type = 'ENTTMRCH'
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">m.id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">m.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantType">m.merchant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantNumber">m.merchant_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractId">m.contract_id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="merchantName">UPPER(m.merchant_name) LIKE #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="label">UPPER(m.label) LIKE #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="customerNumber">cu.customer_number LIKE upper(#filters[].value#)</isEqual>
+        	<isEqual property="filters[].element" compareValue="customerId">cu.id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="companyName">UPPER(co.label) LIKE #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+
+    <procedure id="remove-process-from-group"
+    		parameterClass="int">
+    	{call PRC_UI_GROUP_PROCESS_PKG.remove_proc_from_group(#value#)}
+    </procedure>
+    
+    <resultMap  id="mapping-reimb-channel"
+                class="ru.bpc.sv2.acquiring.reimbursement.ReimbursementChannel"  >
+        <result property="id" column="id" />
+        <result property="seqNum" column="seqnum" />
+        <result property="name" column="name" />
+        <result property="lang" column="lang" />
+        <result property="instId" column="inst_id" />
+        <result property="instName" column="inst_name" />
+        <result property="channelNumber" column="channel_number" />
+        <result property="paymentMode" column="payment_mode" />
+        <result property="currency" column="currency" />
+	</resultMap>
+	
+    <select id="get-reimb-channels"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-reimb-channel" >
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  a.id
+					, a.channel_number
+					, a.payment_mode
+					, a.currency
+					, a.inst_id
+					, i.name inst_name
+					, a.seqnum
+					, a.name
+					, a.lang 
+            FROM 
+					  acq_ui_reimb_channel_vw a
+					, ost_ui_institution_sys_vw i
+            WHERE 
+            		a.inst_id = i.id(+)
+            		AND a.lang = i.lang(+)
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="channelNumber">a.channel_number like #filters[].value#</isEqual>                        
+				<isEqual property="filters[].element" compareValue="paymentMode">a.payment_mode = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">a.name like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="channelNumber">a.channel_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="paymentMode">a.payment_mode $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">a.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="insName">i.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instId">a.inst_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">a.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>                            
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-reimb-channels-count"
+			parameterClass="qparams" 
+			resultClass="int">	
+		<include refid="limitationOpenCount"/>      
+		SELECT a.id    
+		FROM acq_ui_reimb_channel_vw a		            
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="channelNumber">a.channel_number like #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="paymentMode">a.payment_mode = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">a.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">a.name like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+    <procedure id="add-reimb-channel"
+    		parameterClass="ru.bpc.sv2.acquiring.reimbursement.ReimbursementChannel">
+    	{call ACQ_UI_REIMB_CHANNEL_PKG.add_channel(
+				  o_channel_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_channel_number	=> #channelNumber#
+				, i_payment_mode	=> #paymentMode#
+				, i_currency		=> #currency#
+				, i_inst_id			=> #instId#
+				, i_channel_name	=> #name#
+				, i_lang			=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="modify-reimb-channel"
+    		parameterClass="ru.bpc.sv2.acquiring.reimbursement.ReimbursementChannel">
+    	{call ACQ_UI_REIMB_CHANNEL_PKG.modify_channel(
+				  i_channel_id		=> #id#
+				, i_channel_number	=> #channelNumber#
+				, i_payment_mode	=> #paymentMode#
+				, i_currency		=> #currency#
+				, i_seqnum			=> #seqNum#
+				, i_channel_name	=> #name#
+				, i_lang			=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="remove-reimb-channel"
+    		parameterClass="ru.bpc.sv2.acquiring.reimbursement.ReimbursementChannel">
+    	{call ACQ_UI_REIMB_CHANNEL_PKG.remove_channel(
+				  i_channel_id		=> #id#
+				, i_seqnum			=> #seqNum# 
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-reimb-batch-entry"
+                class="ru.bpc.sv2.acquiring.reimbursement.ReimbursementBatchEntry"  >
+        <result property="id" column="id" />
+        <result property="seqNum" column="seqnum" />
+        <result property="instId" column="inst_id" />
+        <result property="instName" column="inst_name" />
+        <result property="channelId" column="channel_id" />
+        <result property="posBatchId" column="pos_batch_id" />
+        <result property="operDate" column="oper_date" />
+        <result property="postingDate" column="posting_date" />
+        <result property="sttlDay" column="sttl_day" />
+        <result property="reimbDate" column="reimb_date" />
+        <result property="merchantId" column="merchant_id" />
+        <result property="chequeNumber" column="cheque_number" />
+        <result property="status" column="status" />
+        <result property="grossAmount" column="gross_amount" />
+        <result property="serviceCharge" column="service_charge" />
+        <result property="taxAmount" column="tax_amount" />
+        <result property="netAmount" column="net_amount" />
+        <result property="currency" column="currency" />
+        <result property="operCount" column="oper_count" />
+        <result property="splitHash" column="split_hash" />
+        <result property="accountId" column="account_id" />
+        <result property="sessionFileId" column="session_file_id" />        
+	</resultMap>
+	
+    <select id="get-reimb-batch-entries"
+			parameterClass="qparams"
+			resultMap="mapping-reimb-batch-entry" >
+		<include refid="paginatedOpen"/>
+			SELECT	                   
+					  a.ID
+					, a.channel_id
+					, a.pos_batch_id
+					, a.oper_date
+					, a.posting_date
+					, a.sttl_day
+					, a.reimb_date
+					, a.merchant_id
+					, a.cheque_number
+					, a.status
+					, a.gross_amount
+					, a.service_charge
+					, a.tax_amount
+					, a.net_amount
+					, a.oper_count
+					, a.inst_id
+					, a.split_hash
+					, a.account_id
+					, a.session_file_id
+					, a.seqnum
+					, a.currency
+					, i.name inst_name
+            FROM 
+					acq_ui_reimb_batch_vw a
+					, ost_ui_institution_sys_vw i
+            WHERE 
+            		a.inst_id = i.id(+)
+           		AND i.lang = com_ui_user_env_pkg.get_user_lang
+                <iterate prepend=" AND " conjunction=" AND " property="filters">
+					<isEqual property="filters[].element" compareValue="channelId">a.channel_id = #filters[].value#</isEqual>                        
+					<isEqual property="filters[].element" compareValue="posBatchId">a.pos_batch_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="operDateFrom">a.oper_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="operDateTo">a.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="postingDateFrom">a.posting_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="postingDateTo">a.posting_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="reimbDateFrom">a.reimb_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="reimbDateTo">a.reimb_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="sttlDay">a.sttl_day = #filters[].value#</isEqual>                        
+					<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="merchantId">a.merchant_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="chequeNumber">a.cheque_number like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="grossAmount">a.gross_amount = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="serviceCharge">a.service_charge = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="taxAmount">a.tax_amount = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="netAmount">a.net_amount = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="operCount">a.oper_count = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="splitHash">a.split_hash = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="sessionFileId">a.session_file_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="accountId">a.account_id = #filters[].value#</isEqual>                        
+					<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+				</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="channelId">a.channel_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operDate">a.oper_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="postingDate">a.posting_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="reimbDate">a.reimb_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="sttlDay">a.sttl_day $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="merchantId">a.merchant_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="grossAmount">a.gross_amount $sorting[].direction$</isEqual>                            
+					<isEqual property="sorting[].property" compareValue="serviceCharge">a.service_charge $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="taxAmount">a.tax_amount $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="netAmount">a.net_amount $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operCount">a.oper_count $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="sessionFileId">a.session_file_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accountId">a.account_id $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-reimb-batch-entries-count"
+			parameterClass="qparams" 
+			resultClass="int">	  
+		<include refid="limitationOpenCount"/>    
+		SELECT a.id    
+		FROM acq_ui_reimb_batch_vw a		            
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="channelId">a.channel_id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="posBatchId">a.pos_batch_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">a.oper_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">a.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="postingDateFrom">a.posting_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="postingDateTo">a.posting_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="reimbDateFrom">a.reimb_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="reimbDateTo">a.reimb_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlDay">a.sttl_day = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantId">a.merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="chequeNumber">a.cheque_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">a.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="grossAmount">a.gross_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="serviceCharge">a.service_charge = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="taxAmount">a.tax_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="netAmount">a.net_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operCount">a.oper_count = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="splitHash">a.split_hash = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionFileId">a.session_file_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">a.account_id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="modify-reimb-batch-entry"
+    		parameterClass="ru.bpc.sv2.acquiring.reimbursement.ReimbursementBatchEntry">
+    	{call ACQ_UI_REIMB_BATCH_PKG.modify_batch(
+				  i_reimb_batch_id	=> #id#
+				, i_reimb_date		=> #reimbDate#
+				, i_cheque_number 	=> #chequeNumber#
+				, i_status			=> #status#
+				, i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-reimb-operation"
+                class="ru.bpc.sv2.acquiring.reimbursement.ReimbursementOperation"  >
+        <result property="id" column="id" />
+        <result property="instId" column="inst_id" />
+        <result property="instName" column="inst_name" />
+        <result property="batchId" column="batch_id" />
+        <result property="channelId" column="channel_id" />
+        <result property="posBatchId" column="pos_batch_id" />
+        <result property="operDate" column="oper_date" />
+        <result property="postingDate" column="posting_date" />
+        <result property="sttlDay" column="sttl_day" />
+        <result property="reimbDate" column="reimb_date" />
+        <result property="accountId" column="account_id" />
+        <result property="merchantId" column="merchant_id" />
+        <result property="grossAmount" column="gross_amount" />
+        <result property="serviceCharge" column="service_charge" />
+        <result property="taxAmount" column="tax_amount" />
+        <result property="netAmount" column="net_amount" />        
+        <result property="splitHash" column="split_hash" />                        
+	</resultMap>
+	
+    <select id="get-reimb-operations"
+			parameterClass="qparams"
+			resultMap="mapping-reimb-operation" >
+		<include refid="paginatedOpen"/>
+			SELECT	                   
+					  a.ID
+					, a.batch_id
+					, a.channel_id
+					, a.pos_batch_id
+					, a.oper_date
+					, a.posting_date
+					, a.sttl_day
+					, a.reimb_date
+					, a.account_id
+					, a.merchant_id
+					, a.gross_amount
+					, a.service_charge
+					, a.tax_amount
+					, a.net_amount
+					, a.inst_id
+					, a.split_hash
+					, i.name inst_name
+			FROM 
+					  acq_ui_reimb_oper_vw a
+					, ost_ui_institution_sys_vw i
+            WHERE 
+            		a.inst_id = i.id(+)
+            		AND i.lang = com_ui_user_env_pkg.get_user_lang
+				<iterate prepend=" AND " conjunction=" AND " property="filters">
+					<isEqual property="filters[].element" compareValue="batchId">a.batch_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="channelId">a.channel_id = #filters[].value#</isEqual>                        
+					<isEqual property="filters[].element" compareValue="posBatchId">a.pos_batch_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="operDateFrom">a.oper_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="operDateTo">a.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="postingDateFrom">a.posting_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="postingDateTo">a.posting_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="reimbDateFrom">a.reimb_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="reimbDateTo">a.reimb_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					<isEqual property="filters[].element" compareValue="sttlDay">a.sttl_day = #filters[].value#</isEqual>                        
+					<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="accountId">a.account_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="merchantId">a.merchant_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="grossAmount">a.gross_amount = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="serviceCharge">a.service_charge = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="taxAmount">a.tax_amount = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="netAmount">a.net_amount = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="splitHash">a.split_hash = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+				</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="channelId">a.channel_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operDate">a.oper_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="postingDate">a.posting_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="reimbDate">a.reimb_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="sttlDay">a.sttl_day $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accountId">a.account_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="merchantId">a.merchant_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="grossAmount">a.gross_amount $sorting[].direction$</isEqual>                            
+					<isEqual property="sorting[].property" compareValue="serviceCharge">a.service_charge $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="taxAmount">a.tax_amount $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="netAmount">a.net_amount $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-reimb-operations-count"
+			parameterClass="qparams"
+			resultClass="int">	
+		<include refid="limitationOpenCount"/>       
+		SELECT a.id    
+		FROM acq_ui_reimb_oper_vw a		            
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="batchId">a.batch_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="channelId">a.channel_id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="posBatchId">a.pos_batch_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateFrom">a.oper_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">a.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="postingDateFrom">a.posting_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="postingDateTo">a.posting_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="reimbDateFrom">a.reimb_date <![CDATA[>=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="reimbDateTo">a.reimb_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlDay">a.sttl_day = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">a.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantId">a.merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="grossAmount">a.gross_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="serviceCharge">a.service_charge = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="taxAmount">a.tax_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="netAmount">a.net_amount = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="splitHash">a.split_hash = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+    <resultMap  id="mapping-account-scheme"
+                class="ru.bpc.sv2.acquiring.AccountScheme">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="label" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+	
+    <select id="get-account-schemes"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-account-scheme" >
+		<include refid="paginatedOpen"/>
+			SELECT	
+					  a.id
+					, a.seqnum
+					, a.label
+					, a.description
+					, a.lang
+					, a.inst_id
+					, i.name inst_name
+            FROM 
+					  acq_ui_account_scheme_vw a
+					, ost_ui_institution_sys_vw i
+            WHERE 
+            		a.inst_id = i.id(+)
+            		AND a.lang = i.lang(+)
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+				<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="label">upper(a.label) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">a.id $sorting[].direction$</isEqual>                            
+					<isEqual property="sorting[].property" compareValue="label">upper(a.label) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(i.name) $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-account-schemes-count"
+			parameterClass="qparams" 
+			resultClass="int">	
+		<include refid="limitationOpenCount"/>       
+		SELECT a.id    
+		FROM acq_ui_account_scheme_vw a	            
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(a.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+    <procedure id="add-account-scheme"
+    		parameterClass="ru.bpc.sv2.acquiring.AccountScheme">
+    	{call ACQ_UI_ACCOUNT_SCHEME_PKG.add_account_scheme(
+				  o_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id		=> #instId#
+				, i_label		=> #label#
+				, i_description	=> #description#
+				, i_lang		=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="modify-account-scheme"
+    		parameterClass="ru.bpc.sv2.acquiring.AccountScheme">
+    	{call ACQ_UI_ACCOUNT_SCHEME_PKG.modify_account_scheme(
+				  i_id			=> #id#
+				, io_seqnum		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_inst_id		=> #instId#
+				, i_label		=> #label#
+				, i_description	=> #description#
+				, i_lang		=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="remove-account-scheme"
+    		parameterClass="ru.bpc.sv2.acquiring.AccountScheme">
+    	{call ACQ_UI_ACCOUNT_SCHEME_PKG.remove_account_scheme(
+				  i_id			=> #id#
+				, i_seqnum		=> #seqNum# 
+				)}
+    </procedure>
+
+    <resultMap  id="mapping-account-pattern"
+                class="ru.bpc.sv2.acquiring.AccountPattern">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="schemeId" column="scheme_id"/>
+        <result property="operType" column="oper_type"/>
+        <result property="operReason" column="oper_reason"/>
+        <result property="sttlType" column="sttl_type"/>
+        <result property="terminalType" column="terminal_type"/>
+        <result property="currency" column="currency"/>
+        <result property="operSign" column="oper_sign" javaType="byte"/>
+        <result property="merchantType" column="merchant_type"/>
+        <result property="accountType" column="account_type"/>
+        <result property="accountCurrency" column="account_currency"/>
+        <result property="priority" column="priority"/>
+        <result property="schemeName" column="scheme_name"/>
+	</resultMap>
+	
+    <select id="get-account-patterns"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-account-pattern">
+	    <include refid="limitationOpen"/>
+		SELECT	
+				  ap.id
+				, ap.seqnum
+				, ap.scheme_id
+				, ap.oper_type
+				, ap.oper_reason
+				, ap.sttl_type
+				, ap.terminal_type
+				, ap.currency
+				, ap.oper_sign
+				, ap.merchant_type
+				, ap.account_type
+				, ap.account_currency
+				, ap.priority
+				, a.label as scheme_name
+		FROM 
+				  acq_ui_account_pattern_vw ap
+				, acq_ui_account_scheme_vw a
+		WHERE 
+          		ap.scheme_id = a.id(+)
+		<iterate prepend=" AND " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">ap.id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="schemeId">ap.scheme_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">ap.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reason">ap.oper_reason = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlType">ap.sttl_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalType">ap.terminal_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">ap.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operSign">ap.oper_sign = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantType">ap.merchant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">ap.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountCurrency">ap.account_currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">ap.priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">a.lang(+) = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">ap.id $sorting[].direction$</isEqual>                            
+				<isEqual property="sorting[].property" compareValue="schemeName">upper(a.label) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">ap.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reason">ap.oper_reason $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="sttlType">ap.sttl_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="terminalType">ap.terminal_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="currency">ap.currency $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operSign">ap.oper_sign $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="merchantType">ap.merchant_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="accountType">ap.account_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="accountCurrency">ap.account_currency $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="priority">ap.priority $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY ap.id</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-account-patterns-count"
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>     
+		SELECT ap.id    
+		FROM acq_ui_account_pattern_vw ap	            
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">ap.id = #filters[].value#</isEqual>                        
+			<isEqual property="filters[].element" compareValue="schemeId">ap.scheme_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">ap.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reason">ap.oper_reason = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlType">ap.sttl_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalType">ap.terminal_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">ap.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operSign">ap.oper_sign = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantType">ap.merchant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountType">ap.account_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountCurrency">ap.account_currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">ap.priority = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+    <procedure id="add-account-pattern"
+    		parameterClass="ru.bpc.sv2.acquiring.AccountPattern">
+    	{call ACQ_UI_ACCOUNT_PATTERN_PKG.add_account_pattern(
+				  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_scheme_id			=> #schemeId#
+				, i_oper_type			=> #operType#
+				, i_oper_reason			=> #operReason#
+				, i_sttl_type			=> #sttlType#
+				, i_terminal_type		=> #terminalType#
+				, i_currency			=> #currency#
+				, i_oper_sign			=> #operSign#
+				, i_merchant_type		=> #merchantType#
+				, i_account_type		=> #accountType#
+				, i_account_currency	=> #accountCurrency#
+				, i_priority			=> #priority#
+				)}
+    </procedure>
+    
+    <procedure id="modify-account-pattern"
+    		parameterClass="ru.bpc.sv2.acquiring.AccountPattern">
+    	{call ACQ_UI_ACCOUNT_PATTERN_PKG.modify_account_pattern(
+				  i_id					=> #id#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_scheme_id			=> #schemeId#
+				, i_oper_type			=> #operType#
+				, i_oper_reason			=> #operReason#
+				, i_sttl_type			=> #sttlType#
+				, i_terminal_type		=> #terminalType#
+				, i_currency			=> #currency#
+				, i_oper_sign			=> #operSign#
+				, i_merchant_type		=> #merchantType#
+				, i_account_type		=> #accountType#
+				, i_account_currency	=> #accountCurrency#
+				, i_priority			=> #priority#
+				)}
+    </procedure>
+    
+    <procedure id="remove-account-pattern"
+    		parameterClass="ru.bpc.sv2.acquiring.AccountPattern">
+    	{call ACQ_UI_ACCOUNT_PATTERN_PKG.remove_account_pattern(
+				  i_id			=> #id#
+				, i_seqnum		=> #seqNum# 
+				)}
+    </procedure>
+    
+    <resultMap class="ru.bpc.sv2.common.Parameter" id="mapping-terminal-parameters">
+    	<result property="systemName" column="param_name"/>
+    	<result property="dataType" column="data_type"/>
+    	<result property="valueN" column="param_number_value"/>
+    	<result property="valueV" column="param_char_value"/>
+    	<result property="valueD" column="param_date_value"/>
+    </resultMap>
+    
+    
+    <select id="get-terminal-parameters"
+    	parameterClass="java.lang.String"
+    	resultMap="mapping-terminal-parameters">
+    	SELECT
+    		terminal_number
+    		, param_name
+    		, data_type
+    		, param_value
+    		, get_number_value (data_type, param_value) param_number_value
+          	, get_char_value (data_type, param_value) param_char_value
+          	, get_date_value (data_type, param_value) param_date_value
+    	FROM
+    		acq_api_terminal_param_val_vw
+    	WHERE 
+    		terminal_number = #value#    
+    </select>
+
+	<resultMap  id="mapping-mcc-selection"
+	            class="ru.bpc.sv2.acquiring.MccSelection"  >
+	    <result property="id" column="id" />
+	    <result property="operType" column="oper_type" />
+	    <result property="priority" column="priority" />
+	    <result property="mcc" column="mcc" />
+	    <result property="mccDescription" column="mcc_description" />
+	    <result property="lang" column="lang" />
+	    <result property="mccTemplateId" column="mcc_template_id" />
+	    <result property="purposeId" column="purpose_id" />
+	    <result property="operReason" column="oper_reason" />
+	    <result property="merchantNameSpec" column="merchant_name_spec" />
+	    <result property="terminalId" column="terminal_id" />
+	</resultMap>
+
+	<select id="get-mcc-selections"
+			parameterClass="qparams" resultMap="mapping-mcc-selection">
+			SELECT
+				ams.id
+				,ams.oper_type
+				,ams.priority
+				,ams.mcc
+				,mcc.name mcc_description
+				,mcc.lang
+				,ams.mcc_template_id
+				,ams.purpose_id
+				,ams.oper_reason
+				,ams.merchant_name_spec
+				,ams.terminal_id
+			FROM
+				acq_mcc_selection_vw ams,		
+				com_ui_mcc_vw mcc
+			WHERE
+				ams.mcc = mcc.mcc			
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">ams.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operType">ams.oper_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="priority">ams.priority = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="mcc">ams.mcc = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">mcc.lang(+) = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="mccTemplateId">ams.mcc_template_id = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">ams.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="operType">ams.oper_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="priority">ams.priority $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="mcc">ams.mcc $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>		
+	</select>
+	
+	<select id="get-mcc-selections-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(ams.id)
+		FROM
+			acq_mcc_selection_vw ams
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">ams.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operType">ams.oper_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">ams.priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mcc">ams.mcc = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mccTemplateId">ams.mcc_template_id = #filters[].value#</isEqual>
+		</iterate>		
+	</select>
+	
+	<procedure id="add-mcc-selection"
+			parameterClass="ru.bpc.sv2.acquiring.MccSelection">
+		{call acq_ui_mcc_selection_pkg.add(
+			  o_id				=> #id,mode=OUT,jdbcType=NUMERIC#
+			, i_oper_type		=> #operType#
+			, i_priority		=> #priority#
+			, i_mcc				=> #mcc#
+			, i_mcc_template_id	=> #mccTemplateId#
+			, i_purpose_id		=> #purposeId#
+			, i_oper_reason		=> #operReason#
+			, i_merchant_name_spec => #merchantNameSpec#
+			, i_terminal_id => #terminalId#
+		)}
+	</procedure>
+	
+	<procedure id="modify-mcc-selection"
+			parameterClass="ru.bpc.sv2.acquiring.MccSelection">
+		{call acq_ui_mcc_selection_pkg.modify(
+			  i_id				=> #id#
+			, i_oper_type		=> #operType#
+			, i_priority		=> #priority#
+			, i_mcc				=> #mcc#
+			, i_mcc_template_id	=> #mccTemplateId#
+			, i_purpose_id		=> #purposeId#
+			, i_oper_reason		=> #operReason#
+			, i_merchant_name_spec => #merchantNameSpec#
+			, i_terminal_id => #terminalId#
+		)}
+	</procedure>	
+	
+	<procedure id="remove-mcc-selection"
+			parameterClass="ru.bpc.sv2.acquiring.MccSelection">
+		{call acq_ui_mcc_selection_pkg.remove(
+			  i_id		=> #id#
+		)}
+	</procedure>
+	
+	<resultMap  id="mapping-revenue-sharing"
+                class="ru.bpc.sv2.acquiring.RevenueSharing">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="accountId" column="account_id"/>
+        <result property="terminalId" column="terminal_id"/>
+        <result property="customerId" column="customer_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="feeId" column="fee_id"/>
+        <result property="feeType" column="fee_type"/>
+        <result property="feeDesc" column="fee_desc"/>
+        <result property="customerName" column="customer_name"/>
+        <result property="terminalName" column="terminal_name"/>
+        <result property="customerNumber" column="customer_number"/>
+        <result property="terminalNumber" column="terminal_number"/>
+        <result property="accountNumber" column="account_number"/>
+        <result property="providerId" column="provider_id"/>
+        <result property="providerName" column="provider_name"/>
+        <result property="purposeId" column="purpose_id"/>
+        <result property="purposeName" column="purpose_name"/>
+        <result property="modifierId" column="mod_id"/>
+        <result property="modifierName" column="mod_name"/>
+	</resultMap>
+	
+	 <select id="get-revenue-sharing"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-revenue-sharing">
+	    <include refid="limitationOpen"/>
+		SELECT	
+				  rs.id
+				, rs.seqnum
+				, rs.terminal_id
+				, rs.customer_id
+				, rs.account_id
+				, rs.fee_type
+				, rs.fee_id
+				, rs.inst_id
+				, rs.customer_name
+				, rs.customer_number
+				, rs.terminal_number
+				, rs.account_number
+				, rs.fee_desc
+				, get_object_desc('ENTTTRMN', rs.terminal_id) terminal_name
+				, rs.provider_id
+				, rs.provider_name
+				, rs.purpose_id
+				, rs.mod_id
+				, rs.mod_name
+				, p.label purpose_name
+		FROM 
+				acq_ui_revenue_sharing_vw rs, 
+				pmo_ui_purpose_vw p
+		WHERE 
+			rs.purpose_id = p.id(+)
+			AND p.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang
+		<iterate prepend=" AND " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">rs.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">rs.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">rs.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerId">rs.customer_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="feeId">rs.fee_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">rs.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">rs.account_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalNumber">rs.terminal_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">rs.customer_number = upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="feeType">rs.fee_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="providerId">rs.provider_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="purposeId">rs.purpose_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modId">rs.mod_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">rs.id $sorting[].direction$</isEqual>                            
+				<isEqual property="sorting[].property" compareValue="accountNumber">rs.account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="terminalNumber">rs.terminal_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="customerNumber">rs.customer_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instId">rs.inst_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="feeType">rs.fee_type $sorting[].direction$</isEqual>				
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER BY rs.terminal_number</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-revenue-sharing-count"
+			parameterClass="qparams" 
+			resultClass="int">
+		<include refid="limitationOpenCount"/>     
+		SELECT rs.id    
+		FROM 
+			acq_ui_revenue_sharing_vw rs				
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">rs.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalId">rs.terminal_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">rs.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerId">rs.customer_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="feeId">rs.fee_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">rs.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">rs.account_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalNumber">rs.terminal_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">rs.customer_number = upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="feeType">rs.fee_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="providerId">rs.provider_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="purposeId">rs.purpose_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modId">rs.mod_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-revenue-sharing"
+			parameterClass="ru.bpc.sv2.acquiring.RevenueSharing">
+		{call acq_ui_revenue_sharing_pkg.add_revenue_sharing(
+			  o_revenue_sharing_id	=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum				=> #seqNum,mode=OUT,jdbcType=NUMERIC#
+			, i_terminal_id			=> #terminalId#
+			, i_customer_id			=> #customerId#
+			, i_account_id			=> #accountId#
+			, i_fee_type			=> #feeType#
+			, i_fee_id				=> #feeId#	
+			, i_provider_id			=> #providerId#
+			, i_mod_id    			=> #modifierId#
+			, i_purpose_id			=> #purposeId#
+			, i_service_id			=> #serviceId#
+			, i_inst_id				=> #instId#				
+		)}
+	</procedure>
+	
+	<procedure id="modify-revenue-sharing"
+			parameterClass="ru.bpc.sv2.acquiring.RevenueSharing">
+		{call acq_ui_revenue_sharing_pkg.modify_revenue_sharing(
+  			  i_revenue_sharing_id 	=> #id,mode=IN,jdbcType=NUMERIC#
+			, io_seqnum				=> #seqNum,mode=INOUT,jdbcType=NUMERIC#
+			, i_terminal_id			=> #terminalId#
+			, i_customer_id			=> #customerId#
+			, i_account_id			=> #accountId#
+			, i_fee_type			=> #feeType#
+			, i_fee_id				=> #feeId#		
+			, i_provider_id			=> #providerId#
+			, i_mod_id    			=> #modifierId#
+			, i_purpose_id			=> #purposeId#
+			, i_service_id			=> #serviceId#
+			, i_inst_id				=> #instId#			
+		)}
+	</procedure>	
+	
+	<procedure id="remove-revenue-sharing"
+			parameterClass="ru.bpc.sv2.acquiring.RevenueSharing">
+		{call acq_ui_revenue_sharing_pkg.remove_revenue_sharing(
+			  i_revenue_sharing_id 	=> #id,mode=IN,jdbcType=NUMERIC#
+		 	, i_seqnum				=> #id#
+		)}
+	</procedure>	
+
+	<resultMap id="mapping-device" class="ru.bpc.sv2.cmn.Device">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="commPlugin" column="communication_plugin"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="caption" column="caption"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="standardName" column="standard_name"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<resultMap id="mapping-tcp-device" class="ru.bpc.sv2.cmn.TcpIpDevice" extends="mapping-device">
+        <result property="remoteAddress" column="remote_address"/>
+        <result property="localPort" column="local_port"/>
+        <result property="remotePort" column="remote_port"/>
+        <result property="initiator" column="initiator"/>
+        <result property="format" column="format"/>
+        <result property="keepAlive" column="keep_alive" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="enabled" column="is_enabled" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="monitorConnection" column="monitor_connection" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="multipleConnection" column="multiple_connection" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="statusOk" column="status_ok"/>
+	</resultMap>
+	
+	<select id="get-terminal-devices"
+			parameterClass="qparams"
+			resultMap="mapping-tcp-device">
+		<include refid="paginatedOpen"/>
+			SELECT 	  td.id
+					, td.seqnum
+					, td.communication_plugin
+					, td.standard_id
+					, td.inst_id
+					, td.caption
+					, td.description
+					, td.lang
+					, td.remote_address
+					, td.local_port
+					, td.remote_port
+					, td.initiator
+					, td.format
+					, td.keep_alive
+					, td.is_enabled
+					, td.monitor_connection
+					, td.multiple_connection
+                    , td.standard_name
+                    , td.inst_name
+                    , td.status_ok
+            FROM acq_ui_terminal_device_vw td
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">td.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">td.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">td.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardIds">td.standard_id IN ($filters[].value$)</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">td.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isEnabled">td.is_enabled = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="availableOnly">
+					td.id NOT IN (
+						SELECT device_id FROM net_ui_device_vw
+					)
+				</isEqual>
+			</iterate>
+            <iterate prepend="ORDER BY" conjunction="," property="sorting">
+                <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                	<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="instName">upper(td.inst_name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="name">upper(td.caption) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="commPlugin">td.communication_plugin $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="standardName">upper(td.standard_name) $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="remoteAddress">td.remote_address $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="remotePort">td.remote_port $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="format">td.format $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="initiator">td.initiator $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="keepAlive">td.keep_alive $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="isEnabled">td.is_enabled $sorting[].direction$</isEqual>
+                	<isEqual property="sorting[].property" compareValue="statusOk">td.status_ok $sorting[].direction$</isEqual>
+                </isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">td.caption ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<resultMap  id="mapping-mcc-selection-tpl"
+	            class="ru.bpc.sv2.acquiring.MccSelectionTpl"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="name" column="name" />
+	    <result property="description" column="description" />
+	    <result property="lang" column="lang" />
+	</resultMap>
+	
+	<select id="get-mcc-selection-tpls"
+			parameterClass="qparams" resultMap="mapping-mcc-selection-tpl">
+		<include refid="paginatedOpen" />
+			SELECT
+				mstv.id
+				,mstv.seqnum
+				,mstv.name
+				,mstv.description
+				,mstv.lang
+			FROM
+				acq_ui_mcc_selection_tpl_vw mstv
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">mstv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="seqnum">mstv.seqnum = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(mstv.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">mstv.description = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">mstv.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">mstv.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqnum">mstv.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="name">mstv.name $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="description">mstv.description $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lang">mstv.lang $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>				
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-mcc-selection-tpls-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(mstv.id)
+		FROM
+			acq_ui_mcc_selection_tpl_vw mstv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">mstv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">mstv.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(mstv.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">mstv.description = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">mstv.lang = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+	
+	<procedure id="add-selection-tpl"
+			parameterClass="ru.bpc.sv2.acquiring.MccSelectionTpl">
+		{call acq_ui_mcc_selection_tpl_pkg.add_selection_tpl(
+			  o_id				=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum			=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_lang			=> #lang#
+			, i_name			=> #name#
+			, i_description		=> #description#
+	)}
+	</procedure>
+	
+	<procedure id="modify-selection-tpl"
+			parameterClass="ru.bpc.sv2.acquiring.MccSelectionTpl">
+		{call acq_ui_mcc_selection_tpl_pkg.modify_selection_tpl(
+			  i_id				=> #id#
+			, io_seqnum			=> #seqnum,mode=INOUT,jdbcType=NUMERIC#
+			, i_lang			=> #lang#
+			, i_name			=> #name#
+			, i_description		=> #description#
+	)}
+	</procedure>
+	
+	<parameterMap class="java.util.Map" id="get-merchants-cur-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-merchant"/>
+        <parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="first_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap> 
+	
+	<procedure id="get-merchants-cur" 
+		parameterMap="get-merchants-cur-map">
+		{ call acq_ui_merchant_search_pkg.get_ref_cur(
+			o_ref_cur		=> ?
+            , i_row_count 	=> ?
+			, i_first_row 	=> ?
+			, i_last_row	=> ?
+			, i_tab_name	=> ?
+			, i_param_tab	=> ?
+			, i_sorting_tab	=> ?
+		)}
+	</procedure>
+	
+	<parameterMap class="java.util.Map" id="get-merchants-cur-count-map">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap> 
+	
+	<procedure id="get-merchants-cur-count" 
+		parameterMap="get-merchants-cur-count-map">
+		{ call acq_ui_merchant_search_pkg.get_row_count(
+			o_row_count		=> ?
+			, i_tab_name	=> ?
+			, i_param_tab	=> ?
+		)}
+	</procedure>
+	
+	<procedure id="remove-selection-tpl"
+			parameterClass="ru.bpc.sv2.acquiring.MccSelectionTpl">
+		{call acq_ui_mcc_selection_tpl_pkg.remove_selection_tpl(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqnum#
+	)}
+	</procedure>
+
+	<select id="get-account-object-id" parameterClass="java.util.Map" resultClass="java.lang.Long">
+		select object_id
+		from acc_account_object_vw
+		where rownum = 1
+		<isNotNull property="accountId"> and account_id = #accountId#</isNotNull>
+		<isNotNull property="entityType"> and entity_type = #entityType#</isNotNull>
+	</select>
+
+	<resultMap id="get-merchant-cards-map" class="ru.bpc.sv2.issuing.Card">
+		<result property="merchantId"     column="merchant_id"/>
+		<result property="merchantName"   column="merchant_name"/>
+		<result property="instId"         column="inst_id"/>
+		<result property="instName"       column="inst_name"/>
+		<result property="productId"      column="product_id"/>
+		<result property="productName"    column="product_name"/>
+		<result property="accountId"      column="account_id"/>
+		<result property="accountNumber"  column="account_number"/>
+		<result property="cardholderId"   column="cardholder_id"/>
+		<result property="cardholderName" column="cardholder_name"/>
+		<result property="cardTypeId"     column="card_type_id"/>
+		<result property="cardTypeName"   column="card_type_name"/>
+		<result property="cardUid"        column="card_uid"/>
+		<result property="mask"           column="card_mask"/>
+		<result property="regDate"        column="reg_date"/>
+	</resultMap>
+
+	<select id="get-merchant-cards" parameterClass="qparams" resultMap="get-merchant-cards-map">
+		<include refid="limitationOpen"/>
+			select merchant_id
+			     , merchant_name
+			     , inst_id
+			     , inst_name
+			     , product_id
+			     , product_name
+			     , account_id
+			     , account_number
+			     , cardholder_id
+			     , cardholder_name
+			     , card_type_id
+			     , card_type_name
+			     , card_uid
+			     , card_mask
+			     , reg_date
+			  from acq_ui_merchant_card_vw
+			<iterate prepend=" where " conjunction=" and " property="filters">
+				<isEqual property="filters[].element" compareValue="merchantId">merchant_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="productId">product_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardUid">card_uid = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardMask">upper(card_mask) like upper(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardTypeId">card_type_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend=" order by " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="auto">
+					<isEqual property="sorting[].property" compareValue="merchantId">merchant_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="productId">product_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardUid">card_uid $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardMask">card_mask $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instId">inst_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardTypeId">card_type_id $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" order by ">card_uid asc</isEmpty>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-merchant-cards-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+			select card_uid
+			  from acq_ui_merchant_card_vw
+		<iterate prepend=" where " conjunction=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="merchantId">merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="productId">product_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardUid">card_uid = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">upper(card_mask) like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+</sqlMap>

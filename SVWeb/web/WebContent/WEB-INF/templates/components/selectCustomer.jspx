@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:bpc="http://www.bpc.ru/jsf/misc"
+	xmlns:a4j="http://richfaces.org/a4j">
+
+<ui:composition>
+	<h:panelGroup layout="block" style="width:100%;${style}" styleClass="searchComponent ${styleClass}" rendered="#{!nocustForm}">
+		<script>
+			// <![CDATA[
+			jQuery(document).ready(function(){
+				if ('#{searchButton}' && (!'#{searchOnBlur}' || '#{searchOnBlur}' != 'false')) {
+					var $searchButton = jQuery("#"+'#{formName}'+"\\:"+"#{searchButton}");
+					if ($searchButton.size() == 0)
+						return;
+					var markerName = "#{viewIdColon}customerField";
+					if (!$searchButton.attr(markerName)) {
+						$searchButton.attr(markerName, "1");
+						var waitForBusy = function(){
+							var isBusy = window['#{viewIdColon}customerFieldBusy'];
+							var $searchButton = jQuery("#"+'#{formName}'+"\\:"+"#{searchButton}"); // redefine again
+							var counterName = '#{viewIdColon}customerFieldWaitForBusyCnt';
+							if (!window[counterName])
+								window[counterName] = 1;
+							else
+								window[counterName] = window[counterName] + 1;
+							if (window[counterName] < 10 && isBusy) {
+								window.setTimeout(function(){$searchButton.click();}, 500);
+								return false;
+							}
+							// exiting if not busy
+							window[counterName] = null;
+							return true;
+						};
+						var oldClick = $searchButton.attr("onclick");
+						$searchButton[0].onclick = function (event) {
+							var clickRes = waitForBusy();
+							if (!clickRes)
+								return false;
+							return oldClick.apply($searchButton[0], [event]);
+						};
+					}
+				}
+			});
+			// ]]>
+		</script>
+		<h:panelGrid columns="3" columnClasses="width99P," width="100%"
+			cellpadding="0" cellspacing="0">
+				<h:inputText id="#{viewIdColon}customerInfo" value="#{custInfoField}" title="#{custInfoField}"
+							 styleClass="searchComponent-input" style="max-width: 100%;"
+							 onfocus="if (#{(readonly==null || !readonly) and (clearOnFocus==null || clearOnFocus)}) {clearText('#{formName}');}"
+							 disabled="#{disabled}" rendered="#{rendered}" readonly="#{!manualInput}">
+   					<a4j:support event="onblur" reRender="#{viewIdColon}customerInfo,
+   					                                      #{viewIdColon}customerNumberHidden,
+   					                                      #{viewIdColon}customerIdHidden"
+   						ajaxSingle="true" action="#{viewScope[beanName].displayCustInfo}"
+   						rendered="#{searchOnBlur == null || searchOnBlur}" limitToList="true"
+						onsubmit="window['#{viewIdColon}customerFieldBusy']=true;" oncomplete="window['#{viewIdColon}customerFieldBusy']=false;"/>
+   						
+   				</h:inputText>
+   				<h:panelGroup>
+   					<h:inputHidden id="#{viewIdColon}customerNumberHidden" value="#{valueNumber}"/>
+   					<h:inputHidden id="#{viewIdColon}customerIdHidden" value="#{valueId}"/>
+   				</h:panelGroup>
+   				<h:graphicImage id="#{viewIdColon}selectCustomer" url="/_img/icon_search.png"
+   								styleClass="searchComponent-icon"
+								style="${iconStyle}"
+								rendered="#{rendered}" disabled="#{(readonly == null) ? false : readonly}"
+								readonly="true" reRender="${modalPanel}">
+   					<a4j:support id="#{viewIdColon}customersLink"
+								 immediate="true"
+   								 event="onclick"
+								 oncomplete="if (${(readonly == null) ? false : readonly}) {return false;};
+								             Richfaces.showModalPanel('${modalPanel}');"
+								 reRender="${modalPanel}"
+								 disabled="#{(readonly == null) ? false : readonly}"
+								 action="#{viewScope[beanName].showCustomers}">
+						<a4j:actionparam name="beanNameForCustomersModal" value="#{beanName}" assignTo="#{MbCustomerSearchModal.beanName}"/>
+						<a4j:actionparam name="methodNameForCustomersModal" value="#{methodName}" assignTo="#{MbCustomerSearchModal.methodName}"/>
+						<a4j:actionparam name="rerenderListCustomersModal" value="#{formName}:#{viewIdColon}customerInfo, #{formName}:#{viewIdColon}customerNumberHidden, #{formName}:#{viewIdColon}customerIdHidden, #{rerenderList}" assignTo="#{MbCustomerSearchModal.rerenderList}"/>
+					</a4j:support>
+       				</h:graphicImage>
+       			</h:panelGrid>
+	</h:panelGroup>
+	<h:panelGroup layout="block" style="width:100%;${style}" styleClass="${styleClass}" rendered="#{nocustForm}">
+		<h:panelGrid columns="2" columnClasses="width99P," width="100%" cellpadding="0" cellspacing="0">
+				<h:inputText id="#{viewIdColon}parameter" value="#{valueField}"
+					title="#{valueField}"
+					readonly="true" rendered="#{rendered}"
+					onclick="document.getElementById('#{viewIdColon}selectParameter').click();"
+	  					styleClass="searchComponent-input">
+	  				</h:inputText>
+	  				<h:graphicImage url="/_img/icon_search.png"
+									id="#{viewIdColon}selectParameter"
+	  								styleClass="searchComponent-icon"
+									rendered="#{rendered}" 
+									reRender="${modalPanel}"
+									readonly="#{(readonly == null) ? false : readonly}"
+									disabled="#{(readonly == null) ? false : readonly}">
+	  					<a4j:support id="#{viewIdColon}parameterLink"
+									 immediate="true"
+	  								 event="onclick"
+									 oncomplete="Richfaces.showModalPanel('#{viewScope[modalBean].modalPanel}');"
+									 reRender="modalPage, ${modalPanel}"
+									 disabled="#{(readonly == null) ? false : readonly}">
+							<a4j:actionparam name="beanNameForCustomersModal" value="#{beanName}" assignTo="#{viewScope[modalBean].beanName}" />
+							<a4j:actionparam name="methodNameForCustomersModal" value="#{methodName}" assignTo="#{viewScope[modalBean].methodName}"/>
+							<a4j:actionparam name="rerenderListCustomersModal" value="#{viewIdColon}parameter" assignTo="#{viewScope[modalBean].rerenderList}"/>
+						</a4j:support>
+				</h:graphicImage>
+		</h:panelGrid>
+	</h:panelGroup>
+</ui:composition>
+
+</html>

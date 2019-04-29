@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="limits">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig 
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>                    
+    </sql>
+    
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+	
+	
+	<resultMap  id="mapping-limit-type"
+                class="ru.bpc.sv2.fcl.limits.LimitType"  >
+        <result property="id" column="id" />
+        <result property="seqnum" column="seqnum" />
+        <result property="limitType" column="limit_type" />
+        <result property="entityType" column="entity_type" />
+        <result property="cycleType" column="cycle_type" />
+        <result property="shortDesc" column="name" />
+        <result property="internal" column="is_internal" javaType="boolean"/>        	
+	</resultMap>
+	
+	<resultMap id="mapping-limit" class="ru.bpc.sv2.fcl.limits.Limit"  >
+		<result property="id" column="id" />
+		<result property="seqnum" column="seqnum" />
+		<result property="limitType" column="limit_type" />
+		<result property="cycleType" column="cycle_type" />
+		<result property="cycleLength" column="cycle_length" />
+		<result property="lengthType" column="length_type" />
+		<result property="truncType" column="trunc_type" />
+		<result property="entityType" column="entity_type" />
+		<result property="cycleId" column="cycle_id" />
+		<result property="countLimit" column="count_limit" />
+		<result property="countBound" column="count_max_bound" />
+		<result property="sumLimit" column="sum_limit" />
+		<result property="sumBound" column="sum_max_bound" />
+		<result property="instId" column="inst_id" />
+		<result property="instName" column="inst_name" />
+		<result property="currency" column="currency" />
+		<result property="postMethod" column="posting_method" />
+		<result property="description" column="description" />
+		<result property="limitBase" column="limit_base" />
+		<result property="limitRate" column="limit_rate" />
+		<result property="counterAlgorithm" column="counter_algorithm" />
+		<result property="checkType" column="check_type" />
+	</resultMap>
+	
+	<select id="get-limits" parameterClass="qparams" resultMap="mapping-limit" >
+		<include refid="paginatedOpen"/>
+			select l.id
+			     , l.seqnum
+			     , l.limit_type as limit_type
+			     , l.cycle_id
+			     , l.count_limit
+			     , l.count_max_bound
+			     , l.sum_limit
+			     , l.sum_max_bound
+			     , l.inst_id
+			     , l.currency
+			     , l.posting_method
+			     , l.description
+			     , lt.entity_type
+			     , lt.cycle_type
+			     , c.cycle_length
+			     , c.length_type
+			     , c.trunc_type
+			     , i.name inst_name
+			     , l.limit_base
+			     , l.limit_rate
+			     , l.counter_algorithm
+			     , l.check_type
+			  from fcl_ui_limit_vw l
+			     , fcl_ui_limit_type_vw lt
+			     , fcl_ui_cycle_vw c
+			     , ost_ui_institution_sys_vw i
+			 where l.limit_type = lt.limit_type
+			   and l.cycle_id = c.id(+)
+			   and l.inst_id = i.id(+)
+			   and i.lang(+) = com_ui_user_env_pkg.get_user_lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">l.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="limitType">l.limit_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">lt.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">l.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">l.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="postMethod">l.posting_method = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">l.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="limitType">l.limit_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="countLimit">l.count_limit $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="sumLimit">l.sum_limit $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">l.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="postMethod">l.posting_method $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting">
+				order by l.limit_type
+			</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-limits-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT 
+        	l.id 
+        FROM 
+			fcl_ui_limit_vw l, 
+			fcl_ui_limit_type_vw lt			
+		WHERE 
+			l.limit_type = lt.limit_type
+		<iterate prepend=" AND " conjunction="AND " property="filters">	                	
+			<isEqual property="filters[].element" compareValue="limitType">l.limit_type = #filters[].value#</isEqual>                    	                            
+			<isEqual property="filters[].element" compareValue="entityType">lt.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">l.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="currency">l.currency = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="postMethod">l.posting_method = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+	<procedure id="insert-new-limit" parameterClass="ru.bpc.sv2.fcl.limits.Limit">
+		{call fcl_ui_limit_pkg.add_limit(
+			  i_limit_type			=> #limitType#
+			, i_cycle_id			=> #cycleId#
+			, i_count_limit			=> #countLimit#
+			, i_count_max_bound		=> #countBound#
+			, i_sum_limit			=> #sumLimit#
+			, i_sum_max_bound		=> #sumBound#
+			, i_currency			=> #currency#
+			, i_posting_method		=> #postMethod#
+			, i_inst_id		  		=> #instId#
+			, i_is_custom			=> #isCustom#
+			, i_limit_base			=> #limitBase#
+			, i_limit_rate			=> #limitRate#
+			, i_check_type			=> #checkType#
+			, i_counter_algorithm	=> #counterAlgorithm#
+			, o_limit_id			=> #id,jdbcType=NUMERIC,mode=OUT#
+		)}
+	</procedure>
+    
+    <update id="modify-limit"
+            parameterClass="ru.bpc.sv2.fcl.limits.Limit">
+        {call FCL_UI_LIMIT_PKG.modify_limit(
+				  i_limit_id		  => #id#
+				, i_cycle_id		  => #cycleId#
+				, i_count_limit		  => #countLimit#
+				, i_sum_limit		  => #sumLimit#
+				, i_currency		  => #currency#
+				, i_posting_method	  => #postMethod#
+				, i_seqnum		      => #seqnum#
+				, i_check_type		  => #checkType#
+				, i_counter_algorithm => #counterAlgorithm#
+				)}
+    </update>
+    
+    <procedure id="remove-limit" 
+    		parameterClass="ru.bpc.sv2.fcl.limits.Limit">
+    	{call FCL_UI_LIMIT_PKG.remove_limit(
+				  i_limit_id	=> #id#
+				, i_seqnum		=> #seqnum#
+				)}
+    </procedure>
+    
+    <!-- Limit Types queries -->
+	
+	<select id="get-limit-types"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-limit-type" >
+		<include refid="paginatedOpen"/>
+			SELECT	  lt.id
+					, lt.seqnum 
+					, lt.limit_type 
+					, lt.entity_type 
+					, lt.cycle_type 
+					, nvl(lt.is_internal,1) as is_internal
+					, d.name	
+					, d.lang				
+			FROM 
+				fcl_ui_limit_type_vw lt, com_ui_dictionary_vw d
+			WHERE 
+				lt.limit_type = d.dict || d.code				
+			<iterate prepend=" AND " conjunction="AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">lt.id = #filters[].value#</isEqual>	                	
+				<isEqual property="filters[].element" compareValue="limitType">lt.limit_type = #filters[].value#</isEqual>                    	                            
+				<isEqual property="filters[].element" compareValue="entityType">lt.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cycleType">lt.cycleType = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+			</iterate>	               
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">lt.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="limitType">lt.limit_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="entityType">lt.entity_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cycleType">lt.cycle_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="internal">lt.is_internal $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">d.name $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-limit-types-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        	<include refid="limitationOpenCount"/>
+        	SELECT 
+        		lt.id 
+			FROM 
+				fcl_ui_limit_type_vw lt, com_ui_dictionary_vw d
+			WHERE 
+				lt.limit_type = d.dict || d.code				
+			<iterate prepend=" AND " conjunction="AND " property="filters">	                	
+				<isEqual property="filters[].element" compareValue="limitType">lt.limit_type = #filters[].value#</isEqual>                    	                            
+				<isEqual property="filters[].element" compareValue="entityType">lt.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cycleType">lt.cycleType = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+			</iterate>
+        	<include refid="limitationClose"/>
+    </select>
+        	
+    <procedure id="add-limit-type" 
+    		parameterClass="ru.bpc.sv2.fcl.limits.LimitType">
+    	{call FCL_UI_LIMIT_PKG.add_limit_type(
+				  io_limit_type		=> #limitType#
+				, i_cycle_type		=> #cycleType#
+				, i_entity_type		=> #entityType#
+				, i_is_internal		=> #internal#
+				, i_short_desc		=> #shortDesc#
+				, i_full_desc		=> #fullDesc#
+				, i_lang			=> #lang#
+				, o_limit_type_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+				)}
+     </procedure>
+     
+     <procedure id="modify-limit-type" 
+    		parameterClass="ru.bpc.sv2.fcl.limits.LimitType">
+    	{call FCL_UI_LIMIT_PKG.modify_limit_type(
+				  i_limit_type_id	=> #id#
+				, i_limit_type		=> #limitType#
+				, i_cycle_type		=> #cycleType#
+				, i_entity_type		=> #entityType#
+				, i_is_internal		=> #internal#
+				, i_seqnum			=> #seqnum#
+				)}
+     </procedure>
+    
+     <procedure id="remove-limit-type" 
+    		parameterClass="ru.bpc.sv2.fcl.limits.LimitType">
+    	{call FCL_UI_LIMIT_PKG.remove_limit_type(
+				  i_limit_type_id	=> #id#
+				, i_seqnum			=> #seqnum#)}
+     </procedure>
+
+	<!-- Limit rates -->
+	<resultMap  id="mapping-limit-rate"
+                class="ru.bpc.sv2.fcl.limits.LimitRate">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="limitType" column="limit_type"/>
+        <result property="rateType" column="rate_type"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+	</resultMap>
+
+    <select id="get-limit-rates"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-limit-rate" >
+		<include refid="paginatedOpen"/>
+			SELECT	  r.id
+					, r.seqnum 
+					, r.limit_type
+					, r.rate_type
+					, r.inst_id
+					, i.name as inst_name
+			FROM fcl_ui_limit_rate_vw r, ost_ui_institution_sys_vw i
+			WHERE r.inst_id = i.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">r.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="limitType">r.limit_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="rateType">r.rate_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">r.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">i.lang = #filters[].value#</isEqual>
+			</iterate>	               
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="limitType">r.limit_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="rateType">r.rate_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">inst_name $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-limit-rates-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT * FROM fcl_ui_limit_rate_vw
+        <iterate prepend="WHERE " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="limitType">limit_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="rateType">rate_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+        </iterate>	
+        <include refid="limitationClose"/>             
+    </select>
+    
+    <procedure id="add-limit-rate" 
+    		parameterClass="ru.bpc.sv2.fcl.limits.LimitRate">
+    	{call FCL_UI_LIMIT_PKG.add_limit_rate(
+				  i_limit_type		=> #limitType#
+				, i_rate_type		=> #rateType#
+				, i_inst_id			=> #instId#
+				, o_limit_rate_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				)}
+    </procedure>
+    
+    <update id="modify-limit-rate"
+            parameterClass="ru.bpc.sv2.fcl.limits.LimitRate">
+        {call FCL_UI_LIMIT_PKG.modify_limit_rate(
+				  i_limit_rate_id	=> #id#
+				, i_rate_type		=> #rateType#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+    </update>
+    
+    <procedure id="remove-limit-rate" 
+    		parameterClass="ru.bpc.sv2.fcl.limits.LimitRate">
+    	{call FCL_UI_LIMIT_PKG.remove_limit_rate(
+				  i_limit_rate_id	=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+
+	<resultMap  id="mapping-limit-counter"
+                class="ru.bpc.sv2.fcl.limits.LimitCounter">
+        <result property="id" column="id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="limitType" column="limit_type"/>
+        <result property="countValue" column="count_value"/>
+        <result property="sumValue" column="sum_value"/>
+        <result property="prevCountValue" column="prev_count_value"/>
+        <result property="prevSumValue" column="prev_sum_value"/>
+        <result property="lastResetDate" column="last_reset_date" javaType="java.util.Date"/>
+        <result property="splitHash" column="split_hash"/>
+        <result property="instId" column="inst_id"/>
+        <result property="sumLimit" column="sum_limit"/>
+        <result property="currency" column="limit_currency"/>
+        <result property="cycleType" column="cycle_type"/>
+        <result property="nextDate" column="next_date" javaType="java.util.Date"/>
+        <result property="countLimit" column="count_limit"/>
+	</resultMap>
+
+	<select id="get-limit-counters"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-limit-counter" >
+        SELECT	  l.id
+                , l.entity_type
+                , l.object_id
+                , l.limit_type
+                , l.count_value
+                , l.sum_value
+                , l.prev_count_value
+                , l.prev_sum_value
+                , l.last_reset_date
+                , l.split_hash
+                , l.inst_id
+                , l.sum_limit
+                , l.limit_currency
+                , l.cycle_type
+                , l.next_date
+                , l.count_limit
+        FROM 
+            fcl_ui_limit_counter_vw l
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">l.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">l.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">l.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="limitType">l.limit_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">l.inst_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">l.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="limitType">l.limit_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="countValue">l.count_value $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="sumValue">l.sum_value $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cycleType">l.cycle_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="nextDate">l.next_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="sumLimit">l.sum_limit $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="countLimit">l.count_limit $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-limit-counters-count"
+        	parameterClass="qparams"
+        	resultClass="int">
+       	SELECT 
+       		count(l.id) 
+       	FROM 
+       		fcl_ui_limit_counter_vw l
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">l.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">l.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">l.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="limitType">l.limit_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">l.inst_id = #filters[].value#</isEqual>
+		</iterate>
+    </select>
+    
+    <resultMap  id="mapping-limit-counters" extends="mapping-limit-counter"
+                class="ru.bpc.sv2.fcl.limits.LimitCounter">
+        <result property="startDate" column="start_date" javaType="java.util.Date"/>
+        <result property="endDate" column="end_date" javaType="java.util.Date"/>
+        <result property="attrId" column="attr_id"/>
+	</resultMap>
+    
+    <parameterMap class="java.util.Map" id="get-limit-counters-cur-map">
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="objectId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="splitHash" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-limit-counters"/>
+	</parameterMap> 
+	
+	<procedure id="get-limit-counters-cur" 
+		parameterMap="get-limit-counters-cur-map">
+		{ call fcl_ui_limit_pkg.get_limit_counters(
+		    i_entity_type        => ?
+		  , i_object_id          => ?
+		  , i_inst_id            => ?
+		  , i_split_hash         => ?
+		  , o_ref_cursor         => ?   
+		) }
+	</procedure>
+
+	<parameterMap id="map-convert-amount" class="java.util.Map">
+		<parameter property="value" jdbcType="NUMERIC" javaType="java.math.BigDecimal" mode="OUT"/>
+		<parameter property="srcAmount" jdbcType="NUMERIC" javaType="java.math.BigDecimal" mode="IN"/>
+		<parameter property="srcCurr" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="dstCurr" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="rateType" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="instId" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="IN"/>
+		<parameter property="effDate" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-convert-amount" parameterMap="map-convert-amount">
+		{? = call com_api_rate_pkg.convert_amount(
+			  i_src_amount		=> ?
+			, i_src_currency	=> ?
+			, i_dst_currency	=> ?
+			, i_rate_type		=> ?
+			, i_inst_id			=> ?
+			, i_eff_date		=> ?
+		)}
+	</procedure>
+</sqlMap>

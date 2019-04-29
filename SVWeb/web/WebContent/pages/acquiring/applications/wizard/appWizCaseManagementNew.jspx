@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:o="http://openfaces.org/"
+      xmlns:g="http://java.sun.com/jsf/html">
+<ui:composition>
+    <rich:calendar id="calendard"
+                   buttonIcon="/images/calendar.gif"
+                   datePattern="#{usession.fullDatePattern}"
+                   buttonClass="hidden"
+                   inputClass="hidden"
+                   defaultTime="00:00"
+                   onchanged="#{rich:component('calendard')}.customInput.value=event.rich.component.getSelectedDateString();"
+                   zindex="1000"/>
+    <script>
+        #{rich:component('calendard')}.customExpand=customExpand;
+    </script>
+
+    <script type="text/javascript">
+        //<!--
+        function checkFields() {
+            var checked = true;
+            if (document.getElementById('newDspForm:flowId') != null) {
+                if (document.getElementById('newDspForm:flowId').value == "") {
+                    document.getElementById('newDspForm:flowIdError').style.display = "inline";
+                    checked = false;
+                }
+            }
+            if (document.getElementById('newDspForm:customerNumberVwcustomerInfo').value == "") {
+                document.getElementById('newDspForm:customerNumberError').style.display = "inline";
+                checked = false;
+            }
+            if (document.getElementById('newDspForm:operationIdVwoperationId').value == "") {
+                document.getElementById('newDspForm:operationIdError').style.display = "inline";
+                checked = false;
+            }
+            return checked;
+        }
+        //-->
+    </script>
+
+    <f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+    <f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+    <f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+    <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+    <f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+
+    <bpct:operationSearchModalPanels id="operSearchPanels"/>
+
+    <a4j:form id="newDspForm" style="width: 1000px;">
+        <a4j:jsFunction id="finishDspWizard" name="finishDspWizard" action="#{MbDspWizard.finish}" limitToList="true"/>
+
+        <ui:include src="/pages/common/application/appWizActions.jspx" >
+            <ui:param name="wizardBean" value="#{MbDspWizard}"/>
+        </ui:include>
+
+        <h:panelGroup id="choiceAction">
+            <script>
+                choiceAction = function(){
+                    if (#{MbAppWizDspNew.fileExists}){
+                        document.getElementById('newDspForm:downloadFileLink').click();
+                    }
+                    else{
+                        #{rich:component('warningModalPanel')}.show();
+                    }
+                }
+            </script>
+        </h:panelGroup>
+        <h:commandLink id="downloadFileLink" action="#{MbAppWizDspNew.download}" value="downloadFileLink" style="display:none"/>
+
+        <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+            <h:panelGrid columns="2" columnClasses="width50, width50" style="width: 100%;">
+                <h:panelGrid id="dataPanelGrid"
+                             columns="2" styleClass="cardholderdata" columnClasses="width25, width70"
+                             style="padding-right: 15px !important;">
+                    <h:outputLabel value="#{lblApp.application_flow}* : " title="#{lblApp.application_flow}"/>
+                    <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+                        <h:inputText value="#{MbAppWizDspNew.flowLabel}"
+                                     readonly="true" rendered="#{MbAppWizDspNew.viewMode || MbAppWizDspNew.editMode}"/>
+                        <h:selectOneMenu id="flowId" value="#{MbAppWizDspNew.newDspApplication.flowId}"
+                                         readonly="#{MbAppWizDspNew.viewMode || MbAppWizDspNew.editMode}"
+                                         rendered="#{MbAppWizDspNew.newMode}"
+                                         label="#{lblApp.application_flow}"
+                                         onblur="hideErrorField(this)">
+                            <f:selectItem value="#{MbAppWizDspNew.flow}"/>
+                            <f:selectItems value="#{MbAppWizDspNew.flows}"/>
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true"
+                                         reRender="appDisputeTable, status, rejectCode,
+                                                   customerNumber, customerNumberVwcustomerInfo, customerNumberVwcustomersLink,
+                                                   operationId, operationIdVwoperationId, operationIdVwoperationsLink"/>
+                        </h:selectOneMenu>
+                        <h:outputFormat id="flowIdError" value="#{lblMsg.value_request}"
+                                        styleClass="errorMarker"
+                                        style="display:none;" rendered="#{MbAppWizDspNew.newMode}">
+                            <f:param name="fieldName" value="#{lblApp.application_flow}"/>
+                        </h:outputFormat>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="#{lblPrd.customer_number}* : " title="#{lblPrd.customer_number}"/>
+                    <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+                        <bm:selectCustomer id="customerNumber" valueId="#{MbAppWizDspNew.newDspApplication.customerId}"
+                                           valueNumber="#{MbAppWizDspNew.newDspApplication.customerNumber}"
+                                           custInfoField="#{MbAppWizDspNew.newDspApplication.customerInfo}"
+                                           beanName="MbAppWizDspNew"
+                                           modalPanel="customerSearchModalPanel"
+                                           formName="newDspForm"
+                                           viewIdColon="customerNumberVw"
+                                           methodName="selectCustomer"
+                                           readonly="#{!MbAppWizDspNew.customerEditable}"
+                                           rendered="true"
+                                           manualInput="true"
+                                           rerenderList="customerNumber, appDisputeTable, operationId"
+                                           disabled="#{MbAppWizDspNew.newDspApplication.flowId == null}"
+                                           style="max-width:100% !important; margin-left:0px;"
+                                           onblur="hideErrorField(this)">
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true"
+                                         reRender="customerNumber, customerNumberVwcustomerInfo, appDisputeTable,
+                                                   operationId, operationIdVwoperationId, operationIdVwoperationsLink"/>
+                        </bm:selectCustomer>
+                        <h:outputFormat id="customerNumberError" value="#{lblMsg.value_request}"
+                                        styleClass="errorMarker"
+                                        style="display:none;" rendered="#{MbAppWizDspNew.newMode}">
+                            <f:param name="fieldName" value="#{lblPrd.customer_number}"/>
+                        </h:outputFormat>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="#{lblOpr.operation}* : " title="#{lblOpr.operation}"/>
+                    <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+                        <bm:selectOperation id="operationId" valueId="#{MbAppWizDspNew.newDspApplication.operId}"
+                                            valueAmount="#{MbAppWizDspNew.newDspApplication.amount}"
+                                            valueCurrency="#{MbAppWizDspNew.newDspApplication.currency}"
+                                            valueDate="#{MbAppWizDspNew.newDspApplication.operDate}"
+                                            valueCard="#{MbAppWizDspNew.newDspApplication.cardMask}"
+                                            valueCardNumber="#{MbAppWizDspNew.newDspApplication.cardNumber}"
+                                            valueAccount="#{MbAppWizDspNew.newDspApplication.accountNumber}"
+                                            valueCustomerId="#{MbAppWizDspNew.newDspApplication.customerId}"
+                                            valueCustomerNumber="#{MbAppWizDspNew.newDspApplication.customerNumber}"
+                                            valueFlow="#{MbAppWizDspNew.newDspApplication.flowId}"
+                                            disabled="#{MbAppWizDspNew.newDspApplication.customerId == null}"
+                                            readonly="#{!MbAppWizDspNew.operationEditable}"
+                                            beanName="MbAppWizDspNew"
+                                            formName="newDspForm"
+                                            methodName="selectOperation"
+                                            rendered="true"
+                                            viewIdColon="operationIdVw"
+                                            modalPanel="operationSearchModalPanel"
+                                            rerenderList="operationId, appDisputeTable"
+                                            style="max-width:100% !important; margin-left:0px;"
+                                            onblur="hideErrorField(this)">
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true" reRender="operationId, operationIdVwoperationId, appDisputeTable"/>
+                        </bm:selectOperation>
+                        <h:outputFormat id="operationIdError" value="#{lblMsg.value_request}"
+                                        styleClass="errorMarker"
+                                        style="display:none;" rendered="#{MbAppWizDspNew.newMode}">
+                            <f:param name="fieldName" value="#{lblOpr.operation}"/>
+                        </h:outputFormat>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="#{lblApp.application_status}  : " title="#{lblApp.application_status}"/>
+                    <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+                        <h:selectOneMenu id="status" value="#{MbAppWizDspNew.newDspApplication.status}"
+                                         readonly="#{MbAppWizDspNew.viewMode}"
+                                         label="#{lblApp.application_status}"
+                                         disabled="#{MbAppWizDspNew.viewMode || MbAppWizDspNew.newDspApplication.flowId == null}"
+                                         onblur="hideErrorField(this)">
+                            <f:selectItem id="selectStatus" itemValue=""/>
+                            <f:selectItems id="selectStatuses" value="#{MbAppWizDspNew.statuses}"/>
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true"
+                                         reRender="appDisputeTable, selectStatus, rejectCode"/>
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="#{lblApp.reject_code}  : " title="#{lblApp.reject_code}"/>
+                    <h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+                        <h:selectOneMenu id="rejectCode" value="#{MbAppWizDspNew.newDspApplication.rejectCode}"
+                                         readonly="#{MbAppWizDspNew.viewMode}"
+                                         label="#{lblApp.reject_code}"
+                                         disabled="#{MbAppWizDspNew.viewMode || MbAppWizDspNew.newDspApplication.flowId == null || MbAppWizDspNew.newDspApplication.status == null}"
+                                         onblur="hideErrorField(this)">
+                            <f:selectItem itemValue=""/>
+                            <f:selectItems value="#{MbAppWizDspNew.rejectCodes}"/>
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true"
+                                         reRender="appDisputeTable,
+                                                   messageTypeLabel, messageTypePanel, messageType,
+                                                   writeOffAmountLabel, writeOffCurrencyPanel, writeOffAmount,
+                                                   writeOffCurrencyLabel, writeOffCurrencyPanel, writeOffCurrency,
+                                                   dataPanelGrid"/>
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+
+                    <h:outputLabel id="messageTypeLabel" value="#{lblApp.message_type}  : " title="#{lblApp.message_type}"
+                                   rendered="#{MbAppWizDspNew.showWriteOffTags}"/>
+                    <h:panelGrid id="messageTypePanel" cellpadding="0" cellspacing="0" columns="1" rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                        <h:selectOneMenu id="messageType" value="#{MbAppWizDspNew.newDspApplication.messageType}"
+                                         readonly="#{MbAppWizDspNew.viewMode}"
+                                         label="#{lblApp.message_type}"
+                                         rendered="#{MbAppWizDspNew.showWriteOffTags}"
+                                         disabled="#{MbAppWizDspNew.viewMode}"
+                                         onblur="hideErrorField(this)">
+                            <f:selectItem value="#{MbAppWizDspNew.messageType}"/>
+                            <f:selectItems value="#{MbAppWizDspNew.messageTypes}"/>
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true" reRender="appDisputeTable"/>
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+
+                    <h:outputLabel id="writeOffAmountLabel" value="#{lblApp.write_off_amount}  : " title="#{lblApp.write_off_amount}"
+                                   rendered="#{MbAppWizDspNew.showWriteOffTags}"/>
+                    <h:panelGrid id="writeOffAmountPanel" cellpadding="0" cellspacing="0" columns="1" rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                        <h:inputText id="writeOffAmount" value="#{MbAppWizDspNew.newDspApplication.writeOffAmount}"
+                                     readonly="#{MbAppWizDspNew.viewMode}">
+                            <bm:numericMaskConverter numericType="bigdecimal" />
+                            <f:attribute name="decDigits" value="#{CurrencyUtils.currencyObjectsMap[MbAppWizDspNew.newDspApplication.writeOffCurrency].exponent}" />
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true"
+                                         reRender="writeOffCurrency, writeOffAmount, appDisputeTable"/>
+                        </h:inputText>
+                    </h:panelGrid>
+
+                    <h:outputLabel id="writeOffCurrencyLabel" value="#{lblApp.write_off_currency}  : " title="#{lblApp.write_off_currency}"
+                                   rendered="#{MbAppWizDspNew.showWriteOffTags}"/>
+                    <h:panelGrid id="writeOffCurrencyPanel" cellpadding="0" cellspacing="0" columns="1" rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                        <h:selectOneMenu id="writeOffCurrency" value="#{MbAppWizDspNew.newDspApplication.writeOffCurrency}"
+                                         readonly="#{MbAppWizDspNew.viewMode}"
+                                         disabled="#{MbAppWizDspNew.viewMode}">
+                            <f:selectItem itemValue=""/>
+                            <f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true" reRender="currency, amount"/>
+                            <a4j:support event="onchange" ajaxSingle="true" limitToList="true"
+                                         reRender="writeOffCurrency, writeOffAmount, appDisputeTable"/>
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="#{lblCommon.files}  : " title="#{lblCommon.files}"/>
+                    <h:panelGrid columns="1" cellspacing="0" cellpadding="0" width="100%">
+                        <rich:extendedDataTable id="dspApplicationsFileTable" value="#{MbAppWizDspNew.dspApplicationFiles}"
+                                                styleClass="res-table"
+                                                headerClass="res-table-header"
+                                                rowClasses=",odd"
+                                                selectedClass="res-table-selected"
+                                                var="fileItem"
+                                                selection="#{MbAppWizDspNew.fileItemSelection}"
+                                                height="150px"
+                                                selectionMode="single"
+                                                width="100%"
+                                                enableContextMenu="true" reRender="btnPanel"
+                                                noDataLabel="#{lblCommon['no_records_found']}">
+                            <a4j:support event="onselectionchange" eventsQueue="queue" limitToList="true" reRender="btnPanel"/>
+
+                            <rich:column id="id" label="#{lblCommon.name}" title="#{lblCommon.name}" width="50%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+                                </f:facet>
+                                <h:outputText value="#{fileItem.name}" />
+                            </rich:column>
+
+                            <rich:column id="cardNumber" label="#{lblCommon.type}" title="#{lblCommon.type}" width="50%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.type}" title="#{lblCommon.type}" />
+                                </f:facet>
+                                <h:outputText value="#{fileItem.type}" />
+                            </rich:column>
+                        </rich:extendedDataTable>
+                        <h:panelGrid id="btnPanel" columns="3" styleClass="buttons_block, buttons_block, width99P">
+                            <bre:taggedCommandButton id="addBtn" value="#{lblForm.add}" immediate="true"
+                                                     reRender="dsp_application_attach_modal_header,dsp_application_attach_modal_div"
+                                                     action="#{MbAppWizDspNew.addFile}"
+                                                     oncomplete="#{rich:component('dsp_application_attach_modal_panel')}.show()"
+                                                     rendered="#{usession.inRole['ADD_DISPUTE_ATTACHMENT'] and !MbAppWizDspNew.viewMode}"
+                                                     image="/images/create_doc.gif"/>
+                            <bre:taggedCommandButton id="btn_view" value="#{lblProcess.download}"
+                                                     reRender="choiceAction, downloadFileLink"
+                                                     action="#{MbAppWizDspNew.checkFile}"
+                                                     oncomplete="choiceAction()"
+                                                     disabled="#{MbAppWizDspNew.selectedDspApplicationFile == null}"/>
+                            <h:outputLabel/>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                </h:panelGrid>
+                <h:panelGrid columns="1" style="vertical-align: top;">
+                    <rich:dataTable id="appDisputeTable" value="#{MbAppWizDspNew.newDspApplication}" var="app"
+                                    styleClass="res-table noHeader" width="100%">
+                        <rich:columnGroup rowClasses=",odd">
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblApp.application_id}" title="#{lblApp.application_id}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.id}" title="#{app.id}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblApp.application_number}" title="#{lblApp.application_number}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.applicationNumber}" title="#{app.applicationNumber}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblApp.application_type}" title="#{lblApp.application_type}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.type} #{app.typeDesc}" title="#{app.type} #{app.typeDesc}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblCommon.user}" title="#{lblCommon.user}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.userId} - #{app.userName}" title="#{app.userId} - #{app.userName}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblApp.application_flow}" title="#{lblApp.application_flow}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.flowId}" title="#{app.flowId}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblApp.application_date}" title="#{lblApp.application_date}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.applicationDate}" title="#{app.applicationDate}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblApp.application_status}" title="#{lblApp.application_status}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.status}" title="#{app.status}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblCommon.institution}" title="#{lblCommon.institution}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.instName}" title="#{app.instName}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblCommon.agent}" title="#{lblCommon.agent}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.agentName}" title="#{app.agentName}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblCrd.operation_date}" title="#{lblCrd.operation_date}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.operDate}" title="#{app.operDate}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblOpr.operation_amount}" title="#{lblOpr.operation_amount}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputText value="#{fmt:formatMoney(app.amount, CurrencyUtils.currencyObjectsMap[app.currency].exponent)}"
+                                              title="#{fmt:formatMoney(app.amount, CurrencyUtils.currencyObjectsMap[app.currency].exponent)}"/>
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblOpr.operation_currency}" title="#{lblOpr.operation_currency}" />
+                            </rich:column>
+                            <rich:column>
+                                <bm:entityDisplay entityId="#{app.currency}"
+                                                  value ="#{CurrencyUtils.currencyObjectsMap[app.currency].currencyName}"
+                                                  entityName="ENTT0046" showIcon="true"/>
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblPrd.customer}" title="#{lblPrd.customer}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.customerNumber}" title="#{app.customerNumber}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblCrd.card_number}" title="#{lblCrd.card_number}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.cardMask}" title="#{app.cardMask}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblCrd.account_number}" title="#{lblCrd.account_number}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.accountNumber}" title="#{app.accountNumber}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true">
+                                <h:outputLabel value="#{lblApp.dispute_reason}" title="#{lblApp.dispute_reason}" />
+                            </rich:column>
+                            <rich:column>
+                                <h:outputLabel value="#{app.rejectCode}" title="#{app.rejectCode}" />
+                            </rich:column>
+
+                            <rich:column breakBefore="true" rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                                <h:outputLabel value="#{lblApp.message_type}" title="#{lblApp.message_type}"
+                                               rendered="#{MbAppWizDspNew.showWriteOffTags}"/>
+                            </rich:column>
+                            <rich:column rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                                <h:outputText value="#{app.messageType}" title="#{app.messageType}"
+                                              rendered="#{MbAppWizDspNew.showWriteOffTags}"/>
+                            </rich:column>
+
+                            <rich:column breakBefore="true" rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                                <h:outputLabel value="#{lblApp.write_off_amount}" title="#{lblApp.write_off_amount}"
+                                               rendered="#{MbAppWizDspNew.showWriteOffTags}"/>
+                            </rich:column>
+                            <rich:column rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                                <h:outputText value="#{fmt:formatMoney(app.writeOffAmount, CurrencyUtils.currencyObjectsMap[app.writeOffCurrency].exponent)}"
+                                              title="#{fmt:formatMoney(app.writeOffAmount, CurrencyUtils.currencyObjectsMap[app.writeOffCurrency].exponent)}"
+                                              rendered="#{MbAppWizDspNew.showWriteOffTags}"/>
+                            </rich:column>
+
+                            <rich:column breakBefore="true" rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                                <h:outputLabel value="#{lblApp.write_off_currency}" title="#{lblApp.write_off_currency}"
+                                               rendered="#{MbAppWizDspNew.showWriteOffTags}"/>
+                            </rich:column>
+                            <rich:column rendered="#{MbAppWizDspNew.showWriteOffTags}">
+                                <bm:entityDisplay entityId="#{app.writeOffCurrency}" rendered="#{MbAppWizDspNew.showWriteOffTags}"
+                                                  value ="#{CurrencyUtils.currencyObjectsMap[app.writeOffCurrency].currencyName}"
+                                                  entityName="ENTT0046" showIcon="true"/>
+                            </rich:column>
+                        </rich:columnGroup>
+                    </rich:dataTable>
+                </h:panelGrid>
+            </h:panelGrid>
+        </h:panelGroup>
+    </a4j:form>
+
+    <ui:include src="/pages/rules/disput_application_attach_edit.jspx" />
+    <ui:include src="/pages/utils/confirmPanel.jspx">
+        <ui:param name="backingBean" value="#{MbAppWizDspNew}"/>
+        <ui:param name="yesAction" value="deleteFile"/>
+        <ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+        <ui:param name="rerenderList" value="newDspForm:dspApplicationsFileTable, newDspForm:btnPanel"/>
+        <ui:param name="confirmQuestion" value=" "/>
+        <ui:param name="subviewId" value="deleteFileId"/>
+        <ui:param name="yes" value="#{lblForm.ok}"/>
+        <ui:param name="no" value="#{lblForm.cancel}"/>
+    </ui:include>
+</ui:composition>
+</html>

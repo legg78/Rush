@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+	function enableButtons() {
+		var rowId = "row_" + 
+				document.getElementById("settingsBottomForm:settingsTreeTable").getSelectedNodeKey();
+		if (document.getElementById("settingsBottomForm:settingsTreeTable").isSelectionEmpty() ||
+				document.getElementsByClassName(rowId)[0].className.indexOf("isLeaf_false") >= 0) {
+			document.getElementById("settingsBottomForm:editBtn").disabled = true;
+		} else {
+			document.getElementById("settingsBottomForm:editBtn").disabled = false;
+		}
+	}
+	//-->
+	</script>
+
+	<h:form id="settingsBottomForm">
+		<h:panelGroup id="settingsTreeTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<o:treeTable id="settingsTreeTable" var="settingParam"
+				expansionState="allExpanded"
+				headerHorizSeparator="1px solid #D7DAC2"
+				headerVertSeparator="1px solid #D7DAC2"
+				headerSectionClass="res-tree-table-header"
+				commonHeaderRowClass="res-tree-table-header"
+				sortableHeaderClass="res-tree-table-header"
+				sortedColumnHeaderClass="res-tree-table-header"
+				sortableHeaderRolloverClass="res-tree-table-header"
+				styleClass="res-tree-table"
+				bodyOddRowClass="res-tree-table-row odd-tree-table"
+				bodyRowClass="res-tree-table-row"
+				verticalGridLines="1px solid #D7DAC2" bodySectionClass=""
+				useAjax="true" style="height: 100%">
+
+				<o:scrolling />
+				<o:singleNodeSelection nodePath="#{(settingsBean==null ? MbSettingParamsSearch : settingsBean).nodePath}"
+					nodeData="#{(settingsBean==null ? MbSettingParamsSearch : settingsBean).node}" keyboardSupport="false"
+					onchange="enableButtons()"
+					styleClass="treetable_selection">
+				</o:singleNodeSelection>
+				<o:dynamicTreeStructure
+					nodeChildren="#{(settingsBean==null ? MbSettingParamsSearch : settingsBean).nodeChildren}"
+					nodeHasChildren="#{(settingsBean==null ? MbSettingParamsSearch : settingsBean).nodeHasChildren}"
+					nodeKey="#{settingParam.modelId}" />
+
+				<o:treeColumn id="description" width="30%" filterKind="searchField">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.description}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{settingParam.name}"
+						rendered="#{settingParam.name != null}"
+						styleClass="treeTableText #{settingParam.leaf ? '' : 'isLeaf_false'}
+			      					row_#{settingParam.modelId}" />
+					<h:outputText value="#{settingParam.name}"
+						rendered="#{settingParam.name == null}"
+						styleClass="treeTableText #{settingParam.leaf ? '' : 'isLeaf_false'}
+			      					row_#{settingParam.modelId}" />
+				</o:treeColumn>
+
+				<o:column id="value" styleClass="res-tree-table-cell" width="50%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.value}" />
+					</f:facet>
+					<h:outputText value="#{settingParam.valueV}"
+						styleClass="treeTableText" rendered="#{settingParam.char and settingParam.lovId == null}" />
+					<h:outputText value="#{settingParam.valueN}"
+						styleClass="treeTableText" rendered="#{settingParam.number and settingParam.lovId == null}">
+						<bm:convertNumberNew minFractionDigits="0" groupingUsed="false"
+							maxIntegerDigits="16" />
+					</h:outputText>
+					<h:outputText value="#{settingParam.valueD}"
+						styleClass="treeTableText" rendered="#{settingParam.date}"/>
+
+					<h:outputText value="#{settingParam.lovValue}"
+						styleClass="treeTableText" rendered="#{settingParam.lovId != null}" />
+				</o:column>
+
+			</o:treeTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid columns="1" style="vertical-align: top;"
+					cellpadding="0" cellspacing="0">
+					<bre:taggedCommandButton id="editBtn" value="#{lblForm.edit}"
+						action="#{(settingsBean==null ? MbSettingParamsSearch : settingsBean).edit}"
+						oncomplete="#{rich:component('set_param_modal_panel')}.show()"
+						reRender="set_param_modal_panel"
+						rendered="#{usession.inRole[roleToUnblock] and settingsBean==null}"
+						image="/images/edit.gif"/>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+
+		<script type="text/javascript">
+//<!--
+   			// select first row which for some reason doesn't want to do it automatically 
+   			var nodeKey = "#{(settingsBean==null ? MbSettingParamsSearch : settingsBean).node.modelId}";
+   			if (document.getElementById("settingsBottomForm:settingsTreeTable").getSelectedNodeKey() == null
+   					&& nodeKey != null && nodeKey != "") {
+   				document.getElementById("settingsBottomForm:settingsTreeTable").setSelectedNodeKey(nodeKey);
+   			}
+   			// -->
+       	</script>
+	</h:form>
+
+	<ui:include src="/pages/settings/settings_modal.jspx">
+  		<ui:param name="rerenderList" value="settingsBottomForm"/>
+  		<ui:param name="omitRerender" value="true"/>
+  	</ui:include>
+
+	<script type="text/javascript">
+//<!--//
+		enableButtons();//-->
+	</script>
+</ui:composition>
+</html>

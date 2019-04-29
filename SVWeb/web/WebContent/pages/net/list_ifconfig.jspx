@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:o="http://openfaces.org/">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net"/>
+		<a4j:loadScript src="/js/stretch.js" />		
+		<ui:remove>
+			<!-- removed because conception didn't prove to be working. May be later it will be fixed -->
+			<!-- menu, bread crumbs, and pageName (see below) initializing -->        
+			<h:inputHidden value="#{MbIfConfig.menuNode}"/>
+		</ui:remove>
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{MbIfConfig.pageTitle}" overridePageName="true"/>
+		
+		<h:form id="ifConfigForm">
+			<!-- main form -->
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block"
+				    			style="height: 255px;" >
+			
+					<o:treeTable id="stdTreeTable" var="stdVer"
+							expansionState="allExpanded"
+							headerHorizSeparator="1px solid #D7DAC2"
+							headerVertSeparator="1px solid #D7DAC2"
+							headerSectionClass="res-tree-table-header"
+							commonHeaderRowClass="res-tree-table-header"
+							sortableHeaderClass="res-tree-table-header"
+							sortedColumnHeaderClass="res-tree-table-header"
+							sortableHeaderRolloverClass="res-tree-table-header"
+							styleClass="extdt-table-layout res-tree-table"
+							bodyOddRowClass="res-tree-table-row odd-tree-table"
+							bodyRowClass="res-tree-table-row" headerRowClass="res-tree-table-header"
+							verticalGridLines="1px solid #D7DAC2"
+							cellpadding="0" cellspacing="0"
+							preloadedNodes="all"
+							useAjax="true"
+							style="height: 255px"
+							>
+						<o:scrolling/>
+						<f:facet name="noDataMessage">
+						  	<h:panelGroup>
+						       <h:outputText value="#{lblCommon['no_records_found']}"/>
+							</h:panelGroup>
+						</f:facet>
+						
+		      			<o:dynamicTreeStructure 
+		      					nodeChildren="#{MbIfConfig.nodeChildren}" 
+		      					nodeHasChildren="#{MbIfConfig.nodeHasChildren}" 
+		      					nodeKey="#{stdVer.modelId}"/>
+			
+					    <o:singleNodeSelection 
+					    		nodePath="#{MbIfConfig.nodePath}"
+					          	nodeData="#{MbIfConfig.node}"
+			         			keyboardSupport="false"
+			         			styleClass="treetable_selection"
+			         			>
+							<a4j:support event="onchange" 
+									ignoreDupResponses="true"
+			                		reRender="detailsTab, btnPanel"/>
+						</o:singleNodeSelection>
+			
+					    <o:treeColumn id="nodeLabel" width="40%" >
+					    	<f:facet name="header">
+					        	<h:outputText value="#{lblCommon.name}"/>
+					      	</f:facet>
+					      	<h:outputText value="#{lblNet.online_standard}:"
+					      			style="font-weight: bold" styleClass="treeTableText"
+					      			rendered="#{stdVer.parentId == null 
+					      					and MbHostsSess.activeHost.onlineStdId == stdVer.standardId}"/>
+					      	<h:outputText value="#{lblNet.offline_standard}:"
+					      			style="font-weight: bold"  styleClass="treeTableText"
+					      			rendered="#{stdVer.parentId == null 
+					      					and MbHostsSess.activeHost.offlineStdId == stdVer.standardId}"/>
+					      	<h:outputText value="#{stdVer.objectName}" title="#{stdVer.objectName}"
+									styleClass="treeTableText isStandard row_#{stdVer.modelId}"
+					      			rendered="#{stdVer.parentId == null}"/>
+					      	<h:outputText value="#{stdVer.versionNumber}" title="#{stdVer.versionNumber}" 
+									styleClass="treeTableText row_#{stdVer.modelId}"
+									rendered="#{stdVer.parentId != null}"/>
+					    </o:treeColumn>
+			
+					    <o:column id="startDate" width="25%">
+					    	<f:facet name="header">
+					        	<h:outputText value="#{lblCommon.start_date}"/>
+					      	</f:facet>
+					      	<h:outputText styleClass="res-tree-table-cell"
+					      			value="#{stdVer.startDate}"
+					      			title="#{stdVer.startDate}">
+					      		<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+					      	</h:outputText>
+					    </o:column>
+					</o:treeTable>
+					<a4j:outputPanel ajaxRendered="true">
+				        <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+						<h:panelGroup styleClass="collapse-vert" layout="block"/>
+					</a4j:outputPanel>
+				</h:panelGroup>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+					<h:panelGrid styleClass="buttons_block" columns="4" id="btnPanel">
+						<bre:taggedCommandButton id="backBtn"
+	                      		value="#{lblForm.back}"
+	                      		action="#{MbIfConfig.goBack}"
+	                      		rendered="#{MbIfConfig.backLink != null}"
+	                      		/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+	    </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content" style="height:100%">
+
+				<rich:tab label="#{lblCommon.parameters}" name="detailsTab" style="height:100%;">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.parameters}" title="#{lblCommon.parameters}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup layout="block" id="detailsTab" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/communication/list_parameter_values.jspx"></ui:include>      					
+       				</h:panelGroup>
+			    </rich:tab>
+		    </rich:tabPanel>
+        </h:panelGroup>
+
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel"¸ layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+		
+			function updateHeight(){
+				// Workplace panel height calculation
+				// We have a page structure like this:
+				// * Header
+				// * Navigator
+				// * Search panel
+				// * Result panel
+				// * Workplace
+				var topHeight = 0;
+				var appsForm = document.getElementById("ifConfigForm");
+				topHeight = topHeight + appsForm.clientHeight;
+				var workplacePanel = document.getElementById("workplacePanel");
+				var header = 44; // height of the header in 'navigatable.jspx'
+				var navigator = 13/*body*/ + 10 /*padding-top*/ + 12 /*padding-bottom*/;
+				topHeight = topHeight + 10 /*search_block margin*/;
+				if (/collapsed/.test(jQuery('.search_result_block').attr('class'))){
+					topHeight = topHeight + 10 /*searchresultblock-collapsed margin-bottom*/;
+				}
+				jQuery('.rich-tabpanel .rich-tabpanel-content-position', workplacePanel).css('margin-top','-4px');
+				
+				var windowHeight = Stretch.getWindowHeight();
+				var workplacePanelHeight = windowHeight - header - navigator - topHeight;
+				if (workplacePanelHeight < Stretch.MIN_WORKPLACE_HEIGHT){
+					workplacePanelHeight = Stretch.MIN_WORKPLACE_HEIGHT;
+				}
+				workplacePanel.style.height = workplacePanelHeight + "px";
+				
+				
+				if (document.getElementById('cmnParamValuesForm:paramValuesTableWrapper')){
+					Stretch.updateTableHeightByFixedHeight('cmnParamValuesForm:paramValuesTableWrapper', workplacePanelHeight - 30 /*tabs*/ - 29 /*buttons*/);	
+				}				
+			}
+			updateHeight();
+			//]]>
+		</script>
+	</ui:define>
+</ui:composition>
+</html>

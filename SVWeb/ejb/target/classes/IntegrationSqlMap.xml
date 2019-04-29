@@ -1,0 +1,2795 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+		PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+		"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="integ">
+
+	<!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+	<sql id="limitationOpen">
+            SELECT *
+            FROM (
+    </sql>
+
+	<sql id="limitationOpenCount">
+		SELECT count(*)
+		FROM (
+	</sql>
+
+	<sql id="limitationClose">
+		) q
+		<isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+	</sql>
+
+	<sql id="paginatedOpen">
+		SELECT *
+		FROM(
+		SELECT a.*, rownum r
+		FROM(
+		<include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedClose">
+		<include refid="limitationClose"/>
+		) a
+		WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+		)
+		WHERE r >= (#range.start# + 1)
+	</sql>
+
+	<parameterMap id="auth-map" class="java.util.Map">
+		<parameter property="cardNum" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="keyword" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="customerId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="instId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT"/>
+	</parameterMap>
+
+	<parameterMap id="get-customer-info-map" class="java.util.Map">
+		<parameter property="customerId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="instId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="name" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="msisdn" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="auth" parameterMap="auth-map">
+		{call itf_ui_integration_pkg.get_cards_customer(
+		i_card_number            => ?
+		, i_key_word             => ?
+		, o_customer_id          => ?
+		, o_inst_id              => ?
+		)}
+	</procedure>
+
+	<procedure id="get-customer-info" parameterMap="get-customer-info-map">
+		{call itf_ui_integration_pkg.get_customer_contacts(
+		i_customer_id            => ?
+		, i_inst_id              => ?
+		, i_lang                 => null
+		, o_client_name          => ?
+		, o_phone_number         => ?
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.operations.Participant" id="mapping-participant">
+		<result property="operId" column="oper_id"/>
+		<result property="participantType" column="participant_type"/>
+		<result property="instId" column="inst_id"/>
+		<result property="networkId" column="network_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="clientIdType" column="client_id_type"/>
+		<result property="clientIdValue" column="client_id_value"/>
+		<result property="customerId" column="customer_id"/>
+		<result property="authCode" column="auth_code"/>
+		<result property="cardId" column="card_id"/>
+		<result property="cardInstanceId" column="card_instance_id"/>
+		<result property="cardTypeId" column="card_type_id"/>
+		<result property="cardMask" column="card_mask"/>
+		<result property="cardHash" column="card_hash"/>
+		<result property="cardSeqNumber" column="card_seq_number"/>
+		<result property="cardExpirDate" column="card_expir_date"/>
+		<result property="cardServiceCode" column="card_service_code"/>
+		<result property="cardCountry" column="card_country"/>
+		<result property="cardNetworkId" column="card_network_id"/>
+		<result property="cardInstId" column="card_inst_id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="accountType" column="account_type"/>
+		<result property="accountNumber" column="account_number"/>
+		<result property="accountAmount" column="account_amount"/>
+		<result property="accountCurrency" column="account_currency"/>
+		<result property="merchantId" column="merchant_id"/>
+		<result property="terminalId" column="terminal_id"/>
+	</resultMap>
+
+	<select id="get-participants-by-operation"
+			parameterClass="long"
+			resultMap="mapping-participant">
+		SELECT
+		p.oper_id
+		, p.participant_type
+		, p.inst_id
+		, p.network_id
+		, p.split_hash
+		, p.client_id_type
+		, p.client_id_value
+		, p.customer_id
+		, p.auth_code
+		, p.card_id
+		, p.card_instance_id
+		, p.card_type_id
+		, p.card_mask
+		, p.card_hash
+		, p.card_seq_number
+		, p.card_expir_date
+		, p.card_service_code
+		, p.card_country
+		, p.card_network_id
+		, p.card_inst_id
+		, p.account_id
+		, p.account_type
+		, p.account_number
+		, p.account_amount
+		, p.account_currency
+		, p.merchant_id
+		, p.terminal_id
+		FROM
+		opr_participant p
+		WHERE
+		p.oper_id = #value#
+	</select>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="mapping-operation">
+		<result property="id" column="id"/>
+		<result property="operType" column="oper_type"/>
+		<result property="msgType" column="msg_type"/>
+		<result property="sttlType" column="sttl_type"/>
+		<result property="operDate" column="oper_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="hostDate" column="host_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="originatorRefnum" column="originator_refnum"/>
+		<result property="networkRefnum" column="network_refnum"/>
+		<result property="acqInstBin" column="acq_inst_bin"/>
+		<result property="status" column="status"/>
+		<result property="statusReason" column="status_reason"/>
+		<result property="merchantNumber" column="merchant_number"/>
+		<result property="mccCode" column="mcc"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantStreet" column="merchant_street"/>
+		<result property="merchantCity" column="merchant_city"/>
+		<result property="merchantRegion" column="merchant_region"/>
+		<result property="merchantCountry" column="merchant_country"/>
+		<result property="merchantPostCode" column="merchant_postcode"/>
+
+		<result property="terminalNumber" column="terminal_number"/>
+	</resultMap>
+
+
+	<sql id="operations-select-light">
+		SELECT	  op.id
+		, op.oper_type
+		, op.msg_type
+		, op.sttl_type
+		, op.oper_date
+		, op.host_date
+		, op.oper_amount
+		, op.oper_currency
+		, op.originator_refnum
+		, op.network_refnum
+		, op.acq_inst_bin
+		, op.status
+		, op.status_reason
+		, op.merchant_number
+		, op.mcc
+		, op.merchant_name
+		, op.merchant_street
+		, op.merchant_city
+		, op.merchant_region
+		, op.merchant_country
+		, op.merchant_postcode
+		, op.terminal_type
+		, op.terminal_number
+	</sql>
+
+	<select	id="get-operations"
+			   parameterClass="qparams"
+			   resultMap="mapping-operation">
+		<include refid="paginatedOpen"/>
+		<include refid="operations-select-light"/>
+		FROM opr_ui_operation_vw op
+		WHERE 1=1
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">op.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				mcc.lang(+) = #filters[].value# AND h.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateFrom">trunc(op.host_date) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="hostDateTo">trunc(op.host_date) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="terminalNumber">op.terminal_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="merchantNumber">op.merchant_number LIKE #filters[].value#</isEqual>
+
+			<isEqual property="filters[].element" compareValue="operDateFrom">op.oper_date >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDateTo">op.oper_date <![CDATA[<=]]> #filters[].value#</isEqual>
+
+		</iterate>
+		<iterate open="AND op.id IN (SELECT p.oper_id FROM opr_participant p WHERE "
+				 close=")" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="participantType">p.participant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantTypeNot">p.participant_type != #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantInstId">p.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantCardMask">p.card_mask LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantCardId">p.card_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantCardNumber">p.card_id = iss_api_card_pkg.get_card_id(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="participantAccountId">p.account_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantAccountNumber">p.account_id = acc_api_account_pkg.get_account_id(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="participantMerchantId">p.merchant_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantTerminalId">p.terminal_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">op.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="amount">op.oper_amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="time">op.host_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">op.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="reversal">op.is_reversal $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">op.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="statusReason">op.status_reason $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+
+
+
+	<select	id="get-transactions-by-oper"
+			   parameterClass="qparams"
+			   resultClass="ru.bpc.sv2.accounts.Transaction">
+		SELECT	  t.transaction_id AS transactionId
+		, t.macros_id AS macrosId
+		, t.bunch_id AS bunchId
+		, t.debit_account_id AS debitAccountId
+		, t.debit_account_number AS debitAccountNumber
+		, t.debit_balance AS debitBalance
+		, t.debit_balance_type AS debitBalanceType
+		, t.debit_amount AS debitAmount
+		, t.debit_amount_currency AS debitCurrency
+		, t.debit_posting_date AS debitPostingDate
+		, t.debit_sttl_date AS debitSttlDate
+		, t.debit_sttl_day AS debitSttlDay
+		, t.debit_account_type AS debitAccountType
+		, t.debit_status AS debitStatus
+		, t.credit_account_id AS creditAccountId
+		, t.credit_account_number AS creditAccountNumber
+		, t.credit_balance AS creditBalance
+		, t.credit_balance_type AS creditBalanceType
+		, t.credit_amount AS creditAmount
+		, t.credit_amount_currency AS creditCurrency
+		, t.credit_posting_date AS creditPostingDate
+		, t.credit_sttl_date AS creditSttlDate
+		, t.credit_sttl_day AS creditSttlDay
+		, t.credit_account_type AS creditAccountType
+		, t.credit_status AS creditStatus
+		, t.transaction_type AS transType
+		, t.amount_purpose AS amountPurpose
+		, 'ENTTTRSC' AS entityType
+		, get_object_desc(i_entity_type => 'ENTTTRSC',i_object_id=>t.transaction_id) AS description
+		, get_object_desc(i_entity_type => 'ENTTMACR',i_object_id=>t.macros_id) AS macrosDescription
+		, get_object_desc(i_entity_type => 'ENTTBNCH',i_object_id=>t.bunch_id) AS bunchDescription
+		FROM
+		acc_ui_transaction_vw t
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="entityType">
+				t.entity_type = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">
+				t.object_id = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="transactionId">
+				t.transaction_id LIKE #filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="macrosId">t.transaction_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="bunchId">t.transaction_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="transactionId">t.transaction_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="id">t.transaction_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="description">upper(description) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="debitAccount">t.debit_account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="debitBalanceType">t.debit_balance_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="debitAmount">t.debit_amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="creditAccount">t.credit_account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="creditBalanceType">t.credit_balance_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="creditAmount">t.credit_amount $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting">
+			ORDER BY t.transaction_id
+		</isEmpty>
+	</select>
+
+	<select	id="get-transactions-count-by-oper"
+			   parameterClass="qparams"
+			   resultClass="int">
+		SELECT count(*)
+		FROM
+		acc_ui_transaction_vw t
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="entityType">
+				t.entity_type = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">
+				t.object_id = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="transactionId">
+				t.transaction_id LIKE #filters[].value#
+			</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap  id="mapping-card"
+				class="ru.bpc.sv2.issuing.Card">
+		<result property="id" column="id"/>
+		<result property="cardHash" column="card_hash"/>
+		<result property="mask" column="card_mask"/>
+		<result property="instId" column="inst_id"/>
+		<result property="productId" column="product_id"/>
+		<result property="productName" column="product_name"/>
+		<result property="country" column="country"/>
+		<result property="cardholderId" column="cardholder_id"/>
+		<result property="cardholderName" column="cardholder_name"/>
+		<result property="cardholderNumber" column="cardholder_number"/>
+		<result property="cardTypeId" column="card_type_id"/>
+		<result property="regDate" column="reg_date"/>
+		<result property="customerId" column="customer_id"/>
+		<result property="category" column="category"/>
+		<result property="cardNumber" column="card_number"/>
+		<result property="contractId" column="contract_id"/>
+		<result property="contractNumber" column="contract_number"/>
+		<result property="customerNumber" column="customer_number"/>
+		<result property="customerType" column="customer_type"/>
+		<result property="productType" column="product_type"/>
+		<result property="productNumber" column="product_number"/>
+	</resultMap>
+
+	<select id="get-cards"
+			parameterClass="qparams"
+			resultMap="mapping-card">
+		SELECT
+		c.id
+		, c.card_hash
+		, c.card_mask
+		, c.inst_id
+		, c.card_type_id
+		, c.country
+		, c.cardholder_id
+		, c.contract_id
+		, c.reg_date
+		, c.customer_id
+		, c.category
+		, cntr.product_id
+		, cntr.contract_number
+		, ch.cardholder_name
+		, ch.cardholder_number
+		, c.card_number
+		, p.label product_name
+		, cu.customer_number
+		, cu.entity_type customer_type
+		, p.product_type
+		, p.product_number
+		FROM
+		iss_ui_card_vw c
+		, iss_ui_cardholder_vw ch
+		, prd_ui_contract_vw cntr
+		, prd_ui_product_vw p
+		, prd_ui_customer_vw cu
+		WHERE 1=1
+		AND c.contract_id = cntr.id(+)
+		AND c.cardholder_id = ch.id(+)
+		AND c.customer_id = cu.id
+		AND cntr.product_id = p.id
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="mask">c.card_mask LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">c.card_number LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardHash">c.card_hash = COM_API_HASH_PKG.get_card_hash(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">c.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="regDateFrom">c.reg_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="regDateTo">c.reg_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			<isEqual property="filters[].element" compareValue="country">c.country = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="category">c.category = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardholderName">upper(ch.cardholder_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardholderId">c.cardholder_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="customerId">c.customer_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractId">c.contract_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="contractIds">c.contract_id IN ($filters[].value$)</isEqual>
+			<isEqual property="filters[].element" compareValue="customerNumber">cu.customer_number like upper(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="accountId">
+				c.id IN (
+				SELECT
+				ao.object_id
+				FROM
+				acc_ui_account_object_vw ao
+				WHERE
+				ao.entity_type = 'ENTTCARD'
+				AND ao.account_id = #filters[].value#
+				)
+			</isEqual>
+		</iterate>
+	</select>
+
+
+	<resultMap  id="mapping-card-instance"
+				class="ru.bpc.sv2.issuing.CardInstance">
+		<result property="id" column="id"/>
+		<result property="cardId" column="card_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="seqNumber" column="seq_number"/>
+		<result property="status" column="status"/>
+		<result property="regDate" column="reg_date"/>
+		<result property="issDate" column="iss_date"/>
+		<result property="startDate" column="start_date"/>
+		<result property="expirDate" column="expir_date"/>
+		<result property="cardholderName" column="cardholder_name"/>
+		<result property="companyName" column="company_name"/>
+		<result property="state" column="state"/>
+		<result property="pinRequest" column="pin_request"/>
+		<result property="pinMailerRequest" column="pin_mailer_request"/>
+		<result property="embossingRequest" column="embossing_request"/>
+		<result property="persoPriority" column="perso_priority"/>
+		<result property="persoMethodId" column="perso_method_id"/>
+		<result property="binId" column="bin_id"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="blankId" column="blank_type_id"/>
+	</resultMap>
+
+
+	<select id="get-card-instances"
+			parameterClass="long"
+			resultMap="mapping-card-instance">
+		SELECT
+		ci.id
+		, ci.card_id
+		, ci.split_hash
+		, ci.seq_number
+		, ci.status
+		, ci.reg_date
+		, ci.iss_date
+		, ci.start_date
+		, ci.expir_date
+		, ci.cardholder_name
+		, ci.company_name
+		, ci.state
+		, ci.pin_request
+		, ci.pin_mailer_request
+		, ci.embossing_request
+		, ci.perso_priority
+		, ci.perso_method_id
+		, ci.bin_id
+		, ci.agent_id
+		, ci.inst_id
+		, ci.blank_type_id
+		FROM
+		iss_ui_card_instance_vw ci
+		WHERE
+		ci.card_id = #value#
+		ORDER BY
+		decode (status, 'CSTS0000',0,1), expir_date desc
+	</select>
+
+	<resultMap class="ru.bpc.sv2.accounts.Account" id="mapping-account">
+		<result property="id" column="id"/>
+		<result property="accountNumber" column="account_number"/>
+		<result property="currency" column="currency"/>
+		<result property="accountType" column="account_type"/>
+		<result property="status" column="status"/>
+		<result property="balance" column="balance"/>
+		<result property="splitHash" column="split_hash"/>
+	</resultMap>
+
+	<select id="get-object-accounts"
+			parameterClass="qparams"
+			resultMap="mapping-account">
+		SELECT
+		a.account_id id
+		, a.account_number
+		, a.account_type
+		, a.currency
+		, a.status
+		, balance
+		, split_hash
+		FROM
+		acc_ui_account_object_vw a
+		WHERE 1=1
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="entityType">a.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">a.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">a.account_number = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<select id="get-accounts"
+			parameterClass="qparams"
+			resultMap="mapping-account">
+		SELECT
+		a.id
+		, a.account_number
+		, a.account_type
+		, a.currency
+		, a.status
+		, null balance
+		, split_hash
+		FROM
+		acc_ui_account_vw a
+		WHERE 1=1
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="accountNumber">a.account_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-pinblock-map">
+		<parameter property="cardNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="pin" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="key" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="format" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="pinLength" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="pinPadded" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="pinBlock" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="pinBlockClear" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="get-pinblock" parameterMap="get-pinblock-map">
+		{call SEC_API_PINBLOCK_PKG.get_pinblock(
+		i_card_number => ?
+		, i_pin			=> ?
+		, i_key			=> ?
+		, i_pinblock_format	=> ?
+		, o_pin_length 	=> ?
+		, o_pin_padded 	=> ?
+		, o_pinblock 	=> ?
+		, o_pinblock_clear 	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-service-terms-map">
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="objectId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="serviceTerms" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="get-service-terms" parameterMap="get-service-terms-map">
+		{call PRD_API_ATTRIBUTE_PKG.get_object_attributes(
+		i_entity_type  => ?
+		, i_object_id 	=> ?
+		, o_xml 			=> ?
+		)}
+	</procedure>
+
+
+	<resultMap class="ru.bpc.sv2.credit.CreditInvoice" id="mapping-invoice">
+		<result property="id" column="id"/>
+		<result property="accountNumber" column="account_number"/>
+		<result property="currency" column="currency"/>
+		<result property="serialNumber" column="serial_number"/>
+		<result property="type" column="invoive_type"/>
+		<result property="exceedLimit" column="exceed_limit"/>
+		<result property="startDate" column="start_date"/>
+		<result property="minAmountDue" column="min_amount_due"/>
+		<result property="totalAmountDue" column="total_amount_due"/>
+		<result property="ownFunds" column="own_funds"/>
+		<result property="invoiceDate" column="invoice_date"/>
+		<result property="dueDate" column="due_date"/>
+		<result property="graceDate" column="grace_date"/>
+		<result property="penaltyDate" column="penalty_date"/>
+		<result property="madPaid" column="is_mad_paid"/>
+		<result property="tadPaid" column="is_tad_paid"/>
+		<result property="aging" column="aging_period"/>
+	</resultMap>
+
+
+	<select id="get-invoices"
+			parameterClass="qparams"
+			resultMap="mapping-invoice">
+		SELECT
+		i.account_number
+		, i.currency
+		, i.id
+		, i.account_id
+		, i.serial_number
+		, i.invoice_date
+		, i.invoice_type
+		, i.min_amount_due
+		, i.total_amount_due
+		, i.own_funds
+		, i.exceed_limit
+		, i.start_date
+		, i.due_date
+		, i.grace_date
+		, i.penalty_date
+		, i.is_mad_paid
+		, i.is_tad_paid
+		, i.aging_period
+		, i.agent_id
+		, i.inst_id
+		FROM
+		crd_ui_invoice_vw i
+		WHERE 1=1
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="accountId">i.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="serial_number">i.serial_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">i.id = #filters[].value#</isEqual>
+		</iterate>
+		ORDER BY
+		i.serial_number DESC
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-last-invoice-map">
+		<parameter property="accountId" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="splitHash" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<parameter property="maskError" javaType="java.lang.Boolean" jdbcType="NUMERIC"/>
+	</parameterMap>
+
+	<select id="get-last-invoice"
+			parameterMap="get-last-invoice-map"
+			resultClass="java.lang.Integer">
+		SELECT
+		crd_invoice_pkg.get_last_invoice_id(
+		i_account_id	=> ?
+		, i_split_hash	=> ?
+		, i_mask_error	=> ?
+		)
+		FROM dual
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-account-map">
+		<parameter property="customerId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="accountType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="currency" javaType="java.lang.String" jdbcType="VARCHAR" mode="INOUT"/>
+		<parameter property="accountId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="accountNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="get-account"
+			   parameterMap="get-account-map">
+		{call acc_api_account_pkg.find_account(
+		i_customer_id		=> ?
+		, i_account_type  	=> ?
+		, io_currency     	=> ?
+		, o_account_id    	=> ?
+		, o_account_number	=> ?
+		)}
+	</procedure>
+
+	<select id="get-customer-id-by-card" parameterClass="java.lang.String"
+			resultClass="java.lang.Long">
+		select iss_api_card_pkg.get_customer_id(i_card_number=>#value#) from dual
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-millenium-invoice-data-map">
+		<parameter property="accountId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="accountNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="currency" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="creditLimit" javaType="java.math.BigDecimal" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="invoiceDate" javaType="java.util.Date" jdbcType="DATE" mode="OUT"/>
+		<parameter property="declaredPaymentLevel" javaType="java.math.BigDecimal" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="declaredPaymentAmount" javaType="java.math.BigDecimal" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="totalAmountDue" javaType="java.math.BigDecimal" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="dueDate" javaType="java.util.Date" jdbcType="DATE" mode="OUT"/>
+		<parameter property="mandatoryAmountDue" javaType="java.math.BigDecimal" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="overdueAmount" javaType="java.math.BigDecimal" jdbcType="NUMERIC" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="get-millenium-invoice-data"
+			   parameterMap="get-millenium-invoice-data-map">
+		{call cst_ui_invoice_pkg.get_invoice_data(
+		i_account_id           	=> ?
+		, o_account_number       	=> ?
+		, o_currency             	=> ?
+		, o_credit_limit         	=> ?
+		, o_invoice_date         	=> ?
+		, o_decl_payment_level   	=> ?
+		, o_decl_payment_amount  	=> ?
+		, o_total_amount_due     	=> ?
+		, o_due_date             	=> ?
+		, o_mandatory_amount_due 	=> ?
+		, o_overdue_amount       	=> ?
+		)}
+	</procedure>
+
+	<select id="get-account-id" parameterClass="java.lang.String"
+			resultClass="java.lang.Long">
+		select ACC_API_ACCOUNT_PKG.get_account_id(i_account_number=>#value#) from dual
+	</select>
+
+	<resultMap class="ru.bpc.sv2.accounts.Balance" id="get-balances-map">
+		<result property="balanceType" column="balance_type"/>
+		<result property="roundingBalance" column="rounding_balance"/>
+		<result property="balance" column="balance"/>
+		<result property="currency" column="currency"/>
+	</resultMap>
+
+	<select id="get-balances"
+			parameterClass="ru.bpc.sv2.accounts.Balance"
+			resultMap="get-balances-map">
+		SELECT
+		balance_type
+		, balance
+		, rounding_balance
+		, currency
+		FROM
+		acc_ui_balance_vw
+		WHERE
+		account_id = #accountId#
+		<isNotNull property="balanceType"> AND balance_type = #balanceType#</isNotNull>
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-accounts-cursor-map">
+		<parameter property="customer_number" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="customer_id" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="card_number" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="card_id" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="status" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="account_type" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="balance_type" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="list-account-cursor-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.accounts.Account" id="list-account-cursor-map">
+		<result property="id" column="id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="accountNumber" column="account_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountType" column="account_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountTypeName" column="account_type_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency" column="currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currencyName" column="currency_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="status" column="status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusName" column="status_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="avalBalance" column="aval_balance" javaType="java.math.BigDecimal" jdbcType="NUMBER"/>
+		<result property="holdBalance" column="hold_balance" javaType="java.math.BigDecimal" jdbcType="NUMBER"/>
+		<result property="balance" column="request_balance" javaType="java.math.BigDecimal" jdbcType="NUMBER"/>
+		<result property="agentId" column="agent_id" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="agentName" column="agent_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="openDate" column="open_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="closeDate" column="close_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="ownerName" column="owner_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-accounts-cursor"
+			   parameterMap="get-accounts-cursor-map">
+		{ call itf_ui_integration_pkg.get_account_list(
+		i_customer_number => ?
+		, i_inst_id		    => ?
+		, i_customer_id		=> ?
+		, i_card_number		=> ?
+		, i_card_uid		=> ?
+		, i_status			=> ?
+		, i_account_type	=> ?
+		, i_lang			=> ?
+		, i_balance_type	=> ?
+		, o_ref_cursor		=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.HashMap" id="payment-details-map">
+		<parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="accountNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="INOUT"/>
+		<parameter property="inst_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="recipientName" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="bankName" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="bic" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="tin" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="corrAccount" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="bankAddress" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+
+
+	<procedure id="get-account-payment-details"
+			   parameterMap="payment-details-map">
+		{ call itf_ui_integration_pkg.get_account_payment_details(
+		i_id 			  => ?
+		, io_account_number => ?
+		, i_inst_id		  => ?
+		, i_lang			  => ?
+		, o_recipient_name  => ?
+		, o_bank_name 	  => ?
+		, o_bic			  => ?
+		, o_tin			  => ?
+		, o_corr_account	  => ?
+		, o_bank_address    => ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-rate-map">
+		<parameter property="rate_type" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="src_currency" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="dst_currency" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="eff_date" jdbcType="DATE" mode="IN"/>
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="rate" javaType="java.math.BigDecimal" jdbcType="NUMERIC" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="get-rate"
+			   parameterMap="get-rate-map">
+		{ call itf_ui_integration_pkg.get_rate_for_inst(
+		i_rate_type		=> ?
+		, i_src_currency	=> ?
+		, i_dst_currency	=> ?
+		, i_eff_date		=> ?
+		, i_inst_id		=> ?
+		, o_rate			=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-card-cursor-map">
+		<parameter property="customer_number" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="customer_id" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="account_number" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="account_id" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="state" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="get_balance" jdbcType="BIT" mode="IN" />
+		<parameter property="card_mask" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="card_type_id" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="product_id" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="creation_date" jdbcType="DATE" mode="IN" />
+		<parameter property="expir_date" jdbcType="DATE" mode="IN" />
+		<parameter property="embossed_name" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="cardholder_first_name" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="cardholder_last_name" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="list-card-cursor-map"/>
+	</parameterMap>
+	<resultMap class="ru.bpc.svxp.Card" id="list-card-cursor-map">
+		<result property="id" column="card_uid" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardInstanceId" column="card_instance_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="cardNumber" column="card_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardMask" column="card_mask" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardType" column="card_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="seqNumber" column="seq_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="creationDate" column="creation_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="expirDate" column="expir_date" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="personName" column="person_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="category" column="category" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="categoryName" column="category_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="networkId" column="network_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="networkName" column="network_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="status" column="status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusName" column="status_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="state" column="state" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="stateName" column="state_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="binCurrency" column="bin_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currencyName" column="currency_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="avalBalance" column="aval_balance" javaType="java.math.BigDecimal" jdbcType="NUMBER"/>
+		<result property="holdBalance" column="hold_balance" javaType="java.math.BigDecimal" jdbcType="NUMBER"/>
+		<result property="customerId" column="customer_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="customerNumber" column="customer_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="instId" column="inst_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="accountNumber" column="account_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountId" column="account_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="productId" column="product_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="productName" column="product_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="embossedName" column="embossed_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardholderName" resultMap="integ.list-card-cardholder-name-cursor-map"/>
+	</resultMap>
+	<resultMap class="ru.bpc.svxp.CardholderName" id="list-card-cardholder-name-cursor-map">
+		<result property="firstName" column="cardholder_first_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="lastName" column="cardholder_last_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+	<procedure id="get-card-cursor" parameterMap="get-card-cursor-map">
+		{call itf_ui_integration_pkg.get_card_list(
+			  i_customer_number			=> ?
+			, i_inst_id					=> ?
+			, i_customer_id				=> ?
+			, i_account_number			=> ?
+			, i_account_id				=> ?
+			, i_state					=> ?
+			, i_get_balance				=> ?
+			, i_card_mask				=> ?
+			, i_card_type_id			=> ?
+			, i_product_id				=> ?
+			, i_creation_date			=> ?
+			, i_expir_date				=> ?
+			, i_embossed_name			=> ?
+			, i_cardholder_first_name	=> ?
+			, i_cardholder_last_name	=> ?
+			, i_lang					=> ?
+			, o_ref_cursor				=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-card-details-map">
+		<parameter property="card_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="card_id" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="seq_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="expir_date" jdbcType="DATE" mode="IN"/>
+		<parameter property="instance_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="card_type_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-card-details-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.svxp.CardDetails" id="get-card-details-result-map">
+		<result property="id" column="card_uid" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="instanceId" column="instance_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="cardNumber" column="card_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardMask" column="card_mask" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="seqNumber" column="seq_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="expirDate" column="expir_date" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="personName" column="person_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardTypeId" column="card_type_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="nameCardType" column="name_card_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="networkId" column="network_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="networkName" column="network_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="category" column="category" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="categoryName" column="category_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="status" column="status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusName" column="status_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="state" column="state" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="stateName" column="state_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="issDate" column="iss_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="agentId" column="agent_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="agentName" column="agent_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="isVirtual" column="is_virtual" javaType="java.lang.Boolean" jdbcType="BIT"/>
+		<result property="counterInvalidPin" column="counter_invalid_pin" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="stateChangeReason" column="state_change_reason" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="stateChangeReasonDescription" column="state_change_reason_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="stateChangeDate" column="state_change_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="stateChangeUser" column="state_change_user" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="prevState" column="prev_state" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="prevStateDescription" column="prev_state_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusChangeReason" column="status_change_reason" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusChangeReasonDescription" column="status_change_reason_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusChangeDate" column="status_change_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="statusChangeUser" column="status_change_user" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="prevStatus" column="prev_status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="prevStatusDescription" column="prev_status_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="agentNumber" column="agent_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="productNumber" column="product_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="productId" column="product_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+        <result property="productName" column="product_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="deliveryMethod" column="delivery_method" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="deliveryMethodDescription" column="delivery_method_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="lastApplicationDate" column="last_application_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="lastApplicationUser" column="last_application_user" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="prevCardId" column="prev_card_id" javaType="java.lang.String" jdbcType="NUMBER"/>
+		<result property="prevCardNumber" column="prev_card_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="reissueReason" column="reissue_reason" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="reissueReasonDescription" column="reissue_reason_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="replaceCardId" column="replace_card_id" javaType="java.lang.String" jdbcType="NUMBER"/>
+		<result property="replaceCardNumber" column="replace_card_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-card-details" parameterMap="get-card-details-map">
+		{call itf_ui_integration_pkg.get_card_details(
+			  i_card_number		=> ?
+			, i_card_uid		=> ?
+			, i_seq_number		=> ?
+			, i_expir_date		=> ?
+			, i_instance_id		=> ?
+			, i_lang			=> ?
+			, i_card_type_id	=> ?
+			, o_ref_cursor		=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-customer-details-map">
+		<parameter property="customer_id" jdbcType="NUMERIC" mode="INOUT"/>
+		<parameter property="customer_number" jdbcType="VARCHAR" mode="INOUT"/>
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="entity_type" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="entity_type_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="category" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="category_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="credit_rating" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="credit_rating_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="resident" javaType="java.lang.Boolean" jdbcType="BIT" mode="OUT"/>
+		<parameter property="nationality" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="country_code" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="country_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="relation" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="relation_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="first_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="second_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="surname" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="gender" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="birthday" jdbcType="DATE" mode="OUT"/>
+		<parameter property="place_birth" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="short_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="full_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="incorp_form" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="incorp_form_name" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="get-customer-details"
+			   parameterMap="get-customer-details-map">
+		{call itf_ui_integration_pkg.get_customer_details(
+		io_customer_id       => ?
+		, io_customer_number   => ?
+		, i_inst_id            => ?
+		, i_lang               => ?
+		, o_entity_type        => ?
+		, o_entity_type_name   => ?
+		, o_category           => ?
+		, o_category_name      => ?
+		, o_credit_rating      => ?
+		, o_credit_rating_name => ?
+		, o_resident           => ?
+		, o_nationality        => ?
+		, o_country_code	   => ?
+		, o_country_name 	   => ?
+		, o_relation		   => ?
+		, o_relation_name      => ?
+		, o_first_name		   => ?
+		, o_second_name        => ?
+		, o_surname            => ?
+		, o_gender             => ?
+		, o_birthday           => ?
+		, o_place_birth        => ?
+		, o_short_name         => ?
+		, o_full_name          => ?
+		, o_incorp_form        => ?
+		, o_incorp_form_name   => ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-address-cursor-map">
+		<parameter property="customer_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="customer_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="address-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.svxp.Address" id="address-result-map">
+		<result property="addressType" column="address_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="addressTypeName" column="address_type_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="country" column="country" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="countryName" column="country_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="postalCode" column="postal_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="region" column="region" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="city" column="city" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="street" column="street" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="house" column="house" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="apartment" column="apartment" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-address-cursor"
+			   parameterMap="get-address-cursor-map">
+		{call itf_ui_integration_pkg.get_customer_addresses(
+		i_customer_id 	=> ?
+		, i_customer_number => ?
+		, i_inst_id		  	=> ?
+		, i_lang		  	=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-contact-cursor-map">
+		<parameter property="customer_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="customer_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="get_only_actual" javaType="java.lang.Boolean" jdbcType="BIT" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="contact-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.svxp.Contact" id="contact-result-map">
+		<result property="contactType" column="contact_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="contactTypeName" column="contact_type_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="communMethod" column="commun_method" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="communMethodName" column="commun_method_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="communAddress" column="commun_address" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-contact-cursor"
+			   parameterMap="get-contact-cursor-map">
+		{call itf_ui_integration_pkg.get_customer_contacts(
+		i_customer_id 	=> ?
+		, i_customer_number => ?
+		, i_inst_id		  	=> ?
+		, i_get_only_actual => ?
+		, i_lang		  	=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-document-cursor-map">
+		<parameter property="customer_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="customer_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="get_only_actual" javaType="java.lang.Boolean" jdbcType="BIT" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="document-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.common.PersonId" id="document-result-map">
+		<result property="idType" column="id_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="idTypeName" column="id_type_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="idSeries" column="id_series" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="idNumber" column="id_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="issueDate" column="id_issue_date" javaType="java.util.Date" jdbcType="DATE"/>
+		<result property="expireDate" column="id_expire_date" javaType="java.util.Date" jdbcType="DATE"/>
+		<result property="idIssuer" column="id_issuer" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="description" column="comments" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-document-cursor"
+			   parameterMap="get-document-cursor-map">
+		{call itf_ui_integration_pkg.get_customer_documents(
+		i_customer_id 	=> ?
+		, i_customer_number => ?
+		, i_inst_id		  	=> ?
+		, i_get_only_actual => ?
+		, i_lang		  	=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-operation-cursor-map">
+		<parameter property="card_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="card_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="account_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="account_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="customer_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="customer_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="start_date" jdbcType="DATE" mode="IN"/>
+		<parameter property="end_date" jdbcType="DATE" mode="IN"/>
+		<parameter property="i_status_tab" jdbcType="DICT_TAB_TPT" typeName="DICT_TAB_TPT" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="IN"/>
+		<parameter property="oper_type" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="msg_type" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="match_status" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="merchant_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="merchant_name" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="operation-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.operations.Operation" id="operation-result-map">
+		<result property="id" column="id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="originalId" column="original_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="cardMask" column="card_mask" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountNumber" column="account_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardSeqNumber" column="card_seq_number" javaType="java.lang.String" jdbcType="NUMBER"/>
+		<result property="isReversal" column="is_reversal" javaType="java.lang.Boolean" jdbcType="BIT"/>
+		<result property="operDate" column="oper_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="operationType" column="oper_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="operationTypeName" column="oper_type_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="status" column="status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusName" column="status_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="operationAmount" column="oper_amount" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="operationCurrency" column="oper_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currencyName" column="currency_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="mccName" column="mcc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="merchantNumber" column="merchant_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="merchantName" column="merchant_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="merchantStreet" column="merchant_address" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="balance" column="balance" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency" column="currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountAmount" column="account_amount" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountCurrency" column="account_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="hostDate" column="host_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="externalAuthId" column="external_auth_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-operations-cursor"
+			   parameterMap="get-operation-cursor-map">
+		{call itf_ui_integration_pkg.get_object_operations(
+		i_card_uid 		=> ?
+		, i_card_number 	=> ?
+		, i_inst_id		  	=> ?
+		, i_account_id 		=> ?
+		, i_account_number  => ?
+		, i_customer_number => ?
+		, i_customer_id     => ?
+		, i_lang		  	=> ?
+		, i_start_date		=> ?
+		, i_end_date		=> ?
+		, i_status_tab      => ?
+		, i_oper_type       => ?
+		, i_msg_type        => ?
+		, i_match_status    => ?
+		, i_merchant_number => ?
+		, i_merchant_name   => ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-customer-ntf-settings-cursor-map">
+		<parameter property="customer_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="customer_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="account_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="account_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="card_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="card_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="customer-ntf-settings-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.svxp.CustomerNtfSettings" id="customer-ntf-settings-result-map">
+		<result property="entityType" column="entity_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="entityTypeName" column="entity_type_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="objectId" column="object_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="eventType" column="event_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="eventTypeName" column="event_type_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="channelId" column="channel_id" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="channelName" column="channel_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="deliveryAddress" column="delivery_address" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-customer-ntf-settings-cursor"
+			   parameterMap="get-customer-ntf-settings-cursor-map">
+		{call itf_ui_integration_pkg.get_customer_ntf_settings(
+		i_customer_id		=> ?
+		, i_customer_number	=> ?
+		, i_inst_id		  	=> ?
+		, i_account_id 		=> ?
+		, i_account_number  => ?
+		, i_card_uid		=> ?
+		, i_card_number		=> ?
+		, i_lang		  	=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-insts-list-map">
+		<parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-insts-list-result-map"/>
+	</parameterMap>
+
+	<resultMap class="in.bpc.sv.svxp.Inst" id="get-insts-list-result-map">
+		<result property="instId" column="inst_id" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="description" column="description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-insts-list"
+			   parameterMap="get-insts-list-map">
+		{call itf_ui_cash_management.get_institution_list(
+		i_lang			=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="get-agents-list-map" class="java.util.Map">
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-agents-list-result-map"/>
+	</parameterMap>
+
+	<resultMap id="get-agents-list-result-map" class="ru.bpc.sv2.instagent.Agent">
+		<result property="id" column="id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="seqnum" column="seqnum" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="instId" column="inst_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="parentId" column="parent_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="agentType" column="agent_type" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="bydefault" column="is_default" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="agentNumber" column="agent_number" javaType="java.lang.String" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<select id="get-agents-list"
+			parameterMap="get-agents-list-map"
+			resultMap="get-agents-list-result-map">
+		select
+		id
+		, seqnum
+		, inst_id
+		, parent_id
+		, agent_type
+		, is_default
+		, agent_number
+		from
+		ost_agent_vw
+	</select>
+
+	<parameterMap id="get-contact-list-param-map" class="java.util.Map">
+		<parameter property="entity_type" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="object_id" javaType="java.lang.Integer" jdbcType="NUMBER" mode="IN" />
+	</parameterMap>
+
+	<resultMap id="get-contact-list-res-map" class="ru.bpc.sv2.instagent.ContactObject">
+		<result property="id" column="id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="objectId" column="object_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="contactType" column="contact_type" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="contactId" column="contact_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<select id="get-contact-list"
+			parameterMap="get-contact-list-param-map"
+			resultMap="get-contact-list-res-map">
+		select
+		ccb.id
+		, ccb.object_id
+		, ccb.contact_type
+		, ccb.contact_id
+		from
+		com_contact_object_vw ccb
+		where
+		ccb.entity_type = ?
+		and
+		ccb.object_id = ?
+	</select>
+
+	<parameterMap id="get-contact-data-list-param-map" class="java.util.Map">
+		<parameter property="contact_id" javaType="java.lang.Long" jdbcType="NUMBER" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-contact-data-list-res-map"/>
+	</parameterMap>
+
+	<resultMap id="get-contact-data-list-res-map" class="ru.bpc.sv.instagentws.ContactDataType">
+		<result property="communMethod" column="commun_method" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="communAddress" column="commun_address" javaType="java.lang.String" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<select id="get-contact-data-list"
+			parameterMap="get-contact-data-list-param-map"
+			resultMap="get-contact-data-list-res-map">
+		select
+		commun_method
+		, commun_address
+		from
+		com_contact_data
+		where
+		contact_id = ?
+	</select>
+
+	<parameterMap id="get-institutes-list-map" class="java.util.Map">
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-institutes-list-result-map"/>
+	</parameterMap>
+
+	<resultMap id="get-institutes-list-result-map" class="ru.bpc.sv2.instagent.Institute">
+		<result property="id" column="id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="seqnum" column="seqnum" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="parentId" column="parent_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="networkId" column="network_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="instType" column="inst_type" javaType="java.lang.String" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<select id="get-institutes-lists"
+			parameterMap="get-institutes-list-map"
+			resultMap="get-institutes-list-result-map">
+		select
+		id
+		, seqnum
+		, parent_id
+		, network_id
+		, inst_type
+		from
+		ost_institution_vw a
+	</select>
+
+	<parameterMap id="get-installment-plan-map" class="java.util.Map">
+		<parameter property="dppAmount" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="installmentCount" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="fixedAmount" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="installmentPeriod" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="firstInstalmentDate" javaType="java.util.Date" jdbcType="DATE" mode="IN" />
+		<parameter property="interestAmount" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="calcAlgorithm" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="merchantNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="oInstallmentPlan" javaType="java.lang.String" jdbcType="CLOB" mode="OUT" />
+	</parameterMap>
+
+	<procedure id="get-installment-plan" parameterMap="get-installment-plan-map">
+		{call dpp_ui_payment_plan_pkg.calculate_dpp(
+		i_dpp_amount    		     => ?
+		, i_instalment_count         => ?
+		, i_instalment_amount        => ?
+		, i_instalment_period        => ?
+		, i_first_instalment_date    => ?
+		, i_interest_amount          => ?
+		, i_calc_algorithm           => ?
+		, i_merchant_number          => ?
+		, i_inst_id                  => ?
+		, o_installment_plan         => ?
+		)}
+	</procedure>
+
+	<resultMap id="get-network-result-map" class="ru.bpc.sv.instagentws.NetworkType">
+		<result property="id" column="id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="seqnum" column="seqnum" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="instId" column="inst_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="binTableScanPriority" column="bin_table_scan_priority" javaType="java.lang.String" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<select id="get-network"
+			parameterClass="java.lang.Integer"
+			resultMap="get-network-result-map">
+		select
+		a.id
+		, a.seqnum
+		, a.inst_id
+		, a.bin_table_scan_priority
+		from
+		net_network a
+		where
+		a.inst_id = #inst_id#
+	</select>
+
+	<parameterMap id="get-inst-lang-name-type-param-map" class="java.util.Map">
+		<parameter property="object_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="table_name" jdbcType="TEXT" mode="IN" />
+		<parameter property="column_name" jdbcType="TEXT" mode="IN" />
+		<parameter property="lang" jdbcType="TEXT" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-inst-lang-name-type-res-map"/>
+	</parameterMap>
+
+	<resultMap id="get-inst-lang-name-type-res-map" class="ru.bpc.sv.instagentws.LangNameType">
+		<result property="lang" column="lang" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<result property="name" column="text" javaType="java.lang.String" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<select id="get-inst-lang-name-type"
+			parameterMap="get-inst-lang-name-type-param-map"
+			resultMap="get-inst-lang-name-type-res-map">
+		select
+		lang
+		, text
+		from
+		com_i18n
+		where
+		object_id = #object_id#
+		and
+		table_name = #table_name#
+		and
+		column_name like #column_name#
+		<isNotEmpty property="lang" prepend=" and ">lang = #lang#</isNotEmpty>
+	</select>
+
+	<parameterMap id="get-inst-type-lang-name-param-map" class="java.util.Map">
+		<parameter property="dict" jdbcType="TEXT" mode="IN" />
+		<parameter property="code" jdbcType="TEXT" mode="IN" />
+		<parameter property="table_name" jdbcType="TEXT" mode="IN" />
+		<parameter property="column_name" jdbcType="TEXT" mode="IN" />
+		<parameter property="lang" jdbcType="TEXT" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-inst-lang-name-type-res-map"/>
+	</parameterMap>
+
+	<select id="get-inst-type-lang-name"
+			parameterMap="get-inst-type-lang-name-param-map"
+			resultMap="get-inst-lang-name-type-res-map">
+		select
+		lang
+		, text
+		from
+		com_i18n
+		where
+		object_id = (select id from com_dictionary where dict = #dict# and code = #code#)
+		and
+		table_name = #table_name#
+		and
+		column_name like #column_name#
+		<isNotEmpty property="lang" prepend=" and ">lang = #lang#</isNotEmpty>
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-atms-list-map">
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-atms-list-result-map"/>
+	</parameterMap>
+
+	<resultMap class="in.bpc.sv.svxp.Atm" id="get-atms-list-result-map">
+		<result property="terminalId" column="id" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="state" column="state" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="city" column="city" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="street" column="street" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="instId" column="inst_id" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+	</resultMap>
+
+	<procedure id="get-atms-list"
+			   parameterMap="get-atms-list-map">
+		{call itf_ui_cash_management.get_atm_list(
+		o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-atm-transactions-map">
+		<parameter property="operId" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="atmIdList" jdbcType="NUM_TAB_TPT" typeName="PRC_SESSION_FILE_RECNUM_TAB" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="IN" />
+		<parameter property="maxCount" jdbcType="NUMBER" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-atm-transactions-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.accounts.TransactionSvXp" id="get-atm-transactions-result-map">
+		<result property="terminalId" column="terminal_id" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="operId" column="oper_id" javaType="java.lang.String" jdbcType="NUMERIC"/>
+		<result property="dateTime" column="oper_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="operType" column="oper_type" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="amount" column="amount" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="noteRetracted" column="note_retracted" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="noteRejected" column="note_rejected" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="noteCashIn" column="note_cash_in" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="dispNumber1" column="disp_number1" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="face1" column="face1" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency1" column="currency1" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="dispNumber2" column="disp_number2" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="face2" column="face2" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency2" column="currency2" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="dispNumber3" column="disp_number3" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="face3" column="face3" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency3" column="currency3" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="dispNumber4" column="disp_number4" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="face4" column="face4" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency4" column="currency4" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="dispNumber5" column="disp_number5" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="face5" column="face5" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency5" column="currency5" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="dispNumber6" column="disp_number6" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="face6" column="face6" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency6" column="currency6" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="dispNumber7" column="disp_number7" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="face7" column="face7" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency7" column="currency7" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="dispNumber8" column="disp_number8" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="face8" column="face8" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency8" column="currency8" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="noteDispensed" column="note_dispensed" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="noteRemained" column="note_remained" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+	</resultMap>
+
+	<procedure id="get-atm-transactions"
+			   parameterMap="get-atm-transactions-map">
+		{call itf_ui_cash_management.get_atm_transactions(
+		i_oper_id			=> ?
+		, i_atm_id_list		=> ?
+		, i_max_count		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-atm-downtime-map">
+		<parameter property="terminal_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_date" jdbcType="DATE" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-atm-downtime-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.accounts.Downtime" id="get-atm-downtime-result-map">
+		<result property="terminalId" column="terminal_id" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="dateFrom" column="datefrom" javaType="java.util.Date" jdbcType="DATE"/>
+		<result property="dateTo" column="dateto" javaType="java.util.Date" jdbcType="DATE"/>
+		<result property="downtimeType" column="downtime_type" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+	</resultMap>
+
+	<procedure id="get-atm-downtimes"
+			   parameterMap="get-atm-downtime-map">
+		{call itf_ui_cash_management.get_atm_downtime(
+		i_terminal_id		=> ?
+		, i_last_date		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-currency-rates-map">
+		<parameter property="instId" jdbcType="NUM_TAB_TPT" typeName="PRC_SESSION_FILE_RECNUM_TAB" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-currency-rates-result-map"/>
+	</parameterMap>
+
+	<resultMap class="in.bpc.sv.svxp.CurrencyScale" id="get-currency-rates-dst-currency-result-map">
+		<result property="scale" column="dst_scale" javaType="java.lang.Float" jdbcType="NUMERIC"/>
+		<result property="currency" column="dst_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="exponentScale" column="dst_exponent_scale" javaType="java.lang.Float" jdbcType="NUMERIC"/>
+	</resultMap>
+
+	<resultMap class="in.bpc.sv.svxp.CurrencyScale" id="get-currency-rates-src-currency-result-map">
+		<result property="scale" column="src_scale" javaType="java.lang.Float" jdbcType="NUMERIC"/>
+		<result property="currency" column="src_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="exponentScale" column="src_exponent_scale" javaType="java.lang.Float" jdbcType="NUMERIC"/>
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.common.rates.RateSvXp" id="get-currency-rates-result-map">
+		<result property="instId" column="inst_id" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="rateType" column="rate_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="effectiveDate" column="eff_date" javaType="java.util.Date" jdbcType="DATE"/>
+		<result property="expirationDate" column="exp_date" javaType="java.util.Date" jdbcType="DATE"/>
+		<result property="dstCurrency" resultMap="integ.get-currency-rates-dst-currency-result-map" />
+		<result property="srcCurrency" resultMap="integ.get-currency-rates-src-currency-result-map" />
+		<result property="rate" column="rate" javaType="java.lang.Float" jdbcType="NUMERIC"/>
+		<result property="inverted" column="inverted" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<result property="rateType" column="rate_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<procedure id="get-currency-rates"
+			   parameterMap="get-currency-rates-map">
+		{call itf_ui_cash_management.get_currency_rates(
+		i_inst_id_list		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-object-limits-map">
+		<parameter property="card_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="card_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="account_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="inst_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="customer_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="customer_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-object-limits-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.fcl.limits.ObjectLimits" id="get-object-limits-result-map">
+		<result property="entityType" column="entity_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="objectId" column="object_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="limitType" column="limit_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="limitName" column="limit_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="limitCurrency" column="limit_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="countValue" column="count_value" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="sumValue" column="sum_value" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="sumLimit" column="sum_limit" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="countLimit" column="count_limit" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="lastResetDate" column="last_reset_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="nextDate" column="next_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+	</resultMap>
+
+	<procedure id="get-object-limits"
+			   parameterMap="get-object-limits-map">
+		{call itf_ui_integration_pkg.get_object_limits(
+		i_card_number		=> ?
+		, i_card_uid		=> ?
+		, i_account_id		=> ?
+		, i_account_number	=> ?
+		, i_inst_id			=> ?
+		, i_customer_id		=> ?
+		, i_customer_number	=> ?
+		, i_lang			=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="generate-caav-map">
+		<parameter property="auth_res_code" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="sec_factor_auth_code" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="key_indicator" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="card_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="unpredictable_number" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="o_caav" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="generate-caav"
+			   parameterMap="generate-caav-map">
+		{call ecm_api_acs_pkg.generate_caav(
+		i_auth_res_code 			=> ?
+		, i_sec_factor_auth_code	=> ?
+		, i_key_indicator			=> ?
+		, i_card_number				=> ?
+		, i_unpredictable_number	=> ?
+		, o_cavv					=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="is-card-involved-map">
+		<parameter property="card_number" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="eff_date" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+	</parameterMap>
+
+	<select id="is-card-involved"
+			parameterMap="is-card-involved-map"
+			resultClass="java.lang.Integer">
+		select ecm_api_service_pkg.get_active_service_id(
+		i_card_number 	 => ?
+		, i_eff_date => ?
+		) from dual
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-tel-number-map">
+		<parameter property="card_number" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="otp" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="delivery_address" jdbcType="VARCHAR" javaType="java.lang.String" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="get-tel-number"
+			   parameterMap="get-tel-number-map">
+		{call sec_api_passwd_pkg.send_onetime_password(
+		i_card_number		=> ?
+		, i_otp 			=> ?
+		, o_delivery_address 	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="set-auth-scheme-map">
+		<parameter property="cardUid"        jdbcType="VARCHAR"   javaType="java.lang.String" mode="IN"/>
+		<parameter property="cardNumber"     jdbcType="VARCHAR"   javaType="java.lang.String" mode="IN"/>
+		<parameter property="authSchemeCode" jdbcType="VARCHAR"   javaType="java.lang.String" mode="IN"/>
+		<parameter property="startDate"      jdbcType="TIMESTAMP" javaType="java.util.Date"   mode="IN"/>
+		<parameter property="endDate"        jdbcType="TIMESTAMP" javaType="java.util.Date"   mode="IN"/>
+	</parameterMap>
+
+	<procedure id="set-auth-scheme" parameterMap="set-auth-scheme-map">
+		{call aup_api_scheme_pkg.add_scheme_card(
+			  i_card_uid		=> ?
+			, i_card_number		=> ?
+			, i_system_name		=> ?
+			, i_start_date		=> ?
+			, i_end_date		=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-card-auth-schemes-map">
+		<parameter property="card_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="card_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="only_active" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" javaType="java.lang.String" jdbcType="BIT" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-card-auth-schemes-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.aup.AuthSchemeObject" id="get-card-auth-schemes-result-map">
+		<result property="schemeName" column="scheme_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="objectName" column="system_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="active" column="is_active" javaType="java.lang.Boolean" jdbcType="NUMERIC" />
+		<result property="startDate" column="start_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="endDate" column="end_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+
+	</resultMap>
+
+	<procedure id="get-card-auth-schemes"
+			   parameterMap="get-card-auth-schemes-map">
+		{call itf_ui_integration_pkg.get_card_auth_schemes(
+		i_card_uid		=> ?
+		, i_card_number		=> ?
+		, i_only_active		=> ?
+		, i_lang 			=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<resultMap id="get-cardholder-document-map" class="ru.bpc.sv2.common.PersonId">
+		<result property="id" column="id_value"/>
+		<result property="idType" column="id_type"/>
+		<result property="idTypeName" column="id_type_name"/>
+		<result property="idSeries" column="id_series"/>
+		<result property="idNumber" column="id_number"/>
+		<result property="idIssuer" column="id_issuer"/>
+		<result property="issueDate" column="id_issue_date"/>
+		<result property="expireDate" column="id_expire_date"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="get-cardholder-map">
+		<parameter property="card_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="card_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="surname" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="first_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="second_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="gender" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="birthday" jdbcType="DATE" mode="OUT"/>
+		<parameter property="cardholder_number" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="cardholder_name" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="document_cursor" jdbcType="ORACLECURSOR" mode="OUT"
+				   javaType="java.sql.ResultSet" resultMap="get-cardholder-document-map"/>
+	</parameterMap>
+
+	<procedure id="get-cardholder" parameterMap="get-cardholder-map">
+		{call itf_ui_integration_pkg.get_cardholder_data(
+		i_card_number			=> ?
+		, i_card_uid			=> ?
+		, i_lang				=> ?
+		, o_surname				=> ?
+		, o_first_name			=> ?
+		, o_second_name			=> ?
+		, o_gender				=> ?
+		, o_birthday			=> ?
+		, o_cardholder_number	=> ?
+		, o_cardholder_name		=> ?
+		, o_document_cursor		=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-service-providers-map">
+		<parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-service-providers-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.svxp.ServiceProvider" id="get-service-providers-result-map">
+		<result property="purposeName" column="purpose_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="purposeId" column="id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+	</resultMap>
+
+	<procedure id="get-service-providers"
+			   parameterMap="get-service-providers-map">
+		{call pmo_ui_purpose_pkg.get_service_provider_list(
+		i_lang				=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.accounts.Transaction" id="get-transactions-map">
+		<result property="objectId" column="object_id"/>
+		<result property="originalId" column="original_id"/>
+		<result property="transactionId" column="transaction_id"/>
+		<result property="amount" column="amount"/>
+		<result property="amountPurpose" column="amount_purpose"/>
+		<result property="avalBal" column="balance"/>
+		<result property="operationType" column="oper_type"/>
+		<result property="transactionType" column="transaction_type"/>
+		<result property="currency" column="currency"/>
+		<result property="merchantNumber" column="merchant_number"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantCity" column="merchant_city"/>
+		<result property="merchantCountry" column="merchant_country"/>
+		<result property="merchantStreet" column="merchant_street"/>
+		<result property="operationDate" column="oper_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="postingDate" column="posting_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+
+	</resultMap>
+
+	<select id="get-transactions" resultMap="get-transactions-map"
+			parameterClass="qparams">
+		SELECT
+		object_id
+		, original_id
+		, transaction_id
+		, account_id
+		, amount
+		, amount_purpose
+		, currency
+		, oper_type
+		, transaction_type
+		, balance
+		, oper_date
+		, posting_date
+		, merchant_number
+		, merchant_name
+		, merchant_street
+		, merchant_city
+		, merchant_country
+
+		, get_object_desc(i_entity_type => 'ENTTTRSC', i_object_id => transaction_id) AS description
+		FROM
+		acc_ui_entry_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="accountNumber">
+				account_id = acc_api_account_pkg.get_account_id(i_account_number=> #filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">
+				object_id = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="status">
+				status = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="postingDateFrom">TRUNC(posting_date) >= TRUNC(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="postingDateTo">TRUNC(posting_date) <![CDATA[<=]]> TRUNC(#filters[].value#)</isEqual>
+		</iterate>
+		ORDER BY posting_date ASC
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-credit-statement-map">
+		<parameter property="xml" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="account_number" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="inst_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-credit-statement"
+			   parameterMap="get-credit-statement-map">
+		{call itf_ui_integration_pkg.get_credit_statement(
+		o_xml         	=> ?
+		, i_account_number => ?
+		, i_inst_id	 	=> ?
+		, i_lang			=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-invoice-data-map">
+		<parameter property="account_number" mode="IN"/>
+		<parameter property="inst_id" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-invoice-data-result-map"/>
+	</parameterMap>
+
+	<resultMap class="ru.bpc.sv2.credit.CreditInvoice" id="get-invoice-data-result-map">
+		<result property="accountNumber" column="account_number"/>
+		<result property="currency" column="currency"/>
+		<result property="id" column="id"/>
+		<result property="id" column="id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="serialNumber" column="serial_number"/>
+		<result property="invoiceDate" column="invoice_date"/>
+		<result property="type" column="invoice_type"/>
+		<result property="minAmountDue" column="min_amount_due"/>
+		<result property="totalAmountDue" column="total_amount_due"/>
+		<result property="ownFunds" column="own_funds"/>
+		<result property="exceedLimit" column="exceed_limit"/>
+		<result property="startDate" column="start_date"/>
+		<result property="dueDate" column="due_date"/>
+		<result property="graceDate" column="grace_date"/>
+		<result property="penaltyDate" column="penalty_date"/>
+		<result property="madPaid" column="is_mad_paid"/>
+		<result property="tadPaid" column="is_tad_paid"/>
+		<result property="aging" column="aging_period"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="instId" column="inst_id"/>
+	</resultMap>
+
+	<procedure id="get-invoice-data"
+			   parameterMap="get-invoice-data-map">
+		{call itf_ui_integration_pkg.get_last_invoice(
+		i_account_number	=> ?
+		, i_inst_id 		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-invoice-data-map">
+		<parameter property="entity_type" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="object_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-flex-field-data"/>
+	</parameterMap>
+
+	<resultMap  id="mapping-flex-field-data"
+				class="ru.bpc.sv2.common.FlexFieldData"  >
+		<result property="dataId" column="id" />
+		<result property="fieldId" column="field_id" />
+		<result property="entityType" column="entity_type" />
+		<result property="objectType" column="object_type" />
+		<result property="userDefined" column="is_user_defined" javaType="boolean" nullValue="false"/>
+		<result property="instId" column="inst_id" />
+		<result property="defaultNumberValue" column="default_number_value" />
+		<result property="defaultCharValue" column="default_char_value" />
+		<result property="defaultDateValue" column="default_date_value" />
+		<result property="defaultLovValue" column="default_lov_value" />
+		<result property="instName" column="inst_name" />
+	</resultMap>
+
+	<procedure id="get-flex-fields-data"
+			   parameterMap="get-invoice-data-map">
+		{call itf_ui_integration_pkg.get_flex_fields(
+		i_entity_type		=> ?
+		, i_object_id 		=> ?
+		, i_lang	 		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+
+	<resultMap class="ru.bpc.svxp.ObjectCycle" id="get-object-cycles-result-map">
+		<result property="cycleType" column="cycle_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cycleTypeDescription" column="cycle_type_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="prevDate" column="prev_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="nextDate" column="next_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="cycleId" column="cycle_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="cycleDescription" column="cycle_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="entityType" column="entity_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="entityDescription" column="entity_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="get-object-cycles-map">
+		<parameter property="entity_type" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="object_id" javaType="java.lang.Long" jdbcType="NUMBER" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-object-cycles-result-map"/>
+	</parameterMap>
+
+	<procedure id="get-object-cycles"
+			   parameterMap="get-object-cycles-map">
+		{call itf_ui_integration_pkg.get_object_cycles(
+		i_entity_type		=> ?
+		, i_object_id  		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.svxp.AccountDetail" id="get-account-details-result-map">
+		<result property="accountId" column="account_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="accountNumber" column="account_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountType" column="account_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountTypeName" column="account_type_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency" column="currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="status" column="status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusName" column="status_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="availableBalance" column="available_balance" javaType="java.math.BigDecimal" jdbcType="NUMBER"/>
+		<result property="accountOpenDate" column="account_open_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="lastApplicationDate" column="last_application_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="lastApplicationUser" column="last_application_user" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusChangeReason" column="status_change_reason" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusChangeReasonDescription" column="status_change_reason_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusChangeDate" column="status_change_date" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result property="statusChangeUser" column="status_change_user" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="agentId" column="agent_id" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="agentName" column="agent_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="agentNumber" column="agent_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="productNumber" column="product_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="prevStatus" column="prev_status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="prevStatusDescription" column="prev_status_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="get-account-details-map">
+		<parameter property="account_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="inst_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-account-details-result-map"/>
+	</parameterMap>
+
+	<procedure id="get-account-details"
+			   parameterMap="get-account-details-map">
+		{call itf_ui_integration_pkg.get_account_details(
+		i_account_number	=> ?
+		, i_account_id 		=> ?
+		, i_inst_id 		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.svxp.AccountBalance" id="get-account-balances-result-map">
+		<result property="balanceType" column="balance_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="balanceTypeDescription" column="balance_type_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="amount" column="amount" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="currency" column="currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="amountAccCurrency" column="amount_acc_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="accountCurrency" column="account_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="get-account-balances-map">
+		<parameter property="account_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="inst_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-account-balances-result-map"/>
+	</parameterMap>
+
+	<procedure id="get-account-balances"
+			   parameterMap="get-account-balances-map">
+		{call itf_ui_integration_pkg.get_account_balances(
+		i_account_number	=> ?
+		, i_account_id 		=> ?
+		, i_inst_id 		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.svxp.CardFeature" id="get-card-features-result-map">
+		<result property="cardFeature" column="card_feature" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="featureDescription" column="feature_description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="get-card-features-map">
+		<parameter property="card_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="card_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-card-features-result-map"/>
+	</parameterMap>
+
+	<procedure id="get-card-features"
+			   parameterMap="get-card-features-map">
+		{call itf_ui_integration_pkg.get_card_features(
+		i_card_number		=> ?
+		, i_card_uid 		=> ?
+		, o_ref_cursor  	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="credit-account-data-map">
+		<parameter property="accountId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="accountNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="INOUT" />
+		<parameter property="instId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="effDate" javaType="java.util.Date" jdbcType="DATE" mode="IN" />
+		<parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="closingDate" javaType="java.util.Date" jdbcType="DATE" mode="OUT" />
+		<parameter property="totalAmountDue" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="exceedLimit" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="interestRate" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="interestAmount" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="overdueRate" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="overdueAmount" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="totalIncome" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="repayAmount" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="repayInterest" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="repayOverdue" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="remainderDebt" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="overdraftBalance" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="interestBalance" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="overdueBalance" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+		<parameter property="dueDate" javaType="java.util.Date" jdbcType="DATE" mode="OUT" />
+		<parameter property="minAmountDue" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT" />
+	</parameterMap>
+
+	<procedure id="get-credit-account-data"
+			   parameterMap="credit-account-data-map">
+		{call itf_ui_integration_pkg.get_credit_account_data(
+		i_account_id            =>  ?
+		, io_account_number       =>  ?
+		, i_inst_id               =>  ?
+		, i_eff_date              =>  ?
+		, i_lang                  =>  ?
+		, o_closing_date          =>  ?
+		, o_total_amount_due      =>  ?
+		, o_exceed_limit          =>  ?
+		, o_interest_rate         =>  ?
+		, o_interest_amount       =>  ?
+		, o_overdue_rate          =>  ?
+		, o_overdue_amount        =>  ?
+		, o_total_income          =>  ?
+		, o_repay_amount          =>  ?
+		, o_repay_interest        =>  ?
+		, o_repay_overdue         =>  ?
+		, o_remainder_debt        =>  ?
+		, o_overdraft_balance     =>  ?
+		, o_interest_balance      =>  ?
+		, o_overdue_balance       =>  ?
+		, o_due_date              =>  ?
+		, o_min_amount_due        =>  ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="customer-by-person-data-map">
+		<parameter property="inst_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="commun_method" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="commun_address" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="id_type" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="id_series" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="id_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="result" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT" />
+	</parameterMap>
+
+	<procedure id="get-customer-by-person-data"
+			   parameterMap="customer-by-person-data-map">
+		{call itf_ui_integration_pkg.get_customer_by_personal_data(
+		i_inst_id         =>  ?
+		, i_commun_method   =>  ?
+		, i_commun_address  =>  ?
+		, i_id_type         =>  ?
+		, i_id_series       =>  ?
+		, i_id_number       =>  ?
+		, o_customer_id     =>  ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="card-number-by-phone-map">
+		<parameter property="commun_address" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="card_mask" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="number" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT" />
+		<parameter property="mask" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT" />
+	</parameterMap>
+
+	<procedure id="get-card-number-by-phone" parameterMap="card-number-by-phone-map">
+		{call itf_ui_integration_pkg.get_card_by_phone(
+			  i_commun_address	=> ?
+			, i_card_mask		=> ?
+			, o_card_number		=> ?
+			, o_card_mask		=> ?
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.application.ContractObject" id="map-get-contract-item">
+		<result column="contract_number" property="contractNumber" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result column="contract_type" property="contractType" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result column="product" property="product" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result column="start_date" property="startDate" javaType="java.util.Date" jdbcType="DATE"/>
+		<result column="end_date" property="endDate" javaType="java.util.Date" jdbcType="DATE"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="map-get-contract-list">
+		<parameter property="customer_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="customer_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="inst_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="card_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="card_id" javaType="java.lang.String" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="account_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="seq_number" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="expir_date" javaType="java.util.Date" jdbcType="DATE" mode="IN" />
+		<parameter property="instance_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT"
+				   resultMap="map-get-contract-item"/>
+	</parameterMap>
+
+	<procedure id="get-contract-list" parameterMap="map-get-contract-list">
+		{call itf_ui_integration_pkg.get_contract_list(
+		i_customer_number => ?
+		, i_customer_id		=> ?
+		, i_inst_id		    => ?
+		, i_card_number		=> ?
+		, i_card_uid		=> ?
+		, i_account_number	=> ?
+		, i_account_id		=> ?
+		, i_seq_number		=> ?
+		, i_expir_date		=> ?
+		, i_instance_id		=> ?
+		, o_ref_cursor		=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-remote-banking-activity-map">
+		<parameter property="customerNumber" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="instId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="banking_activity" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="OUT" />
+	</parameterMap>
+
+	<procedure id="get-remote-banking-activity"
+			   parameterMap="get-remote-banking-activity-map">
+		{call itf_ui_integration_pkg.get_remote_banking_activity(
+		i_customer_number 		=> ?
+		, i_inst_id             => ?
+		, o_banking_activity    => ?
+		)}
+	</procedure>
+
+	<resultMap class="ru.bpc.sv2.credit.CreditInvoice" id="get-specified-invoice-data-result-map">
+		<result property="accountNumber" column="account_number"/>
+		<result property="currency" column="currency"/>
+		<result property="id" column="id"/>
+		<result property="id" column="id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="serialNumber" column="serial_number"/>
+		<result property="invoiceDate" column="invoice_date"/>
+		<result property="type" column="invoice_type"/>
+		<result property="minAmountDue" column="min_amount_due"/>
+		<result property="totalAmountDue" column="total_amount_due"/>
+		<result property="ownFunds" column="own_funds"/>
+		<result property="exceedLimit" column="exceed_limit"/>
+		<result property="startDate" column="start_date"/>
+		<result property="dueDate" column="due_date"/>
+		<result property="graceDate" column="grace_date"/>
+		<result property="penaltyDate" column="penalty_date"/>
+		<result property="madPaid" column="is_mad_paid"/>
+		<result property="tadPaid" column="is_tad_paid"/>
+		<result property="aging" column="aging_period"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="statementDate" column="statement_date"/>
+		<result property="customerName" column="customer_name"/>
+		<result property="customerAddress" column="customer_address"/>
+		<result property="beginDate" column="invoice_begin_date"/>
+		<result property="endDate" column="invoice_end_date"/>
+		<result property="totalIncome" column="total_income"/>
+		<result property="totalExpenses" column="total_expenses"/>
+		<result property="interestAmount" column="interest_amount"/>
+		<result property="feeAmount" column="fee_amount"/>
+		<result property="overdueAmount" column="overdue_amount"/>
+		<result property="overdueInterestAmount" column="overdue_interest_amount"/>
+		<result property="penaltyFeeAmount" column="penalty_fee_amount"/>
+		<result property="incomingDebt" column="incoming_debt"/>
+		<result property="outgoingDebt" column="outgoing_debt"/>
+	</resultMap>
+
+	<parameterMap id="get-specified-invoice-map" class="java.util.Map">
+		<parameter property="account_number" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="inst_id" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="invoice_age" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="ref_cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-specified-invoice-data-result-map"/>
+	</parameterMap>
+
+	<procedure id="get-specified-invoice" parameterMap="get-specified-invoice-map">
+		{ call itf_ui_integration_pkg.get_specified_invoice(
+		i_account_number	=> ?
+		, i_inst_id			=> ?
+		, i_invoice_age		=> ?
+		, o_ref_cursor		=> ?
+		)}
+	</procedure>
+
+	<resultMap id="get-invoice-oper-list-data-result-map" class="ru.bpc.sv2.credit.CreditInvoiceOperation">
+		<result property="date" column="oper_date"/>
+		<result property="type" column="oper_type"/>
+		<result property="income" column="income"/>
+		<result property="expenses" column="expenses"/>
+		<result property="credit" column="credit"/>
+		<result property="repayment" column="repayment"/>
+		<result property="percent" column="percent"/>
+		<result property="description" column="operation_description"/>
+	</resultMap>
+
+	<parameterMap id="get-invoice-oper-list-data-map" class="java.util.Map">
+		<parameter property="invoice_id" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="ref_cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-invoice-oper-list-data-result-map"/>
+	</parameterMap>
+
+	<procedure id="get-invoice-oper-list-data" parameterMap="get-invoice-oper-list-data-map">
+		{ call itf_ui_integration_pkg.get_invoice_oper_list_data(
+		i_invoice_id	=> ?
+		, o_ref_cursor	=> ?
+		)}
+	</procedure>
+
+	<resultMap id="get-invoice-oper-aggr-data-map-result-map" class="ru.bpc.sv2.credit.CreditInvoiceAggregation">
+		<result property="type" column="operation_type"/>
+		<result property="typeName" column="operation_type_name"/>
+		<result property="currency" column="operation_currency"/>
+		<result property="count" column="total_operation_count"/>
+		<result property="amount" column="total_operation_amount"/>
+	</resultMap>
+
+	<parameterMap id="get-invoice-oper-aggr-data-map" class="java.util.Map">
+		<parameter property="invoice_id" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="ref_cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-invoice-oper-aggr-data-map-result-map"/>
+	</parameterMap>
+
+	<procedure id="get-invoice-oper-aggr-data" parameterMap="get-invoice-oper-aggr-data-map">
+		{ call itf_ui_integration_pkg.get_invoice_oper_aggr_data(
+		i_invoice_id	=> ?
+		, o_ref_cursor	=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="get-last-invoice-date-map" class="java.util.Map">
+		<parameter property="date" mode="OUT" javaType="java.util.Date" jdbcType="DATE"/>
+		<parameter property="entityType" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="objectId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="maskError" mode="IN" javaType="java.lang.Boolean" jdbcType="NUMERIC"/>
+	</parameterMap>
+
+	<procedure id="get-last-invoice-date" parameterMap="get-last-invoice-date-map">
+		{ ? = call crd_invoice_pkg.get_last_invoice_date(
+		i_entity_type	=> ?
+		, i_object_id	=> ?
+		, i_mask_error	=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="get-merchant-stat-map" class="java.util.Map">
+		<parameter property="merchantStat"   mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR" />
+		<parameter property="customerNumber" mode="IN"  javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="instId"         mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC" />
+		<parameter property="startDate"      mode="IN"  javaType="java.util.Date"   jdbcType="DATE"/>
+		<parameter property="endDate"        mode="IN"  javaType="java.util.Date"   jdbcType="DATE"/>
+	</parameterMap>
+
+	<procedure id="get-merchant-stat" parameterMap="get-merchant-stat-map">
+		{call itf_ui_integration_pkg.get_merchant_stat(
+		o_xml              => ?
+		, i_customer_number  => ?
+		, i_inst_id          => ?
+		, i_start_date       => ?
+		, i_end_date         => ?
+		)}
+	</procedure>
+
+	<resultMap id="get-products-hierarchy-result-map" class="ru.bpc.sv2.products.Product">
+		<result column="level" property="level" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<result column="isLeaf" property="isLeaf" javaType="java.lang.Boolean" jdbcType="NUMERIC"/>
+		<result column="id" property="id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result column="name" property="name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result column="description" property="description" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result column="parentId" property="parentId"  javaType="java.lang.Long" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<parameterMap id="get-products-hierarchy-map" class="java.util.Map">
+		<parameter property="instId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="customerId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="lang" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-products-hierarchy-result-map"/>
+	</parameterMap>
+
+	<procedure id="get-products-hierarchy" parameterMap="get-products-hierarchy-map">
+		{ call itf_ui_integration_pkg.get_product(
+		      i_inst_id         => ?
+			, i_customer_id     => ?
+			, i_lang     		=> ?
+			, o_product_cursor  => ?
+		)}
+	</procedure>
+	
+	<resultMap id="get-transactions-by-customer-result-map" class="ru.bpc.sv2.operations.Operation">
+		<result column="id" property="id" jdbcType="NUMERIC" javaType="java.lang.Long"/>
+		<result column="operationType" property="operationType" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="isReversal" property="isReversal" jdbcType="NUMERIC" javaType="java.lang.Boolean"/>
+		<result column="operAmount" property="operAmount" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="operCurrency" property="operCurrency" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="operDate" property="operDate" jdbcType="DATE" javaType="java.util.Date"/>
+		<result column="status" property="status" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="statusReason" property="statusReason" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="cardMask" property="cardMask" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="cardNumber" property="cardNumber" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="accountNumber" property="accountNumber" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="cardType" property="cardType" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="customerId" property="customerId" jdbcType="NUMERIC" javaType="java.lang.Long"/>
+		<result column="acqInstId" property="acqInstId" jdbcType="NUMERIC" javaType="java.lang.Integer"/>
+		<result column="terminalNumber" property="terminalNumber" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="debitCreditSign" property="debitCreditSign" jdbcType="VARCHAR" javaType="java.lang.String"/>
+	</resultMap>
+
+	<parameterMap id="get-transactions-by-customer-and-inst-map" class="java.util.Map">
+		<parameter property="instId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="customerId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="lang" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="cardMask" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="accountNumber" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="cardTypeId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="transactionDateFrom" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="transactionDateTo" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="transType" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="respCode" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="transactionsSorting" mode="IN" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler"/>
+		<parameter property="transactionDirectionSort" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-transactions-by-customer-result-map"/>
+	</parameterMap>
+	
+	<procedure id="get-transactions-by-customer-and-inst" parameterMap="get-transactions-by-customer-and-inst-map">
+		{call itf_ui_integration_pkg.get_transaction(
+			  i_inst_id						=> ?
+			, i_customer_id					=> ?
+			, i_lang						=> ?
+			, i_masked_pan					=> ?
+			, i_account_number				=> ?
+			, i_card_type_id				=> ?
+			, i_transaction_date_from		=> ?
+			, i_transaction_date_to			=> ?
+			, i_transaction_type			=> ?
+			, i_response_code				=> ?
+			, i_transactions_sorting		=> ?
+			, i_transaction_direction_sort	=> ?
+			, o_transaction_cursor			=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="get-customer-by-card-map" class="java.util.Map">
+		<parameter property="card_number" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="lang" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="inst_id" mode="OUT" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<parameter property="customer_id" mode="OUT" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="customer_number" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</parameterMap>
+
+	<procedure id="get-customer-by-card" parameterMap="get-customer-by-card-map">
+		{ call itf_ui_integration_pkg.get_customer_by_card(
+			  i_card_number		=> ?
+			, i_lang			=> ?
+			, o_inst_id			=> ?
+			, o_customer_id		=> ?
+			, o_customer_number	=> ?
+		)}
+	</procedure>
+
+	<resultMap id="get-financial-overview-list-map" class="ru.bpc.svxp.FinOverviewAccount">
+		<result column="account_id" property="accountId" jdbcType="NUMERIC" javaType="java.lang.Long"/>
+		<result column="account_number" property="accountNumber" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="amount_due" property="amountDue" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="total_amount_due" property="totalAmountDue" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="currency" property="currency" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="due_date" property="dueDate" jdbcType="DATE" javaType="javax.xml.datatype.XMLGregorianCalendar" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+	</resultMap>
+
+	<parameterMap id="get-financial-overview-map" class="java.util.Map">
+		<parameter property="cardNumber" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="accountNumber" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="cardholderNumber" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="cardholderName" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-financial-overview-list-map"/>
+	</parameterMap>
+
+	<procedure id="get-financial-overview" parameterMap="get-financial-overview-map">
+		{call itf_ui_integration_pkg.get_fin_overview_list(
+			  i_card_number			=> ?
+			, i_account_number		=> ?
+			, o_cardholder_number	=> ?
+			, o_cardholder_name		=> ?
+			, o_ref_cursor			=> ?
+		)}
+	</procedure>
+
+	<resultMap id="get-financial-overview-fees-list-map" class="ru.bpc.svxp.FinOverviewFee">
+		<result column="fee_amount" property="feeAmount" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="fee_currency" property="feeCurrency" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="fee_type" property="feeType" jdbcType="VARCHAR" javaType="java.lang.String"/>
+	</resultMap>
+
+	<parameterMap id="get-financial-overview-fees-map" class="java.util.Map">
+		<parameter property="accountId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-financial-overview-fees-list-map"/>
+	</parameterMap>
+
+	<procedure id="get-financial-overview-fees" parameterMap="get-financial-overview-fees-map">
+		{call itf_ui_integration_pkg.get_fin_overview_fee_list(
+			  i_account_id	=> ?
+			, o_ref_cursor	=> ?
+		)}
+	</procedure>
+
+	<resultMap id="get-credit-card-payments-list-map" class="ru.bpc.svxp.CrdPmntAccount">
+		<result column="account_id" property="accountId" jdbcType="NUMERIC" javaType="java.lang.Long"/>
+		<result column="account_number" property="accountNumber" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="min_amount_due" property="minimumAmountDue" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="total_amount_due" property="totalAmountDue" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="currency" property="currency" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="due_date" property="dueDate" jdbcType="DATE" javaType="javax.xml.datatype.XMLGregorianCalendar" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+	</resultMap>
+
+	<parameterMap id="get-credit-card-payments-map" class="java.util.Map">
+		<parameter property="cardNumber" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="accountNumber" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-credit-card-payments-list-map"/>
+	</parameterMap>
+
+	<procedure id="get-credit-card-payments" parameterMap="get-credit-card-payments-map">
+		{call itf_ui_integration_pkg.get_crd_card_payment_list(
+			  i_card_number		=> ?
+			, i_account_number	=> ?
+			, o_ref_cursor		=> ?
+		)}
+	</procedure>
+
+	<resultMap id="get-credit-card-payment-payments-list-map" class="ru.bpc.svxp.CrdPmntPayment">
+		<result column="pay_amount" property="amount" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="currency" property="currency" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="originator_refnum" property="refNumber" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="payment_date" property="paymentDate" jdbcType="DATE" javaType="javax.xml.datatype.XMLGregorianCalendar" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+	</resultMap>
+
+	<parameterMap id="get-credit-card-payment-payments-map" class="java.util.Map">
+		<parameter property="accountId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-credit-card-payment-payments-list-map"/>
+	</parameterMap>
+
+	<procedure id="get-credit-card-payment-payments" parameterMap="get-credit-card-payment-payments-map">
+		{call itf_ui_integration_pkg.get_crd_account_payment_list(
+			  i_account_id	=> ?
+			, o_ref_cursor	=> ?
+		)}
+	</procedure>
+
+	<resultMap id="get-customer-info-address-list-map" class="ru.bpc.svxp.CustomerInfoAddress">
+		<result column="address_type" property="addressType" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="postal_code" property="postalCode" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="country" property="country" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="region" property="region" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="city" property="city" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="street" property="street" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="house" property="house" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="apartment" property="apartment" jdbcType="VARCHAR" javaType="java.lang.String"/>
+	</resultMap>
+
+	<resultMap id="get-customer-info-account-list-map" class="ru.bpc.svxp.CustomerInfoAccount">
+		<result column="account_id" property="accountId" jdbcType="NUMERIC" javaType="java.lang.Long"/>
+		<result column="account_number" property="accountNumber" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="currency" property="currency" jdbcType="VARCHAR" javaType="java.lang.String"/>
+		<result column="credit_limit" property="creditLimit" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="interest_rate" property="interestRate" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+	</resultMap>
+
+	<parameterMap id="get-customer-info-by-card-map" class="java.util.Map">
+		<parameter property="card_number" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="lang" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="customer_id" mode="OUT" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<parameter property="customer_number" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="customer_name" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="national_id" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="customer_document" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="customer_phone" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="card_id" mode="OUT" javaType="java.lang.String" jdbcType="NUMERIC"/>
+		<parameter property="card_seq_number" mode="OUT" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<parameter property="card_expiry_date" mode="OUT" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<parameter property="branch_code" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="client_tariff" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="address_cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-customer-info-address-list-map"/>
+		<parameter property="account_cursor" mode="OUT" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" resultMap="get-customer-info-account-list-map"/>
+	</parameterMap>
+
+	<procedure id="get-customer-info-by-card" parameterMap="get-customer-info-by-card-map">
+		{call itf_ui_integration_pkg.get_customer_info(
+			  i_card_number			=> ?
+			, i_lang				=> ?
+			, o_customer_id			=> ?
+			, o_customer_number		=> ?
+			, o_customer_name		=> ?
+			, o_national_id			=> ?
+			, o_customer_document	=> ?
+			, o_customer_phone		=> ?
+			, o_card_id				=> ?
+			, o_card_seq_number		=> ?
+			, o_card_expiry_date	=> ?
+			, o_branch_code			=> ?
+			, o_client_tariff		=> ?
+			, o_address_cursor		=> ?
+			, o_account_cursor		=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="repayment-debt-operation-map" class="java.util.Map">
+		<parameter property="external_auth_id" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="new_count" mode="IN" javaType="int" jdbcType="NUMERIC"/>
+		<parameter property="payment_amount" mode="IN" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+		<parameter property="acceleration_type" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="check_mad_aging_unpaid" mode="IN" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+	</parameterMap>
+
+	<procedure id="repayment-debt-operation" parameterMap="repayment-debt-operation-map">
+		{call itf_ui_integration_pkg.accelerate_dpp(
+			  i_external_auth_id   		=> ?
+		    , i_new_count          		=> ?
+		    , i_payment_amount 	   		=> ?
+		    , i_acceleration_type  		=> ?
+			, i_check_mad_aging_unpaid 	=> ?
+		)}
+	</procedure>
+	
+	<parameterMap id="get-payment-information-map" class="java.util.Map">
+		<parameter property="short_card_mask" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="id_type" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="id_series" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="id_number" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="customer_id" mode="OUT" javaType="java.lang.Long" jdbcType="NUMERIC" />
+		<parameter property="cardholder_name" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="account_number" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="currency" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="tad" mode="OUT" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+		<parameter property="last_payment_flag" mode="OUT" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<parameter property="due_date" mode="OUT" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<parameter property="daily_mad" mode="OUT" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+	</parameterMap>
+	
+	<procedure id="get-payment-information" parameterMap="get-payment-information-map">
+		{call cst_cfc_api_integration_pkg.get_payment_due(
+			  i_short_card_mask    => ?
+			, i_id_type            => ?
+			, i_id_series          => ?
+			, i_id_number          => ?
+			, o_customer_id        => ?
+			, o_cardholder_name    => ?
+			, o_account_number     => ?
+			, o_currency           => ?
+			, o_tad                => ?
+			, o_last_payment_flag  => ?
+			, o_due_date           => ?
+			, o_daily_mad          => ?
+		)}
+	</procedure>
+
+	<parameterMap id="get-payment-information-map-account" class="java.util.Map">
+		<parameter property="account_number" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="inst_id" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="customer_id" mode="OUT" javaType="java.lang.Long" jdbcType="NUMERIC" />
+		<parameter property="customer_name" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="account_number" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="currency" mode="OUT" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<parameter property="tad" mode="OUT" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+		<parameter property="last_payment_flag" mode="OUT" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<parameter property="due_date" mode="OUT" javaType="javax.xml.datatype.XMLGregorianCalendar" jdbcType="DATE" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<parameter property="daily_mad" mode="OUT" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+	</parameterMap>
+
+	<procedure id="get-payment-information-account" parameterMap="get-payment-information-map-account">
+		{call cst_cfc_api_integration_pkg.get_payment_due(
+			  i_account_number     => ?
+			, i_inst_id            => ?
+			, o_customer_id        => ?
+			, o_customer_name      => ?
+			, o_account_number     => ?
+			, o_currency           => ?
+			, o_tad                => ?
+			, o_last_payment_flag  => ?
+			, o_due_date           => ?
+			, o_daily_mad          => ?
+		)}
+	</procedure>
+
+	<resultMap id="installments-map" class="ru.bpc.svxp.Installment">
+		<result column="instalment_number" property="installmentNumber" jdbcType="NUMERIC" javaType="java.lang.Long"/>
+		<result column="instalment_date" property="installmentDate" jdbcType="DATE" javaType="javax.xml.datatype.XMLGregorianCalendar" typeHandler="ru.bpc.sv2.utils.SQLDateToXMLGregorianTypeHandler"/>
+		<result column="amount" property="amount" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result column="interest" property="interest" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+	</resultMap>
+
+	<parameterMap id="get-dpp-installments-map" class="java.util.Map">
+		<parameter property="dppAmount"            mode="IN"    javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+		<parameter property="feeId"                mode="IN"    javaType="java.lang.Long"       jdbcType="NUMERIC"/>
+		<parameter property="firstInstallmentDate" mode="IN"    javaType="java.util.Date"       jdbcType="DATE"/>
+		<parameter property="installmentCount"     mode="INOUT" javaType="java.lang.Integer"    jdbcType="NUMERIC"/>
+		<parameter property="installmentAmount"    mode="INOUT" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+		<parameter property="calcAlgorithm"        mode="INOUT" javaType="java.lang.String"     jdbcType="VARCHAR"/>
+		<parameter property="accountNumber"        mode="IN"    javaType="java.lang.String"     jdbcType="NUMERIC"/>
+        <parameter property="accountId"            mode="IN"    javaType="java.lang.Long"       jdbcType="NUMERIC"/>
+		<parameter property="instId"               mode="IN"    javaType="java.lang.Integer"    jdbcType="NUMERIC"/>
+		<parameter property="interestRate"         mode="OUT"   javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+		<parameter property="installments"         mode="OUT"   javaType="java.sql.ResultSet"   jdbcType="ORACLECURSOR" resultMap="installments-map"/>
+	</parameterMap>
+
+	<procedure id="get-dpp-installments" parameterMap="get-dpp-installments-map">
+		{call dpp_ui_payment_plan_pkg.calculate_dpp(
+			  i_dpp_amount				=> ?
+			, i_fee_id					=> ?
+			, i_first_instalment_date	=> ?
+			, io_instalment_count		=> ?
+			, io_instalment_amount		=> ?
+			, io_calc_algorithm			=> ?
+			, i_account_number			=> ?
+			, i_account_id				=> ?
+			, i_inst_id					=> ?
+			, o_interest_rate			=> ?
+			, o_instalments				=> ?
+		)}
+	</procedure>
+
+    <resultMap id="mapping-service-types" class="ru.bpc.sv.instagentws.ServiceType">
+        <result property="id" column="id" javaType="java.lang.String" jdbcType="VARCHAR" />
+        <result property="productType" column="product_type" javaType="java.lang.String" jdbcType="VARCHAR" />
+        <result property="entityType" column="entity_type" javaType="java.lang.String" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select	id="get-service-types-list"
+               resultMap="mapping-service-types">
+        SELECT 	  id
+        , product_type
+        , entity_type
+        FROM prd_service_type_vw
+    </select>
+
+
+    <resultMap id="mapping-card-types" class="ru.bpc.sv.instagentws.CardType">
+        <result property="id" column="id" javaType="java.lang.String" jdbcType="VARCHAR" />
+        <result property="parentId" column="parent_type_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+        <result property="networkId" column="network_id" javaType="java.lang.String" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <select	id="get-card-types-list"
+               resultMap="mapping-card-types">
+        SELECT 	  id
+        , network_id
+        , parent_type_id
+        FROM net_card_type_vw
+    </select>
+
+    <parameterMap id="get-omni-products-map" class="java.util.Map">
+        <parameter property="instId" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+        <parameter property="lang" mode="IN" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <parameter property="omniVersion" mode="IN" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+        <parameter property="xml" mode="OUT" javaType="java.lang.String" jdbcType="CLOB"/>
+    </parameterMap>
+
+    <procedure id="get-omni-products" parameterMap="get-omni-products-map">
+        { call itf_omn_integration_pkg.get_products(
+        i_inst_id           => ?
+        , i_lang     		=> ?
+        , i_omni_version    => ?
+        , o_xml             => ?
+        )}
+    </procedure>
+
+
+
+    <parameterMap id="get-dict-dictionaries-map" class="java.util.Map">
+        <parameter property="dictVersion" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="arrayDictionaryId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+        <parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+        <parameter property="xml" javaType="java.lang.String" jdbcType="CLOB" mode="INOUT" />
+    </parameterMap>
+
+    <procedure id="get-dict-dictionaries" parameterMap="get-dict-dictionaries-map">
+        { call itf_ui_integration_pkg.get_dictionaries(
+        i_dict_version              => ?
+        , i_array_dictionary_id     => ?
+        , i_lang                    => ?
+        , i_inst_id                 => ?
+        , io_xml                    => ?
+        )}
+    </procedure>
+
+
+    <parameterMap id="get-dict-currency-rates-map" class="java.util.Map">
+        <parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+        <parameter property="baseRateExport" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+        <parameter property="rateType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="effDate" javaType="java.util.Date" jdbcType="DATE" mode="IN" />
+        <parameter property="dictVersion" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="xml" javaType="java.lang.String" jdbcType="CLOB" mode="INOUT" />
+    </parameterMap>
+
+    <procedure id="get-dict-currency-rates" parameterMap="get-dict-currency-rates-map">
+        { call itf_ui_integration_pkg.get_currency_rates(
+        i_inst_id                   => ?
+        , i_base_rate_export        => ?
+        , i_rate_type               => ?
+        , i_eff_date                => ?
+        , i_dict_version            => ?
+        , io_xml                    => ?
+        )}
+    </procedure>
+
+
+    <parameterMap id="get-dict-mcc-map" class="java.util.Map">
+        <parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="dictVersion" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="xml" javaType="java.lang.String" jdbcType="CLOB" mode="OUT" />
+    </parameterMap>
+
+    <procedure id="get-dict-mcc" parameterMap="get-dict-mcc-map">
+        { call itf_ui_integration_pkg.get_mcc(
+        i_lang                  => ?
+        , i_dict_version        => ?
+        , o_xml                 => ?
+        )}
+    </procedure>
+</sqlMap>

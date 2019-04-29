@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html" xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j" xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc" xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:fmt="http://www.bpc.ru/el/formatter">
+	<ui:composition>
+		<link rel="stylesheet" type="text/css"
+			href="#{request.contextPath}/css/pages/accounts/list_balances_entries_bottom.css" />
+
+		<script type="text/javascript">
+			//<![CDATA[
+		function checkAllCheckboxesInTable(inputId, state) {
+			var commonIdPart = inputId.substr(0, inputId.lastIndexOf(':'));
+			var tableId = commonIdPart + ':tu';
+			var tableElement = document.getElementById(tableId);
+			var inputs = tableElement.getElementsByTagName('input');
+			for (var i = 0; i <= inputs.length; i++) {
+				var input = inputs[i];
+				if (input == null) {
+					return;
+				}
+				if (input.getAttribute('type') == 'checkbox' && state) {
+					input.checked = true;
+				} else {
+					input.checked = false;
+				}
+			}
+		}
+		
+		function checkAllOrNot(inputId, state) {
+			var commonIdPart = 'balancesEntriesForm:balancesTable';
+			var checkAll = document.getElementById(commonIdPart + ':checkAll');
+			if (!state) {
+				checkAll.checked = false;
+			} else {
+				var tableId = commonIdPart + ':tu';
+				var tableElement = document.getElementById(tableId);
+				var inputs = tableElement.getElementsByTagName('input');
+				var isCheckAll = true;
+				for (var i = 1; i < inputs.length; i++) {//loop from the second checkbox
+					var input = inputs[i];
+					if (input == null) {
+						return;
+					}
+					if (input.getAttribute('type') == 'checkbox' && !input.checked) {
+						isCheckAll = false;
+						break;
+					} 
+				}
+				if (isCheckAll) checkAll.checked = true;
+			}
+		}
+		//]]>
+		</script>
+
+        <style type="text/css">
+          #balancesEntriesForm\:entriesTableWrapper .rich-extdt-maindiv {
+            overflow-x: auto;
+            overflow-y: hidden;
+          }
+        </style>
+
+		<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc" />
+		<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr" />
+		<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq" />
+		<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl" />
+		<h:form id="balancesEntriesForm">
+			<h:panelGrid width="100%" columns="2" cellpadding="0"
+				cellspacing="0" columnClasses="width15, width85">
+				<h:panelGrid columns="1" width="100%" cellpadding="0"
+					cellspacing="0" style="height:100%; padding-top: 1px">
+					<h:panelGroup>
+						<rich:spacer height="20px" />
+					</h:panelGroup>
+					<h:panelGroup id="balancesEntriesTableWrapper" layout="block"
+						style="padding:0px;margin:0px;">
+						 <a4j:region renderRegionOnly="true">
+						<rich:extendedDataTable headerClass="res-table-header no-menu"
+							selectedClass="res-table-selected" styleClass="res-table"
+							rowClasses=",odd" id="balancesTable" var="item"
+							value="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).balances}" rows="0" height="220px"
+							selectionMode="none" enableContextMenu="false"
+							noDataLabel="#{lblCommon['no_records_found']}">
+							<rich:column title="" width="20%">
+								<f:facet name="header">
+									<h:selectBooleanCheckbox id="checkAll"
+										onclick="checkAllCheckboxesInTable( this.id, this.checked );"
+										value="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).selectAll}" style="vertical-align: middle;" />
+								</f:facet>
+								<f:facet name="filter">
+								</f:facet>
+								<h:selectBooleanCheckbox
+									onclick="checkAllOrNot( this.id, this.checked );"
+									value="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).selectedList[item.modelId]}" />
+							</rich:column>
+
+							<rich:column title="Balance number" sortOrder="ASCENDING"
+								sortBy="#{'balanceType'}" style="overflow-x:hidden" width="80%">
+								<f:facet name="header">
+									<h:panelGroup>
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblAcc.balance}" />
+									</h:panelGroup>
+								</f:facet>
+								<f:facet name="filter">
+								</f:facet>
+								<h:outputText value="#{DictUtils.articles[item.balanceType]}"
+									title="#{DictUtils.articles[item.balanceType]}" />
+							</rich:column>
+						</rich:extendedDataTable>
+						</a4j:region>
+					</h:panelGroup>
+				</h:panelGrid>
+				<h:panelGrid columns="1" width="100%" cellpadding="0"
+					cellspacing="0" style="height:100%; padding-top: 1px">
+					<h:panelGroup style="height:20px">
+						<h:panelGroup>
+							<h:outputText value="#{lblCommon.date_from}:" />
+							<rich:calendar buttonIcon="/images/calendar.gif" inputStyle="width: 100px;"
+								datePattern="#{usession.datePattern}" direction="top-right"
+								value="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).filterEntry.operationDateFrom}" />
+						</h:panelGroup>
+						<h:panelGroup style="margin:0 0 0 20px">
+							<h:outputText value="#{lblCommon.date_to}:"/>
+							<rich:calendar buttonIcon="/images/calendar.gif" inputStyle="width: 100px;"
+								datePattern="#{usession.datePattern}" direction="top-right"
+								value="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).filterEntry.operationDateTo}" />
+						</h:panelGroup>
+					</h:panelGroup>
+
+					<h:panelGroup id="entriesTableWrapper" layout="block"
+						style="padding:0px;margin:0px;">
+						<rich:extendedDataTable id="entriesTable"
+							styleClass="res-table" headerClass="res-table-header table-header-ext" rowClasses=",odd"
+							selectedClass="res-table-selected" var="item"
+							value="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).entries}" selection="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).itemSelection}"
+							rows="0" height="199px" selectionMode="single" enableContextMenu="true"
+							tableState="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).tableState}"
+							noDataLabel="#{lblCommon['no_records_found']}">
+
+							<rich:column id="balance_type" label="#{lblAcc.balance_type}" width="10%">
+								<f:facet name="header">
+									<h:panelGroup>
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblAcc.balance_type}"
+											title="#{lblAcc.balance_type}" />
+									</h:panelGroup>
+								</f:facet>
+
+								<h:graphicImage height="10"
+									style="margin-left:5px; margin-right:5px;" url="/images/delete.gif"
+									rendered="#{item.status == 'ENTRCNCL'}" title="#{lblCommon.canceled}" />
+								<h:graphicImage height="10"
+									style="margin-left:5px; margin-right:5px;" url="/images/ok.gif"
+									rendered="#{item.status == 'ENTRPOST'}" title="#{lblCommon.posted}" />
+								<h:graphicImage height="10"
+									style="margin-left:5px; margin-right:5px;" url="/images/minus-2.gif"
+									rendered="#{item.status == 'ENTRRVRS'}" title="#{lblCommon.reversed}" />
+								<h:outputText value="#{DictUtils.articles[item.balanceType]}"
+									title="#{DictUtils.articles[item.balanceType]}" rendered="#{item.balanceType != null}" />
+								<h:outputText value="" title=""
+									rendered="#{item.balanceType == null}" />
+
+								<h:outputText value="#{item.balanceImpact==-1?'/Debit':'/Credit'}"
+									title="#{item.balanceImpact==-1?'Debit':'Credit'}" />
+							</rich:column>
+
+
+							<rich:column id="trans_type" label="#{lblAcc.trans_type}" width="10%" sortBy="#{'transactionType'}">
+								<f:facet name="header">
+									<h:outputText value="#{lblAcc.trans_type}" title="#{lblAcc.trans_type}" />
+								</f:facet>
+								<h:outputText value="#{item.transactionType}"
+									title="#{DictUtils.articles[item.transactionType]}" />
+							</rich:column>
+
+							<rich:column id="oper_type" label="#{lblOpr.oper_type}" width="10%" sortBy="#{'operationType'}">
+								<f:facet name="header">
+									<h:outputText value="#{lblOpr.oper_type}" title="#{lblOpr.oper_type}" />
+								</f:facet>
+								<h:outputText value="#{item.operationType}"
+									title="#{DictUtils.articles[item.operationType]}" />
+							</rich:column>
+
+							<rich:column id="amount" label="#{lblAcc.amount}" width="10%" style="text-align: right">
+								<f:facet name="header">
+									<h:outputText value="#{lblAcc.amount}" title="#{lblAcc.amount}" />
+								</f:facet>
+								<h:outputText
+									value="#{fmt:formatMoney(item.amount, CurrencyUtils.currencyObjectsMap[item.currency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.currency]}"
+									title="#{fmt:formatMoney(item.amount, CurrencyUtils.currencyObjectsMap[item.currency].exponent)} #{CurrencyUtils.currencyMap[item.currency]}" />
+							</rich:column>
+
+							<rich:column id="purpose" label="#{lblAcc.purpose}" width="6%">
+								<f:facet name="header">
+									<h:outputText value="#{lblAcc.purpose}" title="#{lblAcc.purpose}" />
+								</f:facet>
+								<h:outputText value="#{item.feeType}"
+									title="#{DictUtils.articles[item.feeType]}" />
+							</rich:column>
+
+							<rich:column id="date" label="#{lblOpr.host_date_n_time}" width="10%" sortBy="#{'hostDate'}">
+								<f:facet name="header">
+									<h:outputText value="#{lblOpr.host_date_n_time}" title="#{lblOpr.host_date_n_time}" />
+								</f:facet>
+								<h:outputText value="#{item.hostDate}">
+									<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+													   timeZone="#{CommonUtils.timeZone}" />
+								</h:outputText>
+							</rich:column>
+
+                            <rich:column id="posting_date" label="#{lblAcq.posting_date}" width="10%" sortBy="#{'postingDate'}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblAcq.posting_date}" title="#{lblAcq.posting_date}" />
+                                </f:facet>
+                                <h:outputText value="#{item.postingDate}">
+                                    <f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+                                        timeZone="#{CommonUtils.timeZone}" />
+                                </h:outputText>
+                            </rich:column>
+
+                            <rich:column id="sttl_date" label="#{lblOpr.sttl_date}" width="10%" sortBy="#{'sttlDate'}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblOpr.sttl_date}" title="#{lblOpr.sttl_date}" />
+                                </f:facet>
+                                <h:outputText value="#{item.sttlDate}">
+                                    <f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+                                        timeZone="#{CommonUtils.timeZone}" />
+                                </h:outputText>
+                            </rich:column>
+
+                            <rich:column id="sttl_day" label="#{lblCommon.sttl_day}" width="10%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.sttl_day}" title="#{lblCommon.sttl_day}" />
+                                </f:facet>
+                                <h:outputText value="#{item.sttlDay}" title="#{item.sttlDay}" />
+                            </rich:column>
+
+							<rich:column id="place" label="#{lblAcc.place}" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblAcc.place}" title="#{lblAcc.place}" />
+								</f:facet>
+
+								<div class="#{EntityIcons.objectsMapS['ENTTACCT'][item.merchantCountry]}" />
+
+								<h:outputText
+									value="#{item.merchantName}, #{item.merchantCity}, #{CountryUtils.countryNamesMap[item.merchantCountry]}"
+									title="#{item.merchantName}, #{item.merchantCity}, #{CountryUtils.countryNamesMap[item.merchantCountry]}" />
+							</rich:column>
+
+							<rich:column id="unholdDate" label="#{lblOpr.unhold_date}" width="10%" sortBy="#{'unholdDate'}"
+									rendered="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).showHoldDate}">
+								<f:facet name="header">
+									<h:outputText value="#{lblOpr.unhold_date}" title="#{lblOpr.unhold_date}" />
+								</f:facet>
+								<h:outputText value="#{item.unholdDate}">
+									<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+													   timeZone="#{CommonUtils.timeZone}" />
+								</h:outputText>
+							</rich:column>
+						</rich:extendedDataTable>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGrid>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+						<h:panelGroup styleClass="stdButton">
+							<bre:taggedCommandButton value="#{lblAcc.showEntries}"
+								action="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).searchEntries}" reRender="entriesTable" />
+						</h:panelGroup>
+						<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveEntryTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteEntryTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveEntryTableState" action="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteEntryTableState" action="#{(balancesEntriesBean==null ? MbEntriesForAccount : balancesEntriesBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+	</ui:composition>
+</html>

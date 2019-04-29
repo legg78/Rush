@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich">
+<ui:composition>
+	<script type="text/javascript">
+	//<!--
+		var expand;
+		function showHideBorder(elem) {
+			// this function seems to be attached to <tr> element
+			// so to get <table> we take parentNode 1 or 2 times.
+			elem = elem.parentNode;
+			if (elem.tagName.toLowerCase() == "tbody") {
+				elem = elem.parentNode;
+			}
+			if (elem.style.borderBottomWidth == "1px") {
+				elem.style.borderBottomWidth = "0px";
+			} else {
+				elem.style.borderBottomWidth = "1px";
+			}
+		}
+	//-->
+	</script>
+
+	<!-- rich:panelBarItem label="# {group.name}" rendered="# {not empty group}" -->
+	<rich:tree id="menuTree"
+			   switchType="client"
+			   componentState="#{usession.userLogged ? menu.treeState : null}"
+			   value="#{group.branch}"
+			   var="menuItem"
+			   focus=""
+			   nodeFace="#{menuItem.type}"
+			   adviseNodeOpened="#{menu.autoExpand}"
+			   immediate="true"
+			   nodeSelectListener="#{menu.processSelection}"
+			   showConnectingLines="false"
+			   ajaxSingle="true"
+			   limitToList="true"
+			   toggleOnClick="true"
+			   icon="" rowKeyVar="#{menu.currentRowKey}"
+			   iconLeaf=""
+			   style="overflow-y:auto;width:100%">
+		<rich:treeNode selectedClass="selected_first"
+					   type="folder_i"
+					   icon="#{facesContext.externalContext.requestContextPath}/#{menuItem.icon}">
+			<h:outputText value="#{menuItem.name}"/>
+		</rich:treeNode>
+
+		<rich:treeNode selectedClass="selected_folder"
+					   type="folder"
+					   onclick="showHideBorder(this)"
+					   oncollapse=""
+					   onexpand="">
+			<h:panelGroup styleClass="#{menuItem.last ? 'treeLastFolderClass' : 'treeFolderClass'}">
+				<h:outputText value="#{menuItem.name}"/>
+			</h:panelGroup>
+		</rich:treeNode>
+
+		<rich:treeNode type="page_i"
+					   iconLeaf="#{facesContext.externalContext.requestContextPath}/#{menuItem.icon}">
+			<h:commandLink value="#{menuItem.name}" action="#{menuItem.action}"/>
+		</rich:treeNode>
+
+		<rich:treeNode id="menuItem"
+					   type="page"
+					   nodeClass="#{menuItem.selected ? 'selectedMenuItem' : ''}">
+			<h:panelGroup styleClass="#{menuItem.last ? 'treeLastPageClass' : 'treePageClass'}"
+						  style="#{menuItem.selected ? 'font-weight:bold' : ''}; white-space:normal; display:block; padding-top:0; padding-bottom:0;">
+				<h:commandLink value="#{menuItem.name}"
+							   action="#{menuItem.action}">
+					<a4j:actionparam name="bean" value="#{menuItem.managedBeanName}" assignTo="#{menu.activate}"/>
+					<a4j:actionparam name="stateKeeper" value="#{menu.falseKeepState}" assignTo="#{menu.keepState}"/>
+					<a4j:actionparam name="stateKeeper1" value="#{null}" assignTo="#{menu.currentRoute}"/>
+
+					<f:param name="sectionId" value="#{menuItem.id}"/>
+
+					<a4j:actionparam name="appType"
+					                 value="#{menuItem.id == 1023 ? 'acquiring' : (
+										      menuItem.id == 1014 ? 'issuing' : (
+										      menuItem.id == 2307 ? 'pmo' : (
+										      menuItem.id == 2382 ? 'acm' : (
+										      menuItem.id == 2427 ? 'institution' : (
+										      menuItem.id == 2444 ? 'iss_product' : (
+										      menuItem.id == 2446 ? 'acq_product' : (
+										      menuItem.id == 2464 ? 'questionary' : (
+										      menuItem.id == 2471 ? 'campaign' : '' ))))))))}"/>
+					<a4j:actionparam name="productType"
+									 value="#{menuItem.id == 1024 ? 'acquiring' : (
+									          menuItem.id == 1016 ? 'issuing' : (
+									          menuItem.id == 2263 ? 'institution' : '' ))}"/>
+					<a4j:actionparam name="module"
+									 value="#{menuItem.id == 1022 ? 'ACQ' : (
+									          menuItem.id == 1011 ? 'ISS' : (
+										      menuItem.id == 2471 ? 'CPN' : '' ))}"/>
+					<a4j:actionparam name="operType"
+									 value="#{menuItem.id == 1018 ? 'ACQ' : (
+									          menuItem.id == 1008 ? 'ISS' : (
+									          menuItem.id == 2448 ? 'H2H' : '' ))}"/>
+				</h:commandLink>
+			</h:panelGroup>
+		</rich:treeNode>
+
+		<rich:treeNode>
+			<h:outputText value="Unknown node type: #{menuItem.type}"/>
+		</rich:treeNode>
+	</rich:tree>
+	<!-- /rich:panelBarItem -->
+</ui:composition>
+</html>
+

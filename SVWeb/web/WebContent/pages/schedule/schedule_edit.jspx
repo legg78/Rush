@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<rich:modalPanel id="taskModalPanel" autosized="true" minWidth="450" minHeight="50">
+    	<f:facet name="header">
+        	<h:panelGroup id="taskModalHeader">
+        		<h:outputText value="#{lblPrc.new_task}" rendered="#{MbContainerTasksSearch.newMode}"/>
+        		<h:outputText value="#{lblPrc.edit_task}" rendered="#{MbContainerTasksSearch.editMode}"/>
+        	</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		
+		<h:form id="taskEditForm">      	    
+			<script type="text/javascript">
+//<!--
+				oldValue["taskEditForm"] = "#{MbContainerTasksSearch.newTask.lang}";
+				
+				function checkTaskFields() {
+					var checked = true;
+					
+					if (document.getElementById('taskEditForm:name').value == "") {
+						document.getElementById('taskEditForm:nameError').style.display = "inline";
+						checked = false;
+					}
+					if (document.getElementById('taskEditForm:start_month') != null && 
+							document.getElementById('taskEditForm:start_month').value == "") {
+						document.getElementById('taskEditForm:start_monthError').style.display = "inline";
+						checked = false;
+					}
+					
+					return checked;
+				}
+			//-->
+			</script>
+
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstCol firstColModal, width250">    
+				
+					<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+					<h:selectOneMenu id="newLang" value="#{MbContainerTasksSearch.newTask.lang}"
+							rendered="#{MbContainerTasksSearch.newMode}">
+						<f:selectItems value="#{MbContainerTasksSearch.languages}"/>
+					</h:selectOneMenu>
+					<h:selectOneMenu id="editLang" value="#{MbContainerTasksSearch.newTask.lang}"
+							rendered="#{MbContainerTasksSearch.editMode}"
+							onchange="document.getElementById('confirmPanelView:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('confirmPanel')}.show()">
+						<f:selectItems value="#{MbContainerTasksSearch.languages}"/>
+					</h:selectOneMenu>
+						
+					<h:outputLabel for="name" value="* #{lblCommon.description}: " title="#{lblCommon.description}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="name" value="#{MbContainerTasksSearch.newTask.shortDesc}"
+							label="#{lblCommon.description}"
+							maxlength="2000"
+							onblur="hideErrorField(this)">
+							<f:validateLength minimum="3"/>
+							<a4j:support event="onchange" reRender="nameErr" limitToList="true" ajaxSingle="true"/>
+						</h:inputText>
+						<rich:message id="nameErr" for="name" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="nameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.description}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel for="full_desc" value="#{lblCommon.full_desc}: " title="#{lblCommon.full_desc}"/>
+					<h:inputText id="full_desc" value="#{MbContainerTasksSearch.newTask.fullDesc}" 
+						maxlength="2000"/>
+										
+					<h:outputLabel value="#{lblPrc.period_error_time} (#{lblCommon.min}): "/>		
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="repeatErrTime" value="#{MbContainerTasksSearch.newTask.timePeriod}" label="#{lblPrc.period_error_time}"
+								onkeypress="if (!numbersOnly(this, event)) return false">
+							<f:validateLongRange minimum="1"/>
+							<a4j:support event="onblur" reRender="repeatErrTimeErr" limitToList="true" ajaxSingle="true"/>				
+						</h:inputText>
+						<rich:message for="repeatErrTime" id="repeatErrTimeErr" styleClass="errorMarker"/>
+					</h:panelGrid>
+						
+					<h:outputLabel value="#{lblPrc.error_active_time} (#{lblCommon.min}): " title="#{lblPrc.error_active_time} (#{lblCommon.min})"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">			
+						<h:inputText id="errActiveTime" value="#{MbContainerTasksSearch.newTask.timeActive}" label="#{lblPrc.error_active_time}"
+								onkeypress="if (!numbersOnly(this, event)) return false">
+							<f:validateLongRange minimum="1"/>
+							<a4j:support event="onblur" reRender="errActiveTimeErr" limitToList="true" ajaxSingle="true"/>				
+						</h:inputText>
+						<rich:message for="errActiveTime" id="errActiveTimeErr" styleClass="errorMarker"/>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblPrc.is_active}: " title="#{lblPrc.is_active}" />
+					<h:selectBooleanCheckbox id="isActive"
+						value="#{MbContainerTasksSearch.newTask.active}" />
+
+					<h:outputLabel value="#{lblPrc.stop_on_fatal}: " title="#{lblPrc.stop_on_fatal}"/>
+					<h:selectBooleanCheckbox id="stopOnFatal"
+											 value="#{MbContainerTasksSearch.newTask.stopOnFatal}"/>
+				</h:panelGrid>
+			</h:panelGroup>
+			
+			<rich:separator height="2" lineType="dotted" width="100%"/>
+			<h:panelGroup layout="block" style="padding-left: 10px; padding-right: 10px">
+				<h:panelGrid columns="5" styleClass="cardholderdata" columnClasses="noWrap">
+		
+					<h:outputLabel value="#{lblCommon.minutes}: " title="#{lblCommon.minutes}"/>
+					<h:panelGroup>
+						<h:selectBooleanCheckbox 
+								style="width: 13px; vertical-align: middle; margin: 0 3px 0 10px" 
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.everyMinute}">
+							<a4j:support event="onchange" reRender="minuteStart, minuteRepeat, minuteInterval" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:selectBooleanCheckbox>
+						<h:outputText value="#{lblPrc.every_minute}"/>
+					</h:panelGroup>
+					<h:panelGroup id="minuteStart">
+						<h:outputText value="#{lblPrc.start}: " rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMinute}"/>
+						<h:inputText id="start_min"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronMinutes.startTime}"
+								style="width:20px; padding-right:2px;" maxlength="2" label="#{lblCommon.minutes}"
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMinute}">
+							<f:converter converterId="javax.faces.Integer"/>
+			                <f:validateLongRange minimum="0" maximum="59"/>
+							<a4j:support event="onblur" reRender="errorTaskMin" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:inputText>	
+					</h:panelGroup>
+					<h:panelGroup id="minuteRepeat">
+						<h:selectBooleanCheckbox 
+								style="width: 13px; vertical-align: middle; margin: 0 3px 0 15px"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronMinutes.periodicalRepeatEnabled}" 
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMinute}">
+							<a4j:support event="onchange" reRender="minuteInterval" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:selectBooleanCheckbox>
+						<h:outputText value="#{lblPrc.repeat}" rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMinute}"/>
+					</h:panelGroup>
+					<h:panelGroup id="minuteInterval">
+						<h:outputText value="#{lblPrc.interval}: "
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMinute and MbContainerTasksSearch.newTask.cronFormatter.cronMinutes.periodicalRepeatEnabled}"/>
+						<h:inputText id="interval_min"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronMinutes.timePeriod}" 
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMinute and MbContainerTasksSearch.newTask.cronFormatter.cronMinutes.periodicalRepeatEnabled}"
+								style="width:20px" maxlength="2" label="#{lblCommon.minutes}">
+							<f:converter converterId="javax.faces.Integer"/>
+			                <f:validateLongRange minimum="0" maximum="59"/>
+			            	<a4j:support event="onblur" reRender="errorTaskMin1" limitToList="true" ajaxSingle="true"/>
+						</h:inputText>	
+					</h:panelGroup>
+					
+					<h:outputLabel value="#{lblCommon.hours}: " title="#{lblCommon.hours}"/>
+					<h:panelGroup>
+						<h:selectBooleanCheckbox 
+								style="width: 13px; vertical-align: middle; margin: 0 3px 0 10px"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.everyHour}"> 
+							<a4j:support event="onchange" reRender="hourStart, hourRepeat, hourInterval" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:selectBooleanCheckbox>
+						<h:outputText value="#{lblPrc.every_hour}"/>
+					</h:panelGroup>					
+					<h:panelGroup id="hourStart">
+						<h:outputText value="#{lblPrc.start}: " rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyHour}"/>
+						<h:inputText id="start_hour"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronHours.startTime}" 
+								style="width:20px" label="#{lblCommon.hours}"
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyHour}">
+							<f:converter converterId="javax.faces.Integer"/>
+			                <f:validateLongRange minimum="0" maximum="23"/>
+			            	<a4j:support event="onblur" reRender="errorTaskHour" limitToList="true" ajaxSingle="true"/>
+						</h:inputText>	
+					</h:panelGroup>
+					<h:panelGroup id="hourRepeat">
+						<h:selectBooleanCheckbox 
+								style="width: 13px; vertical-align: middle; margin: 0 3px 0 15px" 
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronHours.periodicalRepeatEnabled}"
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyHour}">
+							<a4j:support event="onchange" reRender="hourInterval" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:selectBooleanCheckbox>
+						<h:outputText value="#{lblPrc.repeat}" rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyHour}"/>
+					</h:panelGroup>
+					<h:panelGroup id="hourInterval">
+						<h:outputText value="#{lblPrc.interval}: "
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyHour and MbContainerTasksSearch.newTask.cronFormatter.cronHours.periodicalRepeatEnabled}"/>
+						<h:inputText id="interval_hour"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronHours.timePeriod}"
+								style="width:20px" label="#{lblCommon.hours}"
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyHour and MbContainerTasksSearch.newTask.cronFormatter.cronHours.periodicalRepeatEnabled}">
+							<f:converter converterId="javax.faces.Integer"/>
+			                <f:validateLongRange minimum="0" maximum="23"/>
+			            	<a4j:support event="onblur" reRender="errorTaskHour1" limitToList="true" ajaxSingle="true"/>
+						</h:inputText>	
+					</h:panelGroup>
+					
+					<h:outputLabel value="#{lblCommon.days}: " title="#{lblCommon.days}"/>
+					<h:panelGroup>
+						<h:selectBooleanCheckbox
+								style="width: 13px; vertical-align: middle; margin: 0 3px 0 10px"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.everyDay}"> 
+							<a4j:support event="onchange" reRender="daysTypes, daysSelection" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:selectBooleanCheckbox>
+						<h:outputText value="#{lblPrc.every_day}"/>
+					</h:panelGroup>
+					<h:panelGroup id="daysTypes">		
+						<h:selectOneRadio layout="pageDirection" 
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.dayType}"
+								rendered="#{!MbContainerTasksSearch.newTask.cronFormatter.everyDay}"
+								styleClass="narrowInput">
+							<a4j:support event="onclick" reRender="daysSelection" limitToList="true" ajaxSingle="true"/>
+							<f:selectItem itemValue="#{MbContainerTasksSearch.newTask.cronFormatter.weeklyDay}" itemLabel="#{lblPrc.days_of_week}: "/>
+							<f:selectItem itemValue="#{MbContainerTasksSearch.newTask.cronFormatter.monthDay}" itemLabel="#{lblPrc.days_of_month}: "/>
+						</h:selectOneRadio>
+					</h:panelGroup>
+					<h:panelGroup id="daysSelection">
+						<h:panelGroup id="daysOfWeek"
+								rendered="#{!MbContainerTasksSearch.newTask.cronFormatter.everyDay and MbContainerTasksSearch.newTask.cronFormatter.weeklyScheduled}">				
+							<h:selectManyCheckbox 
+									style="vertical-align: middle;"
+									layout="pageDirection" styleClass="narrowInput" size="7"  
+									value="#{MbContainerTasksSearch.newTask.cronFormatter.daysList}" 
+									>
+								<f:selectItem itemValue="MON" itemLabel="#{lblCommon.monday}"/>
+								<f:selectItem itemValue="TUE" itemLabel="#{lblCommon.tuesday}"/>
+								<f:selectItem itemValue="WED" itemLabel="#{lblCommon.wednesday}"/>
+								<f:selectItem itemValue="THU" itemLabel="#{lblCommon.thursday}"/>
+								<f:selectItem itemValue="FRI" itemLabel="#{lblCommon.friday}"/>
+								<f:selectItem itemValue="SAT" itemLabel="#{lblCommon.saturday}"/>						
+								<f:selectItem itemValue="SUN" itemLabel="#{lblCommon.sunday}"/>
+							</h:selectManyCheckbox>
+						</h:panelGroup>
+						<h:panelGroup id="daysOfMonth"
+								rendered="#{!MbContainerTasksSearch.newTask.cronFormatter.everyDay and MbContainerTasksSearch.newTask.cronFormatter.dailyScheduled}">
+							<h:selectManyListbox 
+									value="#{MbContainerTasksSearch.newTask.cronFormatter.days}" 
+									size="7" style="width:50px; height: auto">
+								<f:selectItems value="#{MbContainerTasksSearch.days}"/>
+							</h:selectManyListbox>
+						</h:panelGroup>
+					</h:panelGroup>
+					<h:panelGroup id="daysEmptyCol">
+					</h:panelGroup>
+					
+					<h:outputLabel value="#{lblCommon.months}: " title="#{lblCommon.months}"/>
+					<h:panelGroup>
+						<h:selectBooleanCheckbox 
+								style="width: 13px; vertical-align: middle; margin: 0 3px 0 10px"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.everyMonth}"> 
+							<a4j:support event="onchange" reRender="monthStart, monthRepeat, monthInterval, start_monthError" 
+									limitToList="true" ajaxSingle="true"/>
+						</h:selectBooleanCheckbox>
+						<h:outputText value="#{lblPrc.every_month}"/>
+					</h:panelGroup>					
+					<h:panelGroup id="monthStart" styleClass="noWrap">
+						<h:outputText value="#{lblPrc.start}: " rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMonth}"/>
+						<h:selectOneMenu id="start_month" style="width:75px"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronMonths.startTime}" 
+								label="#{lblCommon.months}"
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMonth}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbContainerTasksSearch.months}"/>
+						</h:selectOneMenu>
+					</h:panelGroup>
+					<h:panelGroup id="monthRepeat">
+						<h:selectBooleanCheckbox
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronMonths.periodicalRepeatEnabled}"
+								style="width: 13px; vertical-align: middle; margin: 0 3px 0 15px"
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMonth}">
+							<a4j:support event="onchange" reRender="monthInterval"
+									limitToList="true" ajaxSingle="true" />
+						</h:selectBooleanCheckbox>
+						<h:outputText value="#{lblPrc.repeat}" rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMonth}"/>
+					</h:panelGroup>
+					<h:panelGroup id="monthInterval">
+						<h:outputText value="#{lblPrc.interval}: "
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMonth and MbContainerTasksSearch.newTask.cronFormatter.cronMonths.periodicalRepeatEnabled}"/>
+						<h:inputText id="interval_month"
+								value="#{MbContainerTasksSearch.newTask.cronFormatter.cronMonths.timePeriod}" 
+								style="width:20px" maxlength="2" 
+								label="#{lblCommon.months}: #{lblPrc.interval}"
+								rendered="#{not MbContainerTasksSearch.newTask.cronFormatter.everyMonth and MbContainerTasksSearch.newTask.cronFormatter.cronMonths.periodicalRepeatEnabled}">
+							<f:converter converterId="javax.faces.Integer"/>
+			                <f:validateLongRange minimum="1" maximum="12"/>
+			            	<a4j:support event="onblur" reRender="errorTaskMonth1" 
+			            			limitToList="true" ajaxSingle="true"/>
+						</h:inputText>	
+					</h:panelGroup>
+
+					<h:outputLabel value="#{lblForm.holidays}: " title="#{lblForm.holidays}"/>
+					<h:panelGroup>
+						<h:selectBooleanCheckbox value="#{MbContainerTasksSearch.newTask.cronFormatter.skipHolidays}"
+												 style="width: 13px; vertical-align: middle; margin: 0 3px 0 10px">
+							<a4j:support event="onchange" limitToList="true" ajaxSingle="true"/>
+						</h:selectBooleanCheckbox>
+						<h:outputText value="#{lblPrc.skip}"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+			
+			<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+				id="start_monthError" style="display:none;">
+				<f:param name="fieldName" value="#{lblPrc.start}"/>
+			</h:outputFormat>
+					
+			<rich:messages for="start_min" styleClass="errorMarker" id="errorTaskMin"/>
+			<rich:messages for="interval_min" styleClass="errorMarker" id="errorTaskMin1"/>
+			
+			<rich:messages for="start_hour" styleClass="errorMarker" id="errorTaskHour"/>
+			<rich:messages for="interval_hour" styleClass="errorMarker" id="errorTaskHour1"/>
+			
+			<rich:messages for="start_day" styleClass="errorMarker" id="errorTaskDay"/>
+			<rich:messages for="interval_day" styleClass="errorMarker" id="errorTaskDay1"/>
+			
+			<rich:messages for="start_month" styleClass="errorMarker" id="errorTaskMonth"/>
+			<rich:messages for="interval_month" styleClass="errorMarker" id="errorTaskMonth1"/>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	     	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+							<bre:taggedCommandButton 
+				            		value="#{lblForm.save}" type="submit" 
+				                	reRender="warningPanel,#{rerenderList}" 
+				                	action="#{MbContainerTasksSearch.save}" 
+				                	onclick="if (!checkTaskFields()) return false; disableModalPanelBtns(this)"
+				                	oncomplete="enableModalPanelBtns(this); 
+				                			if (#{usession.noErrorResponse}) {
+				                				if (#{MbContainerTasksSearch.error || MbContainerTasksSearch.warning}) {
+				                					#{rich:component('warningPanel')}.show();
+				                				} else {
+				                					#{rich:component('taskModalPanel')}.hide();
+				                				}
+				                			}"/>
+							<bre:taggedCommandButton 
+									value="#{lblForm.cancel}"				                        		
+									action="#{MbContainerTasksSearch.close}" immediate="true"
+									oncomplete="#{rich:component('taskModalPanel')}.hide()" 
+									reRender="taskEditForm">
+								<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+							</bre:taggedCommandButton>               
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+    <ui:include src="/pages/utils/langConfirmPanel.jspx">
+    	<ui:param name="backingBean" value="#{MbContainerTasksSearch}"/>
+    	<ui:param name="rerenderList" value="taskEditForm:name, taskEditForm:full_desc"/>
+    	<ui:param name="editElem" value="taskEditForm:editLang"/>
+    	<ui:param name="newValue" value="#{MbContainerTasksSearch.newTask.lang}"/>
+    	<ui:param name="formName" value="taskEditForm"/>
+    </ui:include>
+
+	<rich:modalPanel id="warningPanel" autosized="true" minWidth="300" minHeight="50">
+        <f:facet name="header">
+            <h:panelGroup>
+                <h:outputText value="#{lblMsg.warning_exc}"/>
+            </h:panelGroup>
+        </f:facet>
+        <f:facet name="controls">
+        </f:facet>
+        <h:form id="warningPanelForm">
+	        <h:panelGrid columns="2">
+		        <h:graphicImage url="/images/icon_warning.png" height="32" width="32" rendered="#{MbContainerTasksSearch.warning}"/>
+		        <h:graphicImage url="/images/icon_error.png" height="32" width="32" rendered="#{MbContainerTasksSearch.error}"/>
+		        <h:outputText value="#{MbContainerTasksSearch.message}"/>
+		        <h:outputText/>
+		        <h:outputText value="#{lblMsg.save_anyway}" rendered="#{MbContainerTasksSearch.warning}"/>
+	        </h:panelGrid>
+		    
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+		        		<bre:taggedCommandButton value="#{lblCommon.yes}" 
+		        				id="savebutton" action="#{MbContainerTasksSearch.saveConfirmed}"
+		        				reRender="taskModalPanel,#{rerenderList}"
+		        				onclick="disableModalPanelBtns(this);"
+		        				oncomplete="#{rich:component('warningPanel')}.hide();
+		        						if (#{usession.noErrorResponse}) { #{rich:component('taskModalPanel')}.hide(); }"
+		        				rendered="#{MbContainerTasksSearch.warning}"
+		        				/>
+		        		<bre:taggedCommandButton value="#{lblCommon.no}" 
+		        				onclick="#{rich:component('warningPanel')}.hide(); return false;"
+		        				id="hidebutton"
+		        				rendered="#{MbContainerTasksSearch.warning}"
+		        				/>
+		        		<bre:taggedCommandButton value="#{lblForm.ok}" 
+		        				onclick="#{rich:component('warningPanel')}.hide(); return false;"
+		        				id="hidebutton2"
+		        				rendered="#{MbContainerTasksSearch.error}"
+		        				/>
+			        </h:panelGrid>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+    </rich:modalPanel>
+</ui:composition>
+</html>

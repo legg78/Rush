@@ -1,0 +1,1134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	xmlns:fmt="http://www.bpc.ru/el/formatter"
+	xmlns:c="http://java.sun.com/jstl/core"
+	>
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+	
+		<link rel="stylesheet" type="text/css" href="#{facesContext.externalContext.requestContextPath}/css/stretch.css" />
+		<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/stretch.js" />
+		
+		<h:inputHidden value="#{MbAccountsAllSearch.moduleHidden}"/>
+		
+		<script type="text/javascript">
+		//<![CDATA[        
+			function selectTab(tabName) {
+				submittingTab = tabName;
+				if (checkTabLoaded(tabName)) {
+					//set only tab name to managed bean (in order to use it in the future)
+					setTabName(tabName);
+					return false;
+				}
+				refreshTab(tabName);
+				return true;
+			}
+			
+			function handleEnter(event) {
+				 if (event.keyCode == 13) { 
+					 document.getElementById('accountsSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }
+			
+			var colorOk = "#FFFFFF";
+	    	var colorMandatory = "#FF5555";
+	    	var colorGroup1 = "#FFAAAA";
+	    	var colorGroup2 = "#FF7777";
+	    	var colorFormat = "#FF9999";
+	    	
+	    	function Component(el, needFocus, needMark, minLength, wildcardType, alfaChar) {
+		    	this.el = el;// el object
+		    	this.needFocus = needFocus;//boolean
+		    	this.needMark = needMark;//boolean
+		    	this.minLength = minLength;//int
+		    	this.wildcardType = wildcardType;//0:no wildcard allow; 1:no wildcard end.
+		    	this.alfaChar = alfaChar; // true: start with alfa char
+	    	}
+
+	    	function checkMandatory(el, needFocus, needMark, minLength, wildcardType, alfaChar) {
+	    		var result = true;
+	    		if (el.value == null || el.value == "") {
+					result = false;
+				} else if (minLength != null && el.value.replace(/%|\*|\?/g,"").length < minLength) {
+					result = false;
+				} else if (wildcardType != null) {
+					if (wildcardType == 0) {
+						if (/%|\*|\?/g.test(el.value)) {
+							result = false;	
+						} 
+					} else {
+						if (/.*(%|\*|\?)$/g.test(el.value)) {
+							result = false;	
+						} 
+					}
+				} else if (alfaChar) {
+					if (!/^[a-zA-Z].*$/g.test(el.value)) {
+						result = false;
+					}
+				}
+	    		if (result) {
+	    			el.style.backgroundColor = colorOk;
+	    		} else {
+	    			if (needMark) {
+						el.style.backgroundColor = colorMandatory;
+	        		}
+					if (needFocus) {
+						el.focus();
+					}
+	    		}
+				return result;
+	    	}
+
+	    	function checkGroup(group, color) {
+	        	var validGroup = true;
+	        	for (var i = 0; i < group.length; i++) {
+	        		validGroup = validGroup && checkMandatory(
+	        				group[i].el, group[i].needFocus, group[i].needMark, group[i].minLength, group[i].wildcardType, group[i].alfaChar);
+	    		}
+	    		if (!validGroup) {
+	    			if (color != null) {
+		    			for (var i = 0; i < group.length; i++) {
+		    				group[i].el.style.backgroundColor = color;
+		        		}    			
+	    			}
+	    		} else {
+	    			for (var i = 0; i < group.length; i++) {
+	    				group[i].el.style.backgroundColor = colorOk;
+	        		}
+	    		}
+	    		return validGroup;
+	    	}
+	    	
+	    	function checkGroups(groups) {
+	        	var valid = false;
+	    		for (var i = 0; i < groups.length; i++) {
+	        		if (groups.length > 2) {
+	        			if (i == 0) { 
+	        				valid = valid || checkGroup(groups[i], colorGroup1);
+	        			} else {
+	        				valid = valid || checkGroup(groups[i], null);
+	        			}
+	    			} else {
+	    				if (i == 0) {
+	    					valid = valid || checkGroup(groups[i], colorGroup1);
+	    				} else {
+	    					valid = valid || checkGroup(groups[i], colorGroup2);
+	    				} 
+	    			}
+	    		}
+	    		
+	    		return valid;
+	    	}
+	    	
+	    	function clearColor(groups) {
+	    		for (var i = 0; i < groups.length; i++) {
+	    			for (var j = 0; j < groups[i].length; j++) {
+	    				groups[i][j].el.style.backgroundColor = colorOk;
+	    			}
+	    		}
+	    	}
+
+		    //setOrLabel(#{lblMsg.or_label});
+	    	function checkFields(viewId) {
+	        	var valid = true;
+	        	
+	        	if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) return valid;
+
+	        	if (!viewId) viewId = "";
+	        	var form = viewId + "accountsSearchForm:";
+					        	
+				var instIdEl = document.getElementById(form + "instId");
+				if (instIdEl != null) {
+					valid = valid && checkMandatory(instIdEl, true, true, null, null);
+				}
+				
+				var accountNumberEl = document.getElementById(form + "numberFilter");
+				var customerNumberValue = document.getElementById(form + "customerNumberHidden");
+				var customerNumber = document.getElementById(form + "customerInfo");
+				var contractNumber = document.getElementById(form + "contractNumber");
+				
+				var fields = [accountNumberEl, customerNumber, contractNumber];
+				cleanAll(fields);
+				var errorMsg = '';
+				if (!empty(accountNumberEl)){
+					if (accountNumberEl.value.length >= 5){
+						cleanAll(fields);
+						return valid;
+					} else {
+						paint(accountNumberEl);
+						errorMsg = appendMsg(errorMsg, '#{lblMsg.account_number_group}');
+					}
+				}
+				
+				if (!empty(customerNumberValue)){
+					if (customerNumberValue.value.length >= 5){
+						cleanAll(fields);
+						return valid;
+					} else {
+						paint(customerNumber);
+						errorMsg = appendMsg(errorMsg, '#{lblMsg.customer_number_group}');
+					}
+				}
+				
+				if (!empty(contractNumber)){
+					if (contractNumber.value.length >= 5){
+						cleanAll(fields);
+						return valid;
+					} else {
+						paint(contractNumber);
+						errorMsg = appendMsg(errorMsg, '#{lblMsg.contract_number_group}');
+					}
+				}
+				
+				if (errorMsg == ''){
+					paintAll(fields);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.account_number_group}');
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.customer_number_group}');
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.contract_number_group}');
+				}
+				alert(errorMsg);
+				return false;
+			}
+			
+			function empty(element){
+				return element.value == '';
+			}
+			function paint(element){
+				element.style.backgroundColor = '#FF9999';
+			}
+			function clean(element){
+				element.style.backgroundColor = '#FFFFFF';
+			}
+			function appendMsg(srcMsg, addMsg){
+				var result = srcMsg;
+				if (result != ''){
+					result = result + '\nor\n';
+				}
+				result = result + addMsg;
+				return result;
+			}
+			function cleanAll(elArray){
+				for (i=0; i<elArray.length; i++){
+					clean(elArray[i]);
+				}
+			}
+			function paintAll(elArray){
+				for (i=0; i<elArray.length; i++){
+					paint(elArray[i]);
+				}
+			}
+	    	//]]>
+		</script>
+		<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss" />
+		<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq" />
+		<f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App" />
+		<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc" />
+		<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl" />
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+		<f:loadBundle var="lblEvt" basename="ru.bpc.sv2.ui.bundles.Evt"/>
+		<f:loadBundle var="lblReport" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+		<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+		<f:loadBundle var="lblLty" basename="ru.bpc.sv2.ui.bundles.Lty"/>
+		<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+		<f:loadBundle var="lblFrp" basename="ru.bpc.sv2.ui.bundles.Frp"/>
+		<f:loadBundle var="lblRej" basename="ru.bpc.sv2.ui.bundles.Reject"/>
+
+        <a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+
+        <rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"  timeZone="#{CommonUtils.timeZone}"
+                       onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"
+                       inputClass="hidden" buttonClass="hidden" showApplyButton="true" defaultTime="00:00"/>
+
+        <script>
+            #{rich:component('calendar')}.customExpand=customExpand;
+        </script>
+
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{MbAccountsAllSearch.pageName}" />
+		<bpct:filterBarModalPanels id="filterPanels"
+			rerenderList="accountsSearchForm, accountsTable, dsaccounts, pagesNum, save_filter_panel_div, #{MbAccountsAllSearch.tabName}"
+			selectedFilter="#{MbAccountsAllSearch.selectedSectionFilter}"
+			sectionFilter="#{MbAccountsAllSearch.sectionFilter}"
+			sectionFilterModeEdit="#{MbAccountsAllSearch.sectionFilterModeEdit}"
+			searchAutomatically="#{MbAccountsAllSearch.searchAutomatically}"
+			sectionId="#{MbAccountsAllSearch.sectionId}"
+			beanName="MbAccountsAllSearch"/>
+		
+		<bpct:customerSearchModalPanels id="custSearchPanels"/>
+		
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true"
+				size="1" sizeExceededBehavior="dropNew" />
+		
+		<h:form id="accountsSearchForm" onkeypress="return handleEnter(event)">
+			<h:inputHidden value="#{MbAccountsAllSearch.tabName}"
+				id="tabNameInput" />
+			<script type="text/javascript">
+				load("accountsSearchForm:tabNameInput");
+			</script>
+
+			<a4j:jsFunction name="refreshTab" eventsQueue="queue"
+				requestDelay="500" limitToList="true" ajaxSingle="true"
+				reRender="#{MbAccountsAllSearch.tabName}, err_ajax"
+				action="#{MbAccountsAllSearch.loadCurrentTab}"
+				oncomplete="setTabLoaded(submittingTab);updateHeight();">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbAccountsAllSearch.tabName}" />
+			</a4j:jsFunction>
+
+			<a4j:jsFunction name="setTabName" reRender="#{MbAccountsAllSearch.tabName}, err_ajax"
+				limitToList="true" ajaxSingle="true"
+				oncomplete="setTabLoaded(submittingTab)">
+				<a4j:actionparam name="tabName"
+					assignTo="#{MbAccountsAllSearch.tabName}" />
+			</a4j:jsFunction>
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+						<h:panelGroup styleClass="search_block_left" layout="block">
+							<h:panelGrid styleClass="fw" columns="2"
+								columnClasses="top ,link-cont">
+								<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+									columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+									<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"
+										/>
+									<h:selectOneMenu id="instId"
+										value="#{MbAccountsAllSearch.filter.instId}">
+										<f:selectItem itemValue="" itemLabel="" />
+										<f:selectItems value="#{MbAccountsAllSearch.institutions}" />
+										<a4j:support event="onchange" limitToList="true"
+											oncomplete="document.getElementById('accountsSearchForm:instId').focus();"
+											reRender="typeFilter" ajaxSingle="true" />
+									</h:selectOneMenu>
+
+									<h:outputLabel for="numberFilter" title="#{lblAcc.account_number}"
+										value="#{lblAcc.account_number}: " />
+									<h:inputText id="numberFilter"
+										value="#{MbAccountsAllSearch.filter.accountNumber}" />
+
+									<h:outputLabel for="statusFilter" value="#{lblCommon.status}: " 
+										title="#{lblCommon.status}"/>
+									<h:selectOneMenu id="statusFilter"
+										value="#{MbAccountsAllSearch.filter.status}">
+										<f:selectItem itemValue="" itemLabel="" />
+										<f:selectItems value="#{MbAccountsAllSearch.accountStatuses}" />
+									</h:selectOneMenu>
+
+									<h:outputLabel for="typeFilter" value="#{lblCommon.type}: " 
+										title="#{lblCommon.type}"/>
+									<h:selectOneMenu id="typeFilter"
+										value="#{MbAccountsAllSearch.filter.accountType}">
+										<f:selectItem itemValue="" itemLabel="" />
+										<f:selectItems value="#{MbAccountsAllSearch.accountTypes}" />
+									</h:selectOneMenu>
+									
+									<h:outputLabel for="customerNumber" value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}" />
+									<bm:selectCustomer 
+										id="customerNumber"
+										valueId="#{MbAccountsAllSearch.filter.customerId}"
+										valueNumber="#{MbAccountsAllSearch.filter.customerNumber}"
+										custInfoField="#{MbAccountsAllSearch.filter.custInfo}"
+										beanName="MbAccountsAllSearch" 
+										modalPanel="customerSearchModalPanel"
+										readonly="false"
+										formName="accountsSearchForm"
+										searchButton="searchBtn"
+										manualInput="true"
+										rerenderList="accountsSearchForm:instId"
+                                        disabled="false" rendered="true"/>
+									
+									<h:outputLabel for="contractNumber" title="#{lblPrd.contract_number}"
+										value="#{lblPrd.contract_number}: " />
+									<h:inputText id="contractNumber"
+										value="#{MbAccountsAllSearch.filter.contractNumber}" />
+
+                                    <h:outputLabel for="currencyFilter" value="#{lblCommon.currency}: " title="#{lblCommon.currency}" />
+                                    <h:selectOneMenu id="currencyFilter"
+                                                     value="#{MbAccountsAllSearch.filter.currency}">
+                                        <f:selectItem itemValue=""/>
+                                        <f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+                                    </h:selectOneMenu>
+
+
+
+			            			<h:inputText style="display:none" 
+			            					value="IE hack for 'Enter' hit when there's only one input field 
+			            							on form. Stick it to the bottom to not to break layout"/>
+								</h:panelGrid>
+								<h:panelGrid columns="1">
+									<bre:taggedCommandButton
+											id="searchBtn"
+											action="#{MbAccountsAllSearch.search}" 
+											onclick="checkCustNumber('accountsSearchForm');  if (!checkFields()) {return false;} disableModalPanelBtns(this); flushTabs();"
+											reRender="accountsTable, accountsBtnForm:dsaccounts, accountsBtnForm:pagesNum, accountsBtnForm:btnPanel, #{MbAccountsAllSearch.tabName}, togglePanelAcc"
+											image="/_img/icon_search.png" type="submit" value="#{lblForm.search}"
+											oncomplete="toggleTabs(currentTab);updateHeight();enableModalPanelBtns(this)"
+											style="width:85px;" 
+											eventsQueue="queue"/>
+									<h:panelGrid columns="1" >
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png"/>
+											<a4j:commandLink value="#{lblForm.clear_all}"
+									        		action="#{MbAccountsAllSearch.clearFilter}"
+									        		reRender="accountsSearchForm, accountsForm, accountsBtnForm, details, togglePanelAcc"
+									        		oncomplete="toggleTabs(currentTab);updateHeight();">
+									        </a4j:commandLink>
+										</h:panelGroup>
+										<h:panelGroup>
+				            	    		<bpct:filterBar sectionId="#{MbAccountsAllSearch.sectionId}"/>
+										</h:panelGroup>
+									</h:panelGrid>
+								</h:panelGrid>
+							</h:panelGrid>
+							<a4j:outputPanel ajaxRendered="true">
+								<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</a4j:outputPanel>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>			
+		</h:form>
+		
+		<h:panelGroup id="init">
+			<script type="text/javascript">
+		    //<![CDATA[
+				 flushTabs();
+			//]]>
+			</script>
+		</h:panelGroup>
+
+		<h:form id="accountsForm">
+		
+			<a4j:jsFunction name="changeSelection" ignoreDupResponses="true"  eventsQueue="queue"
+				reRender="accountsBtnForm:btnPanel, #{MbAccountsAllSearch.tabName}, togglePanel, togglePanelAcc"
+				oncomplete="flushTabs();setTabLoaded(currentTab); toggleTabs(currentTab); updateHeight();">
+			</a4j:jsFunction>
+
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff"
+					layout="block">
+					<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+						<rich:extendedDataTable id="accountsTable" styleClass="res-table"
+							tableState="#{MbAccountsAllSearch.tableState}"
+							headerClass="res-table-header" rowClasses=",odd"
+							selectedClass="res-table-selected" var="item"
+							value="#{MbAccountsAllSearch.accounts}"
+							selection="#{MbAccountsAllSearch.itemSelection}"
+							rows="#{MbAccountsAllSearch.rowsNum}"
+							selectionMode="single" width="100%" enableContextMenu="true"
+							onselectionchange="changeSelection(currentTab);"
+							noDataLabel="#{MbAccountsAllSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="init, err_ajax, accountsBtnForm:btnPanel, #{MbAccountsAllSearch.tabName}, togglePanel, togglePanelAcc"
+							height="255px" onRowMouseDown="handleMouseClick(event)" binding="#{MbAccountsAllSearch.table}">
+                            <f:event type="preRenderComponent" listener="#{MbAccountsAllSearch.onSortablePreRenderTable()}"></f:event>
+							<rich:column id="account_number" label="#{lblAcc.account_number}" title="Account number" sortBy="#{'account_number'}"
+								width="15%">
+								<f:facet name="header">
+									<a4j:outputPanel layout="none">
+										<script>
+										if (document.readyState == 'complete'){
+											updateHeight();
+										}
+										</script>
+										<h:outputText value="#{lblAcc.account_number}" title="#{lblAcc.account_number}" />
+									</a4j:outputPanel>
+		                            
+								</f:facet>
+								<bm:entityDisplay contextType="ENTTACCT" bean="MbAccountsAllSearch" value="#{item.accountNumber}"/>
+							</rich:column>
+	
+							<rich:column id="available_balance" label="#{lblAcc.available_balance}" title="Balance" style="text-align: right"
+									sortBy="#{'balance'}" width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblAcc.available_balance}"
+										title="#{lblAcc.available_balance}" />
+								</f:facet>
+								<bm:entityDisplay contextType="ENTTACCT" bean="MbAccountsAllSearch" 
+										value="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}"/>
+							</rich:column>
+	
+							<rich:column id="currency" label="#{lblCommon.currency}" title="Currency" 
+									width="15%" sortBy="#{'currency'}">
+								<f:facet name="header">
+									
+									<h:outputText value="#{lblCommon.currency}"
+										title="#{lblCommon.currency}" />
+								</f:facet>
+								<div class="#{CurrencyUtils.flagMap[item.currency]}"/>
+				                <bm:entityDisplay contextType="ENTTACCT" bean="MbAccountsAllSearch" 
+				                				  value="#{item.currency} - #{CurrencyUtils.currencyObjectsMap[item.currency].currencyName}"/>
+							</rich:column>
+	
+							<rich:column id="account_type" label="#{lblAcc.account_type}" title="Account type" sortBy="#{'account_type'}"
+								width="20%">
+								<f:facet name="header">
+									<h:outputText value="#{lblAcc.account_type}"
+										title="#{lblAcc.account_type}" />
+								</f:facet>
+								<bm:entityDisplay contextType="ENTTACCT" bean="MbAccountsAllSearch" value="#{DictUtils.articles[item.accountType]}" />
+							</rich:column>
+	
+							<rich:column id="institution" label="#{lblCommon.institution}" title="Institution" sortBy="#{'inst_id'}"
+								width="20%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.institution}"
+										title="#{lblCommon.institution}" />
+								</f:facet>
+								<bm:entityDisplay link = "true" contextType="ENTTINST" bean="MbAccountsAllSearch" entityId="#{item.instId}" value="#{item.instName != null ? item.instName : '...'}"/>
+							</rich:column>
+	
+							<rich:column id="status" label="#{lblCommon.status}" title="Status" sortBy="#{'status'}" width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.status}"
+										title="#{lblCommon.status}" />
+								</f:facet>
+								<bm:entityDisplay contextType="ENTTACCT" bean="MbAccountsAllSearch" value="#{DictUtils.articles[item.status]}" />
+							</rich:column>
+						</rich:extendedDataTable>
+						<a4j:outputPanel ajaxRendered="true">
+							<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+							<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+							<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block" />
+						</a4j:outputPanel>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+        </h:form>
+        <h:form id="accountsBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="5"
+							columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+							<h:selectOneMenu id="rows_num"
+								value="#{MbAccountsAllSearch.rowsNum}" styleClass="row_per_page">
+								<a4j:support event="onchange"
+									reRender="accountsTable, dsaccounts, pagesNum, accountsBtnForm, #{MbAccountsAllSearch.tabName}, togglePanel, togglePanelAcc" />
+								<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+							</h:selectOneMenu>
+
+							<rich:datascroller maxPages="10" fastControls="hide"
+								pagesVar="pages" styleClass="res-datascroller" id="dsaccounts"
+								for="accountsTable" reRender="accountsBtnForm:btnPanel, #{MbAccountsAllSearch.tabName}, togglePanel, togglePanelAcc">
+								<f:facet name="first">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="first_disabled">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="last">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="last_disabled">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="previous_disabled">
+									<h:outputText value="#{lblCommon.prev}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="next">
+									<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="next_disabled">
+									<h:outputText value="#{lblCommon.next}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="pages">
+								</f:facet>
+							</rich:datascroller>
+
+							<h:panelGroup id="pagesNum">
+								<h:outputText styleClass="strongClass" value="#{pages} " />
+								<h:outputText value=" #{lblCommon.pages}" />
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbAccountsAllSearch.accounts.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+							</h:panelGroup>
+							
+							<h:panelGroup>
+								 <h:commandLink id="run" rendered="false"
+      	    						action="#{MbAccountsAllSearch.exportData}" value="Export" />
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbAccountsAllSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbAccountsAllSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+						<h:panelGrid id="btnPanel" columns="4" styleClass="buttons_block">
+							<bre:taggedCommandButton id="backBtn" value="#{lblForm.back}"
+								action="#{MbAccountsAllSearch.back}" rendered="#{MbAccountsAllSearch.showBackBtn}" />
+						
+							<rich:spacer width="20px" rendered="#{MbAccountsAllSearch.showBackBtn}" />
+						
+							<bre:taggedCommandButton id="applBtn"
+								value="#{lblAcq.applications}" disabled="#{MbAccountsAllSearch.activeAccount == null}"
+								action="#{MbAccountsAllSearch.toApplications}"
+								rendered="#{usession.inRole['VIEW_ISSUING_APPLICATION']}">
+								<a4j:actionparam name="appType" value="#{MbAccountsAllSearch.appType}" />
+							</bre:taggedCommandButton>
+						
+							<bre:taggedCommandButton id="operBtn"
+								value="#{lblOpr.operation}" disabled="#{MbAccountsAllSearch.activeAccount == null}"
+								action="#{MbAccountsAllSearch.setupOperTypeSelection}" reRender="wizardWindow"
+								rendered="#{usession.inRole['VIEW_OPERATION_WIZARD_ACCOUNT']}"
+								oncomplete="if (#{usession.noErrorResponse}){Richfaces.showModalPanel('wizardWindow');}" 
+								/>		        	
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1"
+			sizeExceededBehavior="dropNew" requestDelay="500" />
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content" selectedTab="#{MbAccountsAllSearch.tabName}">
+
+				<rich:tab id="_detailsTab" label="Details" name="detailsTab"
+					onlabelclick="selectTab('detailsTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" id="detailsTab">
+						<ui:include src="/pages/accounts/account_details.jspx">
+							
+						</ui:include>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>			
+					</h:panelGroup>
+				</rich:tab>
+				
+				 <rich:tab label="Additional" name="flexibleFieldsTab"
+				 	onlabelclick="selectTab('flexibleFieldsTab')" style="height:100%;">
+			    	
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="flexibleFieldsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+						<h:panelGroup id="flexibleFieldsTabContents">
+								<ui:include src="#{MbAccountsAllSearch.tabName=='flexibleFieldsTab' ? '/pages/common/flexible/flexFieldsTableBottom.jspx' : null}">
+								</ui:include>
+	       				</h:panelGroup>
+       				</h:panelGroup>
+			    </rich:tab>
+
+				<rich:tab label="Balances" name="balancesTab" 
+					onlabelclick="selectTab('balancesTab')" style="height:100%;">
+
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcc.balances}"
+								title="#{lblAcc.balances}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="balancesTab">
+						<h:panelGroup id="balancesTabContents">
+							<h:panelGroup layout="block" styleClass="carddata-wrapper"
+								style="height: 100%; position:relative;">
+								<ui:include src="#{MbAccountsAllSearch.tabName=='balancesTab' ? '/pages/accounts/list_balances_bottom.jspx' : null}"></ui:include>
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Transactions" name="transactionsTab"
+					onlabelclick="selectTab('transactionsTab')" style="height:100%;">
+
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcc.transactions}"
+								title="#{lblAcc.transactions}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="transactionsTab">
+						<h:panelGroup id="transactionsTabContents">												
+							<h:panelGroup layout="block" styleClass="carddata-wrapper"
+								style="height: 100%; overflow: hidden;position:relative;">
+								<ui:include
+									src="#{MbAccountsAllSearch.tabName=='transactionsTab' ? '/pages/accounts/list_balances_entries_bottom.jspx' : null}"></ui:include>
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+
+				<rich:tab label="Operations" name="operationsTab"
+					onlabelclick="selectTab('operationsTab')" style="height:100%;">
+
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblIss.operations}"
+								title="#{lblIss.operations}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="operationsTab">
+						<h:panelGroup id="operationsTabContents">
+							<h:panelGroup layout="block" styleClass="carddata-wrapper"
+								style="height: 100%; overflow: hidden;position:relative;">
+								<ui:include src="#{MbAccountsAllSearch.tabName=='operationsTab' ? '/pages/accounts/list_operations_bottom.jspx' : null}"></ui:include>
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Attributes" name="attributesTab"
+					onlabelclick="selectTab('attributesTab')" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblPrd.service_terms}"
+								title="#{lblPrd.service_terms}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="attributesTab" layout="block"
+						styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+						<h:panelGroup id="attributesTabContents">
+							<ui:include
+								src="#{MbAccountsAllSearch.tabName=='attributesTab' ? '/pages/products/attributes/list_object_attributes.jspx' : null}"></ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Cards" name="cardsTab"
+					rendered="#{MbAccountsAllSearch.issuingType and usession.inRole['VIEW_CARDS']}"
+					onlabelclick="selectTab('cardsTab')" style="height:100%;">
+
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblIss.cards}" title="#{lblIss.cards}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="cardsTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%; overflow: hidden;position:relative;">
+						<h:panelGroup id="cardsTabContents">
+							<ui:include src="#{MbAccountsAllSearch.tabName=='cardsTab' ? '/pages/issuing/cards/list_cards_bottom.jspx' : null}">
+								
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Customer" name="customersTab"
+					rendered="#{usession.inRole['VIEW_CUSTOMERS']}"
+					onlabelclick="selectTab('customersTab')" >
+
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblIss.customer}"
+								title="#{lblIss.customer}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="customersTab" layout="block" name="customersTab">
+						<h:panelGroup id="customersTabContents" layout="block">
+							<ui:include src="#{MbAccountsAllSearch.tabName=='customersTab' ? '/pages/products/customerDetails.jspx' : null}">
+								<ui:param name="customersBean" value="#{MbCustomersDependent}"></ui:param>
+							</ui:include>
+													<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Merchants" name="merchantsTab"
+					rendered="#{MbAccountsAllSearch.acquiringType}"
+					onlabelclick="selectTab('merchantsTab')" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcq.merchants}"
+								title="#{lblAcq.merchants}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="merchantsTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%; overflow: hidden;position:relative;">
+						<h:panelGroup id="merchantsTabContents">
+							<ui:include src="#{MbAccountsAllSearch.tabName=='merchantsTab' ? '/pages/acquiring/list_merchants_bottom.jspx' : null}"></ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Terminals" name="terminalsTab"
+					rendered="#{MbAccountsAllSearch.acquiringType}"
+					onlabelclick="selectTab('terminalsTab')" style="height:100%;">
+					
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblAcq.terminals}"
+								title="#{lblAcq.terminals}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="terminalsTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%; overflow: hidden;position:relative;">
+						<h:panelGroup id="terminalsTabContents">
+							<ui:include src="#{MbAccountsAllSearch.tabName=='terminalsTab' ? '/pages/acquiring/terminals/list_terminals_bottom.jspx' : null}"></ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Limit counters" name="limitCountersTab"
+					onlabelclick="selectTab('limitCountersTab')" style="height:100%;">
+
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblFcl.limit_counters}"
+								title="#{lblFcl.limit_counters}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="limitCountersTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%; overflow: hidden;position:relative;">
+						<h:panelGroup id="limitCountersTabContents">
+							<ui:include
+								src="#{MbAccountsAllSearch.tabName=='limitCountersTab' ? '/pages/fee_cycle_limit/limits/listLimitCounters.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Cycle counters" name="cycleCountersTab"
+					onlabelclick="selectTab('cycleCountersTab')" style="height:100%;">
+
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblFcl.cycle_counters}"
+								title="#{lblFcl.cycle_counters}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="cycleCountersTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%; overflow: hidden;position:relative;">
+						<h:panelGroup id="cycleCountersTabContents">
+							<ui:include
+								src="#{MbAccountsAllSearch.tabName=='cycleCountersTab' ? '/pages/fee_cycle_limit/cycles/list_account_cycle_counters.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab label="Loyalty bonuses" name="loyaltyBonusesTab"
+                          rendered="#{usession.inRole['VIEW_LOYALTY_BONUS']}"
+					onlabelclick="selectTab('loyaltyBonusesTab')" style="height:100%;">
+
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblLty.loyalty_bonuses}"
+								title="#{lblLty.loyalty_bonuses}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="loyaltyBonusesTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%; overflow: hidden;position:relative;">
+						<h:panelGroup id="loyaltyBonusesTabContents">
+							<ui:include src="#{MbAccountsAllSearch.tabName=='loyaltyBonusesTab' ? '/pages/loyalty/loyaltyBonusesListBottom.jspx' : null}">
+							</ui:include>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab label="Notes" name="notesTab"
+                          rendered="#{usession.inRole['VIEW_NOTE']}"
+					onlabelclick="selectTab('notesTab')" style="height:100%;">
+       				
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+       					<h:panelGroup id="notesTabContents">
+	       						<ui:include src="#{MbAccountsAllSearch.tabName=='notesTab' ? '/pages/notes/list_notes_bottom.jspx' : null}"></ui:include>
+	       				</h:panelGroup>
+       				</h:panelGroup>
+       			</rich:tab>
+       			
+				<rich:tab label="Documents" name="documentsTab"
+					onlabelclick="selectTab('documentsTab')" style="height:100%;">
+       				
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblRpt.documents}" title="#{lblRpt.documents}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="documentsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+       					<h:panelGroup id="documentsTabContent">
+	       						<ui:include src="#{MbAccountsAllSearch.tabName=='documentsTab' ? '/pages/accounts/objectDocumentsTab.jspx' : null}"></ui:include>
+	       				</h:panelGroup>
+       				</h:panelGroup>
+       			</rich:tab>
+
+        		<rich:tab label="Status logs" name="statusLogsTab"
+                          rendered="#{usession.inRole['SHOW_REPORT_DOCUMENTS']}"
+        				onlabelclick="selectTab('statusLogsTab')" style="height:100%;">			    	
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblEvt.status_logs}" title="#{lblEvt.status_logs}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="statusLogsTab" layout="block" styleClass="carddata-wrapper" 
+        					style="height: 100%; overflow: hidden;position:relative;">
+       					<ui:include src="#{MbAccountsAllSearch.tabName=='statusLogsTab' ? '/pages/events/statusLogsList.jspx' : null}">
+       						<ui:param name="renderColumnEventType" value="true"></ui:param>
+       						<ui:param name="renderColumnSessionId" value="true"></ui:param>
+       						<ui:param name="renderColumnUserName" value="true"></ui:param>
+       						
+       					</ui:include>
+        			</h:panelGroup>
+        		</rich:tab>
+        		
+        		<rich:tab id="_applicationsTab" label="Applications" name="applicationsTab" style="height:100%;"
+				    		onlabelclick="selectTab('applicationsTab')">
+			    	<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblApp.applications}" title="#{lblApp.applications}"/> 
+        				</h:panelGroup>
+        			</f:facet>
+
+        			<h:panelGroup id="applicationsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+      						<ui:include src="#{MbAccountsAllSearch.tabName=='applicationsTab' ? '/pages/acquiring/applications/objectApplicationsBottom.jspx' : null}"/>
+        			</h:panelGroup>
+        		</rich:tab>
+        		
+        		<rich:tab onlabelclick="selectTab('suitesTab')" label="Suites" name="suitesTab" style="height:100%;" 
+        			rendered="#{MbAccountsAllSearch.issuingType and usession.inRole['VIEW_TAB_SUITE']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblFrp.suites}" title="#{lblFrp.suites}" />
+						</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="suitesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+   						<ui:include src="#{MbAccountsAllSearch.tabName=='suitesTab' ? '/pages/fraud/list_fraud_object.jspx' : null}" />
+					</h:panelGroup>
+       			</rich:tab>
+       			
+       			<rich:tab style="height:100%;" ontabenter="selectTab('reportTab')"
+                          rendered="#{usession.inRole['VIEW_REPORT']}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblReport.reports}"
+								title="#{lblReport.reports}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="reportTab" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="#{MbAccountsAllSearch.tabName=='reportTab' ? '/pages/reports/list_entity_report_bottom.jspx' : null}" />
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab style="height:100%;" ontabenter="selectTab('info')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblRul.info}"
+								title="#{lblRul.info}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="info" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="#{MbAccountsAllSearch.tabName=='info' ? '/pages/reports/list_entity_object_info.jspx' : null}" />
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab id="_creditTab" style="height:100%;" ontabenter="selectTab('creditTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblAcc.credit_details}"
+								title="#{lblAcc.credit_details}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="creditTab" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="#{MbAccountsAllSearch.tabName=='creditTab' ? '/pages/accounts/account_credit_details.jspx' : null}" />
+					</h:panelGroup>
+				</rich:tab>
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<ui:include src="/pages/common/wizard/commonWizard.jspx">
+			<ui:param name="bean" value="MbAccountsAllSearch" />
+			<ui:param name="action" value="updateAccounts" />
+			<ui:param name="reRender" value="accountsTable, detailsTab, balancesTab" />
+		</ui:include>
+
+		<h:panelGroup id="togglePanelAcc">
+		<script>
+			function toggleTabs(currentTab) {
+			var isCreditAccount = #{MbAccountsAllSearch.creditAccount};
+			var creditTab = document.getElementById('creditTab');
+			var _creditTab = document.getElementById('_creditTab_shifted');
+			if (isCreditAccount == true) {
+				_creditTab.style.display = "";
+				creditTab.parentNode.style.display = "";
+			} else {
+				_creditTab.style.display = "none";
+				creditTab.parentNode.style.display = "none";
+				if (currentTab == "creditTab") {
+					RichFaces.switchTab('details','_detailsTab','detailsTab');
+					selectTab("detailsTab");
+				}
+			}
+			makeScrollableTabs('details');
+
+		}
+		</script>
+		</h:panelGroup>
+		<script type="text/javascript">//<!--
+		jQuery(document).ready(function(){
+			toggleTabs();
+		});
+		//--> 
+		</script>
+		
+		<script type="text/javascript">
+
+            function updateHeight() {
+                updateGridHeight();
+            }
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'accountsSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'accountsForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'accountsBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'accountDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'accountDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'flexDataForm',
+                            TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'balancesForm',
+                            TAB_FORM_WRAPPER_ID:    'balancesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'balancesEntriesForm',
+                            TAB_FORM_WRAPPER_ID:    'balancesEntriesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.CALENDARS
+                        }, {
+                            TAB_FORM_ID:            'balancesEntriesForm',
+                            TAB_FORM_WRAPPER_ID:    'entriesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.CALENDARS
+                        }, {
+                            TAB_FORM_ID:            'operationsBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'operationsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.PAGINATED_AND_BUTTONS + Stretch.CALENDARS_AND_BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'attrsTreeForm',
+                            TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'attrValuesForm',
+                            TAB_FORM_WRAPPER_ID:    'attrValuesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'cardsForm',
+                            TAB_FORM_WRAPPER_ID:    'cardsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'customerDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'customerDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'merchantsBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'merchantsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS
+                        }, {
+                            TAB_FORM_ID:            'terminalsBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'terminalsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'limitCountersForm',
+                            TAB_FORM_WRAPPER_ID:    'countersTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'operEntriesForm',
+                            TAB_FORM_WRAPPER_ID:    'cardCycleCountersTreeWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'accountPatternsForm',
+                            TAB_FORM_WRAPPER_ID:    'accountPatternsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'notesBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'accountContactsFrom',
+                            TAB_FORM_WRAPPER_ID:    'accountContactsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'documentsForm',
+                            TAB_FORM_WRAPPER_ID:    'documentsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'statusLogsForm',
+                            TAB_FORM_WRAPPER_ID:    'statusLogsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'applicationsForm',
+                            TAB_FORM_WRAPPER_ID:    'applicationsFormWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'fraudObjectsForm',
+                            TAB_FORM_WRAPPER_ID:    'fraudObjectsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'reportForm',
+                            TAB_FORM_WRAPPER_ID:    'reportTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'entityObjectInfoForm',
+                            TAB_FORM_WRAPPER_ID:    'entityObjectInfoWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        },{
+                            TAB_FORM_ID:            'accountCreditForm',
+                            TAB_FORM_WRAPPER_ID:    'accountCreditTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS
+                        }]
+                    };
+
+            addLoadEvent(function() { makeScrollableTabs('details');});
+            updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>
+		
+	</ui:define>
+</ui:composition>
+</html>

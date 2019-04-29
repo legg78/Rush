@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<![CDATA[			
+		function checkDesKeyFields() {
+			var checked = true;
+			
+			if (document.getElementById('sec_des_key_modal_div:newKeyType').value == "") {
+				document.getElementById('sec_des_key_modal_div:newKeyTypeError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('sec_des_key_modal_div:newHsm') != null && document.getElementById('sec_des_key_modal_div:newHsm').value == "") {
+				document.getElementById('sec_des_key_modal_div:newHsmError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('sec_des_key_modal_div:newKey').value == "") {
+				document.getElementById('sec_des_key_modal_div:newKeyError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('sec_des_key_modal_div:newKeyPrefixError')
+					&& document.getElementById('sec_des_key_modal_div:newKeyPrefix').value == "") {
+				document.getElementById('sec_des_key_modal_div:newKeyPrefixError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//]]>
+	</script>
+	
+	<rich:modalPanel id="sec_des_key_modal_panel" autosized="true" minWidth="300" minHeight="100">
+ 	    <f:facet name="header">
+	      	<h:panelGroup id="sec_des_key_modal_header">
+ 			    <h:outputText value="#{lblSec.new_des_key}" rendered="#{MbDesKeysBottom.newMode}"/>
+ 			    <h:outputText value="#{lblSec.edit_des_key}" rendered="#{MbDesKeysBottom.editMode}"/>
+ 			</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+		<h:form  id="sec_des_key_modal_div">
+			 <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+		
+					<h:outputLabel value="* #{lblSec.key_type}: " title="#{lblSec.key_type}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="newKeyType" value="#{MbDesKeysBottom.newDesKey.standardKeyType}"
+								label="#{lblSec.key_type}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbDesKeysBottom.keyTypesEdit}"/>
+							<a4j:support event="onchange" reRender="newKeyLength, err_ajax" limitToList="true" ajaxSingle="true"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newKeyTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblSec.key_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+		
+					<h:outputLabel value="* #{lblCommon.hsm}: " title="#{lblCommon.hsm}" rendered="#{empty useHsm ? true : useHsm}"/>
+					<a4j:region rendered="#{empty useHsm ? true : useHsm}">
+						<h:panelGrid cellpadding="0" cellspacing="0">
+						    <h:selectOneMenu id="newHsm" value="#{MbDesKeysBottom.newDesKey.hsmId}"
+						    		label="#{lblCommon.hsm}"
+						    		onblur="hideErrorField(this)">
+						    	<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbDesKeysBottom.hsms}"/>
+								<a4j:support event="onchange" reRender="newKeyPrefixLabel, newKeyPrefixValue, newKeyLength, err_ajax"
+										limitToList="true" ajaxSingle="true"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newHsmError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.hsm}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</a4j:region>
+		
+					<h:outputLabel value="* #{lblSec.key_cryptogram}: " title="#{lblSec.key_cryptogram}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:inputText id="newKey" value="#{MbDesKeysBottom.newDesKey.keyValue}"
+								label="#{lblSec.key}"
+								maxlength="48"
+								onblur="hideErrorField(this)">
+						</h:inputText>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newKeyError" style="display:none;">
+							<f:param name="fieldName" value="#{lblSec.key_cryptogram}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+		
+					<h:outputLabel value="#{lblSec.check_value}: " title="#{lblSec.check_value}"/>
+					<h:inputText id="newCheckValue" value="#{MbDesKeysBottom.newDesKey.checkValue}"
+							maxlength="6"/>
+		
+					<h:outputLabel value="#{lblSec.key_length}: " title="#{lblSec.key_length}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="newKeyLength" value="#{MbDesKeysBottom.newDesKey.keyLength}"
+								label="#{lblSec.key_length}" >
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbDesKeysBottom.keyLengths}"/>
+							<a4j:support event="onchange" reRender="newKeyPrefixLabel, newKeyPrefixValue" limitToList="true" ajaxSingle="true"/>
+						</h:selectOneMenu>
+					</h:panelGrid>
+		
+					<h:outputLabel id="newKeyPrefixLabel" value="#{MbDesKeysBottom.newDesKey.keyLength != null?'*':''} #{lblSec.key_prefix}: " title="#{lblSec.key_prefix}" />
+					<h:panelGrid cellpadding="0" cellspacing="0" id="newKeyPrefixValue">
+						<h:selectOneMenu id="newKeyPrefix"							
+							value="#{MbDesKeysBottom.newDesKey.keyPrefix}"
+							label="#{lblSec.key_prefix}"
+							onblur="#{MbDesKeysBottom.newDesKey.keyLength != null ? 'hideErrorField(this)' : ''}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbDesKeysBottom.keyPrefixes}" />
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newKeyPrefixError" style="display:none;" rendered="#{MbDesKeysBottom.newDesKey.keyLength != null}">
+							<f:param name="fieldName" value="#{lblSec.key_prefix}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+		
+					<h:outputLabel value="#{lblSec.key_index}: " title="#{lblSec.key_index}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:inputText id="newKeyIndex" value="#{MbDesKeysBottom.newDesKey.keyIndex}"
+								maxlength="4" label="#{lblSec.key_index}"
+								onkeypress="if (!numbersOnly(this, event)) return false; ">
+							<f:validateLongRange minimum="1"/>
+						</h:inputText>
+						<rich:message for="newKeyIndex" id="newKeyIndexErr" styleClass="errorMarker"/>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbDesKeysBottom.save}"
+                       			onclick="if (!checkDesKeyFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('sec_des_key_modal_panel')}.hide()"
+                       			reRender="#{rerenderList}"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" 
+                        		action="#{MbDesKeysBottom.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('sec_des_key_modal_panel')}.hide()"
+                        		reRender="sec_des_key_modal_div">
+	                    	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                    </bre:taggedCommandButton>	
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+			
+</ui:composition>
+</html>

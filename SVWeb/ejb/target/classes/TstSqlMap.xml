@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="test">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig 
+     -->
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+    </sql>
+    
+    <sql id="paginatedClose">
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+    
+    <sql id="agentJoin">
+        JOIN ACM_USERS _usrs
+        JOIN ACM_USER_AGENTS _usr_agnts
+        ON _usrs.id=_usr_agnts.user_id AND _usrs.name=#userName#
+        ON _usr_agnts.agent_id=
+    </sql>
+    
+    <sql id="instJoin">
+        JOIN ACM_USERS _usrs
+        JOIN ACM_USER_INSTITUTIONS _usr_insts
+        ON _usrs.id=_usr_insts.user_id AND _usrs.name=#userName#
+        ON _usr_insts.inst_id=
+    </sql>
+	
+	<!--
+        Queries related to roles list management 
+     -->
+     
+	<select
+	    id="get-cities"
+	    parameterClass="qparams"
+	    resultClass="string" >
+        <include refid="paginatedOpen"/>
+			SELECT
+			    *
+			FROM
+			     TST_CITIES cts
+                <isEqual compareProperty="limitInst" compareValue="true">
+                    <include refid="instJoin" />cts.inst_id
+                </isEqual>
+				<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				    <isNotEqual property="sorting[].direction" compareValue="AUTO">
+				        <isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+				    </isNotEqual>
+				</iterate>
+        <include refid="paginatedClose"/>
+	</select>
+	
+</sqlMap>

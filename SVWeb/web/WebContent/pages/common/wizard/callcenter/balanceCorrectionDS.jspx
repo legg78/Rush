@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html" xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles" xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:rich="http://richfaces.org/rich" xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:bpc="http://www.bpc.ru/jsf/misc">
+	<ui:composition template="./accDetailsTemplate.jspx">
+		<ui:define name="stepContent">
+			<!--@elvariable id="stepBean" type="ru.bpc.sv2.ui.common.wizard.callcenter.MbBalanceCorrectionDS"-->
+			<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common" />
+			<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc" />
+			<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr" />
+
+			<a4j:loadScript src="/js/calendarUtils.js"/>
+			<rich:calendar id="calendar" buttonIcon="/images/calendar.gif"
+						   datePattern="#{usession.fullDatePattern}"
+						   timeZone="#{CommonUtils.timeZone}"
+						   onchanged="if(#{rich:component('calendar')}.customInput.value!=event.rich.component.getSelectedDateString()){
+                                     #{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();
+                                     #{rich:component('calendar')}.customInput.onchange();}"
+						   zindex="1000" inputClass="hidden" buttonClass="hidden" showApplyButton="true"
+						   defaultTime="00:00:00"/>
+
+			<h:form id="balanceCorrectionDSForm" style="padding:10px;">
+				<ui:include src="/pages/common/wizard/commonWizardActions.jspx">
+					<ui:param name="bean" value="#{bean}" />
+					<ui:param name="action" value="#{action}" />
+				</ui:include>
+
+				<h:outputLabel value="#{lblAcc.select_balance}" style="font-weight:bold;" />
+				<rich:extendedDataTable id="balances" var="item"
+					value="#{stepBean.balances}" selection="#{stepBean.balanceSelection}"
+					rows="0" selectionMode="single" rowClasses=",odd" headerClass="res-table-header"
+					selectedClass="res-table-selected" styleClass="res-table" height="250px"
+					enableContextMenu="false" noDataLabel="#{lblCommon['no_records_found']}">
+
+					<a4j:support event="onselectionchange" ajaxSingle="true"
+						reRender="newStatus, invalidBalance" limitToList="true" />
+
+					<rich:column id="balance_number" label="#{lblAcc.balance_number}"
+						title="Balance number" sortOrder="ASCENDING" sortBy="#{'number'}"
+						width="18%">
+						<f:facet name="header">
+							<h:outputText value="#{lblAcc.balance_number}"
+								title="#{lblAcc.balance_number}" />
+						</f:facet>
+						<h:outputText value="#{item.balanceNumber}" />
+					</rich:column>
+
+					<rich:column id="balance_type" label="#{lblAcc.balance_type}"
+						title="Balance type" sortBy="#{'type'}" width="20%" filterEvent="onkeyup">
+						<f:facet name="header">
+							<h:outputText value="#{lblAcc.balance_type}" title="#{lblAcc.balance_type}" />
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[item.balanceType]}" />
+					</rich:column>
+
+					<rich:column id="balance" label="#{lblAcc.balance}"
+						title="Balance" sortBy="#{'balance'}" style="text-align: right"
+						width="15%">
+						<f:facet name="header">
+							<h:outputText value="#{lblAcc.balance}" title="#{lblAcc.balance}" />
+						</f:facet>
+						<h:outputText
+							value="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}"
+							title="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}" />
+					</rich:column>
+
+					<rich:column id="currency" label="#{lblCommon.currency}"
+						title="Currency" width="20%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.currency}" title="#{lblCommon.currency}" />
+						</f:facet>
+						<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.currency]}" />
+						<h:outputText
+							value="#{item.currency} - #{CurrencyUtils.currencyObjectsMap[item.currency].currencyName}"
+							title="#{item.currency} - #{CurrencyUtils.currencyMap[item.currency]}" />
+					</rich:column>
+
+					<rich:column id="status" label="#{lblCommon.status}"
+						title="Status" sortBy="#{'status'}" width="22%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}" />
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[item.status]}" />
+					</rich:column>
+				</rich:extendedDataTable>
+
+				<h:outputLabel id="invalidBalance" value="#{lblAcc.please_select_balance}"
+							   tyleClass="errorMarker" rendered="#{stepBean.invalidBalance}" />
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="width-150, width250">
+						<h:outputLabel for="operType" title="#{lblOpr.oper_type}"
+							value="* #{lblOpr.oper_type}:" />
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="operType" 
+								value="#{stepBean.operType}" label="#{lblOpr.oper_type}"
+								onblur="hideErrorField(this)">
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{stepBean.operTypes}" />
+							</h:selectOneMenu>
+
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="operTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblOpr.oper_type}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel for="operAmount" title="#{lblOpr.operation_amount}"
+							value="* #{lblOpr.operation_amount}:" />
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:inputText id="operAmount" value="#{stepBean.operAmount}"
+								label="#{lblOpr.operation_amount}" onblur="hideErrorField(this)"
+								onkeypress="if (!numbersOnly(this, event, true)) return false;">
+								<f:convertNumber />
+								<a4j:support event="onchange" ajaxSingle="true"
+									reRender="operAmountErr" limitToList="true" />
+							</h:inputText>
+							<h:message id="operAmountErr" for="operAmount" styleClass="errorMarker" />
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="operAmountError" style="display:none;">
+								<f:param name="fieldName" value="#{lblOpr.operation_amount}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel for="operDate" title="#{lblOpr.operation_date}" value="* #{lblOpr.operation_date}:" />
+						<h:panelGroup>
+							<h:inputText id="operDate" style="width: 225px;"
+										 value="#{stepBean.operDate}"
+										 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('balanceCorrectionDSForm:operDate')}, #{rich:element('balanceCorrectionDSForm:operDateBtn')});">
+								<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+								<a4j:support event="onchange" ajaxSingle="true" limitToList="true"/>
+							</h:inputText>
+							<h:graphicImage id="operDateBtn" value="/images/calendar.gif"
+											style="padding-left: 5px; vertical-align: top;"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('balanceCorrectionDSForm:operDate')}, #{rich:element('balanceCorrectionDSForm:operDateBtn')});"/>
+						</h:panelGroup>
+
+						<h:outputLabel for="bookDate" title="#{lblOpr.booking_date}" value="* #{lblOpr.booking_date}:" />
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:inputText id="bookDate" readonly="true"
+										 value="#{stepBean.bookDate}">
+								<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+							</h:inputText>
+						</h:panelGrid>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:form>
+		</ui:define>
+	</ui:composition>
+</html>

@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:o="http://openfaces.org/"
+	xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition template="/WEB-INF/templates/base.jspx">
+	<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+
+	<ui:define name="baseContent">
+		<a4j:loadScript src="/js/calendarUtils.js"/>
+	
+		<rich:hotKey key="F1" handler="showHelp(actualHelp.getURL())"/>
+				    	
+		<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common" />
+		<f:loadBundle var="lblMsg" basename="ru.bpc.sv2.ui.bundles.Msg" />
+		<f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form" />
+		<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm" />
+		
+		<style type="text/css">
+			.selectedFav {
+				border: 0 solid transparent;
+				background-color: transparent;
+			}
+		</style>
+
+        <script type="text/javascript">// <!--
+            var debug = false;
+
+            function switchDebug(){
+                debug = true;
+            }
+
+            function isDebug() {
+                return debug;
+            }
+            
+            function displayFileList () {
+            	#{rich:component('configFileListModalPanel')}.show();
+            }
+            
+            
+        // -->
+        </script>
+			
+		<a4j:outputPanel ajaxRendered="true" id="q_bundle">
+			<o:loadBundle var="lblCommonQ"
+				basename="ru.bpc.sv2.ui.bundles.Common" />
+			<o:loadBundle var="lblMsgQ" basename="ru.bpc.sv2.ui.bundles.Msg" />
+			<o:loadBundle var="lblFormQ" basename="ru.bpc.sv2.ui.bundles.Form" />
+		</a4j:outputPanel>
+
+        <rich:hotKey key="ctrl+g" handler="switchDebug()" />
+
+		<h:form>
+			<a4j:jsFunction name="setDashboard" ajaxSingle="true" limitToList="true">
+				<a4j:actionparam name="dashboardId" assignTo="#{usession.dashboardId}" />
+			</a4j:jsFunction>
+		</h:form>
+
+		<h:panelGroup styleClass="header" layout="block">
+			<h:panelGroup id="logo" layout="block">
+                <a4j:outputPanel ajaxRendered="true" layout="none" id="logoContainer">
+                    <o:dynamicImage data="#{MbLogo.logo}"
+                                    ondblclick="if (isDebug()) {document.getElementById('logoUploadForm:logoUpload:file').click();}"/>
+                </a4j:outputPanel>
+                <div style="visibility:hidden">
+                    <h:form id = "logoUploadForm" rendered="#{usession.userName eq 'ADMIN'}">
+                        <rich:fileUpload id="logoUpload"
+                                         fileUploadListener="#{MbLogo.logoUploadListener}"
+                                         acceptedTypes="#{MbLogo.getAcceptedFileTypes('jpg, gif, png, bmp')}"
+                                         ontyperejected="alert('#{lblRpt.type_not_allowed}')"
+                                         maxFilesQuantity="1"
+                                         immediateUpload="true">
+                            <a4j:support event="onuploadcomplete" reRender="logoContainer, logoUpload"/>
+                        </rich:fileUpload>
+                    </h:form>
+                </div>
+			</h:panelGroup>
+			<h:panelGroup id="userblock" layout="block">
+				<h:form>
+					<h:outputText value="#{lblCommon.release} "/>
+					<h:outputText value="#{MbSystemInfo.release}" />
+
+					<h:outputText value="#{lblCommon.applicationInstance}: " style="padding-left:15px;"/>
+					<h:outputText value="#{MbSystemInfo.instance} [#{MbSystemInfo.lastVersion}] #{'web:'}#{MbSystemInfo.webVersion}" style="font-weight: bold" />
+				
+					<h:outputText value="#{lblCommon.login}: " style="padding-left:15px;"/>
+					<h:outputText style="font-weight:bold"
+						value="#{usession.userName}" />
+						
+					<h:outputText value="#{lblCommon.sttl_date}: " style="padding-left:15px;" rendered="false"/>
+					<h:outputText value="#{usession.openSttlDate}" style="padding-left:15px;font-weight:bold">
+						<f:convertDateTime pattern="#{usession.datePattern}"
+									timeZone="#{CommonUtils.timeZone}" />
+					</h:outputText>
+					<a4j:commandLink styleClass="logoutlink" style="font-size:12px" ajaxSingle="true" limitToList="true" reRender="configCommitForm, err_ajax"
+									 action="#{usession.checkLogout}" value="#{(MbSystemInfo.configStand and usession.inRole['VIEW_CONFIG_FILES'] and usession.inRole['VIEW_SESSION_FILE']) ? 'Save and Logout' : lblCommon['logout']}"
+									 oncomplete="if(#{MbSystemInfo.configStand}){displayFileList();}else{document.location.href='#{MbSystemInfo.websphere ? request.contextPath.concat('/ibm_security_logout?logoutExitPage=') : ''}#{request.contextPath}/';}">
+					</a4j:commandLink>
+				</h:form>
+
+			</h:panelGroup>
+
+			<h:panelGroup id="iconblock" layout="block">
+				<h:form id="links_form"> 
+					<h:panelGrid cellpadding="0" cellspacing="0" columns="2" columnClasses="ajax_status">
+					
+						<a4j:status startText=" #{lblMsg.processing}... " stopText=""  
+							onstart="showModalInfoWindow()"
+							onstop="hideModalInfoWindow()"
+							id="ajaxStatus" >
+							<f:facet name="start">
+								<h:panelGrid columns="2" cellpadding="0" cellspacing="0">
+									<h:graphicImage url="/images/ajax-loader1.gif" style="margin:-8px 0; padding-right:5px;" rendered="false"/>
+									<h:outputText value="#{lblMsg.processing}... " />
+								</h:panelGrid>
+			                </f:facet>
+			                <f:facet name="stop">
+								<h:panelGrid columns="2" cellpadding="0" cellspacing="0">
+									<h:outputText value="" />
+									<h:outputText value="" />
+								</h:panelGrid>
+			                </f:facet>							
+						</a4j:status>
+						
+						<h:panelGroup>	
+							<h:outputText value="#{MbSystemInfo.lastVersion} " style="font-weight: bold" rendered="false"/>
+							
+							<h:commandLink styleClass="myfavoritslink" style="font-size:12px"
+									onclick="return false;" rendered="false">
+								<h:outputText value="#{lblCommon.favourites}"/>
+								<rich:componentControl event="onmousedown" for="menu" operation="show">
+					            </rich:componentControl>
+							</h:commandLink>
+							
+							<rich:dropDownMenu id="dashboardsMenu" itemClass="odd" 
+									selectItemStyle="color:#ffffff;background-color:#999;border-color:#999"
+									selectedLabelClass="selectedFav"
+									style="float:left;padding:0" rendered="#{usession.inRole['VIEW_DASHBOARDS']}">
+								<f:facet name="label">
+									<h:commandLink styleClass="dashboardslink" style="font-size:12px"
+											action="#{usession.viewDefaultDashboard}">
+										<h:outputText value="#{lblAcm.dashboards}"/>
+										<rich:componentControl event="onmousedown" for="menu" operation="show">
+							            </rich:componentControl>
+									</h:commandLink>
+								</f:facet>
+								<c:forEach items="${usession.userDashboards}" var="item">
+									<rich:menuItem action="#{usession.viewDashboard}" value="#{item.name}" onclick="setDashboard(#{item.id});"/>
+								</c:forEach>
+							</rich:dropDownMenu>
+							
+							<h:commandLink styleClass="settingslink" style="font-size:12px"
+								action="#{MbUserSettingParams.showUserParams}">
+								<h:outputText value="#{lblCommon.user_settings}" />
+							</h:commandLink>
+
+
+							<a4j:commandLink styleClass="helplink" style="font-size:12px" ajaxSingle="true" limitToList="true"
+											 onclick="showHelp(actualHelp.getURL())"
+									>
+								<h:outputText value="#{lblCommon.help}" />
+							</a4j:commandLink>
+						</h:panelGroup>
+					</h:panelGrid>					
+				</h:form>
+			</h:panelGroup>
+		</h:panelGroup>
+
+		<h:panelGroup>
+			<h:panelGroup layout="block" styleClass="hd-menu">
+						<h:graphicImage url="/_img/hd_menu.gif" />
+			</h:panelGroup>
+
+			<h:panelGroup styleClass="content" layout="block">
+				<script type="text/javascript">
+	//<!--
+					var oldValue = {};
+				//-->
+				</script>
+				<ui:insert name="navigatableContent"></ui:insert>
+
+				<table width="100%" class="scrollable-tabs-table template" cellpadding="0" cellspacing="0" style="display:none; table-layout: fixed">
+					<tr>
+						<td class="scrollable-tabs"></td>
+						<td class="scroll-panel">
+							<div id="scrollPanel">
+								<table cellpadding="0" cellspacing="0">
+									<tr>
+									<td><button class="scroll-prev" id="right" onclick="return false;"></button></td>
+									<td><button class="scroll-next" id="left" onclick="return false;"></button></td>
+								</tr>
+								</table>
+							</div>
+						</td>
+					</tr>
+				</table>
+			</h:panelGroup>
+
+			<h:panelGroup>
+				<rich:calendar buttonIcon="/images/calendar.gif" id="dateCalendar"
+					datePattern="#{usession.datePattern}"
+					timeZone="#{CommonUtils.timeZone}"
+					inputClass="hidden" buttonClass="hidden" defaultTime="00:00:00"
+					zindex="1000"
+					onchanged="#{rich:component('dateCalendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+					/>
+
+				<script>
+					try {
+						#{rich:component('dateCalendar')}.customExpand=customExpand;
+					} catch (e) {
+					}
+				</script>
+			</h:panelGroup>
+
+			<ui:include src="#{usession.userLogged ? 'menu_block.jspx' : '/pages/emptyPage.jspx'}"/>
+
+		</h:panelGroup>
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbSystemInfo}"/>
+			<ui:param name="yesAction" value="saveConfig"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_commit}"/> 
+			<ui:param name="rerenderList" value="configCommitForm"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="saveConfigView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+			<ui:param name="completeScript" value="displayFileList()"/>
+		</ui:include>
+		
+		<ui:include src="/pages/processes/files/list_config_files.jspx" />
+		
+		<h:form id="sessionExpired">
+			<a4j:outputPanel ajaxRendered="true">
+				<a4j:poll interval="#{usession.sessionExpire}" reRender="sessionExpired" />
+			</a4j:outputPanel>
+		</h:form>
+		
+	</ui:define>
+</ui:composition>
+</html>

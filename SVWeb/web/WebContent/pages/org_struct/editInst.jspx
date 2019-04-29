@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+		//<!--
+		function checkInstId() {
+			var instId = document.getElementById("instEditForm:instId").value;
+			if (instId.indexOf("0") == 0) {
+				document.getElementById("instEditForm:instIdErr").children[0].innerHTML =
+						"#{lblMsg.id_first_zero_restriction}";
+				return false;
+			}
+			return true;
+		}
+
+		function checkInstFields() {
+			var checked = true;
+
+			if (document.getElementById('instEditForm:instId').value == "") {
+				document.getElementById('instEditForm:instIdError').style.display = "inline";
+				checked = false;
+			}
+			var name = document.getElementById('instEditForm:name').value;
+			if (name == "" ||
+					name.replace(/ /g,'').length == 0) {
+				document.getElementById('instEditForm:nameError').style.display = "inline";
+				checked = false;
+			}
+
+			if (#{!usession.rootUser}) {
+				if (document.getElementById('instEditForm:parent').value == "") {
+					document.getElementById('instEditForm:parentError').style.display = "inline";
+					checked = false;
+				}
+			}
+
+			return checked;
+		}
+		// -->
+	</script>
+
+	<rich:modalPanel id="instModalPanel" minWidth="200" minHeight="100" autosized="true">
+		<f:facet name="header">
+			<h:panelGroup id="instModalHeader">
+				<h:outputText rendered="#{MbInstitution.editMode}" value="#{lblOst.edit_inst}" />
+				<h:outputText rendered="#{MbInstitution.newMode}" value="#{lblOst.new_inst}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="instEditForm">
+			<script type="text/javascript">
+				//<!--
+				oldValue["instEditForm"] = "#{MbInstitution.newNode.lang}";
+				//-->
+			</script>
+
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+					<h:outputLabel value="* #{lblOst.inst_id}: " title="#{lblOst.inst_id}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="instId" value="#{MbInstitution.newNode.id}"
+									 readonly="#{!MbInstitution.newMode}"
+									 styleClass="#{not MbInstitution.newMode?'grayInput':''}" maxlength="4"
+									 converterMessage="#{lblMsg.integer_only}"
+									 label="#{lblOst.inst_id}"
+									 onkeypress="if (!numbersOnly(this, event)) return false;"
+									 onblur="hideErrorField(this)">
+							<f:validateLength minimum="1"/>
+							<a4j:support event="onchange" reRender="instIdErr" limitToList="true" ajaxSingle="true"/>
+						</h:inputText>
+						<rich:message for="instId" id="instIdErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="instIdError" style="display:none;">
+							<f:param name="fieldName" value="#{lblOst.inst_id}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblOst.inst_number}: " title="#{lblOst.inst_number}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="instNumber" value="#{MbInstitution.newNode.institutionNumber}"
+									 maxlength="4" autocomplete="false"
+									 label="#{lblOst.inst_number}">
+						</h:inputText>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}" />
+					<h:selectOneMenu id="newLang" value="#{MbInstitution.newNode.lang}"
+									 rendered="#{MbInstitution.newMode}">
+						<f:selectItems value="#{MbInstitution.languages}"/>
+					</h:selectOneMenu>
+					<h:selectOneMenu id="editLang" value="#{MbInstitution.newNode.lang}"
+									 rendered="#{MbInstitution.editMode}"
+									 onchange="document.getElementById('inst:confirmPanelForm:newValue').value = this.value;
+										#{rich:component('inst:confirmPanel')}.show()">
+						<f:selectItems value="#{MbInstitution.languages}"/>
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblCommon.type}: " title="#{lblCommon.type}"/>
+					<h:selectOneMenu id="type" value="#{MbInstitution.newNode.type}"
+									 disabled="#{!MbInstitution.editMode and !MbInstitution.newMode}">
+						<f:selectItems value="#{MbInstitution.types}"/>
+					</h:selectOneMenu>
+
+					<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="name" value="#{MbInstitution.newNode.name}"
+									 label="#{lblCommon.name}"
+									 maxlength="200"
+									 onblur="hideErrorField(this)">
+							<f:validateLength minimum="3"/>
+							<a4j:support event="onchange" reRender="nameErr" limitToList="true" ajaxSingle="true"/>
+						</h:inputText>
+						<rich:message for="name" id="nameErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="nameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblCommon.status}: " title="#{lblCommon.status}"/>
+					<h:selectOneMenu id="status" value="#{MbInstitution.newNode.status}"
+									 disabled="#{!MbInstitution.editMode and !MbInstitution.newMode}">
+						<f:selectItems value="#{MbInstitution.statuses}"/>
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0" >
+						<h:inputTextarea id="description" value="#{MbInstitution.newNode.description}" rows="3"
+										 label="#{lblCommon.description}"
+										 onkeypress="if (!limitText(event,this,2000)) return false;" >
+							<f:validateLength maximum="2000" />
+							<a4j:support event="onblur" reRender="descriptionErr" limitToList="true" ajaxSingle="true"/>
+						</h:inputTextarea>
+						<rich:message id="descriptionErr" for="description" styleClass="errorMarker"/>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{usession.rootUser?'':'*'} #{lblCommon.parent}: " title="#{usession.rootUser?'':'*'} #{lblCommon.parent}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="parent" value="#{MbInstitution.newNode.parentId}" onblur="hideErrorField(this)"
+										 disabled="#{!MbInstitution.newMode}" label="#{lblCommon.parent}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbInstitution.institutions}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="parentError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.parent}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblOst.default_network}: " title="#{lblOst.default_network}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="newNetwork" value="#{MbInstitution.newNode.networkId}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbInstitution.networks}"/>
+						</h:selectOneMenu>
+						<rich:message for="newNetwork" id="newNetworkErr" styleClass="errorMarker"/>
+					</h:panelGrid>
+				</h:panelGrid>
+
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit" action="#{MbInstitution.save}"
+												 reRender="#{rerenderList}"
+												 onclick="if (!checkInstFields()) return false; if (!checkInstId()) return false; disableModalPanelBtns(this)"
+												 oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('instModalPanel')}.hide()"
+												 rendered="#{usession.inRole['ADD_INSTITUTION']}"
+								/>
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}" action="#{MbInstitution.cancel}"
+								immediate="true" reRender="instEditForm"
+								oncomplete="#{rich:component('instModalPanel')}.hide()"
+								>
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbInstitution}"/>
+		<ui:param name="rerenderList" value="instEditForm:name, instEditForm:description"/>
+		<ui:param name="editElem" value="instEditForm:editLang"/>
+		<ui:param name="newValue" value="#{MbInstitution.newNode.lang}"/>
+		<ui:param name="subviewId" value="inst"/>
+		<ui:param name="formName" value="instEditForm"/>
+	</ui:include>
+
+</ui:composition>
+</html>

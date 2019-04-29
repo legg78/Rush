@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+		function uncheckCyclicLimitFlag() {
+			document.getElementById("attrModalForm:cyclicLimitSelector").checked = false;
+		}
+	
+		function checkPrcToContainerFields() {
+            return x$('#prc_container_process_modal_div .required').validate({
+	            check: function(value, node) {
+	                if (node.hasClass('required-number')) {
+                        return value != '0' && !app.isEmpty(value);
+	                } else {
+	                    return !app.isEmpty(value);
+	                }
+	            }
+            });
+		}
+
+		x$('#prc_container_process_modal_div:trackThreshold').inputValidation({
+            maxLength: 10,
+            numbersOnly: true
+		});
+		//-->
+	</script>
+	
+	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+		
+			<h:outputLabel value="* #{lblPrc.process}: " title="#{lblPrc.process}" />
+			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+				<rich:comboBox id="process" value="#{MbContainerProcessesSearch.newNode.id}"
+						label="#{lblPrc.process}" disabled="#{MbContainerProcessesSearch.editMode}"
+						valueChangeListener="#{MbContainerProcessesSearch.changeProcess}"
+						onblur="hideErrorField(this)"
+						styleClass="required">
+					<f:selectItem itemValue="" itemLabel=""/>
+					<f:selectItems value="#{MbContainerProcessesSearch.processesToAdd}"/>
+					<a4j:support event="onchange" reRender="parallel" limitToList="true" ajaxSingle="true"/>
+				</rich:comboBox>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="processError" style="display:none;">
+					<f:param name="fieldName" value="#{lblPrc.process}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+			
+			<h:outputLabel value="* #{lblCommon.exec_order}:" title="#{lblCommon.exec_order}" />
+			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+				<h:inputText id="execOrder" maxlength="4" 
+						value="#{MbContainerProcessesSearch.newNode.executionOrder}"
+						onkeypress="if (!numbersOnly(this, event)) return false;"
+						label="#{lblCommon.exec_order}"
+						onblur="hideErrorField(this)" styleClass="required required-number"/>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="execOrderError" style="display:none;">
+					<f:param name="fieldName" value="#{lblCommon.exec_order}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+			
+			<h:outputLabel value="* #{lblPrc.error_limit} (%):" title="#{lblPrc.error_limit} (%)"/>
+			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+				<rich:inputNumberSlider id="errorLimit"
+						value="#{MbContainerProcessesSearch.newNode.errorLimit}"
+						label="#{lblPrc.error_limit}" required="true"
+						inputStyle="width:30px" style="width:255px"
+						minValue="1" maxValue="100" step="1"/>
+				<rich:message for="errorLimit" id="errorLimitError" styleClass="errorMarker"
+						showDetail="false" showSummary="true"/>
+			</h:panelGrid>
+				
+			<h:outputLabel value="* #{lblPrc.track_threshold} (#{lblCommon.items_lc}):" title="#{lblPrc.track_threshold} (#{lblCommon.items_lc})"/>
+			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+				<h:inputText id="trackThreshold" value="#{MbContainerProcessesSearch.newNode.trackThreshold}"
+				             onclick="hideErrorField(this)" styleClass="required required-number">
+				</h:inputText>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+				                id="trackThresholdError" style="display:none;">
+					<f:param name="fieldName" value="#{lblPrc.track_threshold}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+				
+			<h:outputLabel  value="#{lblPrc.parallel}: " title="#{lblPrc.parallel}" />
+			<h:selectBooleanCheckbox value="#{MbContainerProcessesSearch.newNode.parallel}" id="parallel"
+					disabled="#{!MbContainerProcessesSearch.newNode.parallelAllowed}"/>
+			
+			<h:outputLabel  value="#{lblPrc.use_custom_value}: " title="#{lblPrc.use_custom_value}" />
+			<h:selectBooleanCheckbox value="#{MbContainerProcessesSearch.useCustomValue}" id="use_custom_value">
+				<a4j:support event="onchange" reRender="parallelDegreeLabel, parallelDegree"/>
+			</h:selectBooleanCheckbox>
+			
+			<h:outputLabel  value="#{lblPrc.stop_fatal_exc}: " title="#{lblPrc.stop_fatal_exc}" />
+			<h:selectBooleanCheckbox value="#{MbContainerProcessesSearch.newNode.stopOnFatal}" id="stopOnFatal" />
+			
+			<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+			<h:inputTextarea id="newDesc"
+						value="#{MbContainerProcessesSearch.newNode.description}"
+						rows="5" cols="150" 
+						onkeypress="if (!limitText(event,this,2000)) return false;"
+						label="#{lblCommon.description}">
+			            	<f:validateLength maximum="2000" />
+			</h:inputTextarea>
+
+			<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}" />
+			<rich:comboBox id="newLang" value="#{MbContainerProcessesSearch.newNode.lang}"
+							 onchange="document.getElementById('container:confirmPanelForm:newValue').value = this.value;
+							           #{rich:component('container:confirmPanel')}.show()">
+				<f:selectItems value="#{MbContainerProcessesSearch.languages}" />
+			</rich:comboBox>
+
+			<h:outputLabel value="#{lblPrc.parallel_degree}:" id="parallelDegreeLabel"
+						   title="#{lblPrc.parallel_degree}"/>
+			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+				<rich:inputNumberSlider id="parallelDegree"
+						value="#{MbContainerProcessesSearch.newNode.parallelDegree}"
+						label="#{lblPrc.parallel_degree}" required="true"
+						inputStyle="width:30px" style="width:255px"
+						minValue="1" maxValue="100" step="1"
+						disabled = "#{!MbContainerProcessesSearch.useCustomValue}"/>
+				<rich:message for="parallelDegree" id="parallelDegreeError" styleClass="errorMarker"
+						showDetail="false" showSummary="true"/>
+			</h:panelGrid>
+
+			<h:outputLabel for="trace_level" value="#{lblPrc.trace_level}: "
+						   title="#{lblPrc.trace_level}"/>
+			<rich:comboBox id="trace_level"
+							 value="#{MbContainerProcessesSearch.newNode.traceLevel}">
+				<f:selectItems value="#{MbContainerProcessesSearch.traceLevels}"/>
+			</rich:comboBox>
+
+			<h:outputLabel for="debug_writing_mode" value="#{lblPrc.debug_writing_mode}: "
+						   title="#{lblPrc.debug_writing_mode}"/>
+			<rich:comboBox id="debug_writing_mode"
+							 value="#{MbContainerProcessesSearch.newNode.debugWritingMode}">
+				<f:selectItems value="#{MbContainerProcessesSearch.debugWritingModes}"/>
+			</rich:comboBox>
+
+			<h:outputLabel for="start_trace_size" value="#{lblPrc.start_trace_size}: "
+						   title="#{lblPrc.start_trace_size}"/>
+			<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+				<h:inputText id="start_trace_size" value="#{MbContainerProcessesSearch.newNode.startTraceSize}"
+							 onkeydown="checkPositive(this);" onkeyup="checkPositive(this);"
+							 label="#{lblPrc.start_trace_size}" onkeypress="if (!limitText(event,this,8)) return false;">
+					<a4j:support event="onchange" reRender="start_trace_size_err"
+								 limitToList="true" ajaxSingle="true"/>
+				</h:inputText>
+				<rich:message for="start_trace_size" id="start_trace_size_err" styleClass="errorMarker"/>
+			</h:panelGrid>
+
+			<h:outputLabel for="error_trace_size" value="#{lblPrc.error_trace_size}: "
+							   title="#{lblPrc.error_trace_size}"/>
+			<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+				<h:inputText id="error_trace_size" value="#{MbContainerProcessesSearch.newNode.errorTraceSize}"
+							 onkeydown="checkPositive(this);" onkeyup="checkPositive(this);"
+							 label="#{lblPrc.start_trace_size}" onkeypress="if (!limitText(event,this,8)) return false;">
+					<a4j:support event="onchange" reRender="error_trace_size_err"
+								 limitToList="true" ajaxSingle="true"/>
+				</h:inputText>
+				<rich:message for="error_trace_size" id="error_trace_size_err" styleClass="errorMarker"/>
+			</h:panelGrid>
+		</h:panelGrid>
+	</h:panelGroup>
+</ui:composition>
+</html>

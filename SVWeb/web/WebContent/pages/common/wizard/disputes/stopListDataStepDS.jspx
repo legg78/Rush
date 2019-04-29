@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:a4j="http://richfaces.org/a4j">
+<ui:composition template="./stopListTemplate.jspx">
+    <ui:define name="stepContent">
+        <script type="text/javascript">
+            //<![CDATA[
+            function checkWizardMbStopListDataStepDS() {
+                var mbStopListDataStepDSChecked;
+                mbStopListDataStepDSChecked = checkField("#{viewId}stepPageInclude:stopListDataForm:actionCode");
+                var regions = document.getElementsByClassName("region");
+                if(regions.length > 0) {
+                    var anyRegionIsChecked = false;
+                    for(var i=0; regions[i]; ++i){
+                        if(regions[i].checked){
+                            anyRegionIsChecked = true;
+                        }
+                    }
+                    if(!anyRegionIsChecked) {
+                        document.getElementById("#{viewId}stepPageInclude:stopListDataForm:regionsError").style.display = "inline";
+                        mbStopListDataStepDSChecked = false;
+                    }
+                    else {
+                        document.getElementById("#{viewId}stepPageInclude:stopListDataForm:regionsError").style.display = "none";
+                    }
+                }
+                mbStopListDataStepDSChecked = checkField("#{viewId}stepPageInclude:stopListDataForm:product") && mbStopListDataStepDSChecked;
+                if (document.getElementById("purgeSet") != null) {
+                    var purgeSet = false;
+                    if (document.getElementById("#{viewId}stepPageInclude:stopListDataForm:purgeIn") != null) {
+                        if (document.getElementById("#{viewId}stepPageInclude:stopListDataForm:purgeIn").value != "") {
+                            purgeSet = true;
+                        }
+                    }
+                    if (document.getElementById("#{viewId}stepPageInclude:stopListDataForm:purgeDateInputDate") != null) {
+                        if (document.getElementById("#{viewId}stepPageInclude:stopListDataForm:purgeDateInputDate").value != "") {
+                            purgeSet = true;
+                        }
+                    }
+                    if (document.getElementById("#{viewId}stepPageInclude:stopListDataForm:doNotPurge") != null) {
+                        if (document.getElementById("#{viewId}stepPageInclude:stopListDataForm:doNotPurge").checked) {
+                            purgeSet = true;
+                        }
+                    }
+                    if (!purgeSet) {
+                        document.getElementById("#{viewId}stepPageInclude:stopListDataForm:purgeSetError").style.display = "inline";
+                    }
+                    mbStopListDataStepDSChecked = purgeSet && mbStopListDataStepDSChecked;
+                }
+                return mbStopListDataStepDSChecked;
+            }
+            //]]>
+        </script>
+        <a4j:loadScript src="/js/calendarUtils.js"/>
+        <rich:calendar id="calendar"
+                       datePattern="#{usession.datePattern}"
+                       timeZone="#{CommonUtils.timeZone}"
+                       buttonIcon="/images/calendar.gif"
+                       inputClass="hidden"
+                       buttonClass="hidden"
+                       zindex="1000"
+                       onchanged="if(#{rich:component('calendar')}.customInput.value!=event.rich.component.getSelectedDateString()){
+                                     #{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();
+                                     #{rich:component('calendar')}.customInput.onchange();}"/>
+
+        <h:form id="stopListDataForm">
+            <ui:include src="/pages/common/wizard/commonWizardActions.jspx">
+                <ui:param name="bean" value="#{bean}"/>
+                <ui:param name="action" value="#{action}"/>
+                <ui:param name="viewId" value="#{viewId}" />
+            </ui:include>
+
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <fieldset style="border-radius: 7px; border-color: #d7dac2; border-width: 1px; border-style: solid;">
+                    <legend>#{lblApp.mandatory_fields}</legend>
+                    <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="width-150, width250">
+                        <h:panelGroup columns="1" cellpadding="0" cellspacing="0">
+                            <h:outputLabel for="actionCode" value="#{lblApp.action_code}*: " title="#{lblApp.action_code}"
+                                           rendered="#{MbStopListDataStepDS.showActionLabel()}"/>
+                            <h:outputLabel for="actionCode" value="#{lblApp.reason_code}*: " title="#{lblApp.reason_code}"
+                                           rendered="#{!MbStopListDataStepDS.showActionLabel()}"/>
+                        </h:panelGroup>
+                        <h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+                            <h:selectOneMenu id="actionCode"
+                                             value="#{MbStopListDataStepDS.data.actionCode}"
+                                             onblur="hideErrorField(this)"
+                                             disabled="#{MbStopListDataStepDS.disableInput()}">
+                                <f:selectItem itemValue="" />
+                                <f:selectItems value="#{MbStopListDataStepDS.actionCodes}" />
+                            </h:selectOneMenu>
+                            <h:outputFormat id="actionCodeError" value="#{lblMsg.value_request}"
+                                            styleClass="errorMarker" style="display:none;">
+                                <f:param name="fieldName" value="#{lblApp.action_code}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+
+                        <h:outputLabel for="regions" value="#{lblApp.service_regions}*: " title="#{lblApp.service_regions}"
+                                       rendered="#{MbStopListDataStepDS.showRegions()}"/>
+                        <h:panelGroup cellpadding="0" cellspacing="0" rendered="#{MbStopListDataStepDS.showRegions()}">
+                            <table id="regions">
+                                <a4j:repeat id="serviceRegions" value="#{MbStopListDataStepDS.serviceRegions}" var="region">
+                                    <tr>
+                                        <td>
+                                            <h:selectBooleanCheckbox id="regionBtn" value="#{region.disabled}" styleClass="childCheckBox region"
+                                                                     disabled="#{MbStopListDataStepDS.disableInput()}"/>
+                                        </td>
+                                        <td>
+                                            <h:outputText id="regionText" value=" #{region.label}" rendered="#{region.label != null}"/>
+                                        </td>
+                                    </tr>
+                                </a4j:repeat>
+                            </table>
+                            <h:outputFormat id="regionsError" value="#{lblMsg.value_request}"
+                                            styleClass="errorMarker" style="display:none;">
+                                <f:param name="fieldName" value="#{lblApp.service_regions}"/>
+                            </h:outputFormat>
+                        </h:panelGroup>
+
+                        <h:outputLabel for="product" value="#{lblCommon.product}*: " title="#{lblCommon.product}"
+                                       rendered="#{MbStopListDataStepDS.showProducts()}"/>
+                        <h:panelGrid columns="1" cellpadding="0" cellspacing="0" rendered="#{MbStopListDataStepDS.showProducts()}">
+                            <h:selectOneMenu id="product"
+                                             value="#{MbStopListDataStepDS.data.product}"
+                                             onblur="hideErrorField(this)"
+                                             disabled="#{MbStopListDataStepDS.disableInput()}">
+                                <f:selectItem itemValue="" />
+                                <f:selectItems value="#{MbStopListDataStepDS.products}" />
+                            </h:selectOneMenu>
+                            <h:outputFormat id="productError" value="#{lblMsg.value_request}"
+                                            styleClass="errorMarker" style="display:none;">
+                                <f:param name="fieldName" value="#{lblCommon.product}"/>
+                            </h:outputFormat>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                </fieldset>
+
+                <fieldset style="border-radius: 7px; border-color: #d7dac2; border-width: 1px; border-style: solid;">
+                    <legend>#{lblApp.optional_fields}</legend>
+                    <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="width-150, width250">
+                        <h:outputLabel for="cardNumber" value="#{lblCrd.card_number}: " title="#{lblCrd.card_number}"/>
+                        <h:panelGroup columns="1" cellpadding="0" cellspacing="0">
+                            <h:inputText id="cardNumber" value="#{MbStopListDataStepDS.data.cardMask}" disabled="true"/>
+                        </h:panelGroup>
+                    </h:panelGrid>
+                </fieldset>
+
+                <fieldset id="purgeSet"
+                          style="border-radius: 7px; border-color: #d7dac2; border-width: 1px; border-style: solid;">
+                    <legend>#{lblApp.select_one}</legend>
+                    <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="width-150, width250">
+                        <h:outputLabel for="purgeIn" value=" #{lblApp.purge_in}: " title="#{lblApp.purge_in}"/>
+                        <h:panelGrid columns="1" cellpadding="0" cellspacing="0" >
+                            <a4j:region>
+                                <h:inputText id="purgeIn"
+                                             value="#{MbStopListDataStepDS.data.purgeInDays}"
+                                             readonly="#{MbStopListDataStepDS.data.doNotPurge or MbStopListDataStepDS.disableInput()}"
+                                             disabled="#{MbStopListDataStepDS.data.doNotPurge or MbStopListDataStepDS.disableInput()}"
+                                             onblur="hideErrorField(this)"
+                                             reRender="purgeIn, purgeDate, purgeSetError">
+                                    <a4j:support event="onchange"
+                                                 reRender="purgeIn, purgeDate, purgeSetError"
+                                                 ajaxSingle="true"
+                                                 limitToList="true"
+                                                 action="#{MbStopListDataStepDS.setupPurgeDateByDays}"/>
+                                </h:inputText>
+                            </a4j:region>
+                        </h:panelGrid>
+
+                        <h:outputLabel for="purgeDate" value=" #{lblApp.purge_date}: " title="#{lblApp.purge_date}"/>
+                        <h:panelGrid columns="2" cellpadding="0" cellspacing="0">
+                            <a4j:region>
+                                <rich:calendar id="purgeDate"
+                                               value="#{MbStopListDataStepDS.data.purgeDate}"
+                                               buttonIcon="/images/calendar.gif"
+                                               readonly="#{MbStopListDataStepDS.data.doNotPurge or MbStopListDataStepDS.disableInput()}"
+                                               disabled="#{MbStopListDataStepDS.data.doNotPurge or MbStopListDataStepDS.disableInput()}"
+                                               datePattern="#{usession.datePattern}"
+                                               inputStyle="max-width: 250px !important; width: 250px;"
+                                               ondateselected="hideErrorField(this)">
+                                    <f:convertDateTime pattern="#{usession.datePattern}"
+                                                       timeZone="#{CommonUtils.timeZone}"/>
+                                    <a4j:support event="onchanged"
+                                                 reRender="purgeIn, purgeDate, purgeSetError"
+                                                 limitToList="true"
+                                                 ajaxSingle="true"
+                                                 action="#{MbStopListDataStepDS.setupPurgeDateByDate}"/>
+                                </rich:calendar>
+                            </a4j:region>
+                        </h:panelGrid>
+
+                        <h:outputLabel for="doNotPurge" value=" #{lblApp.do_not_purge}: " title="#{lblApp.do_not_purge}"/>
+                        <h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+                            <a4j:region>
+                                <h:selectBooleanCheckbox id="doNotPurge"
+                                                         value="#{MbStopListDataStepDS.data.doNotPurge}"
+                                                         disabled="#{MbStopListDataStepDS.disableInput()}"
+                                                         onblur="hideErrorField(this)"
+                                                         reRender="purgeIn, purgeDate, purgeSetError">
+                                    <a4j:support event="onchange"
+                                                 reRender="purgeIn, purgeDate, purgeSetError"
+                                                 ajaxSingle="true"
+                                                 limitToList="true"
+                                                 action="#{MbStopListDataStepDS.setupPurgeDateByClean}"/>
+                                </h:selectBooleanCheckbox>
+                            </a4j:region>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                </fieldset>
+                <h:outputFormat id="purgeSetError"
+                                value="#{lblMsg.value_request}"
+                                styleClass="errorMarker"
+                                style="display:none;">
+                    <f:param name="fieldName" value="#{lblApp.purge_set}"/>
+                </h:outputFormat>
+            </h:panelGroup>
+        </h:form>
+    </ui:define>
+</ui:composition>
+</html>

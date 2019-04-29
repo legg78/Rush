@@ -1,0 +1,621 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+		<f:loadBundle var="lblNtf" basename="ru.bpc.sv2.ui.bundles.Ntf"/>
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+		<f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+		<f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+        <f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+		<script type="text/javascript" src="#{request.contextPath}/js/stretch.js" />
+		<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/checks.js" />
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblIss.cardholders}"/>
+		<bpct:filterBarModalPanels id="filterPanels"
+			rerenderList="filtersTable, cardholdersTable, cardholdersBtnForm:dscardholders, cardholdersBtnForm:pagesNum, cardholdersBtnForm:btnPanel, save_filter_panel_div, #{MbCardholdersSearch.tabName}"
+			selectedFilter="#{MbCardholdersSearch.selectedSectionFilter}"
+			sectionFilter="#{MbCardholdersSearch.sectionFilter}"
+			sectionFilterModeEdit="#{MbCardholdersSearch.sectionFilterModeEdit}"
+			searchAutomatically="#{MbCardholdersSearch.searchAutomatically}"
+			sectionId="#{MbCardholdersSearch.sectionId}"
+			beanName="MbCardholdersSearch"/>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+
+		//setOrLabel(#{lblMsg.or_label});
+		function checkCardholderFields(){
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) return true;
+			
+			var form = 'cardholdersSearchForm:';
+			var cardholderNumber = document.getElementById(form + 'numberFilter');
+			var cardNumber = document.getElementById(form + 'cardNumber');
+			var cardUid = document.getElementById(form + 'cardUid');
+			var customerNumberValue = document.getElementById(form + "customerNumberHidden");
+		    var customerNumber = document.getElementById(form + "customerInfo");
+		    var contractNumber = document.getElementById(form + "contractNumber");
+		    var cardholderName = document.getElementById(form + "nameFilter");
+		    var name = document.getElementById(form + "firstNameFilter");
+		    var surname = document.getElementById(form + "surnameFilter");
+		    
+		    var fields = [cardholderNumber, cardNumber, cardUid, customerNumber, contractNumber, cardholderName, name, surname];
+			var cardFields = [cardNumber, cardUid];
+		    cleanAll(fields);
+		    var errorMsg = '';
+		    
+			if (!empty(cardholderNumber)){
+				if (cardholderNumber.value.length >= 5){
+					cleanAll(fields);
+					return true;
+				} else {
+					paint(cardholderNumber);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.cardholder_number_group}');
+				}
+			}
+
+			if (!empty(cardNumber) && !empty(cardUid)) {
+				paintAll(cardFields);
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.card_number_uid_group}');
+			} else if (!empty(cardNumber)) {
+				if (checkCardNumberUid(cardNumber.value)){
+					cleanAll(fields);
+					return true;
+				} else {
+					paint(cardNumber);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.card_number_group}');
+				}
+			} else if (!empty(cardUid)) {
+				if (checkCardNumberUid(cardUid.value)){
+					cleanAll(fields);
+					return true;
+				} else {
+					paint(cardUid);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.card_uid_group}');
+				}
+			}
+
+			if (!empty(customerNumberValue)){
+				if (customerNumberValue.value.length >= 5){
+					cleanAll(fields);
+					return true;
+				} else {
+					paint(customerNumber);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.customer_number_group}');
+				}
+			}
+
+			if (!empty(contractNumber)){
+				if (contractNumber.value.length >= 5){
+					cleanAll(fields);
+					return true;
+				} else {
+					paint(contractNumber);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.contract_number_group}');
+				}
+			}
+
+			if (!empty(cardholderName)){
+				if (cardholderName.value.length >= 5 || cardholderName.value == '*'
+					|| cardholderName.value == '%'){
+					cleanAll(fields);
+					return true;
+				} else {
+					paint(cardholderName);
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.cardholder_name_group}');
+				}
+			}
+
+			if (!empty(name) || !empty(surname)){
+				var nameValid = false;
+				if (name.value.length >= 3){
+					nameValid = true;
+				} else {
+					paint(name);
+				}
+				if (surname.value.length >= 3){
+					if (nameValid){
+						cleanAll(fields);
+						return true;
+					}
+				} else {
+					paint(surname);
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.name_surname_group}');
+			}
+			
+			if (errorMsg == ''){
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.card_number_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.card_uid_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.customer_number_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.contract_number_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.cardholder_name_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.name_surname_group}');
+				paintAll(fields);
+			}
+			alert(errorMsg);
+			return false;
+		}
+		
+		function handleEnter(event) {
+			 if (event.keyCode == 13) {
+				 document.getElementById('cardholdersSearchForm:searchBtn').click(); 
+				 return false; 
+			} 
+			return true;
+		 }
+
+		function checkCardNumberUid(cardNumber){
+			var indexOfStar = cardNumber.lastIndexOf('*');
+			var indexOfPerc = cardNumber.lastIndexOf('%');
+			var length = cardNumber.length;
+			if ((indexOfPerc != -1) && ((length - indexOfPerc) > 4) ||
+					(indexOfStar != -1) && (length - indexOfStar > 4)||
+					(length >= 10 )){
+				return true;
+			}
+			return false;
+		}
+		//]]>
+		</script>
+		
+		<bpct:customerSearchModalPanels id="custSearchPanels"/>
+		
+    	<h:form id="cardholdersSearchForm" onkeypress="return handleEnter(event)">
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol" id="filtersTable">
+		                		
+		            			<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+				      			<h:selectOneMenu id="instId"
+				      						value="#{MbCardholdersSearch.filter.instId}">
+				      				<f:selectItem itemValue=""/>
+				      				<f:selectItems value="#{MbCardholdersSearch.institutions}"/>
+									<a4j:support  event="onchange"
+												  oncomplete="document.getElementById('cardholdersSearchForm:instId').focus();"/>
+				      			</h:selectOneMenu>
+							
+		                		<h:outputLabel for="nameFilter" value="#{lblIss.cardholder_name}: " title="#{lblIss.cardholder_name}" />
+		            			<h:inputText id="nameFilter" value="#{MbCardholdersSearch.filter.cardholderName}" maxlength="200"/>
+		            			
+		            			<h:outputLabel for="customerNumber" value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}" />
+		                		<bm:selectCustomer id="customerNumber"
+									valueId="#{MbCardholdersSearch.filterCustomerId}"
+									valueNumber="#{MbCardholdersSearch.filterCustomerNumber}"
+									custInfoField="#{MbCardholdersSearch.customerInfo}"
+									beanName="MbCardholdersSearch" 
+									modalPanel="customerSearchModalPanel"
+									formName="cardholdersSearchForm"
+									searchButton="searchBtn"
+									manualInput="true"
+                                    disabled="false" rendered="true" />
+									
+		            			<h:outputLabel for="firstNameFilter" value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+		            			<h:inputText id="firstNameFilter" value="#{MbCardholdersSearch.filter.person.firstName}" maxlength="200"/>
+		            			
+		            			<h:outputLabel for="numberFilter" value="#{lblIss.cardholder_number}: " title="#{lblIss.cardholder_number}" />
+		            			<h:inputText id="numberFilter" value="#{MbCardholdersSearch.filter.cardholderNumber}" maxlength="200"/>
+		            			
+		            			<h:outputLabel for="surnameFilter" value="#{lblCommon.surname}: " title="#{lblCommon.surname}" />
+		            			<h:inputText id="surnameFilter" value="#{MbCardholdersSearch.filter.person.surname}" maxlength="200"/>
+		            			
+		            			<h:outputLabel for="cardNumber" value="#{lblIss.card_number}: " title="#{lblIss.card_number}" />
+		            			<h:inputText id="cardNumber" value="#{MbCardholdersSearch.filterCardNumber}" maxlength="24"/>		            			
+
+				      			<h:outputLabel for="idTypeFilter"
+									value="#{lblPrd.identity_type}: " title="#{lblPrd.identity_type}"/>
+								<h:selectOneMenu id="idTypeFilter"
+									value="#{MbCardholdersSearch.filterIdType}">
+									<f:selectItem itemValue="" />
+									<f:selectItems
+										value="#{MbCardholdersSearch.idTypes}" />
+								</h:selectOneMenu>
+
+								<h:outputLabel for="cardUid" value="#{lblCrd.card_uid}: " title="#{lblCrd.card_uid}" />
+								<h:inputText id="cardUid" value="#{MbCardholdersSearch.filterCardUid}" maxlength="200"/>
+															
+								<h:outputLabel for="idNumberFilter"
+									value="#{lblPrd.identity_number}: " title="#{lblIss.id_number_title}"/>
+								<h:inputText id="idNumberFilter"
+									value="#{MbCardholdersSearch.filterIdNumber}" maxlength="200"/>
+
+                                <h:outputLabel for="contractNumber" title="#{lblPrd.contract_number}"
+                                               value="#{lblPrd.contract_number}: " />
+                                <h:inputText id="contractNumber"
+                                             value="#{MbCardholdersSearch.filterContractNumber}" />
+
+                			</h:panelGrid>
+	                		<h:panelGrid columns="1">
+		                		<bre:taggedCommandButton
+		                				onclick="if (!checkCardholderFields()){return false;} disableModalPanelBtns(this);"
+			                			action="#{MbCardholdersSearch.search}"
+			                			id="searchBtn"
+	        							reRender="cardholdersTable, cardholdersBtnForm:dscardholders, cardholdersBtnForm:pagesNum, cardholdersBtnForm:btnPanel, #{MbCardholdersSearch.tabName}"
+	                					image="/_img/icon_search.png" type="submit"
+	                					value="#{lblForm.search}" style="width:85px;"
+	                					oncomplete="updateHeight();enableModalPanelBtns(this)" 
+	                					eventsQueue="queue"/>
+	                			<h:panelGrid columns="1" >
+		                			<h:panelGroup styleClass="link-clear" layout="block">
+			                			<h:graphicImage url="/_img/icon_clear.png"/>
+			                			<a4j:commandLink value="#{lblForm.clear_all}"
+								        		action="#{MbCardholdersSearch.clearFilter}"
+								        		reRender="cardholdersSearchForm, cardholdersForm, cardholdersBtnForm, details">
+								        </a4j:commandLink>
+		            	    		</h:panelGroup>
+		            	    		
+		            	    		<h:panelGroup>
+											<bpct:filterBar sectionId="#{MbCardholdersSearch.sectionId}" />
+									</h:panelGroup>
+								</h:panelGrid>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+		               		<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		               		<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	               		</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="cardholdersForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		    		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="cardholdersTable"
+							tableState="#{MbCardholdersSearch.tableState}"
+							styleClass="res-table"
+							headerClass="res-table-header"
+							rowClasses=",odd"
+							selectedClass="res-table-selected"
+							var="item"
+							value="#{MbCardholdersSearch.cardholders}"
+							selection="#{MbCardholdersSearch.itemSelection}"
+							rows="#{MbCardholdersSearch.rowsNum}"
+							height="255px"
+							selectionMode="single"
+							width="100%"
+							enableContextMenu="true"
+							noDataLabel="#{MbCardholdersSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="cardholdersBtnForm:btnPanel, err_ajax, #{MbCardholdersSearch.tabName}"
+							onRowMouseDown="handleMouseClick(event)"
+                            binding="#{MbCardholdersSearch.table}">
+                        <f:event type="preRenderComponent" listener="#{MbCardholdersSearch.onSortablePreRenderTable()}"></f:event>
+						<a4j:support event="onselectionchange" limitToList="true"
+								reRender="cardholdersBtnForm:btnPanel, #{MbCardholdersSearch.tabName}" eventsQueue="queue"/>
+						<rich:column id="cardholder_name" label="#{lblIss.cardholder_name}" title="Cardholder name" sortBy="#{'cardholder_name'}" width="20%">
+				           <f:facet name="header">
+			                    <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblIss.cardholder_name}" title="#{lblIss.cardholder_name}" />
+								</a4j:outputPanel>
+			                </f:facet>
+			                <bm:entityDisplay contextType="ENTTCRDH" bean="MbCardholdersSearch"  value="#{item.cardholderName}"/>
+				        </rich:column>
+				        
+				        <rich:column id="cardholder_number" label="#{lblIss.cardholder_number}" title="Cardholder number" sortBy="#{'cardholder_number'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblIss.cardholder_number}" title="#{lblIss.cardholder_number}" />
+			                </f:facet>
+			                <bm:entityDisplay contextType="ENTTCRDH" bean="MbCardholdersSearch" value="#{item.cardholderNumber}" />
+				        </rich:column>
+				        
+				        <rich:column id="first_name" label="#{lblCommon.name}" title="Name" sortBy="#{'first_name'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+			                </f:facet>
+			                <bm:entityDisplay contextType="ENTTCRDH" bean="MbCardholdersSearch" value="#{item.person.firstName}" />
+				        </rich:column>
+				        
+				        <rich:column id="surname" label="#{lblCommon.surname}" title="Surame" sortBy="#{'surname'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.surname}" title="#{lblCommon.surname}" />
+			                </f:facet>
+			                <bm:entityDisplay contextType="ENTTCRDH" bean="MbCardholdersSearch" value="#{item.person.surname}" />
+				        </rich:column>
+				        
+				        <rich:column id="birthday" label="#{lblCommon.birthday}" title="Birthday" sortBy="#{'birthday'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.birthday}" title="#{lblCommon.birthday}" />
+			                </f:facet>
+			                <h:outputText value="#{item.person.birthday}" title="#{item.person.birthday}">
+			                	<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" />
+			                </h:outputText>
+				        </rich:column>
+				        		        
+				        <rich:column id="institution" label="#{lblCommon.institution}" title="Inst" sortBy="#{'inst_name'}" width="20%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}" />
+			                </f:facet>
+			                <bm:entityDisplay link = "true" contextType="ENTTINST" bean="MbCardholdersSearch" entityId="#{item.instId}" value="#{item.instName != null ? item.instName : '...'}"/>
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+        </h:form>
+
+        <h:form id="cardholdersBtnForm">
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+							<h:selectOneMenu id="rows_num" value="#{MbCardholdersSearch.rowsNum}" styleClass="row_per_page">
+								<a4j:support event="onchange" reRender="cardholdersTable, dscardholders, pagesNum, cardholdersBtnForm, #{MbCardholdersSearch.tabName}"/>
+		                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+		                    		pagesVar="pages" styleClass="res-datascroller"
+				                    id="dscardholders" for="cardholdersTable"
+				                    page="#{MbCardholdersSearch.pageNumber}"
+				                    reRender="cardholdersBtnForm:btnPanel, #{MbCardholdersSearch.tabName}">
+				            	<f:facet name="first">
+				                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+				                <f:facet name="first_disabled">
+				                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="last">
+				                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="last_disabled">
+				                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="previous_disabled">
+				                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="next">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="next_disabled">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="pages">
+				                </f:facet>
+							</rich:datascroller>
+
+		                    <h:panelGroup id="pagesNum">
+		                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+		                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbCardholdersSearch.cardholders.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+		                    </h:panelGroup>
+		                    
+		                    <h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbCardholdersSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbCardholdersSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+		            <h:panelGrid id="btnPanel" columns="4" styleClass="buttons_block">
+		            	<bre:taggedCommandButton id="backBtn"
+	                      		value="#{lblForm.back}" 
+	                      		action="#{MbCardholdersSearch.back}"
+	                      		rendered="#{MbCardholdersSearch.showBackBtn}"
+	                      		/>
+					</h:panelGrid>
+				</h:panelGroup>
+		    </h:panelGroup>
+	    </h:form>
+		
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNext" requestDelay="500" />
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                            requestDelay="500" reRender="#{MbCardholdersSearch.rerenderList}, #{MbCardholdersSearch.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbCardholdersSearch.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+	    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content" selectedTab="#{MbCardholdersSearch.tabName}">
+				<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup layout="block" id="detailsTab">
+      					<ui:include src="/pages/issuing/cardholders/cardholder_details.jspx"/>
+      					<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('personIdsTab')" label="IDs" name="personIdsTab" style="height:100%;">
+					<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.ids}" title="#{lblCommon.ids}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="personIdsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+						<ui:include src="#{MbCardholdersSearch.tabName=='personIdsTab' ? '/pages/common/persons/list_documents.jspx' : null}"/>
+					</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('cardsTab')" label="Cards" name="cardsTab" style="height:100%;" rendered="#{usession.inRole['VIEW_CARDS_TAB']}">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblIss.cards}" title="#{lblIss.cards}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="cardsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+       					<ui:include src="#{MbCardholdersSearch.tabName=='cardsTab' ? '/pages/issuing/cards/list_cards_bottom.jspx' : null}"/>
+        			</h:panelGroup>
+        		</rich:tab>
+        	
+			    <rich:tab ontabenter="storeTab('flexibleFieldsTab')" label="Additional" name="flexibleFieldsTab" style="height:100%;">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+        				</h:panelGroup>
+        			</f:facet>
+					<h:panelGroup id="flexibleFieldsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<ui:include src="#{MbCardholdersSearch.tabName=='flexibleFieldsTab' ? '/pages/common/flexible/flexFieldsTableBottom.jspx' : null}">
+	       						<ui:param name="hideButtons" value="true"/>
+	       					</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('contactsTab')" label="Contacts" name="contactsTab" style="height:100%;" rendered="#{usession.inRole['VIEW_CONTACT']}">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblCommon.contacts}" title="#{lblCommon.contacts}"/>
+        				</h:panelGroup>
+        			</f:facet>
+        			<h:panelGroup id="contactsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+       					<ui:include src="#{MbCardholdersSearch.tabName=='contactsTab' ? '/pages/contacts/contactsTableBottom.jspx' : null}"/>
+        			</h:panelGroup>
+        		</rich:tab>
+        		
+        		<rich:tab ontabenter="storeTab('addressesTab')" label="Addresses" name="addressesTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.addresses}" title="#{lblCommon.addresses}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="addressesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+        				<h:panelGroup id="addressesTabContents">
+                            <ui:include src="#{MbCardholdersSearch.tabName=='addressesTab' ? '/pages/common/address/list_addresses.jspx' : null}"/>
+        				</h:panelGroup>
+       				</h:panelGroup>
+       			</rich:tab>
+       			
+       			<rich:tab label="CustomEvent" name="ntfEventTab" style="height:100%;" ontabenter="storeTab('ntfEventTab')">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblNtf.notifications}" title="#{lblNtf.notifications}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="ntfEventTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+        				<h:panelGroup id="ntfEventTabContents">
+        					<ui:include src="#{MbCardholdersSearch.tabName=='ntfEventTab' ? '/pages/notifications/list_ntf_events_bottom.jspx' : null}"/>
+        				</h:panelGroup>
+       				</h:panelGroup>
+       			</rich:tab>
+
+				<rich:tab label="Applications" name="applicationsTab" style="height:100%;" ontabenter="storeTab('applicationsTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblApp.applications}" title="#{lblApp.applications}"/>
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="applicationsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+						<ui:include src="#{MbCardholdersSearch.tabName=='applicationsTab' ? '/pages/acquiring/applications/objectApplicationsBottom.jspx' : null}"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+                <rich:tab label="Notes" name="notesTab" style="height: 100%; overflow: hidden;" ontabenter="storeTab('notesTab')">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="tab-label" layout="block">
+                            <h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}"/>
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper" style="height:100%;overflow: hidden;position:relative;">
+                        <ui:include src="#{MbCardholdersSearch.tabName=='notesTab' ? '/pages/notes/list_notes_bottom.jspx' : null}"></ui:include>
+                    </h:panelGroup>
+                </rich:tab>
+            </rich:tabPanel>
+        </h:panelGroup>
+
+		<script type="text/javascript">
+
+            function updateHeight() {
+                updateGridHeight();
+            }
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'cardholdersSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'cardholdersForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'cardholdersBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'cardholderDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'cardholderDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'idsForm',
+                            TAB_FORM_WRAPPER_ID:    'personIdsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'cardsForm',
+                            TAB_FORM_WRAPPER_ID:    'cardsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'flexDataForm',
+                            TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'contactsForm',
+                            TAB_FORM_WRAPPER_ID:    'bottomContactsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'contactDatasForm',
+                            TAB_FORM_WRAPPER_ID:    'bottomContactDatasTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'addressesBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'addressesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'ntfEventsBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'ntfEventsBtmFormWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'notesBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>
+    </ui:define>
+</ui:composition>
+</html>

@@ -1,0 +1,493 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="orgStructure">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+    </sql>
+
+    <sql id="paginatedClose">
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-institution"
+                class="ru.bpc.sv2.orgstruct.Institution"  >
+        <result property="id" column="id" />
+        <result property="seqNum" column="seqnum" />
+		<result property="institutionNumber" column="institution_number" />
+        <result property="type" column="inst_type" />
+        <result property="lang" column="lang" />
+        <result property="name" column="name" />            
+        <result property="description" column="description" />
+        <result property="parentId" column="parent_id" />
+        <result property="networkId" column="network_id" />
+        <result property="networkName" column="network_name" />
+	</resultMap>
+	
+	<resultMap  id="mapping-inst-hier"
+                class="ru.bpc.sv2.orgstruct.Institution"  extends="mapping-institution">
+    	<result property="level" column="level" />
+        <result property="isLeaf" javaType="boolean" column="is_leaf" />
+	</resultMap>
+
+	<resultMap  id="mapping-agent"
+                class="ru.bpc.sv2.orgstruct.Agent"  >
+        <result property="id" column="id" />
+        <result property="seqNum" column="seqnum" />
+        <result property="instId" column="inst_id" />
+        <result property="name" column="name" />
+        <result property="instName" column="inst_name" />
+        <result property="description" column="description" />
+        <result property="lang" column="lang" />
+        <result property="parentId" column="parent_id" />
+        <result property="type" column="agent_type" />
+        <result property="isDefault" column="is_default" />
+		<result property="externalNumber" javaType="String" column="agent_number" />
+	</resultMap>
+	
+	<resultMap  id="mapping-agent-hier" extends="mapping-agent"
+                class="ru.bpc.sv2.orgstruct.Agent"  >       
+        <result property="level" column="level" />
+        <result property="isLeaf" javaType="boolean" column="is_leaf" />
+	</resultMap>
+
+	<resultMap	id="mapping-agent-type"
+				class="ru.bpc.sv2.orgstruct.AgentType">
+		<result property="branchId" column="id"/>
+		<result property="type" column="agent_type"/>
+		<result property="parentType" column="parent_agent_type"/>
+		<result property="instId" column="inst_id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="level" column="level"/>
+		<result property="isLeaf" column="is_leaf"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="inst-address-map">
+		<parameter property="instId" javaType="int" jdbcType="NUMBER" mode="IN"/>
+		<parameter property="addressId" javaType="String" jdbcType="VARCHAR2" mode="IN"/>
+		<parameter property="addressType" javaType="String" jdbcType="VARCHAR2" mode="IN"/>
+		<parameter property="addressObjectId" javaType="long" jdbcType="NUMBER" mode="OUT"/>
+	</parameterMap>
+
+	<parameterMap class="java.util.Map" id="inst-contact-map">
+		<parameter property="instId" javaType="int" jdbcType="NUMBER" mode="IN"/>
+		<parameter property="contactId" javaType="String" jdbcType="VARCHAR2" mode="IN"/>
+		<parameter property="contactObjectId" javaType="long" jdbcType="NUMERIC" mode="OUT"/>
+	</parameterMap>
+
+	<parameterMap  id="agents-params-map" class="java.util.Map"  >
+        <parameter property="instId" javaType="int"/>
+        <parameter property="agentId" javaType="int"/>
+        <parameter property="name" javaType="String"/>
+        <parameter property="lang" javaType="String"/>
+        <parameter property="agentType" javaType="String"/>
+        <parameter property="allAgents" javaType="String"/>
+	</parameterMap>
+
+	<select id="get-inst-hier"
+		    parameterClass="qparams"
+		    resultMap="mapping-inst-hier" >
+		SELECT 	level,
+            	id,
+                seqnum,
+				institution_number,
+	            name,
+	            description,
+	            parent_id,
+	            network_id,
+	            network_name,
+	            lang,
+	            inst_type,
+	            CONNECT_BY_ISLEAF as is_leaf
+	    FROM (
+			SELECT DISTINCT 
+				i.*
+				, n.name network_name
+			FROM 
+				ost_ui_institution_vw i
+				, net_ui_network_vw n
+			WHERE 
+				i.network_id = n.id(+) 
+				AND i.lang = n.lang(+)
+			START WITH
+				i.lang = #lang#
+				<iterate prepend=" AND " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="id">i.id LIKE #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="type">i.inst_type = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(i.name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="description">upper(i.description) like #filters[].value#</isEqual>
+			  	</iterate>        
+			CONNECT BY PRIOR i.parent_id = i.id AND PRIOR i.lang = i.lang
+			)
+			START WITH (parent_id is null or parent_id not in (select id from ost_ui_institution_vw))
+			CONNECT BY PRIOR id = parent_id
+			ORDER SIBLINGS BY id
+	</select>
+
+	<resultMap  id="mapping-institution-for-dropdown"
+                class="ru.bpc.sv2.orgstruct.Institution"  >
+        <result property="id" column="id" />
+        <result property="name" column="name" />
+	</resultMap>
+	
+	<resultMap  id="mapping-inst-hier-for-dropdown"
+                class="ru.bpc.sv2.orgstruct.Institution"  extends="mapping-institution-for-dropdown">
+    	<result property="level" column="level1" />
+        <result property="isLeaf" javaType="boolean" column="is_leaf" />
+	</resultMap>
+	
+	<select id="get-inst-hier-for-dropdown"
+		    parameterClass="qparams"
+		    resultMap="mapping-inst-hier-for-dropdown" >		
+			SELECT 	
+					level level1
+			        , id
+	                , name
+	                , CONNECT_BY_ISLEAF as is_leaf	            
+		    FROM (
+				SELECT DISTINCT 
+					*
+				FROM 
+					ost_ui_institution_sys_vw
+				START WITH
+					lang = #lang#
+					<iterate prepend=" AND " conjunction="AND" property="filters">
+						<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="type">inst_type = #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="name">lower(name) like #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="description">lower(description) like #filters[].value#</isEqual>
+				  	</iterate>        
+				CONNECT BY PRIOR parent_id = id AND PRIOR lang = lang
+				)
+				START WITH (parent_id is null or parent_id not in (select id from ost_ui_institution_vw))
+				CONNECT BY PRIOR id = parent_id
+				ORDER SIBLINGS BY id
+	</select>
+	
+	<select id="get-institutions"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-institution" >
+		SELECT	  i.id
+				, i.seqnum
+				, i.institution_number
+	            , i.name
+				, i.description
+				, i.parent_id
+				, i.network_id
+				, i.lang
+				, i.inst_type
+				, n.name network_name
+        FROM  ost_ui_institution_vw i 
+        	, net_ui_network_vw n 
+        WHERE
+        	i.network_id = n.id(+)        	
+		<iterate prepend="AND" conjunction="AND" property="filters">
+        	<isEqual property="filters[].element" compareValue="id">i.id LIKE #filters[].value#</isEqual>
+       		<isEqual property="filters[].element" compareValue="ids">i.id IN ($filters[].value$)</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(i.name) like #filters[].value#</isEqual>	        		
+			<isEqual property="filters[].element" compareValue="lang">
+				i.lang = #filters[].value#
+				AND n.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="type">i.type = #filters[].value#</isEqual>
+	 	</iterate>
+	</select>
+
+	<select
+	    id="get-institutions-for-dropdown"
+	    parameterClass="qparams"
+	    resultMap="mapping-institution-for-dropdown" >
+	    	SELECT 
+				id,
+                name	           
+	        FROM 
+	      	  ost_ui_institution_sys_vw
+	      	WHERE
+	      		lang = #lang#	       
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+		 	</iterate>
+	</select>
+
+	<select id="get-institutions-count"
+        	parameterClass="string"
+        	resultClass="int">
+        SELECT count(id) 
+        FROM ost_ui_institution_vw
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+        	<isEqual property="filters[].element" compareValue="id">id LIKE #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="ids">id IN ($filters[].value$)</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>	        		
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">type = #filters[].value#</isEqual>
+		</iterate>
+    </select>
+
+	<select id="get-inst-description"
+			parameterClass="ru.bpc.sv2.orgstruct.Institution"
+			resultClass="ru.bpc.sv2.orgstruct.Institution">
+		SELECT name, description FROM ost_ui_institution_sys_vw
+		WHERE id = #id# AND lang = #lang#
+	</select>
+
+    <procedure id="add-institution"
+    		parameterClass="ru.bpc.sv2.orgstruct.Institution">
+    	{call OST_UI_INSTITUTION_PKG.add_institution( 
+				  i_inst_id      	=> #id#
+				, i_name          	=> #name#
+				, i_parent_inst_id	=> #parentId#
+				, i_inst_type     	=> #type#
+				, i_network_id		=> #networkId#
+				, i_description   	=> #description#
+				, i_lang          	=> #lang#
+				, i_refresh_matview => NULL
+				, i_participant_type => NULL
+				, i_inst_number     => #institutionNumber#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				)}
+    </procedure>
+
+    <procedure id="modify-institution"
+            parameterClass="ru.bpc.sv2.orgstruct.Institution">
+        {call OST_UI_INSTITUTION_PKG.modify_institution(
+				  i_inst_id      	=> #id#
+				, i_name          	=> #name#
+				, i_parent_inst_id	=> #parentId#
+				, i_inst_type     	=> #type#
+				, i_network_id		=> #networkId#
+				, i_description   	=> #description#
+				, i_lang          	=> #lang#
+				, i_refresh_matview => NULL
+				, i_participant_type => NULL
+				, i_inst_number     => #institutionNumber#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+    </procedure>
+
+    <procedure id="remove-institution"
+    		parameterClass="ru.bpc.sv2.orgstruct.Institution">
+    	{call OST_UI_INSTITUTION_PKG.remove_institution(
+    			  i_inst_id			=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+
+	<select id="get-agent-types"
+	    	parameterClass="int"
+	    	resultMap="mapping-agent-type" >
+		SELECT
+				  level
+				, agent_type
+				, parent_agent_type
+				, inst_id
+				, id
+				, seqnum
+				, CONNECT_BY_ISLEAF as is_leaf
+		FROM ost_ui_agent_type_tree_vw
+		START WITH parent_agent_type IS NULL AND inst_id = #value#
+		CONNECT BY PRIOR agent_type = parent_agent_type
+				AND PRIOR inst_id = inst_id
+	</select>
+
+    <procedure id="add-agent-type-branch"
+    		parameterClass="ru.bpc.sv2.orgstruct.AgentType">
+    	{call OST_UI_AGENT_TYPE_TREE_PKG.add_agent_type_branch(
+				  o_branch_id		=> #branchId,jdbcType=NUMERIC,mode=OUT#
+				, i_agent_type		=> #type#
+				, i_parent_type		=> #parentType#
+				, i_inst_id			=> #instId#
+				)}
+    </procedure>
+
+    <procedure id="remove-agent-type-branch"
+            parameterClass="int">
+        {call OST_UI_AGENT_TYPE_TREE_PKG.remove_agent_type_branch(#value#)}
+    </procedure>
+
+	<select id="get-agent-types-by-parent"
+			parameterClass="ru.bpc.sv2.orgstruct.AgentType"
+			resultClass="String">
+		SELECT agent_type FROM ost_ui_agent_type_tree_vw
+		WHERE inst_id = #instId# AND parent_agent_type = #type#
+	</select>
+
+	<select id="get-top-agent-types-by-inst"
+			parameterClass="int"
+			resultClass="String">
+		SELECT agent_type FROM ost_ui_agent_type_tree_vw
+		WHERE inst_id = #instId# AND parent_agent_type IS NULL
+	</select>
+
+	<procedure id="add-inst-address"
+			parameterMap="inst-address-map">
+		{call OST_UI_INSTITUTION_PKG.add_inst_address(?,?,?,?)}
+	</procedure>
+
+	<procedure id="add-inst-contact"
+			parameterMap="inst-contact-map">
+		{call OST_UI_INSTITUTION_PKG.add_inst_contact(?,?,?)}
+	</procedure>
+
+	<select id="get-agents-hier"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-agent-hier" >
+    	SELECT 	level
+		    	, id
+		    	, seqnum
+		    	, inst_id
+		    	, name
+		    	, description
+		    	, lang
+		    	, parent_id
+		    	, agent_type
+		    	, is_default
+		    	, CONNECT_BY_ISLEAF as is_leaf
+		    	, inst_name
+		    	, agent_number
+	    FROM (
+			SELECT DISTINCT 
+				a.*
+				, i.name inst_name
+			FROM 
+				ost_ui_agent_vw a, ost_ui_institution_vw i			
+			WHERE
+				a.inst_id = i.id
+				AND i.lang = a.lang
+			<iterate prepend=" START WITH " conjunction="AND" property="filters">
+	        	<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+	        	<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+	        	<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(a.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(a.description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="agentType">a.agent_type = #filters[].value#</isEqual>								
+				<isEqual property="filters[].element" compareValue="externalNumber">a.agent_number = #filters[].value#</isEqual>
+			</iterate>       
+			CONNECT BY PRIOR a.parent_id = a.id
+			  <iterate prepend="AND" conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>	        		
+			  	</iterate>	   
+			)
+			START WITH
+					<isNotNull property="startWith">id = #startWith#</isNotNull>
+			        <isNull property="startWith">(parent_id is NULL or parent_id not in (select id from ost_ui_agent_vw))</isNull>
+			CONNECT BY PRIOR id = parent_id
+			ORDER SIBLINGS BY id
+		
+	</select>
+
+	<select id="get-agents"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-agent" >
+		SELECT 
+				 a.id
+		    	, a.seqnum
+		    	, a.inst_id
+		    	, a.name
+		    	, a.description
+		    	, a.lang
+		    	, a.parent_id
+		    	, a.agent_type
+		    	, a.is_default
+				, i.name inst_name
+				, a.agent_number
+		FROM 
+				ost_ui_agent_vw a, ost_ui_institution_vw i			
+		WHERE
+				a.inst_id = i.id
+				AND i.lang = a.lang
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+        	<isEqual property="filters[].element" compareValue="instId">a.inst_id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(a.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(a.description) like #filters[].value#</isEqual>
+        	<isEqual property="filters[].element" compareValue="agentType">a.agent_type = #filters[].value#</isEqual>								
+		</iterate>       
+	</select>
+
+	<select id="get-agent-description"
+			parameterClass="ru.bpc.sv2.orgstruct.Agent"
+			resultClass="ru.bpc.sv2.orgstruct.Agent">
+		SELECT name, description FROM ost_ui_agent_vw
+		WHERE id = #id# AND lang = #lang#
+	</select>
+
+    <procedure id="add-agent"
+    		parameterClass="ru.bpc.sv2.orgstruct.Agent">
+		{call OST_UI_AGENT_PKG.add_agent(
+				  o_agent_id		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id        	=> #instId#
+				, i_agent_type     	=> #type#
+				, i_name           	=> #name#
+				, i_description    	=> #description#
+				, i_lang           	=> #lang#
+				, i_parent_agent_id	=> #parentId#
+				, i_is_default     	=> #isDefault#
+				, i_agent_number    => #externalNumber#
+				)}
+    </procedure>
+
+    <procedure id="modify-agent"
+    		parameterClass="ru.bpc.sv2.orgstruct.Agent">
+    	{call OST_UI_AGENT_PKG.modify_agent(
+				  i_agent_id		=> #id#
+				, i_name           	=> #name#
+				, i_description    	=> #description#
+				, i_lang           	=> #lang#
+				, i_parent_agent_id	=> #parentId#
+				, i_is_default     	=> #isDefault#
+				, i_seqnum         	=> #seqNum#
+				, i_agent_number    => #externalNumber# 
+				)}
+    </procedure>
+
+    <procedure id="remove-agent"
+            parameterClass="ru.bpc.sv2.orgstruct.Agent">
+        {call OST_UI_AGENT_PKG.remove_agent(
+        		  i_agent_id	=> #id# 
+				, i_seqnum   	=> #seqNum#
+				)}
+    </procedure>
+
+	<select id="get-agents-by-customer"
+			parameterClass="Long"
+			resultMap="mapping-agent">
+		SELECT 
+				  a.id
+		    	, a.seqnum
+		    	, a.inst_id
+		    	, a.name
+		    	, a.description
+		    	, a.lang
+		    	, a.parent_id
+		    	, a.agent_type
+		    	, a.is_default
+		    	, i.name inst_name
+		    	, a.agent_number
+		FROM ost_ui_agent_vw a, ost_ui_institution_vw i
+		WHERE a.id IN (
+		    SELECT agent_id FROM prd_ui_contract_vw
+		    WHERE customer_id = #customerId#		    
+		) 
+		AND a.lang = com_ui_user_env_pkg.get_user_lang
+		AND i.lang = com_ui_user_env_pkg.get_user_lang
+		AND a.inst_id = i.id
+	</select>	
+	
+    <select id="get-default-agent" parameterClass="int" resultClass="int" >
+    	select acm_ui_user_pkg.get_default_agent(null, #instId#) from dual
+    </select>
+        
+</sqlMap>

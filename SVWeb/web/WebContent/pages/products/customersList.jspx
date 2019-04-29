@@ -1,0 +1,2217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:c="http://java.sun.com/jstl/core"
+		>
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+		<script type="text/javascript" src="#{request.contextPath}/js/stretch.js" />
+
+		<ui:include src="/pages/products/customersChecks.jspx"/>
+		<ui:include src="/pages/scoring/scoring/scoring_modal_panel.jspx"/>
+
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+		<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+		<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+		<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+		<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+		<f:loadBundle var="lblPmo" basename="ru.bpc.sv2.ui.bundles.Pmo"/>
+		<f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+		<f:loadBundle var="lblNtf" basename="ru.bpc.sv2.ui.bundles.Ntf"/>
+		
+		<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+		
+		<h:panelGroup rendered="#{usession.inRole['VIEW_CUSTOMERS']}">
+		
+			<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"
+			buttonClass="hidden" inputClass="hidden"
+			onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"/>
+			
+			
+			<script>
+				#{rich:component('calendar')}.customExpand=customExpand;
+			</script>
+			
+			<script type="text/javascript">
+			//<![CDATA[
+			
+			 
+			 function handleEnter(event, tabname) {
+				 if (event.keyCode == 13) {
+					 document.getElementById(tabname + ':searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }
+
+			//]]>
+			</script>   
+	    	
+	    	<!-- navigation bar -->
+			<bpct:navBar pageName="#{lblPrd.customers}"/>
+			
+			<h:form id="customersSearchForm">
+				<h:inputHidden value="#{MbCustomersNew.tabName}" id="tabNameInput"/>
+				<script type="text/javascript">
+				 	load("customersSearchForm:tabNameInput");
+				</script>				
+				
+				<a4j:jsFunction name="refreshTab" eventsQueue="queue" limitToList="true" ajaxSingle="true"
+					reRender="#{MbCustomersNew.tabName}, err_ajax" action="#{MbCustomersNew.loadCurrentTab}"
+					oncomplete="setTabLoaded(submittingTab)">
+					<a4j:actionparam name="tabName" assignTo="#{MbCustomersNew.tabName}"/>
+				</a4j:jsFunction>
+				
+				<a4j:jsFunction name="setTabName" reRender="err_ajax" limitToList="true" ajaxSingle="true"
+					oncomplete="setTabLoaded(submittingTab)">
+					<a4j:actionparam name="tabName" assignTo="#{MbCustomersNew.tabName}"/>
+				</a4j:jsFunction>
+				
+				<a4j:region>
+					<a4j:status id="ajaxStatus1"/>			
+					<a4j:jsFunction name="setSearchTabName" reRender="err_ajax" limitToList="true" ajaxSingle="true" status="ajaxStatus1">
+						<a4j:actionparam name="tabName" assignTo="#{MbCustomersNew.searchTabName}"/>
+					</a4j:jsFunction>
+				</a4j:region>
+				
+			</h:form>
+			
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+				
+				<!-- search panel -->
+			<h:panelGroup layout="block" styleClass="search_block_tabs" id="customersSearchFormDiv">
+				<h:panelGroup layout="block" styleClass="search-block-tabs-head" >
+					<h:panelGroup layout="block" styleClass="search-block-tabs-head-inner1" />
+				</h:panelGroup>
+				<h:panelGroup layout="block" styleClass="search_block_tabs_inner1">
+					<bpct:filterBarModalPanels id="filterPanels"
+							rerenderList="filterTabs, show_more_panel, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, paymentOrdersCount,contractsCount,cardsCount,accountsCount,docsCount,limitsCount,cyclesCount,save_filter_panel_div, #{MbCustomersNew.tabName}, togglePanelCust, merchantsCount, terminalsCount"
+							selectedFilter="#{MbCustomersNew.selectedSectionFilter}"
+							sectionFilter="#{MbCustomersNew.sectionFilter}"
+							sectionFilterModeEdit="#{MbCustomersNew.sectionFilterModeEdit}"
+							searchAutomatically="#{MbCustomersNew.searchAutomatically}"
+							sectionId="1677"
+							beanName="MbCustomersNew"/>
+					<rich:tabPanel switchType="client" id="filterTabs"  tabClass="tab-cell" style="overflow:visible;"
+		    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    			contentClass="search_block" 
+		    			selectedTab="#{MbCustomersNew.searchTabName}">
+		    			
+		    		<rich:tab label="#{lblPrd.customer}" name="customerTab" onlabelclick="setSearchTabName('customerTab')"
+		    			onkeypress="return handleEnter(event,'customerForm')">						
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.customer}" title="#{lblPrd.customer}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       					<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+				
+	       					<a4j:form id="customerForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+								<a4j:outputPanel id="personPanel">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+						      			<h:selectOneMenu id="instId"
+						      						value="#{MbCustomersNew.filter.instId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+						      				<a4j:support event="onchange"
+						      							oncomplete="document.getElementById('customerForm:instId').focus();" 
+							      						reRender="customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						limitToList="true" ajaxSingle="true"/>
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+						      			<h:selectOneMenu id="agentId"
+						      						value="#{MbCustomersNew.filter.agentId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+						      			</h:selectOneMenu>
+						      			
+				            			<h:outputLabel for="numberFilter" value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}" />
+				            			<h:inputText id="numberFilter" value="#{MbCustomersNew.filter.customerNumber}" maxlength="200"/>
+				            							                		
+				            			<h:outputLabel for="contractNumberFilter" value="#{lblPrd.contract_number}: " title="#{lblPrd.contract_number}" />
+				            			<h:inputText id="contractNumberFilter" value="#{MbCustomersNew.filter.contractNumber}" maxlength="200"/>
+				            			
+						      			<h:outputLabel for="extEntityType" value="#{lblCommon.ext_entity_type}: " title="#{lblCommon.ext_entity_type}" />
+						      			<h:selectOneMenu id="extEntityType"
+						      						value="#{MbCustomersNew.filter.extEntityType}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.extEntityTypes}"/>
+						      			</h:selectOneMenu>
+		                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton eventsQueue="queue"
+					                			action="#{MbCustomersNew.searchByCustomer}"
+					                			id="searchBtn" 
+					                			onclick="if (!checkFieldsCustomer()) {return false;} disableModalPanelBtns(this);flushTabs();"
+			        							reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+			                				<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="customerTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+					                			<a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbCustomersNew.clearFilter}"
+										        		reRender="customersSearchForm, customerForm, customersForm, customersBtnForm, details"
+										        		oncomplete="hideTabs();updateHeight();">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		
+				            	    		<h:panelGroup>
+												<bpct:filterBar sectionId="1677" />
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>	
+			               		
+			               	</a4j:form>			               	
+						</h:panelGroup>													
+						</h:panelGroup>
+				    </rich:tab>
+	
+					<rich:tab label="#{lblCommon.person}" name="personTab" onlabelclick="setSearchTabName('personTab')"
+							onkeypress="return handleEnter(event,'personForm')"
+							rendered="#{usession.inRole['SEARCH_PERSON']}">
+						
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.person}" title="#{lblCommon.person}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       					<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+				
+	       					<a4j:form id="personForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+								<a4j:outputPanel id="personPanel">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+						      			<h:selectOneMenu id="instId"
+						      						value="#{MbCustomersNew.filter.instId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+						      				<a4j:support event="onchange"
+						      							oncomplete="document.getElementById('personForm:instId').focus();" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						limitToList="true" ajaxSingle="true"/>
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+						      			<h:selectOneMenu id="agentId"
+						      						value="#{MbCustomersNew.filter.agentId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+						      			</h:selectOneMenu>
+						      			
+				                		<h:outputLabel for="nameFilter" value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+				            			<h:inputText id="nameFilter" value="#{MbCustomersNew.filter.person.firstName}" maxlength="200"/>
+				            			
+				            			<h:outputLabel for="secondNameFilter" value="#{lblCommon.second_name}: " title="#{lblCommon.second_name}" />
+				            			<h:inputText id="secondNameFilter" value="#{MbCustomersNew.filter.person.secondName}" maxlength="200"/>
+				            			
+				            			<h:outputLabel for="surnameFilter" value="#{lblCommon.surname}: " title="#{lblCommon.surname}" />
+				            			<h:inputText id="surnameFilter" value="#{MbCustomersNew.filter.person.surname}" maxlength="200"/>
+				            			
+				            			<h:outputLabel for="gender" value="#{lblCommon.gender}: " title="#{lblCommon.gender}" />
+						      			<h:selectOneMenu id="gender"
+						      						value="#{MbCustomersNew.filter.person.gender}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.genders}"/>
+						      			</h:selectOneMenu>
+						      			
+				            			<h:outputText value="#{lblCommon.birthday}: " title="#{lblCommon.birthday}" />
+			            				<h:panelGroup>
+			            				<rich:calendar buttonIcon="/images/calendar.gif" id="birthday" value="#{MbCustomersNew.filter.person.birthday}"
+				            				datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" inputStyle="max-width:175px"/>
+			                			</h:panelGroup>
+		                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton eventsQueue="queue"
+				                				id="searchBtn"
+					                			action="#{MbCustomersNew.searchByPerson}" 
+					                			onclick="if (!checkFieldsPerson()) {return false;} disableModalPanelBtns(this);flushTabs();"
+			        							reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+			                				<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="personTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+					                			<a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbCustomersNew.clearFilter}"
+										        		onclick="flushTabs();"
+										        		reRender="customersSearchForm, personForm, customersForm, customersBtnForm, details"
+										        		oncomplete="hideTabs();updateHeight();">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		
+				            	    		<h:panelGroup>
+												<bpct:filterBar sectionId="1677" />
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>	
+			               		
+			               	</a4j:form>			               	
+						</h:panelGroup>													
+						</h:panelGroup>
+				    </rich:tab>
+				    
+				    <rich:tab label="#{lblCommon.company}" name="companyTab" onlabelclick="setSearchTabName('companyTab')"
+				    		onkeypress="return handleEnter(event,'companyForm')"
+				    		rendered="#{usession.inRole['SEARCH_COMPANY']}">
+				   	 	
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.company}" title="#{lblCommon.company}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					
+	       					<a4j:form id="companyForm">
+	       					
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+								<a4j:outputPanel id="companyPanel">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						      			<h:selectOneMenu id="instId" value="#{MbCustomersNew.filter.instId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+						      				<a4j:support event="onchange"
+						      							oncomplete="document.getElementById('companyForm:instId').focus();" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						limitToList="true" ajaxSingle="true"/>
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+						      			<h:selectOneMenu id="agentId" value="#{MbCustomersNew.filter.agentId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputLabel for="companyFilter" value="#{lblCommon.name}: " title="#{lblCommon.name}"/>
+				            			<h:inputText id="companyFilter" value="#{MbCustomersNew.filter.company.label}" maxlength="200"/>
+		                			</h:panelGrid>
+	                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+				                				id="searchBtn"
+					                			action="#{MbCustomersNew.searchByCompany}" eventsQueue="queue"
+					                			onclick="if (!checkFieldsCompany()) {return false;} disableModalPanelBtns(this);flushTabs();" 
+			        							reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+			                				<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="companyTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+										        <a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbCustomersNew.clearFilter}"
+										        		onclick="flushTabs();"
+										        		reRender="customersSearchForm, companyForm, customersForm, customersBtnForm, details"
+										        		oncomplete="hideTabs();updateHeight();">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		<h:panelGroup>
+					            	    		<bpct:filterBar sectionId="1677"/>
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               		
+			               	</a4j:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>			               
+				    </rich:tab>
+				    
+				    <rich:tab label="#{lblPrd.contract}" name="contractTab" onlabelclick="setSearchTabName('contractTab')"
+				    		onkeypress="return handleEnter(event,'contractForm')"
+				    		rendered="#{usession.inRole['SEARCH_CONTRACT']}">
+				    	
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.contract}" title="#{lblPrd.contract}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<h:form id="contractForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel id="contractPanel">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		
+				                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						      			<h:selectOneMenu id="instId"
+						      						value="#{MbCustomersNew.filter.instId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+						      				<a4j:support event="onchange"
+						      						oncomplete="document.getElementById('contractForm:instId').focus();" 
+						      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+						      						limitToList="true" ajaxSingle="true"/>
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}"/>
+						      			<h:selectOneMenu id="agentId"
+						      						value="#{MbCustomersNew.filter.agentId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputText value="#{lblCommon.start_date_from}:"/>
+			                			<h:panelGroup>
+											<rich:calendar id="startDate" value="#{MbCustomersNew.filterContract.startDate}"
+					            				datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" inputStyle="max-width:225px"/>
+			                			</h:panelGroup>
+			                			
+						      			<h:outputLabel for="contractNumberFilter" value="#{lblPrd.contract_number}: " title="#{lblPrd.contract_number}"/>
+				            			<h:inputText id="contractNumberFilter" value="#{MbCustomersNew.filterContract.contractNumber}" maxlength="200"/>
+				            			
+			                			<h:outputText value="#{lblCommon.start_date_to}:"/>
+			                			<h:panelGroup>
+											<rich:calendar id="startDateTo" value="#{MbCustomersNew.filterContract.endDate}" 
+					            				datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" inputStyle="max-width:225px"/>
+			                			</h:panelGroup>
+		                			</h:panelGrid>
+		                		</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+					                			action="#{MbCustomersNew.searchByContract}" eventsQueue="queue"
+					                			id="searchBtn"
+					                			onclick="if (!checkFieldsContract()) {return false;} disableModalPanelBtns(this);flushTabs();"
+			        							reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+			                				<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="contractTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+					                			<a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbCustomersNew.clearFilter}"
+										        		onclick="flushTabs();"
+										        		reRender="customersSearchForm, contractForm, customersForm, customersBtnForm, details"
+										        		oncomplete="hideTabs();updateHeight();">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		<h:panelGroup>
+					            	    		<bpct:filterBar sectionId="1677"/>
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</h:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>					               	
+				    </rich:tab>
+				    
+				    <rich:tab label="#{lblIss.card}" name="cardTab" onlabelclick="setSearchTabName('cardTab')"
+				    		onkeypress="return handleEnter(event,'cardForm')"
+				    		rendered="#{usession.inRole['SEARCH_CARD']}">				    	
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblIss.card}" title="#{lblIss.card}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<h:form id="cardForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel id="cardsPanel">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						      			<h:selectOneMenu id="instId"
+						      						value="#{MbCustomersNew.filter.instId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.institutions}"/>	
+						      				<a4j:support event="onchange"
+						      							oncomplete="document.getElementById('cardForm:instId').focus();" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						limitToList="true" ajaxSingle="true"/>					      				
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}"/>
+						      			<h:selectOneMenu id="agentId"
+						      						value="#{MbCustomersNew.filter.agentId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+						      			</h:selectOneMenu>
+						      			
+				                		<h:outputLabel for="numberFilter" value="#{lblIss.card_number}: " title="#{lblIss.card_number}"/>
+				            			<h:inputText id="numberFilter" value="#{MbCustomersNew.filterCard.cardNumber}" maxlength="200"/>
+				            			
+				            			<h:outputLabel for="cardTypeFilter" value="#{lblIss.card_type}: " title="#{lblIss.card_type}"/>
+						      			<h:selectOneMenu id="cardTypeFilter"
+						      						value="#{MbCustomersNew.filterCard.cardTypeId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.cardTypes}"/>
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputText value="#{lblCommon.exp_date}:"/>
+			                			<h:panelGroup>
+											<rich:calendar id="expDate" value="#{MbCustomersNew.filterCard.expDate}" 
+					            				datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" inputStyle="max-width:225px"/>
+			                			</h:panelGroup>
+		                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+					                			action="#{MbCustomersNew.searchByCard}" eventsQueue="queue"
+					                			id="searchBtn"
+					                			onclick="if (!checkFieldsCard()) {return false;} disableModalPanelBtns(this);flushTabs();"
+			        							reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+			                				<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="cardTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+					                			<a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbCustomersNew.clearFilter}"
+										        		onclick="flushTabs();"
+										        		reRender="customersSearchForm, cardForm, customersForm, customersBtnForm, details"
+										        		oncomplete="hideTabs();updateHeight();">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		<h:panelGroup>
+					            	    		<bpct:filterBar sectionId="1677"/>
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</h:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>					               	
+				    </rich:tab>
+				    
+				    <rich:tab label="#{lblAcc.account}" name="accountTab" onlabelclick="setSearchTabName('accountTab')"
+				    		onkeypress="return handleEnter(event,'accountForm')"
+				    		rendered="#{usession.inRole['SEARCH_ACCOUNT']}">				   	 	
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblAcc.account}" title="#{lblAcc.account}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<h:form id="accountForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+								<a4j:outputPanel id="accountPanel">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						      			<h:selectOneMenu id="instId"
+						      						value="#{MbCustomersNew.filter.instId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+						      				<a4j:support event="onchange"
+						      							oncomplete="document.getElementById('accountForm:instId').focus();" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						limitToList="true" ajaxSingle="true"/>	
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+						      			<h:selectOneMenu id="agentId" value="#{MbCustomersNew.filter.agentId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+						      			</h:selectOneMenu>
+						      			
+				                		<h:outputLabel for="numberFilter" value="#{lblAcc.account_number}: " title="#{lblAcc.account_number}"/>
+				            			<h:inputText id="numberFilter" value="#{MbCustomersNew.filterAccount.accountNumber}" maxlength="200"/>
+				            			
+				            			<h:inputText style="display:none" 
+				            					value="IE hack for 'Enter' hit when there's only one input field 
+				            							on form. Stick it to the bottom to not to break layout"/>
+		                			</h:panelGrid>
+	                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+				                				id="searchBtn"
+					                			action="#{MbCustomersNew.searchByAccount}" eventsQueue="queue"
+					                			onclick="if (!checkFieldsAccount()) {return false;} disableModalPanelBtns(this);flushTabs();"
+			        							reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+			                				<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="accountTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+					                			<a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbCustomersNew.clearFilter}"
+										        		onclick="flushTabs();"
+										        		reRender="customersSearchForm, accountForm, customersForm, customersBtnForm, details"
+										        		oncomplete="hideTabs();updateHeight();">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		<h:panelGroup>
+					            	    		<bpct:filterBar sectionId="1677"/>
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</h:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>					               	
+				    </rich:tab>
+				    
+				    <rich:tab label="#{lblAcq.merchant}" name="merchantTab" onlabelclick="setSearchTabName('merchantTab')"
+				    		onkeypress="return handleEnter(event,'merchantForm')"
+				    		rendered="#{usession.inRole['SEARCH_MERCHANT']}">
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblAcq.merchant}" title="#{lblAcq.merchant}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<h:form id="merchantForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+								<a4j:outputPanel id="merchantPanel">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						      			<h:selectOneMenu id="instId"
+						      						value="#{MbCustomersNew.filter.instId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+						      				<a4j:support event="onchange"
+						      							oncomplete="document.getElementById('merchantForm:instId').focus();" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						limitToList="true" ajaxSingle="true"/>
+					      				</h:selectOneMenu>
+					      				
+					      				<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+						      			<h:selectOneMenu id="agentId" value="#{MbCustomersNew.filter.agentId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+						      			</h:selectOneMenu>
+						      			
+				                		<h:outputLabel for="numberFilter" value="#{lblAcq.merchant_number}: " title="#{lblAcq.merchant_number}"/>
+				            			<h:inputText id="numberFilter" value="#{MbCustomersNew.filterMerchant.merchantNumber}" maxlength="200"/>
+				            			
+						      			<h:outputLabel for="merchantNameFilter" value="#{lblAcq.merchant_name}: " title="#{lblAcq.merchant_name}"/>
+				            			<h:inputText id="merchantNameFilter" value="#{MbCustomersNew.filterMerchant.merchantName}" maxlength="200"/>
+				            			
+				            			<h:outputLabel for="merchantType" value="#{lblAcq.merchant_type}: " title="#{lblAcq.merchant_type}"/>
+										<h:selectOneMenu id="merchantType" 
+												value="#{MbCustomersNew.filterMerchant.merchantType}"
+												label="#{lblAcq.merchant_type}">
+											<f:selectItem itemValue="" itemLabel="" />
+											<f:selectItems value="#{MbCustomersNew.merchantTypes}"/>
+										</h:selectOneMenu>
+		                			</h:panelGrid>
+		                			</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+					                			action="#{MbCustomersNew.searchByMerchant}" eventsQueue="queue"
+					                			id="searchBtn"
+					                			onclick="if (!checkFieldsMerchant()) {return false;} disableModalPanelBtns(this);flushTabs();"
+			        							reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+			                				<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="merchantTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+					                			<a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbCustomersNew.clearFilter}"
+										        		onclick="flushTabs();"
+										        		reRender="customersSearchForm, merchantForm, customersForm, customersBtnForm, details"
+										        		oncomplete="hideTabs();updateHeight();">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		<h:panelGroup>
+					            	    		<bpct:filterBar sectionId="1677"/>
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</h:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>					               	
+				    </rich:tab>	
+				    
+				    <rich:tab label="#{lblAcq.terminal}" name="terminalTab" onlabelclick="setSearchTabName('terminalTab')"
+				    		onkeypress="return handleEnter(event,'terminalForm')"
+				    		rendered="#{usession.inRole['SEARCH_TERMINAL']}">
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblAcq.terminal}" title="#{lblAcq.terminal}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<h:form id="terminalForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+								<a4j:outputPanel id="terminalPanel">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		
+				                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						      			<h:selectOneMenu id="instId"
+						      						value="#{MbCustomersNew.filter.instId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+						      				<a4j:support event="onchange"
+						      							oncomplete="document.getElementById('terminalForm:instId').focus();" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						limitToList="true" ajaxSingle="true"/>
+						      			</h:selectOneMenu>
+						      			
+						      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+						      			<h:selectOneMenu id="agentId"
+						      						value="#{MbCustomersNew.filter.agentId}">
+						      				<f:selectItem itemValue=""/>
+						      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+						      			</h:selectOneMenu>
+						      			
+				                		<h:outputLabel for="numberFilter" value="#{lblAcq.terminal_number}: " title="#{lblAcq.terminal_number}"/>
+				            			<h:inputText id="numberFilter" value="#{MbCustomersNew.filterTerminal.terminalNumber}" maxlength="200"/>
+
+				            			<h:inputText style="display:none" 
+				            					value="IE hack for 'Enter' hit when there's only one input field 
+				            							on form. Stick it to the bottom to not to break layout"/>
+		                			</h:panelGrid>
+		                		</a4j:outputPanel>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+				                				id="searchBtn"
+					                			action="#{MbCustomersNew.searchByTerminal}" eventsQueue="queue"
+					                			onclick="if (!checkFieldsTerminal()) {return false;} disableModalPanelBtns(this);flushTabs();"
+			        							reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;"
+			                					oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+			                				<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="terminalTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+					                			<a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbCustomersNew.clearFilter}"
+										        		onclick="flushTabs();"
+										        		reRender="customersSearchForm, terminalForm, customersForm, customersBtnForm, details"
+										        		oncomplete="hideTabs();updateHeight();">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		<h:panelGroup>
+					            	    		<bpct:filterBar sectionId="1677"/>
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</h:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>					               	
+				    </rich:tab>
+				    <rich:tab label="#{lblCommon.document}" name="documentTab"
+						onlabelclick="setSearchTabName('documentTab')"
+						onkeypress="return handleEnter(event,'documentForm')"
+						rendered="#{usession.inRole['VIEW_PERSON_ID']}">
+		
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.document}" title="#{lblCommon.document}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup layout="block" styleClass="search_block_tab">
+							<h:panelGroup layout="block"
+								styleClass="search_block_inner">
+		
+								<a4j:form id="documentForm">
+		
+									<h:panelGrid styleClass="fw" columns="2"
+										columnClasses="top ,link-cont">
+										<a4j:outputPanel id="documentPanel">
+											<h:panelGrid
+												styleClass="filter-table field-cont twoColumnTable"
+												columns="4"
+												columnClasses="firstCol,secondCol,firstCol,secondCol">
+												
+												<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+								      			<h:selectOneMenu id="instId"
+								      						value="#{MbCustomersNew.filter.instId}">
+								      				<f:selectItem itemValue=""/>
+								      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+								      				<a4j:support event="onchange" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						oncomplete="document.getElementById('documentForm:instId').focus();"
+							      						limitToList="true" ajaxSingle="true"/>
+								      			</h:selectOneMenu>
+								      			
+								      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+								      			<h:selectOneMenu id="agentId"
+								      						value="#{MbCustomersNew.filter.agentId}">
+								      				<f:selectItem itemValue=""/>
+								      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+								      			</h:selectOneMenu>
+
+												<h:outputLabel for="entityType" value="#{lblCommon.entity_type}: " title="#{lblCommon.entity_type}"/>
+										      	<h:selectOneMenu id="entityType"
+										      				value="#{MbCustomersNew.filter.document.entityType}">
+										      		<f:selectItem itemValue=""/>
+										      		<f:selectItems value="#{MbCustomersNew.customerTypes}"/>
+										      	</h:selectOneMenu>
+		
+												<h:outputLabel for="idTypeFilter"
+													value="#{lblCommon.type}: " title="#{lblCommon.type}"/>
+												<h:selectOneMenu id="idTypeFilter"
+													value="#{MbCustomersNew.filter.document.idType}">
+													<f:selectItem itemValue="" />
+													<f:selectItems
+														value="#{MbCustomersNew.idTypes}" />
+												</h:selectOneMenu>
+		
+												<h:outputLabel for="idNumberFilter"
+													value="#{lblCommon.number}: " title="#{lblCommon.number}"/>
+												<h:inputText id="idNumberFilter"
+													value="#{MbCustomersNew.filter.document.idNumber}" maxlength="200"/>
+											</h:panelGrid>
+										</a4j:outputPanel>
+										<h:panelGrid columns="1">
+											<bre:taggedCommandButton
+												id="searchBtn"
+												onclick="if (!checkFieldsDocument()) {return false;} disableModalPanelBtns(this);flushTabs();"
+												action="#{MbCustomersNew.searchByDocument}"
+												eventsQueue="queue"
+												reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+												image="/_img/icon_search.png" type="submit"
+												value="#{lblForm.search}" style="width:85px;"
+												oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+													<a4j:actionparam assignTo="#{MbCustomersNew.searchTabName}" value="documentTab" />
+											</bre:taggedCommandButton>
+											<h:panelGrid columns="1">
+												<h:panelGroup styleClass="link-clear" layout="block">
+													<h:graphicImage url="/_img/icon_clear.png" />
+													<a4j:commandLink value="#{lblForm.clear_all}"
+														action="#{MbCustomersNew.clearFilter}"
+														onclick="flushTabs();"
+														reRender="customersSearchForm, documentForm, customersForm, customersBtnForm, details"
+														oncomplete="hideTabs();updateHeight();">
+													</a4j:commandLink>
+												</h:panelGroup>
+												<h:panelGroup>
+													<bpct:filterBar sectionId="1677" />
+												</h:panelGroup>
+											</h:panelGrid>
+										</h:panelGrid>
+									</h:panelGrid>
+		
+								</a4j:form>
+							</h:panelGroup>
+						</h:panelGroup>
+					</rich:tab>
+				    <rich:tab label="#{lblCommon.contact}" name="contactTab"
+				    	onkeypress="return handleEnter(event,'contactForm')"
+						onlabelclick="setSearchTabName('contactTab')"
+						rendered="#{usession.inRole['VIEW_CONTACT']}">
+		
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.contact}" title="#{lblCommon.contact}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+		
+								<a4j:form id="contactForm">
+		
+									<h:panelGrid styleClass="fw" columns="2"
+										columnClasses="top ,link-cont">
+										<a4j:outputPanel id="contactPanel">
+											<h:panelGrid
+												styleClass="filter-table field-cont twoColumnTable"
+												columns="4"
+												columnClasses="firstCol,secondCol,firstCol,secondCol">
+												
+												<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+								      			<h:selectOneMenu id="instId"
+								      						value="#{MbCustomersNew.filter.instId}">
+								      				<f:selectItem itemValue=""/>
+								      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+								      				<a4j:support event="onchange" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:agentId, addressForm:instId, addressForm:agentId"
+							      						oncomplete="document.getElementById('contactForm:instId').focus();"
+							      						limitToList="true" ajaxSingle="true"/>
+								      			</h:selectOneMenu>
+								      			
+								      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+								      			<h:selectOneMenu id="agentId"
+								      						value="#{MbCustomersNew.filter.agentId}">
+								      				<f:selectItem itemValue=""/>
+								      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+								      			</h:selectOneMenu>
+		
+												<h:outputLabel for="phoneFilter" value="#{lblCommon.phone_number}: " title="#{lblCommon.phone_number}"/>
+												<h:inputText id="phoneFilter" value="#{MbCustomersNew.filter.contact.phone}" maxlength="200"/>
+													
+												<h:outputLabel for="emailFilter" value="#{lblCommon.email_address}: " title="#{lblCommon.email_address}"/>
+												<h:inputText id="emailFilter" value="#{MbCustomersNew.filter.contact.email}" maxlength="200"/>
+													
+												<h:outputLabel for="imNumberFilter" value="#{lblCommon.instant_messenger_number}: " title="#{lblCommon.instant_messenger_number}"/>
+												<h:inputText id="imNumberFilter" value="#{MbCustomersNew.filter.contact.imNumber}" maxlength="200"/>
+											</h:panelGrid>
+										</a4j:outputPanel>
+										<h:panelGrid columns="1">
+											<bre:taggedCommandButton
+												action="#{MbCustomersNew.searchByContact}"
+												id="searchBtn"
+												onclick="if (!checkFieldsContact()) {return false;} disableModalPanelBtns(this);flushTabs();"
+												eventsQueue="queue"
+												reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+												image="/_img/icon_search.png" type="submit"
+												value="#{lblForm.search}" style="width:85px;"
+												oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+												<a4j:actionparam
+													assignTo="#{MbCustomersNew.searchTabName}"
+													value="contactTab" />
+											</bre:taggedCommandButton>
+											<h:panelGrid columns="1">
+												<h:panelGroup styleClass="link-clear" layout="block">
+													<h:graphicImage url="/_img/icon_clear.png" />
+													<a4j:commandLink value="#{lblForm.clear_all}"
+														action="#{MbCustomersNew.clearFilter}"
+														onclick="flushTabs();"
+														reRender="customersSearchForm, contactForm, customersForm, customersBtnForm, details"
+														oncomplete="hideTabs();updateHeight();">
+													</a4j:commandLink>
+												</h:panelGroup>
+												<h:panelGroup>
+													<bpct:filterBar sectionId="1677" />
+												</h:panelGroup>
+											</h:panelGrid>
+										</h:panelGrid>
+									</h:panelGrid>									
+								</a4j:form>
+							</h:panelGroup>
+						</h:panelGroup>
+					</rich:tab>	
+					<rich:tab label="#{lblCommon.address}" name="addressTab"
+						onkeypress="return handleEnter(event,'addressForm')"
+						onlabelclick="setSearchTabName('addressTab')"
+						rendered="#{usession.inRole['VIEW_ADDRESS']}">
+		
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.address}" title="#{lblCommon.address}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+		
+								<a4j:form id="addressForm">
+									<h:panelGrid styleClass="fw" columns="2"
+										columnClasses="top ,link-cont">
+										<a4j:outputPanel id="addressPanel">
+											<h:panelGrid
+												styleClass="filter-table field-cont twoColumnTable"
+												columns="4"
+												columnClasses="firstCol,secondCol,firstCol,secondCol">
+												
+												<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+								      			<h:selectOneMenu id="instId"
+								      						value="#{MbCustomersNew.filter.instId}">
+								      				<f:selectItem itemValue=""/>
+								      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+								      				<a4j:support event="onchange" 
+							      						reRender="customerForm:instId, customerForm:agentId, personForm:instId, personForm:agentId, companyForm:instId, companyForm:agentId, contractForm:instId, contractForm:agentId, cardForm:instId, cardForm:agentId, accountForm:instId, accountForm:agentId, merchantForm:instId, merchantForm:agentId, terminalForm:instId, terminalForm:agentId, documentForm:instId, documentForm:agentId, contactForm:instId, contactForm:agentId, addressForm:agentId"
+							      						oncomplete="document.getElementById('addressForm:instId').focus();"
+							      						limitToList="true" ajaxSingle="true"/>
+								      			</h:selectOneMenu>
+								      			
+								      			<h:outputLabel for="agentId" value="#{lblCommon.agent}: " title="#{lblCommon.agent}" />
+								      			<h:selectOneMenu id="agentId"
+								      						value="#{MbCustomersNew.filter.agentId}">
+								      				<f:selectItem itemValue=""/>
+								      				<f:selectItems value="#{MbCustomersNew.agents}"/>
+								      			</h:selectOneMenu>
+		
+												<h:outputLabel for="countryFilter"
+													value="#{lblCommon.country}: " title="#{lblCommon.country}"/>
+												<h:selectOneMenu id="countryFilter"
+													value="#{MbCustomersNew.filter.address.country}"
+													style="width: 257px;">
+													<f:selectItems value="#{CountryUtils.allCountries}"/>
+												</h:selectOneMenu>
+		
+												<h:outputLabel for="cityFilter"
+													value="#{lblCommon.city}: " title="#{lblCommon.city}"/>
+												<h:inputText id="cityFilter"
+													value="#{MbCustomersNew.filter.address.city}" maxlength="200" label="#{lblCommon.city}"/>
+		
+												<h:outputLabel for="streetFilter"
+													value="#{lblCommon.street}: " title="#{lblCommon.street}"/>
+												<h:inputText id="streetFilter"
+													value="#{MbCustomersNew.filter.address.street}" maxlength="200" label="#{lblCommon.street}"/>
+													
+												<h:outputLabel for="houseFilter"
+													value="#{lblCommon.house}: " title="#{lblCommon.house}"/>
+												<h:inputText id="houseFilter"
+													value="#{MbCustomersNew.filter.address.house}" maxlength="200" label="#{lblCommon.house}"/>
+		
+												<h:outputLabel for="postalCodeFilter"
+													value="#{lblCommon.postal_code}: " title="#{lblCommon.postal_code}"/>
+												<h:inputText id="postalCodeFilter"
+													value="#{MbCustomersNew.filter.address.postalCode}" maxlength="10" label="#{lblCommon.postal_code}"/>
+													
+												<h:outputLabel for="apartmentFilter"
+													value="#{lblCommon.apartment}: " title="#{lblCommon.apartment}"/>
+												<h:inputText id="apartmentFilter"
+													value="#{MbCustomersNew.filter.address.apartment}" maxlength="200" label="#{lblCommon.apartment}"/>
+											</h:panelGrid>
+										</a4j:outputPanel>
+										<h:panelGrid columns="1">
+											<bre:taggedCommandButton
+												action="#{MbCustomersNew.searchByAddress}"
+												id="searchBtn"
+												onclick="if (!checkFieldsAddress()) {return false;} disableModalPanelBtns(this);flushTabs();"
+												eventsQueue="queue"
+												reRender="contractsCount, cardsCount, merchantsCount, terminalsCount, accountsCount, limitsCount, cyclesCount, docsCount, paymentOrdersCount, customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, togglePanelCust"
+												image="/_img/icon_search.png" type="submit"
+												value="#{lblForm.search}" style="width:85px;"
+												oncomplete="makeScrollableTabs('details');updateHeight();enableModalPanelBtns(this); flushTabs();changeSelection(currentTab);">
+												<a4j:actionparam
+													assignTo="#{MbCustomersNew.searchTabName}"
+													value="addressTab" />
+											</bre:taggedCommandButton>
+											<h:panelGrid columns="1">
+												<h:panelGroup styleClass="link-clear" layout="block">
+													<h:graphicImage url="/_img/icon_clear.png" />
+													<a4j:commandLink value="#{lblForm.clear_all}"
+														action="#{MbCustomersNew.clearFilter}"
+														reRender="customersSearchForm, addressForm, customersForm, customersBtnForm, details"
+														oncomplete="hideTabs();updateHeight();">
+													</a4j:commandLink>
+												</h:panelGroup>
+												<h:panelGroup>
+													<bpct:filterBar sectionId="1677" />
+												</h:panelGroup>
+											</h:panelGrid>
+										</h:panelGrid>
+									</h:panelGrid>
+		
+								</a4j:form>
+							</h:panelGroup>
+						</h:panelGroup>
+					</rich:tab>					    
+			    </rich:tabPanel>
+			    </h:panelGroup>
+			    <a4j:outputPanel ajaxRendered="true">
+					<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-vert-tab" layout="block"/>
+					<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+                	<h:panelGroup styleClass="collapse-vert collapse-vert-tab" layout="block"/>
+				</a4j:outputPanel>	
+			</h:panelGroup>
+
+			<h:form>
+                <a4j:jsFunction name="rerenderTabCounts" eventsQueue="queue"
+                    actionListener="#{MbCustomersNew.prepareCustomer}"
+                    reRender="paymentOrdersCount,contractsCount,cardsCount, merchantsCount, terminalsCount,accountsCount,docsCount,limitsCount,cyclesCount, #{MbCustomersNew.tabName}, togglePanelCust, customersCtxForm"
+                    oncomplete="setTabLoaded(currentTab); toggleTabs(currentTab);makeScrollableTabs('details');updateHeight();">
+                </a4j:jsFunction>
+            </h:form>
+
+			<h:form id="customersForm">	
+			
+				<a4j:jsFunction name="changeSelection" eventsQueue="queue"
+					actionListener="#{MbCustomersNew.prepareCustomer}"
+					reRender="paymentOrdersCount,contractsCount,cardsCount, merchantsCount, terminalsCount,accountsCount,docsCount,limitsCount,cyclesCount, #{MbCustomersNew.tabName}, togglePanelCust, customersCtxForm"
+					oncomplete="setTabLoaded(currentTab); toggleTabs(currentTab);makeScrollableTabs('details');updateHeight();">
+					<a4j:actionparam name="tabName" assignTo="#{MbCustomersNew.tabName}"/>
+				</a4j:jsFunction>
+				
+				<h:panelGroup styleClass="search_result_block" layout="block">
+			    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+			    		<h:panelGroup id="mainTableWrapper" layout="block"
+								styleClass="search_result_block_inner">
+						    <rich:extendedDataTable
+									id="customersTable"
+									tableState="#{MbCustomersNew.tableState}"
+									styleClass="res-table"
+									headerClass="res-table-header"
+									rowClasses=",odd"
+									selectedClass="res-table-selected"
+									var="item"
+									value="#{MbCustomersNew.customers}"
+									selection="#{MbCustomersNew.itemSelection}"
+									rows="#{MbCustomersNew.rowsNum}"
+									height="255px"
+									selectionMode="single"
+									width="100%"
+									enableContextMenu="true" onselectionchange="flushTabs();changeSelection(currentTab)"
+									noDataLabel="#{MbCustomersNew.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+                                    reRender="paymentOrdersCount,contractsCount,cardsCount, merchantsCount, terminalsCount,accountsCount,docsCount,limitsCount,cyclesCount, #{MbCustomersNew.tabName}, togglePanelCust, customersCtxForm"
+                                    onRowMouseDown="handleMouseClick(event)"
+                                    binding="#{MbCustomersNew.table}">
+                                <f:event type="preRenderComponent" listener="#{MbCustomersNew.onSortablePreRenderTable()}"></f:event>
+						        <rich:column id="customerNumber" label="#{lblPrd.customer_number}" title="Customer number" sortBy="#{'CUSTOMER_NUMBER'}" width="15%">
+						           <f:facet name="header">
+						           		<h:panelGroup>         
+			                        		<script>
+			                        			updateHeight();
+			                        		</script>
+			                            	<h:outputText value="#{lblPrd.customer_number}" title="#{lblPrd.customer_number}"/>
+			                            </h:panelGroup>
+					                </f:facet>
+				                	<bm:entityDisplay contextType="ENTTCUST" bean="MbCustomersNew" value="#{item.customerNumber}" description="#{item.customerNumber}"/>
+						        </rich:column>
+		
+						        <rich:column id="name" label="#{lblCommon.name}" title="Customer name" width="25%"
+						        		sortBy="#{'CUSTOMER_NAME'}">
+									<f:facet name="header">
+					                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+					                </f:facet>
+					                <bm:entityDisplay contextType="ENTTCUST" bean="MbCustomersNew" value="#{item.customerName}" description="#{item.customerName}"/>
+						        </rich:column>
+						        
+						        <rich:column id="customerType" label="#{lblPrd.customer_type}" title="Customer type" 
+						        		sortBy="#{'ENTITY_TYPE'}" width="10%">
+						        	<f:facet name="header">
+						        		<h:outputText value="#{lblPrd.customer_type}" title="#{lblPrd.customer_type}"/>
+						        	</f:facet>
+						        	<bm:entityDisplay contextType="ENTTCUST" bean="MbCustomersNew" value="#{DictUtils.articles[item.entityType]}" description="#{DictUtils.articles[item.entityType]}"/>
+						        </rich:column>
+						        
+						        <rich:column id="document" label="#{lblCommon.document}" title="ID" width="15%"
+						        		sortBy="#{'CUSTOMER_DOCUMENT'}">
+						           <f:facet name="header">
+					                    <h:outputText value="#{lblCommon.document}" title="#{lblCommon.document}" />
+					                </f:facet>
+					                
+					               <bm:entityDisplay contextType="ENTTCUST" bean="MbCustomersNew" value="#{item.documentString}" description="#{item.documentString}"/>							
+						        </rich:column>
+						        
+						        <rich:column id="status" label="#{lblCommon.status}" title="ID" width="15%"
+						        		sortBy="#{'STATUS'}">
+						           <f:facet name="header">
+					                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}" />
+					                </f:facet>
+					                
+					               <bm:entityDisplay contextType="ENTTCUST" bean="MbCustomersNew" value="#{DictUtils.articles[item.status]}" description="#{DictUtils.articles[item.status]}"/>							
+						        </rich:column>
+						        
+						        <rich:column id="address" label="#{lblCommon.address}" title="Address" width="25%" rendered="false">
+						           <f:facet name="header">
+					                    <h:outputText value="#{lblCommon.address}" title="#{lblCommon.address}" />
+					                </f:facet>
+					                								
+						        </rich:column>
+
+						        <rich:column id="extEntityType" label="#{lblCommon.ext_object_name}"
+						        		title="#{lblCommon.ext_object_name}" width="20%">
+						        	<f:facet name="header">
+						        		<h:outputText value="#{lblCommon.ext_object_name}" title="#{lblCommon.ext_object_name}"/>
+						        	</f:facet>
+						        	<bm:entityDisplay contextType="ENTTCUST" bean="MbCustomersNew" value="#{item.extObjectName}" description="#{item.extObjectName}"/>
+						        </rich:column>
+						    </rich:extendedDataTable>
+						</h:panelGroup>
+					    <a4j:outputPanel ajaxRendered="true">
+					    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+						    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+					    </a4j:outputPanel>
+				    </h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			<h:form id="customersBtnForm">
+			    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+			        	<h:panelGroup layout="block" styleClass="table_tools">
+				        	<h:panelGrid styleClass="fw field-cont" columns="5"
+				        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+					        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+								<h:selectOneMenu id="rows_num" value="#{MbCustomersNew.rowsNum}" styleClass="row_per_page">
+									<a4j:support event="onchange" oncomplete="changeSelection(currentTab);" reRender="customersForm:customersTable, dsCustomers, pagesNum,
+										paymentOrdersCount,contractsCount,cardsCount, merchantsCount, terminalsCount,accountsCount,docsCount,limitsCount,cyclesCount, #{MbCustomersNew.tabName}, togglePanelCust, customersCtxForm"/>
+			                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+			                    </h:selectOneMenu>
+
+			                    <rich:datascroller maxPages="10" fastControls="hide"
+			                    		pagesVar="pages" styleClass="res-datascroller"
+			                    		page="#{MbCustomersNew.pageNumber}"
+					                    id="dsCustomers" for="customersForm:customersTable"
+					                    oncomplete="flushTabs();changeSelection(currentTab);"
+					                    reRender="paymentOrdersCount,contractsCount,cardsCount, merchantsCount, terminalsCount,accountsCount,docsCount,limitsCount,cyclesCount, #{MbCustomersNew.tabName}, togglePanelCust, customersCtxForm">
+					            	<f:facet name="first">
+					                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+					                <f:facet name="first_disabled">
+					                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="last">
+					                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="last_disabled">
+					                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="previous_disabled">
+					                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="next">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="next_disabled">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="pages">
+					                </f:facet>
+								</rich:datascroller>
+	
+			                    <h:panelGroup id="pagesNum">
+			                       	<h:panelGroup>
+                                        <h:outputText styleClass="strongClass" value="#{pages}"/>
+			                       	    <h:outputText value=" #{lblCommon.pages}"/>
+                                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                        <h:outputText styleClass="strongClass" value="#{MbCustomersNew.customers.rowCount}"/>
+                                        <h:outputText value=" #{lblCommon.records}"/>
+                                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    </h:panelGroup>
+			                    </h:panelGroup>
+
+
+			                    
+			                    <h:panelGroup>
+			                    	<h:graphicImage url="/images/tab_new.png" title="#{lblCommon.manage_details_tabs}" styleClass="action_icon">
+										<a4j:support event="onclick" oncomplete="#{rich:component('tabsManagePanel')}.show()" reRender="tabsManageForm"/>
+									</h:graphicImage>	
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbCustomersNew.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbCustomersNew.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+
+						<h:panelGrid styleClass="buttons_block" columns="9" id="btns">
+							<bre:taggedCommandButton id="calculateScoringBtn"
+													 value="#{lblScr.credit_scoring}"
+													 action="#{MbCustomersNew.scoring}"
+													 rendered="#{usession.inRole['EXECUTE_CREDIT_LIMIT_SCORING']}"
+													 oncomplete="if (#{usession.noErrorResponse}) #{rich:component('scoringModalPanel')}.show()"
+													 reRender="scoringModalPanel, scoringModalPanelForm"
+													 style="margin-top:2px; margin-left: 2px;"/>
+						</h:panelGrid>
+					</h:panelGroup>
+			    </h:panelGroup>
+		    </h:form>
+			
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+		    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell" 
+		    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    			contentClass="tab-content" selectedTab="#{MbCustomersNew.tabName}">
+	
+					<rich:tab id="_detailsTab" label="Details" name="detailsTab" 
+							onlabelclick="selectTab('detailsTab');">
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+						<h:panelGroup layout="block" id="detailsTab">
+	      					<ui:include src="/pages/products/customerDetails.jspx">
+	      						<ui:param name="customersBean" value="#{MbCustomersNew}"/>
+	      					</ui:include>
+	      					<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons"/>
+	       				</h:panelGroup>
+				    </rich:tab>
+				    
+				    <rich:tab id="_additionalTab" label="Additional" name="additionalTab" style="display: none; height:100%;"
+				    		onlabelclick="selectTab('additionalTab')" rendered="#{usession.inRole['VIEW_FLEXIBLE_DATA'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['additionalTab'])}">
+				    	<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	
+						<h:panelGroup id="additionalTab" layout="block" styleClass="carddata-wrapper" 
+								style="height: 100%; overflow: hidden;position:relative;">
+							<h:panelGroup id="additionalTabContents" rendered="#{MbCustomersNew.renderTabs}">
+		       					<ui:include src="#{MbCustomersNew.tabName=='additionalTab' ? '/pages/common/flexible/flexFieldsTableBottom.jspx' : null}">
+		       						<ui:param name="hideButtons" value="false"></ui:param>
+		       						
+		       					</ui:include>
+		       				</h:panelGroup>
+	       				</h:panelGroup>
+				    </rich:tab>
+		    
+				    <rich:tab id="_contractsTab" label="Contracts" name="contractsTab" rendered="#{usession.inRole['VIEW_CUSTOMER_CONTRACTS_TAB'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['contractsTab'])}"
+				    		onlabelclick="selectTab('contractsTab')" style="display: none; height:100%;">
+				    	<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblPrd.contracts}" title="#{lblPrd.contracts}"/> 
+	        					(<h:outputText id="contractsCount" value="#{MbCustomersNew.activeCustomer.contractsCount}" style="padding:0"/>)
+	        				</h:panelGroup>
+	        			</f:facet>
+
+	        			<h:panelGroup id="contractsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	        				<h:panelGroup id="contractsTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	      						<ui:include src="#{MbCustomersNew.tabName=='contractsTab' ? '/pages/products/contractsListBottom.jspx' : null}"></ui:include>
+	      					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+				    <rich:tab id="_cardsTab" name="cardsTab" rendered="#{usession.inRole['VIEW_CARDS_TAB'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['cardsTab'])}"
+				    		onlabelclick="selectTab('cardsTab')" style="display: none; height:100%;">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblIss.cards}" title="#{lblIss.cards}"/>
+	        					(<h:outputText id="cardsCount" value="#{MbCustomersNew.activeCustomer.cardsCount}" style="padding:0"/>)
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="cardsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	        				<h:panelGroup id="cardsTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	       						<ui:include src="#{MbCustomersNew.tabName=='cardsTab' ? '/pages/issuing/cards/list_cards_bottom.jspx' : null}">
+	       							
+	       							<ui:param name="disabledInstColumn" value="true" />
+	       						</ui:include>
+	       					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_merchantsTab" name="merchantsTab" rendered="#{usession.inRole['VIEW_MERCHANT'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['merchantsTab'])}" 
+				    		onlabelclick="selectTab('merchantsTab')" style="display: none; height:100%;">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblAcq.merchants}" title="#{lblAcq.merchants}"/>
+	        					(<h:outputText id="merchantsCount" value="#{MbCustomersNew.activeCustomer.merchantsCount}" style="padding:0"/>)
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="merchantsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	        				<h:panelGroup id="merchantsTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	       						<ui:include src="#{MbCustomersNew.tabName=='merchantsTab' ? '/pages/acquiring/list_merchants_bottom.jspx' : null}"></ui:include>
+	       					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_terminalsTab" name="terminalsTab" rendered="#{usession.inRole['VIEW_TERMINAL'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['terminalsTab'])}" 
+				    		onlabelclick="selectTab('terminalsTab')" style="display: none; height:100%;">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblAcq.terminals}" title="#{lblAcq.terminals}"/>
+	        					(<h:outputText id="terminalsCount" value="#{MbCustomersNew.activeCustomer.terminalsCount}" style="padding:0"/>)
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="terminalsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<h:panelGroup id="terminalsTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	       						<ui:include src="#{MbCustomersNew.tabName=='terminalsTab' ? '/pages/acquiring/terminals/list_terminals_bottom.jspx' : null}"></ui:include>
+	       					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_accountsTab" label="Accounts" name="accountsTab" rendered="#{usession.inRole['VIEW_ACCOUNT'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['accountsTab'])}"
+	        				onlabelclick="selectTab('accountsTab')" style="display: none; height:100%;">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblCommon.accounts}" title="#{lblCommon.accounts}"/>
+	        					(<h:outputText id="accountsCount" value="#{MbCustomersNew.activeCustomer.accountsCount}" style="padding:0"/>)
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="accountsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<h:panelGroup id="accountsTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	       						<ui:include src="#{MbCustomersNew.tabName=='accountsTab' ? '/pages/accounts/list_accounts_bottom.jspx' : null}">
+	       						</ui:include>
+	       					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        	
+				    <rich:tab id="_attributesTab" label="Attributes" name="attributesTab" style="display: none; height:100%;"
+				    		onlabelclick="selectTab('attributesTab')" rendered="#{usession.inRole['VIEW_ATTRIBUTE_PRODUCT'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['attributesTab'])}">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblPrd.service_terms}" title="#{lblPrd.service_terms}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	
+						<h:panelGroup id="attributesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<h:panelGroup id="attributesTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	       						<ui:include src="#{MbCustomersNew.tabName=='attributesTab' ? '/pages/products/attributes/list_object_attributes.jspx' : null}"></ui:include>
+	       					</h:panelGroup>
+	       				</h:panelGroup>
+				    </rich:tab>
+	
+	        		<rich:tab id="_limitCountersTab" label="Limit counters" name="limitCountersTab" style="display: none; height:100%;"
+	        				onlabelclick="selectTab('limitCountersTab')" rendered="#{usession.inRole['VIEW_LIMIT_COUNTER'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['limitCountersTab'])}">			    	
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblFcl.limit_counters}" title="#{lblFcl.limit_counters}"/>
+	        					(<h:outputText id="limitsCount" value="#{MbCustomersNew.activeCustomer.limitsCount}" style="padding:0"/>)
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="limitCountersTab" layout="block" styleClass="carddata-wrapper" 
+	        					style="height: 100%; overflow: hidden;position:relative;">
+	       					<h:panelGroup id="limitCountersTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	       						<ui:include src="#{MbCustomersNew.tabName=='limitCountersTab' ? '/pages/fee_cycle_limit/limits/listLimitCounters.jspx' : null}"></ui:include>
+	       					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_cycleCountersTab" label="Cycle counters" name="cycleCountersTab"
+	        				onlabelclick="selectTab('cycleCountersTab')" style="display: none; height:100%;" rendered="#{usession.inRole['VIEW_CYCLE_COUNTER'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['cycleCountersTab'])}">			    	
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblFcl.cycle_counters}" title="#{lblFcl.cycle_counters}"/>
+	        					(<h:outputText id="cyclesCount" value="#{MbCustomersNew.activeCustomer.cyclesCount}" style="padding:0"/>)
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="cycleCountersTab" layout="block" styleClass="carddata-wrapper" 
+	        					style="height: 100%; overflow: hidden;position:relative;">
+	        				<h:panelGroup id="cycleCountersTabContents" rendered="#{MbCustomersNew.renderTabs}">
+		       					<ui:include src="#{MbCustomersNew.tabName=='cycleCountersTab' ? '/pages/fee_cycle_limit/cycles/listCycleCounters.jspx' : null}"></ui:include>
+		       				</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_personIdsTab" label="IDs" name="personIdsTab" style="display: none; height:100%;"
+	        				onlabelclick="selectTab('personIdsTab')" rendered="#{usession.inRole['VIEW_PERSON_ID'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['personIdsTab'])}">
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.ids}" title="#{lblCommon.ids}"/>
+	       						(<h:outputText id="docsCount" value="#{MbCustomersNew.activeCustomer.documentsCount}" style="padding:0"/>)
+	       					</h:panelGroup>
+	       				</f:facet>
+						<h:panelGroup id="personIdsTab" >
+							<h:panelGroup id="personIdsTabContents" rendered="#{MbCustomersNew.renderTabs}">
+								<h:panelGroup layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+										<ui:include src="#{MbCustomersNew.tabName=='personIdsTab' ? '/pages/common/list_object_documents.jspx' : null}">
+				      						<ui:param name="renderButtons" value="false"></ui:param>
+				      					</ui:include>
+			       				</h:panelGroup>	
+		       				</h:panelGroup>
+						</h:panelGroup>
+				    </rich:tab>
+
+				    <rich:tab id="_documentsTab" label="Documents" name="documentsTab" style="display: none; height:100%;"
+				    		onlabelclick="selectTab('documentsTab')" rendered="#{usession.inRole['SHOW_REPORT_DOCUMENTS'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['documentsTab'])}">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblRpt.documents}" title="#{lblRpt.documents}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup id="documentsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<h:panelGroup id="documentsTabContent" rendered="#{MbCustomersNew.renderTabs}">
+		       						<ui:include src="#{MbCustomersNew.tabName=='documentsTab' ? '/pages/accounts/objectDocumentsTab.jspx' : null}"></ui:include>
+		       				</h:panelGroup>
+	       				</h:panelGroup>
+	       			</rich:tab>
+	       			
+				    <rich:tab id="_contactsTab" label="Contacts" name="contactsTab" style="display: none; height:100%;"
+				    		onlabelclick="selectTab('contactsTab')" rendered="#{usession.inRole['VIEW_CONTACT'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['contactsTab'])}">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.contacts}" title="#{lblCommon.contacts}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup id="contactsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<h:panelGroup id="contactsTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	        					<ui:include src="#{MbCustomersNew.tabName=='contactsTab' ? '/pages/contacts/contactsTableBottom.jspx' : null}"></ui:include>
+	        				</h:panelGroup>
+	       				</h:panelGroup>
+	       			</rich:tab>
+       			
+	       			<rich:tab id="_addressesTab" label="Addresses" name="addressesTab" style="display: none; height:100%;"
+	       					onlabelclick="selectTab('addressesTab')" rendered="#{usession.inRole['VIEW_ADDRESS'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['addressesTab'])}">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.addresses}" title="#{lblCommon.addresses}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup id="addressesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	        				<h:panelGroup id="addressesTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	        					<ui:include src="#{MbCustomersNew.tabName=='addressesTab' ? '/pages/common/address/list_addresses.jspx' : null}"></ui:include>
+	        				</h:panelGroup>
+	       				</h:panelGroup>
+	       			</rich:tab>
+	       			
+				    <rich:tab id="_notesTab" label="Notes" name="notesTab" style="display: none; height:100%;"
+				    		onlabelclick="selectTab('notesTab')" rendered="#{usession.inRole['VIEW_NOTE'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['notesTab'])}">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	       					<h:panelGroup id="notesTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	       						<ui:include src="#{MbCustomersNew.tabName=='notesTab' ? '/pages/notes/list_notes_bottom.jspx' : null}"></ui:include>
+	       					</h:panelGroup>
+	       				</h:panelGroup>
+	       			</rich:tab>
+
+	        		<rich:tab id="_acqHierarchyTab" label="Hierarchy" name="acqHierarchyTab" style="display: none; height:100%;"
+							onlabelclick="selectTab('acqHierarchyTab')" rendered="#{usession.inRole['VIEW_TAB_ACQUIRING_HIERARCHY'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['acqHierarchyTab'])}">		       		
+						<f:facet name="label">
+							<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.acquiring_hierarchy}" title="#{lblPrd.acquiring_hierarchy}" style="padding-right:0px"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+						<h:panelGroup id="acqHierarchyTab" styleClass="carddata-wrapper" 
+								style="height: 100%; overflow: hidden;position:relative;">
+							<h:panelGroup id="acqHierarchyTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	      						<ui:include src="#{MbCustomersNew.tabName=='acqHierarchyTab' ? '/pages/acquiring/acquiringHierarchyListBottom.jspx' : null}"/>
+		       				</h:panelGroup>
+						</h:panelGroup>
+				    </rich:tab>
+
+	        		<rich:tab id="_issHierarchyTab" label="Hierarchy" name="issHierarchyTab" style="display: none; height:100%;"
+							onlabelclick="selectTab('issHierarchyTab')" rendered="#{usession.inRole['VIEW_CUSTOMERS'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['issHierarchyTab'])}">		       		
+						<f:facet name="label">
+							<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblPrd.issuing_hierarchy}" title="#{lblPrd.issuing_hierarchy}" style="padding-right:0px"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+						<h:panelGroup id="issHierarchyTab"	styleClass="carddata-wrapper" 
+								style="height: 100%; overflow: hidden;position:relative;">
+							<h:panelGroup id="issHierarchyTabContents" rendered="#{MbCustomersNew.renderTabs}">
+		      					<ui:include src="#{MbCustomersNew.tabName=='issHierarchyTab' ? '/pages/issuing/issuingHierarchyListBottom.jspx' : null}"/>
+		       				</h:panelGroup>
+						</h:panelGroup>
+				    </rich:tab>
+				    
+				    <rich:tab id="_revenueSharingTab" label="Revenue sharing" name="revenueSharingTab" style="display: none; height:100%;"
+				    		onlabelclick="selectTab('revenueSharingTab')" rendered="#{usession.inRole['VIEW_TAB_ACCOUNT_SELECTION_PRIORITY'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['revenueSharingTab'])}">
+				    	<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblAcq.revenue_sharing}" title="#{lblAcq.revenue_sharing}"/> 
+	        				</h:panelGroup>
+	        			</f:facet>
+
+	        			<h:panelGroup id="revenueSharingTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	      					<h:panelGroup id="revenueSharingTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	      						<ui:include src="#{MbCustomersNew.tabName=='revenueSharingTab' ? '/pages/acquiring/revenueSharingListBottom.jspx' : null}">
+	      							<ui:param name="renderColumnTerminalNumber" value="true"></ui:param>
+	      							<ui:param name="renderColumnCustomer" value="false"></ui:param>
+	      						</ui:include>
+	      					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+				    
+				    <rich:tab id="_paymentOrdersTab" label="Payment orders" name="paymentOrdersTab" rendered="#{usession.inRole['VIEW_PMO_ORDER'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['paymentOrdersTab'])}"
+				    		onlabelclick="selectTab('paymentOrdersTab')" style="display: none; height:100%;">
+				    	<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblPmo.payment_orders}" title="#{lblPmo.payment_orders}"/> 
+	        					(<h:outputText id="paymentOrdersCount" value="#{MbCustomersNew.activeCustomer.paymentOrdersCount}" style="padding:0"/>)
+	        				</h:panelGroup>
+	        			</f:facet>
+
+	        			<h:panelGroup id="paymentOrdersTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	      					<h:panelGroup id="paymentOrdersTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	      						<ui:include src="#{MbCustomersNew.tabName=='paymentOrdersTab' ? '/pages/pmo/list_payment_orders_bottom.jspx' : null}"></ui:include>
+	      					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_templatesTab" label="Templates" name="templatesTab" style="display: none; height:100%;"
+				    		onlabelclick="selectTab('templatesTab')" rendered="#{usession.inRole['VIEW_TAB_PMO_TEMPLATE'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['templatesTab'])}">
+				    	<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblPmo.templates}" title="#{lblPmo.templates}"/> 
+	        				</h:panelGroup>
+	        			</f:facet>
+
+	        			<h:panelGroup id="templatesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	      					<h:panelGroup id="templatesTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	      						<ui:include src="#{MbCustomersNew.tabName=='templatesTab' ? '/pages/pmo/list_pmo_templates_bottom.jspx' : null}"></ui:include>
+	      					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_applicationsTab" label="Applications" name="applicationsTab" style="display: none; height:100%;"
+				    		onlabelclick="selectTab('applicationsTab')" rendered="#{usession.inRole['VIEW_PMO_APPLICATIONS'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['applicationsTab'])}">
+				    	<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblApp.applications}" title="#{lblApp.applications}"/> 
+	        				</h:panelGroup>
+	        			</f:facet>
+
+	        			<h:panelGroup id="applicationsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	      					<h:panelGroup id="applicationsTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	      						<ui:include src="#{MbCustomersNew.tabName=='applicationsTab' ? '/pages/acquiring/applications/objectApplicationsBottom.jspx' : null}"></ui:include>
+	      					</h:panelGroup>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab label="CustomEvent" name="ntfEventTab" style="display: none; height:100%;" onlabelclick="selectTab('ntfEventTab')"
+	        			rendered="#{usession.inRole['VIEW_NOTIFICATIONS'] and (MbCustomersNew.showAllTabs || MbCustomersNew.renderTabsMap['ntfEventTab'])}" id="_ntfEventTab">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblNtf.notifications}" title="#{lblNtf.notifications}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup id="ntfEventTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+	        				<h:panelGroup id="ntfEventTabContents" rendered="#{MbCustomersNew.renderTabs}">
+	        					<ui:include src="#{MbCustomersNew.tabName=='ntfEventTab' ? '/pages/notifications/list_ntf_events_bottom.jspx' : null}"></ui:include>
+	        				</h:panelGroup>
+	       				</h:panelGroup>
+	       			</rich:tab>
+
+			    </rich:tabPanel>
+	        </h:panelGroup>
+
+
+			<rich:modalPanel id="customerModalPanel" autosized="true" minWidth="300" minHeight="100"
+					rendered="#{1==2 or usession.inRole['ADD_CUSTOMER'] or usession.inRole['MODIFY_CUSTOMER']}">
+		      	<f:facet name="header">
+					<h:panelGroup id="customerModalHeader">
+		           	    <h:outputText value="#{lblPrd.edit_customer}" rendered="#{MbCustomersNew.editMode}"/>
+		           	    <h:outputText value="#{lblPrd.new_customer}" rendered="#{MbCustomersNew.newMode}"/>
+					</h:panelGroup>
+				</f:facet>
+				<f:facet name="controls">
+			    </f:facet>
+	   	    	<h:form id="customerModalDiv">
+					<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+						<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+							<h:outputLabel for="newNumber" value="* #{lblPrd.customer_number}: " title="#{lblPrd.customer_number}"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		            			<h:inputText id="newNumber" 
+		            					value="#{MbCustomersNew.newCustomer.customerNumber}" 
+		            					required="true" label="#{lblPrd.customer_number}"
+		            					maxlength="200">
+		            				<a4j:support event="onblur" reRender="newNumberError" 
+		            						limitToList="true" ajaxSingle="true"/>
+		            			</h:inputText>
+								<rich:message for="newNumber" id="newNumberError" styleClass="errorMarker"/>
+	            			</h:panelGrid>
+
+	            			<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+							<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+		            			<h:selectOneMenu id="newInst" 
+		            					value="#{MbCustomersNew.newCustomer.instId}"
+		            					required="true" label="#{lblCommon.institution}"
+		            					disabled="#{MbCustomersNew.editMode}">
+		            				<a4j:support event="onblur" reRender="newInstError" 
+		            						limitToList="true" ajaxSingle="true"/>
+									<f:selectItem itemValue=""/>
+				      				<f:selectItems value="#{MbCustomersNew.institutions}"/>
+								</h:selectOneMenu>
+								<rich:message for="newInst" id="newInstError" styleClass="errorMarker"/>
+	            			</h:panelGrid>
+						</h:panelGrid>
+					</h:panelGroup>
+	
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton
+	                        			value="#{lblForm.save}" type="submit" action="#{MbCustomersNew.save}"
+					                   	onclick="disableModalPanelBtns(this)"
+										oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) 
+					                   			#{rich:component('customerModalPanel')}.hide()"
+	                        			reRender="customersForm:customersTable, customersBtnForm:dsCustomers, customersBtnForm:pagesNum, detailsTab"
+		                        		/>
+	                        	<bre:taggedCommandButton
+		                        		value="#{lblForm.cancel}" 
+		                        		action="#{MbCustomersNew.cancel}" 
+		                        		immediate="true" limitToList="true"
+		                        		oncomplete="#{rich:component('customerModalPanel')}.hide()"
+		                        		reRender="customerModalDiv">
+		                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+		                        </bre:taggedCommandButton>	
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+				</h:form>			
+			</rich:modalPanel>
+		</h:panelGroup>
+		
+		
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_CUSTOMERS']}" style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+		</h:panelGroup>
+		
+		<h:panelGroup id="togglePanelCust">
+		<script type="text/javascript">//<!--
+		function toggleTabs(currentTab) {
+		//}
+		//function toggleTabs1(currentTab) {
+			var hasIssProducts = #{MbCustomersNew.activeCustomer.issProductCount > 0};
+			var hasAcqProducts = #{MbCustomersNew.activeCustomer.acqProductCount > 0};
+	
+			var _cardsTab = document.getElementById('_cardsTab_shifted');
+			var cardsTab = document.getElementById('cardsTab');
+			if (hasIssProducts == true) {
+				if (_cardsTab != null) _cardsTab.style.display = "";
+				if (cardsTab != null) cardsTab.parentNode.style.display = "";				
+			} else {
+				if (_cardsTab != null) _cardsTab.style.display = "none";
+				if (cardsTab != null) cardsTab.parentNode.style.display = "none";
+				if (currentTab == "cardsTab") {
+					RichFaces.switchTab('details','_detailsTab','detailsTab');
+					selectTab("detailsTab");
+				}
+			}
+			
+			var _merchantsTab = document.getElementById('_merchantsTab_shifted');
+			var merchantsTab = document.getElementById('merchantsTab');
+			
+			if (hasAcqProducts == true) {
+				if (_merchantsTab != null) _merchantsTab.style.display = "";
+				if (merchantsTab != null) merchantsTab.parentNode.style.display = "";
+			} else {
+				if (_merchantsTab != null) _merchantsTab.style.display = "none";
+				if (merchantsTab != null) merchantsTab.parentNode.style.display = "none";
+				if (currentTab == "merchantsTab") {
+					RichFaces.switchTab('details','_detailsTab','detailsTab');
+					selectTab("detailsTab");
+				}
+			}
+			
+			var _terminalsTab = document.getElementById('_terminalsTab_shifted');
+			var terminalsTab = document.getElementById('terminalsTab');
+			
+			if (hasAcqProducts == true) {
+				if (_terminalsTab != null) _terminalsTab.style.display = "";
+				if (terminalsTab != null) terminalsTab.parentNode.style.display = "";
+			} else {
+				if (_terminalsTab != null) _terminalsTab.style.display = "none";
+				if (terminalsTab != null) terminalsTab.parentNode.style.display = "none";
+				if (currentTab == "terminalsTab") {
+					RichFaces.switchTab('details','_detailsTab','detailsTab');
+					selectTab("detailsTab");
+				}
+			}
+			
+			var _acqHierarchyTab = document.getElementById('_acqHierarchyTab_shifted');
+			var acqHierarchyTab = document.getElementById('acqHierarchyTab');
+			
+			if (hasAcqProducts == true) {
+				if (_acqHierarchyTab != null) _acqHierarchyTab.style.display = "";
+				if (acqHierarchyTab != null) acqHierarchyTab.parentNode.style.display = "";
+			} else {
+				if (_acqHierarchyTab != null) _acqHierarchyTab.style.display = "none";
+				if (acqHierarchyTab != null) acqHierarchyTab.parentNode.style.display = "none";
+				if (currentTab == "acqHierarchyTab") {
+					RichFaces.switchTab('details','_detailsTab','detailsTab');
+					selectTab("detailsTab");
+				}
+			}
+
+			var _issHierarchyTab = document.getElementById('_issHierarchyTab_shifted');
+			var issHierarchyTab = document.getElementById('issHierarchyTab');
+			
+			if (hasIssProducts == true) {
+				if (_issHierarchyTab != null) _issHierarchyTab.style.display = "";
+				if (issHierarchyTab != null) issHierarchyTab.parentNode.style.display = "";
+			} else {
+				if (_issHierarchyTab != null) _issHierarchyTab.style.display = "none";
+				if (issHierarchyTab != null) issHierarchyTab.parentNode.style.display = "none";
+				if (currentTab == "issHierarchyTab") {
+					RichFaces.switchTab('details','_detailsTab','detailsTab');
+					selectTab("detailsTab");
+				}
+			}
+
+			// Show tabs when there is customer selected
+			var _additionalTab = document.getElementById('_additionalTab_shifted');
+			var additionalTab = document.getElementById('additionalTab');
+			
+			var _contractsTab = document.getElementById('_contractsTab_shifted');
+			var contractsTab = document.getElementById('contractsTab');
+			
+			var _accountsTab = document.getElementById('_accountsTab_shifted');
+			var accountsTab = document.getElementById('accountsTab');
+			
+			var _attributesTab = document.getElementById('_attributesTab_shifted');
+			var attributesTab = document.getElementById('attributesTab');
+			
+			var _limitCountersTab = document.getElementById('_limitCountersTab_shifted');
+			var limitCountersTab = document.getElementById('limitCountersTab');
+			
+			var _cycleCountersTab = document.getElementById('_cycleCountersTab_shifted');
+			var cycleCountersTab = document.getElementById('cycleCountersTab');
+			
+			var _personIdsTab = document.getElementById('_personIdsTab_shifted');
+			var personIdsTab = document.getElementById('personIdsTab');
+			
+			var _documentsTab = document.getElementById('_documentsTab_shifted');
+			var documentsTab = document.getElementById('documentsTab');
+			
+			var _contactsTab = document.getElementById('_contactsTab_shifted');
+			var contactsTab = document.getElementById('contactsTab');
+			
+			var _addressesTab = document.getElementById('_addressesTab_shifted');
+			var addressesTab = document.getElementById('addressesTab');
+			
+			var _notesTab = document.getElementById('_notesTab_shifted');
+			var notesTab = document.getElementById('notesTab');
+			
+			var _paymentOrdersTab = document.getElementById('_paymentOrdersTab_shifted');
+			var paymentOrdersTab = document.getElementById('paymentOrdersTab');
+
+			var _revenueSharingTab = document.getElementById('_revenueSharingTab_shifted');
+			var revenueSharingTab = document.getElementById('revenueSharingTab');
+			
+			var _templatesTab = document.getElementById('_templatesTab_shifted');
+			var templatesTab = document.getElementById('templatesTab');
+			
+			var _applicationsTab = document.getElementById('_applicationsTab_shifted');
+			var applicationsTab = document.getElementById('applicationsTab');
+			
+			var _ntfEventTab = document.getElementById('_ntfEventTab_shifted');
+			var ntfEventTab = document.getElementById('ntfEventTab');
+			
+			
+			if (#{MbCustomersNew.activeCustomer != null}) {
+				if (_additionalTab != null) _additionalTab.style.display = "";
+				if (additionalTab != null) additionalTab.parentNode.style.display = "";
+				if (_contractsTab != null) _contractsTab.style.display = "";
+				if (contractsTab != null) contractsTab.parentNode.style.display = "";
+				if (_accountsTab != null) _accountsTab.style.display = "";
+				if (accountsTab != null) accountsTab.parentNode.style.display = "";
+				if (_attributesTab != null) _attributesTab.style.display = "";
+				if (attributesTab != null) attributesTab.parentNode.style.display = "";
+				if (_limitCountersTab != null) _limitCountersTab.style.display = "";
+				if (limitCountersTab != null) limitCountersTab.parentNode.style.display = "";
+				if (_cycleCountersTab != null) _cycleCountersTab.style.display = "";
+				if (cycleCountersTab != null) cycleCountersTab.parentNode.style.display = "";
+				if (_personIdsTab != null) _personIdsTab.style.display = "";
+				if (personIdsTab != null) personIdsTab.parentNode.style.display = "";
+				if (_documentsTab != null) _documentsTab.style.display = "";
+				if (documentsTab != null) documentsTab.parentNode.style.display = "";
+				if (_contactsTab != null) _contactsTab.style.display = "";
+				if (contactsTab != null) contactsTab.parentNode.style.display = "";
+				if (_addressesTab != null) _addressesTab.style.display = "";
+				if (addressesTab != null) addressesTab.parentNode.style.display = "";
+				if (_notesTab != null) _notesTab.style.display = "";
+				if (notesTab != null) notesTab.parentNode.style.display = "";
+				if (_paymentOrdersTab != null) _paymentOrdersTab.style.display = "";
+				if (paymentOrdersTab != null) paymentOrdersTab.parentNode.style.display = "";
+				if (_revenueSharingTab != null) _revenueSharingTab.style.display = "";
+				if (revenueSharingTab != null) revenueSharingTab.parentNode.style.display = "";
+				if (_templatesTab != null) _templatesTab.style.display = "";
+				if (templatesTab != null) templatesTab.parentNode.style.display = "";
+				if (_applicationsTab != null) _applicationsTab.style.display = "";
+				if (applicationsTab != null) applicationsTab.parentNode.style.display = "";
+				if (_ntfEventTab != null) _ntfEventTab.style.display = "";
+				if (ntfEventTab != null) ntfEventTab.parentNode.style.display = "";
+				
+			}
+		}
+		
+		function toggleContextTabs() {
+			//}
+			//function toggleTabs1(currentTab) {
+				var hasIssProducts = #{MbCustomersNew.activeCustomer.issProductCount > 0};
+				var hasAcqProducts = #{MbCustomersNew.activeCustomer.acqProductCount > 0};
+		
+				var _cardsTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:_cardsContextTab_shifted');
+				var cardsTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:cardsContextTab');
+				if (hasIssProducts == true) {
+					if (_cardsTab != null) _cardsTab.style.display = "";
+					if (cardsTab != null) cardsTab.parentNode.style.display = "";				
+				} else {
+					if (_cardsTab != null) _cardsTab.style.display = "none";
+					if (cardsTab != null) cardsTab.parentNode.style.display = "none";
+				}
+				
+				var _merchantsTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:_merchantsContextTab_shifted');
+				var merchantsTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:merchantsContextTab');
+				
+				if (hasAcqProducts == true) {
+					if (_merchantsTab != null) _merchantsTab.style.display = "";
+					if (merchantsTab != null) merchantsTab.parentNode.style.display = "";
+				} else {
+					if (_merchantsTab != null) _merchantsTab.style.display = "none";
+					if (merchantsTab != null) merchantsTab.parentNode.style.display = "none";
+				}
+				
+				var _terminalsTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:_terminalsContextTab_shifted');
+				var terminalsTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:terminalsContextTab');
+				
+				if (hasAcqProducts == true) {
+					if (_terminalsTab != null) _terminalsTab.style.display = "";
+					if (terminalsTab != null) terminalsTab.parentNode.style.display = "";
+				} else {
+					if (_terminalsTab != null) _terminalsTab.style.display = "none";
+					if (terminalsTab != null) terminalsTab.parentNode.style.display = "none";
+				}
+				
+				var _acqHierarchyTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:_acqHierarchyContextTab_shifted');
+				var acqHierarchyTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:acqHierarchyContextTab');
+				
+				if (hasAcqProducts == true) {
+					if (_acqHierarchyTab != null) _acqHierarchyTab.style.display = "";
+					if (acqHierarchyTab != null) acqHierarchyTab.parentNode.style.display = "";
+				} else {
+					if (_acqHierarchyTab != null) _acqHierarchyTab.style.display = "none";
+					if (acqHierarchyTab != null) acqHierarchyTab.parentNode.style.display = "none";
+				}
+
+				var _issHierarchyTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:_issHierarchyContextTab_shifted');
+				var issHierarchyTab = document.getElementById('contextMenuModalPanel:customerDetailsModalPanel:issHierarchyContextTab');
+				
+				if (hasIssProducts == true) {
+					if (_issHierarchyTab != null) _issHierarchyTab.style.display = "";
+					if (issHierarchyTab != null) issHierarchyTab.parentNode.style.display = "";
+				} else {
+					if (_issHierarchyTab != null) _issHierarchyTab.style.display = "none";
+					if (issHierarchyTab != null) issHierarchyTab.parentNode.style.display = "none";
+				}
+
+			}
+		//--> 
+		</script>
+		</h:panelGroup>
+		<script type="text/javascript">//<!--
+		function hideTabs() {
+			if (#{MbCustomersNew.activeCustomer == null}) {
+				var _additionalTab = document.getElementById('_additionalTab_shifted');
+				var additionalTab = document.getElementById('additionalTab');
+				
+				var _contractsTab = document.getElementById('_contractsTab_shifted');
+				var contractsTab = document.getElementById('contractsTab');
+				
+				var _cardsTab = document.getElementById('_cardsTab_shifted');
+				var cardsTab = document.getElementById('cardsTab');
+				
+				var _merchantsTab = document.getElementById('_merchantsTab_shifted');
+				var merchantsTab = document.getElementById('merchantsTab');
+
+				var _terminalsTab = document.getElementById('_terminalsTab_shifted');
+				var terminalsTab = document.getElementById('terminalsTab');
+				
+				var _accountsTab = document.getElementById('_accountsTab_shifted');
+				var accountsTab = document.getElementById('accountsTab');
+
+				var _attributesTab = document.getElementById('_attributesTab_shifted');
+				var attributesTab = document.getElementById('attributesTab');
+				
+				var _limitCountersTab = document.getElementById('_limitCountersTab_shifted');
+				var limitCountersTab = document.getElementById('limitCountersTab');
+				
+				var _cycleCountersTab = document.getElementById('_cycleCountersTab_shifted');
+				var cycleCountersTab = document.getElementById('cycleCountersTab');
+				
+				var _personIdsTab = document.getElementById('_personIdsTab_shifted');
+				var personIdsTab = document.getElementById('personIdsTab');
+				
+				var _documentsTab = document.getElementById('_documentsTab_shifted');
+				var documentsTab = document.getElementById('documentsTab');
+
+				var _contactsTab = document.getElementById('_contactsTab_shifted');
+				var contactsTab = document.getElementById('contactsTab');
+				
+				var _addressesTab = document.getElementById('_addressesTab_shifted');
+				var addressesTab = document.getElementById('addressesTab');
+				
+				var _notesTab = document.getElementById('_notesTab_shifted');
+				var notesTab = document.getElementById('notesTab');
+				
+				var _paymentOrdersTab = document.getElementById('_paymentOrdersTab_shifted');
+				var paymentOrdersTab = document.getElementById('paymentOrdersTab');
+	
+				var _revenueSharingTab = document.getElementById('_revenueSharingTab_shifted');
+				var revenueSharingTab = document.getElementById('revenueSharingTab');
+				
+				var _templatesTab = document.getElementById('_templatesTab_shifted');
+				var templatesTab = document.getElementById('templatesTab');
+				
+				var _applicationsTab = document.getElementById('_applicationsTab_shifted');
+				var applicationsTab = document.getElementById('applicationsTab');
+				
+				var _ntfEventTab = document.getElementById('_ntfEventTab_shifted');
+				var ntfEventTab = document.getElementById('ntfEventTab');
+				
+				var _issHierarchyTab = document.getElementById('_issHierarchyTab_shifted');
+				var issHierarchyTab = document.getElementById('issHierarchyTab');
+				
+				var _acqHierarchyTab = document.getElementById('_acqHierarchyTab_shifted');
+				var acqHierarchyTab = document.getElementById('acqHierarchyTab');
+				
+				if (_additionalTab != null) _additionalTab.style.display = "none";
+				if (additionalTab != null) additionalTab.parentNode.style.display = "none";
+				if (_cardsTab != null) _cardsTab.style.display = "none";
+				if (cardsTab != null) cardsTab.parentNode.style.display = "none";
+				if (_merchantsTab != null) _merchantsTab.style.display = "none";
+				if (merchantsTab != null) merchantsTab.parentNode.style.display = "none";
+				if (_terminalsTab != null) _terminalsTab.style.display = "none";
+				if (terminalsTab != null) terminalsTab.parentNode.style.display = "none";
+				if (_contractsTab != null) _contractsTab.style.display = "none";
+				if (contractsTab != null) contractsTab.parentNode.style.display = "none";
+				if (_accountsTab != null) _accountsTab.style.display = "none";
+				if (accountsTab != null) accountsTab.parentNode.style.display = "none";
+				if (_attributesTab != null) _attributesTab.style.display = "none";
+				if (attributesTab != null) attributesTab.parentNode.style.display = "none";
+				if (_limitCountersTab != null) _limitCountersTab.style.display = "none";
+				if (limitCountersTab != null) limitCountersTab.parentNode.style.display = "none";
+				if (_cycleCountersTab != null) _cycleCountersTab.style.display = "none";
+				if (cycleCountersTab != null) cycleCountersTab.parentNode.style.display = "none";
+				if (_personIdsTab != null) _personIdsTab.style.display = "none";
+				if (personIdsTab != null) personIdsTab.parentNode.style.display = "none";
+				if (_documentsTab != null) _documentsTab.style.display = "none";
+				if (documentsTab != null) documentsTab.parentNode.style.display = "none";
+				if (_contactsTab != null) _contactsTab.style.display = "none";
+				if (contactsTab != null) contactsTab.parentNode.style.display = "none";
+				if (_addressesTab != null) _addressesTab.style.display = "none";
+				if (addressesTab != null) addressesTab.parentNode.style.display = "none";
+				if (_notesTab != null) _notesTab.style.display = "none";
+				if (notesTab != null) notesTab.parentNode.style.display = "none";
+				if (_paymentOrdersTab != null) _paymentOrdersTab.style.display = "none";
+				if (paymentOrdersTab != null) paymentOrdersTab.parentNode.style.display = "none";
+				if (_revenueSharingTab != null) _revenueSharingTab.style.display = "none";
+				if (revenueSharingTab != null) revenueSharingTab.parentNode.style.display = "none";
+				if (_templatesTab != null) _templatesTab.style.display = "none";
+				if (templatesTab != null) templatesTab.parentNode.style.display = "none";
+				if (_applicationsTab != null) _applicationsTab.style.display = "none";
+				if (applicationsTab != null) applicationsTab.parentNode.style.display = "none";
+				if (_issHierarchyTab != null) _issHierarchyTab.style.display = "none";
+				if (issHierarchyTab != null) issHierarchyTab.parentNode.style.display = "none";
+				if (_acqHierarchyTab != null) _acqHierarchyTab.style.display = "none";
+				if (acqHierarchyTab != null) acqHierarchyTab.parentNode.style.display = "none";
+				if (_ntfEventTab != null) _ntfEventTab.style.display = "none";
+				if (ntfEventTab != null) ntfEventTab.parentNode.style.display = "none";
+				
+			}
+		}
+		hideTabs();
+		//-->
+		</script>
+	    <script type="text/javascript">//<!--
+	    	addLoadEvent(function() {
+		    	if (#{MbCustomersNew.beanRestored || MbCustomersNew.initedFromCtx}) {
+			    	currentTab = "#{MbCustomersNew.tabName}";
+			    	setTabLoaded(currentTab); 
+			    	toggleTabs(currentTab);
+			    	makeScrollableTabs('details');
+			    	updateHeight();
+		    	}
+	    	});
+	    //-->
+	    </script>
+		
+		<rich:modalPanel id="tabsManagePanel" autosized="true" minWidth="200" minHeight="100">
+			<f:facet name="header">
+				<h:outputText value="#{lblCommon.tabs_managing}"/>
+			</f:facet>
+			<f:facet name="controls">
+			</f:facet>
+			
+	
+			<h:form id="tabsManageForm">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:selectManyCheckbox id="selectTabs" value="#{MbCustomersNew.selectedTabs}" layout="pageDirection">
+					<f:selectItem itemValue="additionalTab" itemLabel="#{lblCommon.additional}" itemDisabled="#{!usession.inRole['VIEW_FLEXIBLE_DATA']}" noSelectionOption="#{!usession.inRole['VIEW_FLEXIBLE_DATA']}"/>
+					<f:selectItem itemValue="contractsTab" itemLabel="#{lblPrd.contracts}" itemDisabled="#{!usession.inRole['VIEW_CUSTOMER_CONTRACTS_TAB']}" noSelectionOption="#{!usession.inRole['VIEW_CUSTOMER_CONTRACTS_TAB']}"/>
+					<f:selectItem itemValue="cardsTab" itemLabel="#{lblIss.cards}" itemDisabled="#{!usession.inRole['VIEW_CARDS_TAB']}" noSelectionOption="#{!usession.inRole['VIEW_CARDS_TAB']}"/>
+					<f:selectItem itemValue="merchantsTab" itemLabel="#{lblAcq.merchants}" itemDisabled="#{!usession.inRole['VIEW_MERCHANT']}" noSelectionOption="#{!usession.inRole['VIEW_MERCHANT']}"/>
+					<f:selectItem itemValue="terminalsTab" itemLabel="#{lblAcq.terminals}" itemDisabled="#{!usession.inRole['VIEW_TERMINAL']}" noSelectionOption="#{!usession.inRole['VIEW_TERMINAL']}"/>
+					<f:selectItem itemValue="accountsTab" itemLabel="#{lblCommon.accounts}" itemDisabled="#{!usession.inRole['VIEW_ACCOUNT']}" noSelectionOption="#{!usession.inRole['VIEW_ACCOUNT']}"/>
+					<f:selectItem itemValue="attributesTab" itemLabel="#{lblPrd.service_terms}" itemDisabled="#{!usession.inRole['VIEW_ATTRIBUTE_PRODUCT']}" noSelectionOption="#{!usession.inRole['VIEW_ATTRIBUTE_PRODUCT']}"/>
+					<f:selectItem itemValue="limitCountersTab" itemLabel="#{lblFcl.limit_counters}" itemDisabled="#{!usession.inRole['VIEW_LIMIT_COUNTER']}" noSelectionOption="#{!usession.inRole['VIEW_LIMIT_COUNTER']}"/>
+					<f:selectItem itemValue="cycleCountersTab" itemLabel="#{lblFcl.cycle_counters}" itemDisabled="#{!usession.inRole['VIEW_CYCLE_COUNTER']}" noSelectionOption="#{!usession.inRole['VIEW_CYCLE_COUNTER']}"/>
+					<f:selectItem itemValue="personIdsTab" itemLabel="#{lblCommon.ids}" itemDisabled="#{!usession.inRole['VIEW_PERSON_ID']}" noSelectionOption="#{!usession.inRole['VIEW_PERSON_ID']}"/>
+					<f:selectItem itemValue="documentsTab" itemLabel="#{lblRpt.documents}" itemDisabled="#{!usession.inRole['SHOW_REPORT_DOCUMENTS']}" noSelectionOption="#{!usession.inRole['SHOW_REPORT_DOCUMENTS']}"/>
+					<f:selectItem itemValue="contactsTab" itemLabel="#{lblCommon.contacts}" itemDisabled="#{!usession.inRole['VIEW_CONTACT']}" noSelectionOption="#{!usession.inRole['VIEW_CONTACT']}"/>
+					<f:selectItem itemValue="addressesTab" itemLabel="#{lblCommon.addresses}" itemDisabled="#{!usession.inRole['VIEW_ADDRESS']}" noSelectionOption="#{!usession.inRole['VIEW_ADDRESS']}"/>
+					<f:selectItem itemValue="notesTab" itemLabel="#{lblNote.notes}" itemDisabled="#{!usession.inRole['VIEW_NOTE']}" noSelectionOption="#{!usession.inRole['VIEW_NOTE']}"/>					
+					<f:selectItem itemValue="acqHierarchyTab" itemLabel="#{lblPrd.acquiring_hierarchy}" itemDisabled="#{!usession.inRole['VIEW_TAB_ACQUIRING_HIERARCHY']}" noSelectionOption="#{!usession.inRole['VIEW_TAB_ACQUIRING_HIERARCHY']}"/>
+					<f:selectItem itemValue="issHierarchyTab" itemLabel="#{lblPrd.issuing_hierarchy}" itemDisabled="#{!usession.inRole['VIEW_CUSTOMERS']}" noSelectionOption="#{!usession.inRole['VIEW_CUSTOMERS']}"/>
+					<f:selectItem itemValue="revenueSharingTab" itemLabel="#{lblAcq.revenue_sharing}" itemDisabled="#{!usession.inRole['VIEW_TAB_ACCOUNT_SELECTION_PRIORITY']}" noSelectionOption="#{!usession.inRole['VIEW_TAB_ACCOUNT_SELECTION_PRIORITY']}"/>
+					<f:selectItem itemValue="paymentOrdersTab" itemLabel="#{lblPmo.payment_orders}" itemDisabled="#{!usession.inRole['VIEW_PMO_ORDER']}" noSelectionOption="#{!usession.inRole['VIEW_PMO_ORDER']}"/>
+					<f:selectItem itemValue="templatesTab" itemLabel="#{lblPmo.templates}" itemDisabled="#{!usession.inRole['VIEW_TAB_PMO_TEMPLATE']}" noSelectionOption="#{!usession.inRole['VIEW_TAB_PMO_TEMPLATE']}"/>
+					<f:selectItem itemValue="applicationsTab" itemLabel="#{lblApp.applications}" itemDisabled="#{!usession.inRole['VIEW_PMO_APPLICATIONS']}" noSelectionOption="#{!usession.inRole['VIEW_PMO_APPLICATIONS']}"/>
+					<f:selectItem itemValue="ntfEventTab" itemLabel="#{lblNtf.notifications}" itemDisabled="#{!usession.inRole['VIEW_NOTIFICATIONS']}" noSelectionOption="#{!usession.inRole['VIEW_NOTIFICATIONS']}"/>
+				</h:selectManyCheckbox>
+			</h:panelGroup>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="4" columnClasses="width99P,,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.reset}" type="submit"
+							action="#{MbCustomersNew.clearTabsMap}"
+							onclick="disableModalPanelBtns(this)"
+							oncomplete="enableModalPanelBtns(this);"
+							reRender="tabsManageForm" />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							action="#{MbCustomersNew.saveTabsMap}"
+							onclick="disableModalPanelBtns(this)"
+							oncomplete="enableModalPanelBtns(this);#{rich:component('tabsManagePanel')}.hide(); toggleTabs(null);makeScrollableTabs('details');"
+							reRender="details" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbCustomersNew.cancelTabsMap}"
+							immediate="true"
+							limitToList="true"
+							oncomplete="#{rich:component('tabsManagePanel')}.hide()"
+							/>							
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.css" style and "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel" ?? layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+		
+			
+			
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'customersSearchFormDiv',
+	                    SEARCH_RESULT_FORM_ID:          'customersForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'customersBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'customerDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'customerDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'flexDataForm',
+	                                    TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'contractsInlineForm',
+	                                    TAB_FORM_WRAPPER_ID:    'contractsInlineTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'cardsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'cardsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'merchantsBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'merchantsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'terminalsBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'terminalsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'accountsBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'accountsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'attrsTreeForm',
+	                                    TAB_FORM_WRAPPER_ID:    'attrsTreeTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'attrValuesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'attrValuesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'limitCountersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'countersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'cycleCountersForm',
+	                                    TAB_FORM_WRAPPER_ID:    'countersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'idsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'documentsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'documentsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'documentsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'contactsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomContactsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS  + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'contactDatasForm',
+	                                    TAB_FORM_WRAPPER_ID:    'bottomContactDatasTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS  + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'addressesBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'addressesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS  + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'notesBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'acqMainForm',
+	                                    TAB_FORM_WRAPPER_ID:    'acqMainTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'issMainForm',
+	                                    TAB_FORM_WRAPPER_ID:    'issMainTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'revenueSharingForm',
+	                                    TAB_FORM_WRAPPER_ID:    'revenueSharingWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'paymentOrdersInlineForm',
+	                                    TAB_FORM_WRAPPER_ID:    'paymentOrdersTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'templatesInlineForm',
+	                                    TAB_FORM_WRAPPER_ID:    'templatesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'applicationsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'applicationsFormWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'ntfEventsBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'ntfEventsTable',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+	        rerenderTabCounts();
+			updateHeight();
+			//]]>
+		</script>		
+    </ui:define>
+</ui:composition>
+</html>

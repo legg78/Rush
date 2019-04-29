@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<h:form id="statForm">
+		<h:panelGroup id="statTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="statTable"
+									enableContextMenu="true"
+									styleClass="res-table"
+									headerClass="res-table-header table-header-ext"
+									selectedClass="res-table-selected"
+									var="item"
+									tableState="#{(processStatBean==null ? MbProcessStat : processStatBean).tableState}"
+									value="#{(processStatBean==null ? MbProcessStat : processStatBean).processSessions}"
+									width="100%"
+									selection="#{(processStatBean==null ? MbProcessStat : processStatBean).itemSelection}"
+									rows="0"
+									height="250px"
+									selectionMode="multi"
+									noDataLabel="#{lblCommon['no_records_found']}"
+									reRender="oracleTracingModalPanel,statTable">
+
+				<rich:column id="thread_number" label="#{lblProcess.thread_number}" width="5%" sortOrder="ASCENDING"
+					sortBy="#{'threadNumber'}">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblProcess.thread_number}"
+								title="#{lblProcess.thread_number}" />							
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.threadNumber}" />
+				</rich:column>
+				<rich:column id="trace_level" label="#{lblProcess.trace_level}" width="5%" sortOrder="ASCENDING"
+							 sortBy="#{'traceLevel'}">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblProcess.trace_level}"
+										  title="#{lblProcess.trace_level}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.traceLevel}" />
+				</rich:column>
+
+				<rich:column id="start_time" label="#{lblProcess.start_time}" width="100px" sortBy="#{'startTime'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.start_time}"
+							title="#{lblProcess.start_time}" />
+					</f:facet>
+					<h:outputText value="#{item.startTime}">
+						<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+							timeZone="#{CommonUtils.timeZone}" />
+					</h:outputText>
+				</rich:column>
+				<rich:column id="current_time" label="#{lblProcess.current_time}" width="100px" sortBy="#{'currentTime'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.current_time}"
+							title="#{lblProcess.current_time}" />
+					</f:facet>
+					<h:outputText value="#{item.currentTime}">
+						<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+							timeZone="#{CommonUtils.timeZone}" />
+					</h:outputText>
+				</rich:column>
+				<rich:column id="end_time" label="#{lblProcess.end_time}" width="100px" sortBy="#{'endTime'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.end_time}"
+							title="#{lblProcess.end_time}" />
+					</f:facet>
+					<h:outputText value="#{item.endTime}">
+						<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+							timeZone="#{CommonUtils.timeZone}" />
+					</h:outputText>
+				</rich:column>
+
+				<rich:column width="25%" sortBy="#{'estimatedCount'}"
+					rendered="false">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.estimated_count}"
+							title="#{lblProcess.estimated_count}" />
+					</f:facet>
+					<h:form style="height: 14px; width: 100%">
+						<a4j:outputPanel id="progressPanel" style="width: 100%"
+							ajaxRendered="true">
+
+							<rich:progressBar
+								value="#{(processStatBean==null ? MbProcessStat : processStatBean).progressBars1[item.threadNumber].bar}"
+								id="prcbar" limitToList="true" interval="3000"
+								label="#{(processStatBean==null ? MbProcessStat : processStatBean).progressBars1[item.threadNumber].bar} % (#{(processStatBean==null ? MbProcessStat : processStatBean).progressBars1[item.threadNumber].current})"
+								enabled="#{(processStatBean==null ? MbProcessStat : processStatBean).progressBars1[item.threadNumber].bar lt 100}"
+								minValue="-1" maxValue="100"
+								reRenderAfterComplete="progressPanel, prcbar"
+								ignoreDupResponses="true" style="width: 100%; color:black;">
+								<f:facet name="initial">
+									<h:outputText value="Not started" />
+								</f:facet>
+								<f:facet name="complete">
+									<h:outputText value="Done" />
+								</f:facet>
+							</rich:progressBar>
+
+						</a4j:outputPanel>
+					</h:form>
+				</rich:column>
+
+				<rich:column width="25%" sortBy="#{'estimatedCount'}"
+					rendered="false">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.estimated_count}"
+							title="#{lblProcess.estimated_count}" />
+					</f:facet>
+					<h:form style="height: 14px; width: 100%">
+						<a4j:outputPanel id="progressPanel" style="width: 100%"
+							ajaxRendered="true">
+
+							<rich:progressBar value="#{item.currentCount}" limitToList="true"
+								interval="3000" minValue="0" maxValue="#{item.estimatedCount}"
+								enabled="false"
+								label="#{item.currentCount} / #{item.estimatedCount}"
+								reRenderAfterComplete="progressPanel" ignoreDupResponses="true"
+								style="width: 100%; color:black;">
+								<f:facet name="initial">
+									<h:outputText value="Not started" />
+								</f:facet>
+								<f:facet name="complete">
+									<h:outputText value="Done" />
+								</f:facet>
+							</rich:progressBar>
+
+						</a4j:outputPanel>
+					</h:form>
+				</rich:column>
+				<rich:column id="current" label="Current" width="10%">
+					<f:facet name="header">
+						<h:outputText value="Current" title="Current" />
+					</f:facet>
+					<h:panelGrid columns="2" border="0" cellpadding="0" cellspacing="0">
+						<h:outputText
+							value="#{item.currentCount} / #{item.estimatedCount}" />
+						<h:panelGroup layout="block" style="margin: 0 10px;">
+							<rich:progressBar enabled="false" value="#{item.progress}"
+								maxValue="100" minValue="0"
+								style="height:15px;width:35px;margin:0px;">
+								<h:outputText value="{value}%" />
+							</rich:progressBar>
+						</h:panelGroup>
+					</h:panelGrid>
+
+				</rich:column>
+
+				<rich:column id="processed_total" label="#{lblProcess.processed_total}" width="10%" sortBy="#{'processedTotal'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.processed_total}"
+							title="#{lblProcess.processed_total}" />
+					</f:facet>
+					<h:outputText value="#{item.processedTotal}" />
+				</rich:column>
+
+				<rich:column id="rejected_total" label="#{lblProcess.rejected_total}" width="10%" sortBy="#{'rejectedTotal'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.rejected_total}"
+							title="#{lblProcess.rejected_total}" />
+					</f:facet>
+					<h:outputText value="#{item.rejectedTotal}" />
+				</rich:column>
+
+				<rich:column id="excepted_total" label="#{lblProcess.excepted_total}" width="10%" sortBy="#{'exceptedTotal'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.excepted_total}"
+							title="#{lblProcess.excepted_total}" />
+					</f:facet>
+					<h:outputText value="#{item.exceptedTotal}" />
+				</rich:column>
+				<rich:column id="result_code" label="#{lblProcess.result_code}" width="15%" sortBy="#{'resultCode'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.result_code}"
+							title="#{lblProcess.result_code}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.resultCode]}"
+						title="#{DictUtils.articles[item.resultCode]}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid styleClass="fw buttons_block" columns="3" columnClasses="paddingR12,firstCol,table_tools_state">
+					<h:panelGroup>
+						<bre:taggedCommandButton id="processLogsOracleTracing"
+												 value="#{lblCommon.oracle_tracing}"
+												 disabled="#{MbProcessSessions.node == null || !MbProcessSessions.node.changeOracleTracePossible}"
+												 oncomplete="#{rich:component('oracleTracingModalPanel')}.show()"
+												 reRender="oracleTracingModalPanel,statTable">
+							<f:setPropertyActionListener value="#{(processStatBean==null ? MbProcessStat : processStatBean).userSessionId}"
+														 target="#{MbOracleTracing.userSessionId}"/>
+							<f:setPropertyActionListener value="#{(processStatBean==null ? MbProcessStat : processStatBean).sessionId}"
+														 target="#{MbOracleTracing.sessionId}"/>
+							<f:setPropertyActionListener value="#{(processStatBean==null ? MbProcessStat : processStatBean).selectionThreadNum}"
+														 target="#{MbOracleTracing.threadNumber}"/>
+							<f:setPropertyActionListener value="#{(processStatBean==null ? MbProcessStat : processStatBean).selectionTraceLevel}"
+														 target="#{MbOracleTracing.traceLevel}"/>
+							<f:setPropertyActionListener value="true"
+														 target="#{MbOracleTracing.applyImmediately}"/>
+						</bre:taggedCommandButton>
+					</h:panelGroup>
+
+					<h:panelGroup>
+					<h:selectBooleanCheckbox value="#{(processStatBean==null ? MbProcessStat : processStatBean).pollUpdating}">
+						<a4j:support event="onchange" ajaxSingle="true" reRender="pollUpd"
+							process="updateInterval" />
+
+					</h:selectBooleanCheckbox>
+					<h:outputText value="#{lblProcess.update_table_every} " />
+					<h:inputText value="#{(processStatBean==null ? MbProcessStat : processStatBean).updateInterval}"
+						id="updateInterval" style="width:20px;" />
+					<h:outputText value=" #{lblProcess.seconds}" />
+					</h:panelGroup>
+					
+					<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveStatTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteStatTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveStatTableState" action="#{(processStatBean==null ? MbProcessStat : processStatBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteStatTableState" action="#{(processStatBean==null ? MbProcessStat : processStatBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+
+		<a4j:poll action="#{(processStatBean==null ? MbProcessStat : processStatBean).checkProgressChanged}"
+			interval="#{(processStatBean==null ? MbProcessStat : processStatBean).updateInterval * 1000}"
+			reRender="statTable" id="pollUpd"
+			enabled="#{(processStatBean==null ? MbProcessStat : processStatBean).pollUpdating}" ajaxSingle="true" />
+
+	</h:form>
+
+	<ui:include src="/pages/processes/oracle_tracing_modal_panel.jspx"/>
+
+</ui:composition>
+</html>

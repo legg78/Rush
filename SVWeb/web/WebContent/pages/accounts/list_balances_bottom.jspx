@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:fmt="http://www.bpc.ru/el/formatter">
+<ui:composition>
+	<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+
+	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc" />
+	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq" />
+	<h:form id="balancesForm">
+
+
+		<h:panelGroup id="balancesTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable
+				headerClass="res-table-header table-header-ext"
+				selectedClass="res-table-selected" styleClass="res-table"
+				rowClasses=",odd" id="mainTable" var="item"
+				value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).balances}"
+				selection="#{(balancesBean==null ? MbBalancesSearch : balancesBean).itemSelection}"
+				rows="0" height="220px" selectionMode="single"
+				enableContextMenu="true"
+				tableState="#{(balancesBean==null ? MbBalancesSearch : balancesBean).tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="btn_delete_balance,btn_edit_balance" />
+
+				<rich:column id="balance_number" label="#{lblAcc.balance_number}"
+					title="Balance number" sortOrder="ASCENDING" sortBy="#{'number'}"
+					width="15%">
+					<f:facet name="header">
+						<h:panelGroup>
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblAcc.balance_number}"
+								title="#{lblAcc.balance_number}" />
+						</h:panelGroup>
+					</f:facet>
+					<f:facet name="filter">
+						<h:inputText
+							value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).filter.balanceNumber}"
+							style="width: 100%;">
+							<a4j:support event="onkeyup" requestDelay="1000"
+								reRender="mainTable"
+								action="#{(balancesBean==null ? MbBalancesSearch : balancesBean).search}" />
+						</h:inputText>
+					</f:facet>
+					<h:outputText value="#{item.balanceNumber}" />
+				</rich:column>
+
+				<rich:column id="balance_type" label="#{lblAcc.balance_type}"
+					title="Balance type" sortBy="#{'type'}" width="15%"
+					filterEvent="onkeyup">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcc.balance_type}"
+							title="#{lblAcc.balance_type}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu
+							value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).filter.balanceType}"
+							style="width: 100%;" styleClass="wide">
+							<f:selectItem itemValue="" />
+							<f:selectItems
+								value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).balanceTypes}" />
+							<a4j:support event="onchange" reRender="mainTable"
+								action="#{(balancesBean==null ? MbBalancesSearch : balancesBean).search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.balanceType]}" />
+				</rich:column>
+
+				<rich:column id="balance" label="#{lblAcc.balance}" title="Balance"
+					sortBy="#{'balance'}" style="text-align: right" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcc.balance}" title="#{lblAcc.balance}" />
+					</f:facet>
+					<h:outputText
+						value="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}"
+						title="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}" />
+				</rich:column>
+
+				<rich:column id="currency" label="#{lblCommon.currency}"
+					title="Currency" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.currency}"
+							title="#{lblCommon.currency}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu
+							value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).filter.currency}"
+							style="width: 100%;">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{CurrencyUtils.allCurrencies}" />
+							<a4j:support event="onchange" reRender="mainTable"
+								action="#{(balancesBean==null ? MbBalancesSearch : balancesBean).search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.currency]}" />
+					<h:outputText
+						value="#{item.currency} - #{CurrencyUtils.currencyObjectsMap[item.currency].currencyName}"
+						title="#{item.currency} - #{CurrencyUtils.currencyMap[item.currency]}" />
+				</rich:column>
+
+				<rich:column id="status" label="#{lblCommon.status}" title="Status"
+					sortBy="#{'status'}" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.status}"
+							title="#{lblCommon.status}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu
+							value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).filter.status}"
+							style="width: 100%;">
+							<f:selectItem itemValue="" />
+							<f:selectItems
+								value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).balanceStatuses}" />
+							<a4j:support event="onchange" reRender="mainTable"
+								action="#{(balancesBean==null ? MbBalancesSearch : balancesBean).search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.status]}" />
+				</rich:column>
+
+				<rich:column id="open_date" label="#{lblAcc.open_date}"
+					title="Open date" sortBy="#{'openDate'}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcc.open_date}"
+							title="#{lblAcc.open_date}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:panelGroup>
+							<rich:calendar buttonIcon="/images/calendar.gif" id="calendar1"
+								direction="top-left" datePattern="#{usession.datePattern}"
+								timeZone="#{CommonUtils.timeZone}"
+								value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).filter.openDate}"
+								inputStyle="width:80%" defaultTime="00:00:00.000" zindex="1000"
+								reRender="mainTable">
+								<a4j:support event="onchanged" ajaxSingle="true"
+									reRender="mainTable"
+									action="#{(balancesBean==null ? MbBalancesSearch : balancesBean).search}" />
+							</rich:calendar>
+
+						</h:panelGroup>
+					</f:facet>
+					<h:outputText
+						value="#{fmt:formatDate(item.openDate, usession.datePattern, CommonUtils.timeZoneId)}"
+						title="#{fmt:formatDate(item.openDate, usession.datePattern, CommonUtils.timeZoneId)}" />
+				</rich:column>
+
+				<rich:column id="close_date" label="#{lblAcc.close_date}"
+					title="Close date" sortBy="#{'closeDate'}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcc.close_date}"
+							title="#{lblAcc.close_date}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:panelGroup>
+							<rich:calendar buttonIcon="/images/calendar.gif" id="calendar2"
+								direction="top-left" datePattern="#{usession.datePattern}"
+								timeZone="#{CommonUtils.timeZone}"
+								value="#{(balancesBean==null ? MbBalancesSearch : balancesBean).filter.closeDate}"
+								inputStyle="width:80%" defaultTime="23:59:59.999" zindex="1000"
+								reRender="mainTable">
+								<a4j:support event="onchanged" ajaxSingle="true"
+									reRender="mainTable"
+									action="#{(balancesBean==null ? MbBalancesSearch : balancesBean).search}" />
+							</rich:calendar>
+						</h:panelGroup>
+					</f:facet>
+					<h:outputText
+						value="#{fmt:formatDate(item.closeDate, usession.datePattern, CommonUtils.timeZoneId)}"
+						title="#{fmt:formatDate(item.closeDate, usession.datePattern, CommonUtils.timeZoneId)}" />
+				</rich:column>
+
+				<f:facet name="footer">
+
+				</f:facet>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons"
+				rendered="#{balancesBean==null}">
+				<h:panelGrid styleClass="fw buttons_block" columns="2"
+					columnClasses=", table_tools_state">
+					<h:panelGroup>
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png"
+							title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveBalanceTableState();" />
+						<h:graphicImage url="/images/red-cross.png"
+							title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteBalanceTableState();" />
+						<a4j:queue name="tablestatequeue" />
+						<a4j:jsFunction name="saveBalanceTableState"
+							action="#{(balancesBean==null ? MbBalancesSearch : balancesBean).saveTableStateDB}"
+							eventsQueue="tablestatequeue" />
+						<a4j:jsFunction name="deleteBalanceTableState"
+							action="#{(balancesBean==null ? MbBalancesSearch : balancesBean).deleteTableStateDB}"
+							eventsQueue="tablestatequeue" />
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+</ui:composition>
+</html>

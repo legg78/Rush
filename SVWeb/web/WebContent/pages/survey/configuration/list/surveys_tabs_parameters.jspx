@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+>
+<ui:composition>
+	<h:form id="surveyParameterRelationsForm">
+		<h:panelGroup id="surveyParameterRelationsWrapper" layout="block" styleClass="carddata-wrapper"
+		              style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+			<rich:extendedDataTable id="surveyParameterRelationsTable"
+			                        tableState="#{MbSurveyParameterRelationsSearch.tableState}"
+			                        styleClass="res-table"
+			                        headerClass="res-table-header"
+			                        rowClasses=",odd"
+			                        selectedClass="res-table-selected"
+			                        var="item"
+			                        value="#{MbSurveyParameterRelationsSearch.dataModel}"
+			                        selection="#{MbSurveyParameterRelationsSearch.itemSelection}"
+			                        rows="#{MbSurveyParameterRelationsSearch.rowsNum}"
+			                        height="255px"
+			                        selectionMode="single"
+			                        noDataLabel="#{MbSurveyParameterRelationsSearch.searching ? lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}">
+
+				<a4j:support event="onselectionchange" eventsQueue="queue"
+				             reRender="surveyParameterRelationsTableButtons"/>
+
+				<rich:column id="id" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}"/>
+				</rich:column>
+
+				<rich:column id="paramName" width="20%" sortBy="#{'paramName'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.param_name}" title="#{lblCommon.param_name}"/>
+					</f:facet>
+					<h:outputText value="#{item.paramName}"/>
+				</rich:column>
+
+				<rich:column id="name" width="40%" sortBy="#{'name'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}"/>
+					</f:facet>
+					<h:outputText value="#{item.name}"/>
+				</rich:column>
+
+				<rich:column id="dataType" width="20%" sortBy="#{'dataType'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.data_type}" title="#{lblCommon.data_type}"/>
+					</f:facet>
+					<h:outputLabel value="#{item.dataType} - #{item.dataTypeName}"
+					               title="#{item.dataType} - #{item.dataTypeName}"/>
+				</rich:column>
+
+				<rich:column id="systemParam" width="10%" sortBy="#{'systemParam'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblSvy.system_param}" title="#{lblSvy.system_param}"/>
+					</f:facet>
+					<h:selectBooleanCheckbox disabled="true" value="#{item.systemParam}"/>
+				</rich:column>
+			</rich:extendedDataTable>
+
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid styleClass="buttons_block" columns="4" id="surveyParameterRelationsTableButtons">
+					<bre:taggedCommandButton id="addItem"
+					                         value="#{lblForm.add}"
+					                         reRender="surveyParameterRelationsAddModal"
+					                         disabled="#{MbSurveyParameterRelationsSearch.survey == null}"
+					                         action="#{MbSurveyParameterRelationsSearch.prepareSearchParameters}"
+					                         oncomplete="#{rich:component('surveyParameterRelationsAddModal')}.show()"
+					                         image="/images/create_doc.gif"
+					                         rendered="#{usession.inRole['MODIFY_SURVEYS']}"
+					/>
+					<bre:taggedCommandButton id="removeItem"
+					                         styleClass="stdButton"
+					                         onclick="#{rich:component('deleteParameterRelationViewId:confirmPanel')}.show(); return false;"
+					                         value="#{lblForm.remove}"
+					                         disabled="#{MbSurveyParameterRelationsSearch.activeItem.id == null}"
+					                         image="/images/delete.gif"
+					                         rendered="#{usession.inRole['MODIFY_SURVEYS']}"/>
+					<h:panelGroup styleClass="stdButton"/>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbSurveyParameterRelationsSearch}"/>
+		<ui:param name="yesAction" value="removeItem"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+		<ui:param name="rerenderList" value="surveyParameterRelationsForm"/>
+		<ui:param name="confirmQuestion" value=" "/>
+		<ui:param name="subviewId" value="deleteParameterRelationViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+
+	<rich:modalPanel id="surveyParameterRelationsAddModal" autosized="true" minWidth="1000" minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup>
+				<h:outputText value="#{lblSvy.add_parameter}"/>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:panelGroup>
+			<ui:include src="/pages/survey/configuration/parameters/list/survey_parameters_search.jspx">
+				<ui:param name="onSearchRerender" value="surveyParametersTableButtonsForm"/>
+				<ui:param name="hideShowMorePanel" value="true"/>
+				<ui:param name="searchBean" value="#{MbSurveyParametersModalSearch}" />
+			</ui:include>
+			<ui:include src="/pages/survey/configuration/parameters/list/survey_parameters_table.jspx">
+				<ui:param name="onSelectionChangeRerender" value="surveyParametersTableButtonsForm"/>
+				<ui:param name="hideShowMorePanel" value="true"/>
+				<ui:param name="tableBean" value="#{MbSurveyParametersModalSearch}" />
+			</ui:include>
+			<h:form id="surveyParametersTableButtonsForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block" style="height: auto;">
+					<ui:include src="/pages/utils/defaultDataScroller.jspx">
+						<ui:param name="dataScollerBean" value="#{MbSurveyParametersModalSearch}"/>
+						<ui:param name="dataScollerTableId" value="surveyParametersTable"/>
+						<ui:param name="dataScrollerRerender" value="surveyParametersTableButtonsForm"/>
+					</ui:include>
+				</h:panelGroup>
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+							<h:outputText/>
+							<bre:taggedCommandButton
+									value="#{lblForm.add}" type="submit"
+									disabled="#{MbSurveyParameterRelationsSearch.addItemDisabled}"
+									action="#{MbSurveyParameterRelationsSearch.addItem}"
+									onclick="disableModalPanelBtns(this);"
+									reRender="surveyParameterRelationsForm, surveyParametersTableButtonsForm, err_ajax"
+									oncomplete="enableModalPanelBtns(this);"
+									ajaxSingle="true"
+									limitTolist="true"
+							/>
+							<bre:taggedCommandButton
+									value="#{lblForm.close}"
+									onclick="#{rich:component('surveyParameterRelationsAddModal')}.hide(); return false;">
+							</bre:taggedCommandButton>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+</ui:composition>
+</html>

@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	xmlns:fmt="http://www.bpc.ru/el/formatter">
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		
+			<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt" />
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+			
+			<!-- navigation bar -->
+			<bpct:navBar pageName="#{lblRpt.documents}" />
+			
+			<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+							 if (event.keyCode == 13) {
+								 document.getElementById('rptDocumentSearchForm:searchBtn').click(); 
+								 return false; 
+							} 
+							return true;
+						 }	
+			//]]>
+			</script>
+
+			<!-- search panel -->
+			<h:form id="rptDocumentSearchForm" onkeypress="handleEnter(event)">
+				<h:panelGroup layout="block" styleClass="search_block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+							<h:panelGroup layout="block" styleClass="search_block_left">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses=",link-cont">
+								<h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+									columns="4"
+									columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+									<h:outputLabel for="documentDateFrom"
+										value="#{lblCommon.date_from}:" />
+									<rich:calendar buttonIcon="/images/calendar.gif" datePattern="#{usession.datePattern}" inputStyle="width:225px;" enableManualInput="true"
+										value="#{MbDocumentsViewing.filterDateFrom}" id="documentDateFrom" timeZone="#{CommonUtils.timeZone}"/>
+
+									<h:outputLabel for="documentNumberFrom"
+										value="#{lblRpt.document_number_from}:" />
+									<h:inputText id="documentNumberFrom"
+										value="#{MbDocumentsViewing.filterDocumentNumberFrom}">
+									</h:inputText>
+
+									<h:outputLabel for="documentDateTo"
+										value="#{lblCommon.date_to}:" />
+									<rich:calendar buttonIcon="/images/calendar.gif" datePattern="#{usession.datePattern}" inputStyle="width:225px;" enableManualInput="true"
+										value="#{MbDocumentsViewing.filterDateTo}" id="documentDateTo" timeZone="#{CommonUtils.timeZone}"/>
+
+									<h:outputLabel for="documentNumberTo"
+										value="#{lblRpt.document_number_to}:" />
+									<h:inputText id="documentNumberTo"
+										value="#{MbDocumentsViewing.filterDocumentNumberTo}">
+									</h:inputText>
+
+									<h:outputLabel for="documentType"
+										value="#{lblRpt.document_type}:" />
+									<h:selectOneMenu id="documentType"
+										value="#{MbDocumentsViewing.filter.documentType}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbDocumentsViewing.documentTypes}" />
+									</h:selectOneMenu>
+
+								</h:panelGrid>
+
+								<h:panelGrid columns="1">
+										<h:panelGroup styleClass="stdButton">
+											<bre:taggedCommandButton action="#{MbDocumentsViewing.search}"
+												reRender="rptDocumentResultForm"
+												id="searchBtn"
+												image="/_img/icon_search.png" value="#{lblForm.search }"
+												style="width:85px;"
+												onclick="disableModalPanelBtns(this);"
+												oncomplete="enableModalPanelBtns(this);"
+												eventsQueue="queue"/>
+
+										</h:panelGroup>
+
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+												action="#{MbDocumentsViewing.clearFilter}"
+												reRender="rptDocumentResultForm, rptDocumentSearchForm">
+											</a4j:commandLink>
+										</h:panelGroup>
+									</h:panelGrid>
+
+								</h:panelGrid>
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<!-- Result panel -->
+			<h:form id="rptDocumentResultForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+					<h:panelGroup styleClass="search_result_block_left fix-ff"
+						layout="block">
+						<h:panelGroup id="RptDocumentWrapper" layout="block" style="height:255px;">
+						<rich:extendedDataTable id="RptDocumentTable"
+							styleClass="res-table" headerClass="res-table-header"
+							rowClasses=",odd" selectedClass="res-table-selected" var="item"
+							value="#{MbDocumentsViewing.dataModel}"
+							selection="#{MbDocumentsViewing.itemSelection}"
+							rows="#{MbDocumentsViewing.rowsNum}"
+							selectionMode="single" enableContextMenu="false"
+							noDataLabel="#{MbDocumentsViewing.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}">
+								
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="rptDocumentBtnForm:btnPanel" />
+
+							<rich:column title="Id"
+								sortBy="#{'id'}" width="12%">
+								<f:facet name="header">
+									<h:panelGroup>
+										<script>
+											updateHeight();
+										</script>
+										<h:outputText value="#{lblCommon.id}"
+												title="#{lblCommon.id}" />									
+									</h:panelGroup>
+ 								</f:facet>
+								<h:outputText
+										value="#{item.id}"
+										title="#{item.id}"/>
+							</rich:column>
+							
+							<rich:column title="Document Type"
+								sortBy="#{'documentType'}" width="12%">
+								<f:facet name="header">
+									<h:outputText value="#{lblRpt.document_type}"
+											title="#{lblRpt.document_type}" />
+ 								</f:facet>
+								<h:outputText 
+									value="#{item.documentType} - #{DictUtils.allArticlesDesc[item.documentType]}" 
+									title="#{item.documentType} - #{DictUtils.allArticlesDesc[item.documentType]}" 
+									rendered="#{item.documentType != null }" />
+								<h:outputText value="" title="" rendered="#{item.documentType == null }" />
+							</rich:column>
+							
+							<rich:column title="Document Number"
+								sortBy="#{'documentNumber'}" width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblRpt.document_number}"
+											title="#{lblRpt.document_number}" />
+ 								</f:facet>
+								<h:outputText
+										value="#{item.documentNumber}"
+										title="#{item.documentNumber}"/>
+							</rich:column>
+							
+							<rich:column title="Document Date"
+								sortBy="#{'documentDate'}" width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblRpt.document_date}"
+											title="#{lblRpt.document_date}" />
+ 								</f:facet>
+							    <h:outputText value="#{item.documentDate}">
+							        <f:convertDateTime pattern="#{usession.datePattern}"
+							        timeZone="#{CommonUtils.timeZone}" />
+							    </h:outputText>										
+							</rich:column>
+							
+							<rich:column title="Entity Type"
+								sortBy="#{'entityType'}" width="15%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.entity_type}"
+											title="#{lblCommon.entity_type}" />
+ 								</f:facet>
+								<h:outputText 
+									value="#{item.entityType} - #{DictUtils.allArticlesDesc[item.entityType]}" 
+									title="#{item.entityType} - #{DictUtils.allArticlesDesc[item.entityType]}" 
+									rendered="#{item.entityType != null }" />
+								<h:outputText value="" title="" rendered="#{item.entityType == null }" />
+							</rich:column>
+
+							<rich:column id="start_date" label="#{lblCommon.start_date}" title="#{lblCommon.start_date}"
+										 sortBy="#{'startDate'}" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.start_date}"
+												  title="#{lblCommon.start_date}" />
+								</f:facet>
+								<h:outputText
+										value="#{fmt:formatDate(item.startDate, usession.datePattern, CommonUtils.timeZoneId)}"
+										title="#{fmt:formatDate(item.startDate, usession.datePattern, CommonUtils.timeZoneId)}"/>
+							</rich:column>
+
+							<rich:column id="end_date" label="#{lblCommon.end_date}" title="#{lblCommon.end_date}"
+										 sortBy="#{'endDate'}" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.end_date}"
+												  title="#{lblCommon.end_date}" />
+								</f:facet>
+								<h:outputText
+										value="#{fmt:formatDate(item.endDate, usession.datePattern, CommonUtils.timeZoneId)}"
+										title="#{fmt:formatDate(item.endDate, usession.datePattern, CommonUtils.timeZoneId)}"/>
+							</rich:column>
+
+							<rich:column id="status" label="#{lblCommon.status}" title="#{lblCommon.status}"
+										 sortBy="#{'status'}" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.status}"
+												  title="#{lblCommon.status}" />
+								</f:facet>
+								<h:outputText
+										value="#{DictUtils.allArticlesDesc[item.status]}"
+										title="#{DictUtils.allArticlesDesc[item.status]}"/>
+							</rich:column>
+							
+						</rich:extendedDataTable>
+						<a4j:outputPanel ajaxRendered="true">
+							<h:graphicImage url="/_img/hd_searchblock.gif"
+								styleClass="hd-searchblock" />
+							<h:panelGroup styleClass="collapse-vert table-collapse-vert"
+								layout="block" />
+						</a4j:outputPanel>
+					</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+            </h:form>
+
+            <h:form id="rptDocumentBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="4"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount">
+	
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" />
+	
+								<h:selectOneMenu id="rows_num"
+									value="#{MbDocumentsViewing.rowsNum}" styleClass="row_per_page">
+									<a4j:support event="onchange"
+										reRender="rptDocumentResultForm" />
+									<f:selectItem itemValue="10" itemLabel="10" />
+									<f:selectItem itemValue="20" itemLabel="20" />
+									<f:selectItem itemValue="50" itemLabel="50" />
+								</h:selectOneMenu>
+	
+								<rich:datascroller id="RptDocumentDataScroller" maxPages="10"
+									fastControls="hide" pagesVar="pages"
+									styleClass="res-datascroller" for="RptDocumentTable">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+	
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbDocumentsViewing.dataModel.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+	
+						<h:panelGrid id="btnPanel" columns="1" styleClass="buttons_block">
+							<bre:taggedCommandButton
+								rendered="#{usession.inRole['VIEW_REPORT_PRINT_FORM_DOCUMENT']}"
+								action="#{MbDocumentsViewing.showReport}"
+								value="#{lblRpt.view_document}"
+								disabled="#{MbDocumentsViewing.activeItem == null || MbDocumentsViewing.activeItem.contentType != 'DCCT0010'}"
+								reRender="downloadFileLink"
+								oncomplete="document.getElementById('downloadFileLink').click();"
+								/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		
+		<h:outputLink id="downloadFileLink" value="#{request.contextPath}/file/#{MbDocumentsViewing.viewedReportName}" />
+		
+		<script type="text/javascript">
+		
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'rptDocumentSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'rptDocumentResultForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'RptDocumentWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'rptDocumentBtnForm'
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>
+	</ui:define>
+</ui:composition>
+</html>	

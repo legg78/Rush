@@ -1,0 +1,768 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="dsp">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+    
+	<parameterMap id="mapping-dispute-list" class="java.util.Map">
+        <parameter property="operId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="disputesList" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="list-condition-mapping"/>
+    </parameterMap>
+
+    <resultMap class="ru.bpc.sv2.dsp.DisputeListCondition" id="list-condition-mapping">
+    	<result property="type" column="type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="funcOrder" column="func_order" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+    	<result property="initRule" column="init_rule" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+    	<result property="genRule" column="gen_rule" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+    	<result property="lang" column="lang" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="msgType" column="msg_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <procedure id="get-dispute-list"
+            parameterMap="mapping-dispute-list">
+       	{call DSP_UI_PROCESS_PKG.get_dispute_list(
+				  i_id           => ?
+				, i_lang         => ?
+				, o_dispute_list => ?
+				)}
+    </procedure>
+
+	<parameterMap id="mapping-prepare-dispute" class="java.util.Map">
+        <parameter property="operId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="procId" javaType="java.lang.Integer" jdbcType="NUMBER" mode="IN"/>
+        <parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="disputeParams" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="dispute-params-mapping"/>
+    </parameterMap>
+
+    <resultMap class="ru.bpc.sv2.dsp.DisputeParameter" id="dispute-params-mapping">
+    	<result property="systemName" column="system_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="name" column="form_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="valueN" column="value_number" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+    	<result property="valueV" column="value_char" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="valueD" column="value_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+    	<result property="mandatory" column="mandatory" javaType="java.lang.Boolean" jdbcType="NUMBER" nullValue="false"/>
+    	<result property="editable" column="editable" javaType="java.lang.Boolean" jdbcType="NUMBER" nullValue="true"/>
+    	<result property="lovId" column="lov" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+    	<result property="lang" column="lang" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="dataType" column="field_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    	<result property="dataLength" column="data_length" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+    </resultMap>
+
+    <procedure id="prepare-dispute"
+            parameterMap="mapping-prepare-dispute">
+       	{call DSP_UI_PROCESS_PKG.prepare_dispute(
+				  i_oper_id     => ?
+				, i_proc_id     => ?
+				, i_lang        => ?
+				, o_dispute_cur => ?
+				)}
+    </procedure>
+
+    <parameterMap id="mapping-exec-dispute" class="java.util.Map">
+        <parameter property="operId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+        <parameter property="initRule" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="IN"/>
+        <parameter property="genRule" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="IN"/>
+        <parameter property="params" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+        <parameter property="isEdit" jdbcType="NUMERIC" javaType="java.lang.Boolean" nullValue="false" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="exec-dispute" parameterMap="mapping-exec-dispute">
+        {call dsp_ui_process_pkg.exec_dispute (
+              i_oper_id     => ?
+            , i_init_rule   => ?
+            , i_gen_rule    => ?
+            , i_param_map   => ?
+            , i_is_editing  => ?
+        )}
+    </procedure>
+
+    <parameterMap class="java.util.Map" id="check-duplicated-message-map">
+        <parameter property="result" jdbcType="NUMERIC" javaType="java.lang.Long" mode="OUT"/>
+        <parameter property="operId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="msgType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="params" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="check-duplicated-message"
+               parameterMap="check-duplicated-message-map">
+        {? = call dsp_ui_process_pkg.check_duplicated_message(
+        i_oper_id   => ?
+        , i_msg_type   => ?
+        , i_param_map => ?
+        )}
+    </procedure>
+
+    <parameterMap id="get-article-text-by-code-map" class="java.util.Map">
+        <parameter property="textCode" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT" />
+        <parameter property="articleCode" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+    
+    <procedure id="get-article-text-by-code" parameterMap="get-article-text-by-code-map">
+        {? = call com_api_dictionary_pkg.get_article_text(
+            i_article => ?
+        )}
+    </procedure>
+    
+    <parameterMap class="java.util.Map" id="create-disp-appl-by-oper-map">
+        <parameter property="operId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+        <parameter property="participantType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="applId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="disputeReason" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="claimId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+    </parameterMap>
+    
+    <procedure id="create-disp-appl-by-oper" parameterMap="create-disp-appl-by-oper-map">
+        { call csm_ui_dispute_pkg.create_application(
+        i_oper_id => ?
+        , i_participant_type => ?
+        , o_appl_id => ?
+        , i_dispute_reason => ?
+        , i_claim_id => ?
+        )}
+    </procedure>
+    
+    <parameterMap id="get-default-manual-application-map" class="ru.bpc.sv2.application.DspApplication">
+        <parameter property="id" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="created" jdbcType="TIMESTAMP" mode="OUT" />
+        <parameter property="userId" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="caseOwner" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="caseId" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="claimId" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="rejectCode" jdbcType="VARCHAR" mode="OUT" />
+        <parameter property="caseStatus" jdbcType="VARCHAR" mode="OUT" />
+        <parameter property="visible" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="teamId" jdbcType="NUMERIC" mode="OUT" />
+    </parameterMap>
+
+    <procedure id="get-default-manual-application" parameterMap="get-default-manual-application-map">
+        { call csm_ui_dispute_pkg.get_default_manual_application(
+            o_appl_id => ?
+            , o_created_date => ?
+            , o_created_by_user_id => ?
+            , o_case_owner => ?
+            , o_case_id => ?
+            , o_claim_id => ?
+            , o_reject_code => ?
+            , o_appl_status => ?
+            , o_is_visible => ?
+            , o_team_id => ?
+        )}
+    </procedure>
+
+    <resultMap id="get-unpaired-operation-list-map" class="ru.bpc.sv2.operations.Operation">
+        <result property="id" column="id" javaType="java.lang.Long" />
+        <result property="msgType" column="msg_type" />
+        <result property="cardMask" column="card_number" />
+        <result property="reasonCode" column="reason_code" />
+        <result property="memberMessageText" column="mmt" />
+        <result property="sttlAmount" column="sttl_amount" javaType="java.math.BigDecimal" />
+        <result property="sttlCurrency" column="sttl_currency" />
+        <result property="merchantName" column="merchant_name" />
+        <result property="terminalNumber" column="terminal_number" />
+        <result property="merchantNumber" column="merchant_number" />
+        <result property="authCode" column="auth_code" />
+        <result property="networkRefnum" column="arn" />
+    </resultMap>
+
+    <select id="get-unpaired-operation-list" resultMap="get-unpaired-operation-list-map">
+        SELECT
+            id
+            , msg_type
+            , card_number
+            , reason_code
+            , mmt
+            , sttl_amount
+            , sttl_currency
+            , merchant_name
+            , terminal_number
+            , merchant_number
+            , auth_code
+            , arn
+        FROM
+            csm_ui_unpaired_item_vw
+    </select>
+
+    <procedure id="create-manual-application" parameterClass="ru.bpc.sv2.application.ManualCaseCreation">
+        {call csm_ui_dispute_pkg.create_manual_application(
+              io_appl_id                => #applId,jdbcType=NUMERIC,mode=INOUT#
+            , io_seqnum                 => #seqnum,jdbcType=NUMERIC,mode=INOUT#
+            , i_inst_id                 => #instId,mode=IN#
+            , i_merchant_name           => #merchantName,mode=IN#
+            , i_customer_number         => #customerNumber,mode=IN#
+            , i_dispute_reason          => #disputeReason,mode=IN#
+            , i_oper_date               => #operDate,mode=IN#
+            , i_oper_amount             => #operAmount,mode=IN#
+            , i_oper_currency           => #operCurrency,mode=IN#
+            , i_dispute_id              => #disputeId,mode=IN#
+            , i_dispute_progress        => #disputeProgress,mode=IN#
+            , i_write_off_amount        => #writeOffAmount,mode=IN#
+            , i_write_off_currency      => #writeOffCurrency,mode=IN#
+            , i_due_date                => #dueDate,mode=IN#
+            , i_reason_code             => #reasonCode,mode=IN#
+            , i_disputed_amount         => #disputedAmount,mode=IN#
+            , i_disputed_currency       => #disputedCurrency,mode=IN#
+            , i_created_date            => #createdDate,mode=IN#
+            , i_created_by_user_id      => #createdByUserId,mode=IN#
+            , i_arn                     => #arn,mode=IN#
+            , i_claim_id                => #claimId,mode=IN#
+            , i_auth_code               => #authCode,mode=IN#
+            , i_case_progress           => #caseProgress,mode=IN#
+            , i_acquirer_inst_bin       => #acquirerInstBin,mode=IN#
+            , i_transaction_code        => #transactionCode,mode=IN#
+            , i_case_source             => #caseSource,mode=IN#
+            , i_sttl_amount             => #sttlAmount,mode=IN#
+            , i_sttl_currency           => #sttlCurrency,mode=IN#
+            , i_base_amount             => #baseAmount,mode=IN#
+            , i_base_currency           => #baseCurrency,mode=IN#
+            , i_hide_date               => #hideDate,mode=IN#
+            , i_unhide_date             => #unhideDate,mode=IN#
+            , i_team_id                 => #teamId,mode=IN#
+            , i_card_number             => #cardNumber,mode=IN#
+            , i_flow_id                 => #flowId,mode=IN#
+            , i_agent_id                => #agentId,mode=IN#
+            , i_duplicated_from_case_id => #duplicatedFromCaseId,mode=IN#
+        )}
+    </procedure>
+
+    <procedure id="modify-case" parameterClass="ru.bpc.sv2.application.ManualCaseCreation">
+        {call csm_ui_dispute_pkg.modify_case(
+              i_case_id            => #caseId,mode=IN#
+            , io_seqnum            => #seqnum,jdbcType=NUMERIC,mode=INOUT#
+            , i_oper_date          => #operDate,mode=IN#
+            , i_oper_amount        => #operAmount,mode=IN#
+            , i_oper_currency      => #operCurrency,mode=IN#
+            , i_dispute_reason     => #disputeReason,mode=IN#
+            , i_due_date           => #dueDate,mode=IN#
+            , i_reason_code        => #reasonCode,mode=IN#
+            , i_disputed_amount    => #disputedAmount,mode=IN#
+            , i_disputed_currency  => #disputedCurrency,mode=IN#
+            , i_arn                => #arn,mode=IN#
+            , i_claim_id           => #claimId,mode=IN#
+            , i_auth_code          => #authCode,mode=IN#
+            , i_merchant_name      => #merchantName,mode=IN#
+            , i_transaction_code   => #transactionCode,mode=IN#
+            , i_agent_id           => #agentId,mode=IN#
+            , i_card_number        => #cardNumber,mode=IN#
+        )}
+    </procedure>
+
+    <procedure id="remove-claim" parameterClass="ru.bpc.sv2.application.DspApplication">
+        {call csm_ui_dispute_pkg.remove_claim(
+              i_claim_id  => #id,mode=IN#
+            , i_seqnum    => #seqNum,mode=IN#
+        )}
+    </procedure>
+
+    <select id="get-comments-by-case"
+            parameterClass="java.util.HashMap"
+            resultClass="ru.bpc.sv2.application.ApplicationComment">
+        SELECT
+                a.id as applicationId
+              , n.USER_ID as userId
+              , n.REG_DATE as regDate
+              ,(select com_ui_person_pkg.get_person_name(u.person_id, #lang#) from acm_user u where u.id = n.user_id) as userName
+              , com_api_i18n_pkg.get_text(
+                i_table_name  => 'NTB_NOTE'
+                , i_column_name => 'TEXT'
+                , i_object_id   => n.id
+                , i_lang    => #lang#
+                ) as commentText
+        FROM
+                app_application a
+              , ntb_note n
+        WHERE
+                n.entity_type(+) = 'ENTTAPPL'
+        AND
+                n.object_id(+) = a.id
+        AND
+                a.id = #applicationId#
+        ORDER BY regDate desc
+    </select>
+    
+    <parameterMap id="get-chargeback-lov-id-map" class="java.util.Map">
+        <parameter property="lovId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="applId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+    </parameterMap>
+
+    <procedure id="get-chargeback-lov-id" parameterMap="get-chargeback-lov-id-map">
+        { ? = call csm_api_dispute_pkg.get_chargeback_lov_id(
+            i_appl_id => ?
+        )}
+    </procedure>
+
+    <parameterMap id="create-disp-appl-unpaired-map" class="java.util.Map">
+        <parameter property="operId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+        <parameter property="participantType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+        <parameter property="applId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT" />
+        <parameter property="unpairedId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+    </parameterMap>
+
+    <procedure id="create-disp-appl-unpaired" parameterMap="create-disp-appl-unpaired-map">
+        { call csm_ui_dispute_pkg.create_application(
+        i_oper_id => ?
+        , i_participant_type => ?
+        , o_appl_id => ?
+        , i_unpaired_oper_id => ?
+        )}
+    </procedure>
+
+
+    <parameterMap id="get-is-visa-or-mastercard-map" class="java.util.Map">
+        <parameter property="result" javaType="java.lang.Boolean" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="disputeId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="get-is-visa-or-mastercard" parameterMap="get-is-visa-or-mastercard-map">
+        {? = call csm_ui_stop_list_pkg.is_visa_or_mastercard(
+            i_dispute_id => ?
+        )}
+    </procedure>
+
+    <parameterMap id="get-lov-id-map" class="java.util.Map">
+        <parameter property="result" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="disputeId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="get-lov-id" parameterMap="get-lov-id-map">
+        {? = call csm_ui_stop_list_pkg.get_lov_id(
+            i_dispute_id => ?
+        )}
+    </procedure>
+
+    <parameterMap id="modify-appl-by-reason-map" class="java.util.Map">
+        <parameter property="applId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+        <parameter property="seqNum" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="INOUT" />
+        <parameter property="reasonCode" javaType="java.lang.String" jdbcType="VARCHAR" />
+        <parameter property="userId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+    </parameterMap>
+
+    <procedure id="modify-appl-by-reason" parameterMap="modify-appl-by-reason-map">
+        {call app_ui_application_pkg.modify_application(
+            i_appl_id        => ?
+          , io_seqnum        => ?
+          , i_reason_code    => ?
+          , i_user_id        => ?
+        )}
+    </procedure>
+
+    <parameterMap id="send-card-to-stop-list-map" class="java.util.Map">
+        <parameter property="cardInstanceId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="stopListType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="eventType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="reasonCode" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="purgeDate" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+        <parameter property="regionList" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+        <parameter property="product" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="send-card-to-stop-list" parameterMap="send-card-to-stop-list-map">
+        {call csm_ui_stop_list_pkg.send_card_to_stop_list(
+            i_card_instance_id => ?
+          , i_stop_list_type   => ?
+          , i_event_type       => ?
+          , i_reason_code      => ?
+          , i_purge_date       => ?
+          , i_region_list      => ?
+          , i_product          => ?
+        )}
+    </procedure>
+
+    <select id="get-card-instance-id" parameterClass="java.util.Map" resultClass="java.lang.Long">
+        select i.id as card_instance_id
+          from iss_card_instance i
+             , iss_card_number n
+         where i.card_id = n.card_id
+           and n.card_number like #cardMask#
+           and rownum = 1
+    </select>
+
+    <select id="get-stop-list-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select id
+              from csm_ui_stop_list_vw
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="LANG">lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="CARD_NUMBER">upper(card_number) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="ID">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="EVENT_TYPE">event_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="STATUS">status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="REASON_CODE">reason_code = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <resultMap id="get-stop-list-map" class="ru.bpc.sv2.application.StopList">
+        <result property="id" column="id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+        <result property="cardInstanceId" column="card_instance_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+        <result property="cardNumber" column="card_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="cardMask" column="card_mask" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="cardExpDate" column="card_expiration_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="purgeDate" column="purge_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="eventDate" column="event_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="regionList" column="region_list" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="eventType" column="event_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="eventTypeDesc" column="event_type_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="stopListType" column="stop_list_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="stopListTypeDesc" column="stop_list_type_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="reasonCode" column="reason_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="reasonCodeDesc" column="reason_code_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="status" column="status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="statusDesc" column="status_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="lang" column="lang" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="product" column="product" javaType="java.lang.String" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <select id="get-stop-list" parameterClass="qparams" resultMap="get-stop-list-map">
+        <include refid="paginatedOpen"/>
+            select id
+                 , card_instance_id
+                 , card_number
+                 , card_mask
+                 , card_expiration_date
+                 , purge_date
+                 , event_date
+                 , region_list
+                 , event_type
+                 , event_type_desc
+                 , stop_list_type
+                 , stop_list_type_desc
+                 , reason_code
+                 , reason_code_desc
+                 , status
+                 , status_desc
+                 , lang
+                 , product
+              from csm_ui_stop_list_vw
+        <isNotNull property="threshold">and rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="LANG">lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="ID">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="CARD_NUMBER">upper(card_number) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="STATUS">status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="EVENT_TYPE">event_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="REASON_CODE">reason_code = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="order by" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="auto">
+                <isEqual property="filters[].element" compareValue="ID">id = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="CARD_NUMBER">upper(card_number) like #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="STATUS">status = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="EVENT_TYPE">event_type = #filters[].value#</isEqual>
+                <isEqual property="filters[].element" compareValue="REASON_CODE">reason_code = #filters[].value#</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <parameterMap id="check-available-actions-map" class="ru.bpc.sv2.dsp.DisputeActionPermissions">
+        <parameter property="caseId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="newCaseEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="takeEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="refuseEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="hideEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="unhideEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="closeEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="reopenEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="duplicateEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="commentEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="statusEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="resolutionEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="teamEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="reassignEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="letterEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="progressEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="reasonEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="checkDueEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+        <parameter property="setDueEnable" javaType="boolean" jdbcType="NUMERIC" nullValue="false" mode="OUT"/>
+    </parameterMap>
+
+    <procedure id="check-available-actions" parameterMap="check-available-actions-map">
+        {call csm_ui_dispute_pkg.check_available_actions (
+              i_case_id           => ?
+            , o_new_case_enable   => ?
+            , o_take_enable       => ?
+            , o_refuse_enable     => ?
+            , o_hide_enable       => ?
+            , o_unhide_enable     => ?
+            , o_close_enable      => ?
+            , o_reopen_enable     => ?
+            , o_duplicate_enable  => ?
+            , o_comment_enable    => ?
+            , o_status_enable     => ?
+            , o_resolution_enable => ?
+            , o_team_enable       => ?
+            , o_reassign_enable   => ?
+            , o_letter_enable     => ?
+            , o_progress_enable   => ?
+            , o_reason_enable     => ?
+            , o_check_due_enable  => ?
+            , o_set_due_enable    => ?
+        )}
+    </procedure>
+
+    <parameterMap id="get-due-date-lov-map" class="java.util.Map">
+        <parameter property="lovId" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="OUT"/>
+        <parameter property="caseId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+        <parameter property="flowId" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="get-due-date-lov" parameterMap="get-due-date-lov-map">
+        {? = call csm_ui_dispute_pkg.get_due_date_lov (
+             i_case_id => ?
+           , i_flow_id => ?
+        )}
+    </procedure>
+
+    <parameterMap id="set-appl-team-map" class="ru.bpc.sv2.application.DspApplication">
+        <parameter property="id" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+        <parameter property="seqNum" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="INOUT"/>
+        <parameter property="teamId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="set-appl-team" parameterMap="set-appl-team-map">
+        {call csm_ui_dispute_pkg.set_application_team (
+              i_case_id => ?
+            , io_seqnum => ?
+            , i_team_id => ?
+        )}
+    </procedure>
+
+    <parameterMap id="get-progress-lov-id-map" class="java.util.Map">
+        <parameter property="lovId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="caseId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="flowId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="get-progress-lov-id" parameterMap="get-progress-lov-id-map">
+        {? = call csm_api_dispute_pkg.get_progress_lov_id (
+              i_case_id  => ?
+            , i_flow_id  => ?
+        )}
+    </procedure>
+
+    <parameterMap id="get-reason-lov-id-map" class="java.util.Map">
+        <parameter property="lovId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="caseId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="caseProgress" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="get-reason-lov-id" parameterMap="get-reason-lov-id-map">
+        {? = call csm_api_dispute_pkg.get_reason_lov_id (
+              i_case_id        => ?
+            , i_case_progress  => ?
+        )}
+    </procedure>
+
+    <parameterMap id="change-case-progress-map" class="ru.bpc.sv2.application.DspApplication">
+        <parameter property="id" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+        <parameter property="seqNum" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="INOUT"/>
+        <parameter property="caseProgress" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+        <parameter property="reasonCode" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="change-case-progress" parameterMap="change-case-progress-map">
+        {call csm_api_dispute_pkg.change_case_progress (
+              i_case_id        => ?
+            , io_seqnum        => ?
+            , i_case_progress  => ?
+            , i_reason_code    => ?
+            , i_mask_error     => 0
+        )}
+    </procedure>
+
+    <parameterMap id="change-case-status-map" class="ru.bpc.sv2.application.DspApplication">
+        <parameter property="id" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+        <parameter property="status" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+        <parameter property="rejectCode" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="change-case-status" parameterMap="change-case-status-map">
+        {call csm_ui_dispute_pkg.change_case_status (
+              i_case_id      => ?
+            , i_appl_status  => ?
+            , i_reject_code  => ?
+        )}
+    </procedure>
+
+    <parameterMap id="set-hide-unhide-date-map" class="ru.bpc.sv2.application.DspApplication">
+        <parameter property="id" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+        <parameter property="seqNum" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="INOUT"/>
+        <parameter property="hideDate" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+        <parameter property="unhideDate" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="set-hide-unhide-date" parameterMap="set-hide-unhide-date-map">
+        {call csm_ui_dispute_pkg.set_hide_unhide_date (
+              i_case_id      => ?
+            , io_seqnum      => ?
+            , i_hide_date    => ?
+            , i_unhide_date  => ?
+        )}
+    </procedure>
+
+    <parameterMap id="change-case-visibility-map" class="ru.bpc.sv2.application.DspApplication">
+        <parameter property="id" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+        <parameter property="seqNum" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="INOUT"/>
+        <parameter property="visible" jdbcType="NUMERIC" javaType="java.lang.Boolean" nullValue="false" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="change-case-visibility" parameterMap="change-case-visibility-map">
+        {call csm_ui_dispute_pkg.change_case_visibility (
+              i_case_id     => ?
+            , io_seqnum     => ?
+            , i_is_visible  => ?
+        )}
+    </procedure>
+
+    <resultMap class="ru.bpc.sv2.application.ManualCaseCreation" id="manual-case-params-mapping">
+        <result property="caseId" column="case_id"/>
+        <result property="seqnum" column="seqnum" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+        <result property="instId" column="inst_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+        <result property="merchantName" column="merchant_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="customerNumber" column="customer_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="disputeReason" column="dispute_reason" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="operDate" column="oper_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="operAmount" column="oper_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+        <result property="operCurrency" column="oper_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="disputeId" column="dispute_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+        <result property="disputeProgress" column="dispute_progress" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="writeOffAmount" column="write_off_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+        <result property="writeOffCurrency" column="write_off_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="dueDate" column="due_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="reasonCode" column="reason_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="disputedAmount" column="disputed_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+        <result property="disputedCurrency" column="disputed_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="createdDate" column="created_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="createdByUserId" column="created_by_user_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+        <result property="arn" column="arn" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="claimId" column="claim_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+        <result property="authCode" column="auth_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="caseProgress" column="case_progress" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="acquirerInstBin" column="acquirer_inst_bin" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="transactionCode" column="transaction_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="caseSource" column="case_source" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="sttlAmount" column="sttl_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+        <result property="sttlCurrency" column="sttl_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="baseAmount" column="base_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+        <result property="baseCurrency" column="base_currency" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="hideDate" column="hide_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="unhideDate" column="unhide_date" javaType="java.util.Date" jdbcType="DATE"/>
+        <result property="teamId" column="team_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+        <result property="caseStatus" column="case_status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="caseResolution" column="case_resolution" javaType="java.lang.String" jdbcType="VARCHAR"/>
+        <result property="flowId" column="flow_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+    </resultMap>
+
+    <parameterMap id="mapping-manual-case" class="java.util.Map">
+        <parameter property="caseId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="result" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="manual-case-params-mapping"/>
+    </parameterMap>
+
+    <procedure id="get-manual-case-info"
+               parameterMap="mapping-manual-case">
+        {call csm_ui_dispute_pkg.get_case(
+            i_case_id     => ?
+            , o_case_cur  => ?
+        )}
+    </procedure>
+
+    <parameterMap id="mapping-stop-list" class="ru.bpc.sv2.application.StopList">
+        <parameter property="cardInstanceId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="stopListType" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+        <parameter property="reasonCode" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+        <parameter property="purgeDate" javaType="java.util.Date" jdbcType="DATE" mode="OUT"/>
+        <parameter property="regionList" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+        <parameter property="product" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+    </parameterMap>
+
+    <procedure id="get-stop-list-data" parameterMap="mapping-stop-list">
+        {call csm_ui_stop_list_pkg.get_last_csm_stop_list(
+              i_card_instance_id => ?
+            , o_id               => ?
+            , o_stop_list_type   => ?
+            , o_reason_code      => ?
+            , o_purge_date       => ?
+            , o_region_list      => ?
+            , o_product          => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-check-editable-removable" class="java.util.Map">
+        <parameter property="result" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="check-editable-removable" parameterMap="map-check-editable-removable">
+        {? = call dsp_ui_process_pkg.is_editable(
+             i_id         => ?
+           , i_mask_error => 1
+        )}
+    </procedure>
+
+    <procedure id="remove-dispute" parameterClass="java.lang.Long">
+        {call dsp_ui_process_pkg.remove_dispute(
+            i_id  => #value,jdbcType=NUMERIC,mode=IN#
+        )}
+    </procedure>
+
+    <parameterMap id="map-get-dispute-rule" class="java.util.Map">
+        <parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="initRule" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="genRule" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+    </parameterMap>
+
+    <procedure id="get-dispute-rule" parameterMap="map-get-dispute-rule">
+        {call dsp_ui_process_pkg.get_dispute_rule(
+              i_id         => ?
+            , o_init_rule  => ?
+            , o_gen_rule   => ?
+        )}
+    </procedure>
+
+    <parameterMap id="map-get-dispute-inst-id" class="java.util.Map">
+        <parameter property="result" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+        <parameter property="operId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+    </parameterMap>
+
+    <procedure id="get-dispute-inst-id" parameterMap="map-get-dispute-inst-id">
+        {? = call dsp_ui_application_pkg.get_dispute_inst_id(
+             i_oper_id => ?
+        )}
+    </procedure>
+</sqlMap>

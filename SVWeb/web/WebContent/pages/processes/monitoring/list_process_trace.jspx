@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<f:loadBundle var="lblProcess" basename="ru.bpc.sv2.ui.bundles.Process" />
+	<h:form id="traceForm">
+		<h:panelGroup id="statTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="traceTable" enableContextMenu="true"
+				tableState="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).tableState}"
+				styleClass="res-table" headerClass="res-table-header table-header-ext"
+				selectedClass="res-table-selected" var="trcItem" rowClasses=",odd"
+				value="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).processSessions}"
+				selection="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).itemSelection}" 
+				rows="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).rowsNum}"
+				height="100px"
+				selectionMode="single" noDataLabel="#{lblCommon['no_records_found']}">
+				<a4j:support event="onselectionchange" requestDelay="500"
+					reRender="traceBtnPanel" />
+				<rich:column id="thread_number" label="#{lblProcess.thread_number}" width="5%" sortBy="#{'threadNumber'}">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>"#{processTraceBean==null}" ? updateHeight() : updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}')</script>
+							<h:outputText value="#{lblProcess.thread_number}"
+								title="#{lblProcess.thread_number}" />							
+						</a4j:outputPanel>
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu value="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).filter.threadNumber}"
+							style="width: 100%;">
+							<f:selectItems value="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).threadNumbers}" />
+							<a4j:support event="onchange" reRender="traceTable, traceBtnPanel, bottom_paginated" oncomplete="#{processTraceBean==null} ? updateHeight() : updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}')"
+								action="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<h:outputText value="#{trcItem.threadNumber}" />
+				</rich:column>
+				<rich:column id="trace_level" label="#{lblProcess.trace_level}" width="12%" sortBy="#{'traceLevel'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.trace_level}"
+							title="#{lblProcess.trace_level}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu value="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).filter.traceLevelFilter}"
+							style="width: 100%;">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).traceLevels}" />
+							<a4j:support event="onchange" reRender="traceTable, traceBtnPanel, bottom_paginated" oncomplete="#{processTraceBean==null} ? updateHeight() : updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}')"
+								action="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).search}" limitToList="true" />
+						</h:selectOneMenu>
+					</f:facet>
+					<h:outputText value="#{trcItem.traceLevel}" />
+				</rich:column>
+				<rich:column id="trace_text" label="#{lblProcess.trace_text}" width="40%" sortBy="#{'traceText'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.trace_text}"
+							title="#{lblProcess.trace_text}" />
+					</f:facet>
+					<h:outputText value="#{trcItem.traceText}"
+						title="#{trcItem.traceText}">
+						<f:attribute name="stringLength" value="100" />
+					</h:outputText>
+				</rich:column>
+				<rich:column id="entity_type" label="#{lblCommon.entity_type}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.entity_type}"
+							title="#{lblCommon.entity_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[trcItem.entityType]}"
+						title="#{DictUtils.articles[trcItem.entityType]} #{trcItem.entityDescription}">						
+					</h:outputText>
+				</rich:column>
+				<rich:column id="object_id" label="#{lblCommon.object_id}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.object_id}"
+							title="#{lblCommon.object_id}" />
+					</f:facet>
+					<h:outputText value="#{trcItem.objectId}"
+						title="#{trcItem.objectId} - #{trcItem.entityDescription}">						
+					</h:outputText>
+				</rich:column>
+				<rich:column id="entity_description" label="#{lblCommon.entities}" width="10%" visible="false">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.entities}"
+							title="#{lblCommon.entities}" />
+					</f:facet>
+					<h:outputText value="#{trcItem.entityDescription}"
+						title="#{trcItem.entityDescription}">						
+					</h:outputText>
+				</rich:column>
+				<rich:column id="trace_timestamp" label="#{lblProcess.trace_timestamp}" width="18%" sortBy="#{'traceTimestamp'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.trace_timestamp}"
+							title="#{lblProcess.trace_timestamp}" />
+					</f:facet>
+					<h:outputText value="#{trcItem.traceTimestamp}">
+						<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+							timeZone="#{CommonUtils.timeZone}" />
+					</h:outputText>
+				</rich:column>
+				<rich:column id="user_id" label="#{lblProcess.user_id}" width="10%" sortBy="#{'userId'}" rendered="#{show_user_id}"
+					visible="false">
+					<f:facet name="header">
+						<h:outputText value="#{lblProcess.user_id}"
+							title="#{lblProcess.user_id}" />
+					</f:facet>
+					<h:outputText value="#{trcItem.userId}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons paginated_tab" >
+			<h:panelGroup layout="block" styleClass="table_tools">
+	        	<h:panelGrid styleClass="fw field-cont" columns="5" id="bottom_paginated"
+	        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount,table_tools_state">
+		        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+					<h:selectOneMenu id="rows_num" value="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).rowsNum}" style="width:40px">
+						<a4j:support event="onchange" reRender="traceTable, dsTraceTable, pagesNum" oncomplete="if(#{processTraceBean!=null}){updateContextHeight('#{empty subviewId ? 'contextPanelView' : subviewId}');}"/>
+                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                    </h:selectOneMenu>
+
+                    <rich:datascroller maxPages="10" fastControls="hide"
+                    		pagesVar="pages" styleClass="res-datascroller"
+		                    id="dsTraceTable" for="traceTable">
+		            	<f:facet name="first">
+		                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+						</f:facet>
+		                <f:facet name="first_disabled">
+		                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+		                </f:facet>
+		                <f:facet name="last">
+		                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+		                </f:facet>
+		                <f:facet name="last_disabled">
+		                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+		                </f:facet>
+		                <f:facet name="previous">
+							<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+		                </f:facet>
+		                <f:facet name="previous_disabled">
+		                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+		                </f:facet>
+		                <f:facet name="next">
+		                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+		                </f:facet>
+		                <f:facet name="next_disabled">
+		                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+		                </f:facet>
+		                <f:facet name="pages">
+		                </f:facet>
+					</rich:datascroller>
+
+                    <h:panelGroup id="pagesNum">
+                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+                       	<h:outputText value=" #{lblCommon.pages}"/>
+                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                        <h:outputText styleClass="strongClass" value="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).processSessions.rowCount}"/>
+                        <h:outputText value=" #{lblCommon.records}"/>
+                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                    </h:panelGroup>
+
+                    <h:panelGroup style="padding: 0px; margin: 0px;">
+                        <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+                                        onclick="saveTraceTableState();"/>
+                        <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+                                        onclick="deleteTraceTableState();"/>
+                        <a4j:queue name="tablestatequeue"/>
+                        <a4j:jsFunction name="saveTraceTableState" action="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+                        <a4j:jsFunction name="deleteTraceTableState" action="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+                    </h:panelGroup>
+
+                    <script>updateHeight();</script>
+				</h:panelGrid>
+			</h:panelGroup>
+
+
+
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons" >
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{processTraceBean==null}"  >
+				<h:panelGrid id="traceBtnPanel" styleClass="fw buttons_block" columns="1" columnClasses=", table_tools_state">
+					<h:panelGroup style="padding: 0px; margin: 0px;">
+					<bre:taggedCommandButton id="viewBtn"
+							reRender="prc_trace_view_modal_div" value="#{lblForm.view}"
+							action="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).view}"
+							oncomplete="#{rich:component('prc_trace_view_modal_panel')}.show()"
+							disabled="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).activeProcessTrace == null}" />
+					<bre:taggedCommandButton id="exportBtn"
+							reRender="prc_trace_export_modal_div" value="#{lblForm.export}"
+							action="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).view}"
+							oncomplete="#{rich:component('prc_trace_export_modal_panel')}.show()"
+							disabled="#{(processTraceBean==null ? MbProcessTrace : processTraceBean).activeProcessTrace == null}" />
+					</h:panelGroup>
+
+				</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+
+
+		</h:panelGroup>
+	</h:form>
+
+
+	<h:outputLink id="downloadFileLink1" value="#{request.contextPath}/file/#{MbProcessTrace.reportName}" />
+
+	<rich:modalPanel id="prc_trace_view_modal_panel" autosized="true"
+		minWidth="600" minHeight="100">
+		<f:facet name="header">
+			<h:outputText value="#{lblProcess.trace}" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form>
+			<h:panelGroup id="prc_trace_view_modal_div">
+				<ui:include src="/pages/processes/monitoring/trace_details.jspx"></ui:include>
+
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+							<h:outputText />
+							<bre:taggedCommandButton value="#{lblForm.close}"
+									action="#{MbProcessTrace.cancel}" immediate="true"
+									oncomplete="#{rich:component('prc_trace_view_modal_panel')}.hide()"
+									reRender="prc_trace_view_modal_div">
+								<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+							</bre:taggedCommandButton>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<rich:modalPanel id="prc_trace_export_modal_panel" autosized="true" minWidth="300" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="Exporting format" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="prc_trace_export_modal_div">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					<h:outputLabel value="* #{lblCommon.format}: " title="#{lblCommon.format}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+            			<h:selectOneMenu id="exportType" value="#{MbProcessTrace.exportFormat}"
+            					label="#{lblCommon.format}" onblur="hideErrorField(this)">
+            				<a4j:support event="onchange" reRender="exportTypeError" 
+										limitToList="true" ajaxSingle="true"/>
+							<f:selectItem itemValue="XLS" itemLabel="XLS"/>
+ 							<f:selectItem itemValue="XML" itemLabel="XML"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="exportTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.format}"/>
+						</h:outputFormat>
+           			</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+			
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.ok}" type="submit" action="#{MbProcessTrace.export}"
+                       			onclick="if (!checkFormat()) return false; disableModalPanelBtns(this)"
+			                   	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('prc_trace_export_modal_panel')}.hide(); document.getElementById('downloadFileLink1').click();"
+                       			reRender="downloadFileLink1, prc_trace_view_modal_div" />
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbProcessTrace.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('prc_trace_export_modal_panel')}.hide()">
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                		</bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<script type="text/javascript">
+	//<!-- 
+		function checkFormat() {
+			var checked = true;
+			if (document.getElementById('prc_trace_export_modal_div:exportType').value == "") {
+				document.getElementById('prc_trace_export_modal_div:exportTypeError').style.display = "inline";
+				checked = false;
+			}
+			return checked;
+		}
+	//-->
+	</script>
+
+	
+</ui:composition>
+</html>

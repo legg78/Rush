@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+
+	<script>
+	//<![CDATA[
+		var setCaIndexModalPanel = {
+			checkKeyIndexFields : function() {
+				var result = false;
+				var authorityKeyIndexHex = document
+						.getElementById('setCaIndexModalPanelForm:authorityKeyIndexHex');
+				var authorityKeyIndexDec = document
+						.getElementById('setCaIndexModalPanelForm:authorityKeyIndexDec');
+				if (authorityKeyIndexHex == null || authorityKeyIndexDec == null) {
+					alert('An error occured! Check script in setCaIndexModalPanel.jspx!');
+					return result;
+				}
+				if (authorityKeyIndexHex.value != '' && authorityKeyIndexDec.value != '') {
+					document.getElementById('setCaIndexModalPanelForm:errMultiSelect').style.display = 'inline';
+					return result;
+				} else if (authorityKeyIndexHex.value == ''
+						&& authorityKeyIndexDec.value == '') {
+					document.getElementById('setCaIndexModalPanelForm:errEmptyField').style.display = 'inline';
+					return result;
+				} else if (authorityKeyIndexDec.value != '' && authorityKeyIndexDec.value > 9999){
+					document.getElementById('setCaIndexModalPanelForm:errDecMaxField').style.display = 'inline';
+					return result;
+				} else if (authorityKeyIndexHex.value != ''){
+					authorityKeyIndex = ("000" + authorityKeyIndexHex.value.trim()).slice(-4);
+					if (authorityKeyIndex > '270F'){
+						document.getElementById('setCaIndexModalPanelForm:errHexMaxField').style.display = 'inline';
+						return result;
+					}
+				}
+				result = true;
+				return result;
+			},
+			hideErrors : function(){
+				document.getElementById('setCaIndexModalPanelForm:errEmptyField').style.display = 'none';
+				document.getElementById('setCaIndexModalPanelForm:errMultiSelect').style.display = 'none';
+				document.getElementById('setCaIndexModalPanelForm:errDecMaxField').style.display = 'none';
+				document.getElementById('setCaIndexModalPanelForm:errHexMaxField').style.display = 'none';
+			}
+		};
+	//]]>
+	</script>
+
+	<rich:modalPanel id="setCaIndexModalPanel" autosized="true"
+		minWidth="300" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="#{lblSec.set_ca_index}" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="setCaIndexModalPanelForm">
+
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata"
+					columnClasses="firstCol, width250">
+
+					<h:outputLabel value="#{lblSec.authority_key_index}:" />
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:panelGroup layout="block" style="width:200px;">
+							<h:outputLabel value="Hex:" style="display:inline;padding:0 4px;" />
+							<h:inputText style="width:50px" id="authorityKeyIndexHex"
+								label="#{lblSec.authority_key_index}" onfocus="setCaIndexModalPanel.hideErrors();"
+								value="#{MbRsaKey.authorityKeyIndexHex}">
+							</h:inputText>
+							<h:outputLabel value="Dec:" style="display:inline;padding:0 4px;" />
+							<h:inputText style="width:50px" id="authorityKeyIndexDec" onfocus="setCaIndexModalPanel.hideErrors();"
+								label="#{lblSec.authority_key_index}" onkeypress="if (!numbersOnly(this, event)) return false; "
+								value="#{MbRsaKey.authorityKeyIndexDec}">
+							</h:inputText>
+						</h:panelGroup>
+						<h:outputFormat value="#{lblSec.fill_only_one_field}" styleClass="errorMarker"
+							id="errMultiSelect" style="display:none;">
+							<f:param name="fieldName" value="#{lblSec.authority_key_index}" />
+						</h:outputFormat>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="errEmptyField" style="display:none;">
+							<f:param name="fieldName" value="#{lblSec.authority_key_index}" />
+						</h:outputFormat>
+						<h:outputFormat value="#{lblRul.max_value_field}" styleClass="errorMarker"
+							id="errHexMaxField" style="display:none;">
+							<f:param name="fieldName" value="Hex" />
+							<f:param name="value" value="'270F'" />
+						</h:outputFormat>
+						<h:outputFormat value="#{lblRul.max_value_field}" styleClass="errorMarker"
+							id="errDecMaxField" style="display:none;">
+							<f:param name="fieldName" value="Dec" />
+							<f:param name="value" value="'9999'" />
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+
+						<h:outputText />
+
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							action="#{MbRsaKey.setCaIndex}"
+							onclick="if (!setCaIndexModalPanel.checkKeyIndexFields()) {return false;} disableModalPanelBtns(this);"
+							oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) 
+			                   			#{rich:component('setCaIndexModalPanel')}.hide()"
+							reRender="rsaKeyResultForm" />
+
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							immediate="true"
+							limitToList="true"
+							oncomplete="#{rich:component('setCaIndexModalPanel')}.hide()">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<f:view>
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+<ui:define name="navigatableContent">
+	
+	<!-- navigation bar -->
+	<bpct:navBar pageName="#{lblCommon.countries}" />
+	<a4j:loadScript src="/js/stretch.js" />
+	<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>	
+	<h:form id="countriesSearchForm">
+
+		<!-- search panel -->
+		<h:panelGroup styleClass="search_block" layout="block">
+			<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+					<h:panelGroup class="search_block_left" layout="block">
+						<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+							<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+								<h:outputLabel value="#{lblCommon.name}:" title="#{lblCommon.name}" />
+								<h:inputText id="countryName" value="#{MbCountry.filter.countryName}"/>
+
+								<h:outputLabel value="#{lblCommon.num_code}:" title="#{lblCommon.num_code}" />
+								<h:inputText id="code" value="#{MbCountry.filter.code}" 
+										maxlength="3" onkeypress="if (!numbersOnly(this, event)) return false"/>
+								
+								<h:outputLabel value="#{lblCommon.let_code}:" title="#{lblCommon.let_code}" />
+								<h:inputText id="name" value="#{MbCountry.filter.name}" 
+										maxlength="3"/>
+							</h:panelGrid>
+							<h:panelGrid columns="1">
+								<h:panelGroup styleClass="stdButton">
+									<bre:taggedCommandButton action="#{MbCountry.search}"
+											reRender="countriesTable, countriesDs, countriesBtnForm:btnPanel, detailsTab"
+											image="/_img/icon_search.png" type="submit" value="#{lblForm.search}" 
+											style="width:85px;"
+											onclick="disableModalPanelBtns(this);"
+											oncomplete="enableModalPanelBtns(this);"
+											eventsQueue="queue"/>
+								</h:panelGroup>
+								<h:panelGroup styleClass="link-clear" layout="block">
+									<h:graphicImage url="/_img/icon_clear.png" />
+									<a4j:commandLink value="#{lblForm.clear_all}" 
+											action="#{MbCountry.clearFilter}"
+											reRender="countriesSearchForm, details, countriesForm, countriesBtnForm">
+									</a4j:commandLink>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGrid>
+						<a4j:outputPanel ajaxRendered="true">
+							<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+							<h:panelGroup styleClass="collapse-vert" layout="block" />
+						</a4j:outputPanel>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:panelGroup>
+    </h:form>
+
+    <h:form id="countriesForm">
+		<h:panelGroup styleClass="search_result_block" layout="block">
+			<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+				<h:panelGroup id="mainTableWrapper" layout="block"
+					styleClass="search_result_block_inner">
+				<rich:extendedDataTable 
+						id="countriesTable" 
+						var="item"
+						tableState="#{MbCountry.tableState}"
+						value="#{MbCountry.countries}"
+						selection="#{MbCountry.itemSelection}"
+						rows="#{MbCountry.rowsNum}" 
+						height="255px"
+						selectionMode="single" rowClasses=",odd"
+						headerClass="res-table-header"
+						selectedClass="res-table-selected" 
+						styleClass="res-table"
+						enableContextMenu="true"
+						noDataLabel="#{MbCountry.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+						reRender="detailsTab, countriesBtnForm:btnPanel">
+
+					<a4j:support event="onselectionchange" eventsQueue="queue"
+							reRender="detailsTab, countriesBtnForm:btnPanel" />
+					
+					<rich:column id="name" label="#{lblCommon.name}" sortBy="#{'countryName'}" width="55%" >
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{item.countryName}" title="#{item.countryName}"/>
+					</rich:column>
+
+					<rich:column id="num_code" label="#{lblCommon.num_code}" width="20%" sortBy="#{'code'}">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.num_code}" title="#{lblCommon.num_code}" />
+						</f:facet>
+						<h:outputText value="#{item.code}" title="#{item.code}"/>
+					</rich:column>
+					
+					<rich:column id="let_code" label="#{lblCommon.let_code}" sortBy="#{'name'}" width="20%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.let_code}" title="#{lblCommon.let_code}" />
+						</f:facet>
+						<h:outputText value="#{item.name}" title="#{item.name}"/>
+					</rich:column>
+				</rich:extendedDataTable>
+				</h:panelGroup>
+				<a4j:outputPanel ajaxRendered="true">
+					<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+				    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+				    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+			    </a4j:outputPanel>
+			</h:panelGroup>
+		</h:panelGroup>
+    </h:form>
+
+    <h:form id="countriesBtnForm">
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+				<h:panelGroup layout="block" styleClass="table_tools">
+					<h:panelGrid styleClass="fw field-cont" columns="5"
+							columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+						<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+						<h:selectOneMenu id="rows_num"
+								value="#{MbCountry.rowsNum}" styleClass="row_per_page">
+							<a4j:support event="onchange" reRender="countriesTable, countriesDs, pagesNum, detailsTab, countriesBtnForm:btnPanel" />
+							<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+						</h:selectOneMenu>
+
+						<rich:datascroller maxPages="10" fastControls="hide"
+								pagesVar="pages" styleClass="res-datascroller" id="countriesDs"
+								for="countriesTable" reRender="detailsTab, countriesBtnForm:btnPanel">
+							<f:facet name="first">
+								<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+							</f:facet>
+							<f:facet name="first_disabled">
+								<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+							</f:facet>
+							<f:facet name="last">
+								<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+							</f:facet>
+							<f:facet name="last_disabled">
+								<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+							</f:facet>
+							<f:facet name="previous">
+								<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+							</f:facet>
+							<f:facet name="previous_disabled">
+								<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+							</f:facet>
+							<f:facet name="next">
+								<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+							</f:facet>
+							<f:facet name="next_disabled">
+								<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+							</f:facet>
+							<f:facet name="pages">
+							</f:facet>
+						</rich:datascroller>
+
+						<h:panelGroup id="pagesNum">
+							<h:outputText styleClass="strongClass" value="#{pages} " />
+							<h:outputText value=" #{lblCommon.pages}" />
+                            <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                            <h:outputText styleClass="strongClass" value="#{MbCountry.countries.rowCount}"/>
+                            <h:outputText value=" #{lblCommon.records}"/>
+                            <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+						</h:panelGroup>
+						
+						<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveTableState" action="#{MbCountry.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteTableState" action="#{MbCountry.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+
+				<h:panelGrid id="btnPanel" columns="4" styleClass="itempanel">
+
+
+
+                    <bre:taggedCommandButton id="addBtn" value="#{lblForm.add}"
+                                             action="#{MbCountry.add}" reRender="countryModalPanel"
+                                             oncomplete="#{rich:component('countryModalPanel')}.show()"
+                                             image="/images/create_doc.gif" />
+                    <bre:taggedCommandButton id="editEventTypeBtn"
+                                             value="#{lblForm.edit}" reRender="countryModalPanel"
+                                             action="#{MbCountry.edit}"
+                                             disabled="#{MbCountry.activeCountry == null}"
+                                             oncomplete="#{rich:component('countryModalPanel')}.show()"
+                                             image="/images/edit.gif" />
+                    <bre:taggedCommandButton id="deleteBtn" value="#{lblForm.delete}"
+                                             disabled="#{MbCountry.activeCountry == null}"
+                                             oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()"
+                                             image="/images/delete.gif" />
+
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+			<h:panelGroup styleClass="workplace" id="workplacePanel"
+				layout="block">
+				<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content">
+
+					<rich:tab label="#{lblCommon.details}" name="detTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}"
+									title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="detailsTab" layout="block">
+							<ui:include src="/pages/common/country_details.jspx" />
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+						</h:panelGroup>
+					</rich:tab>
+				</rich:tabPanel>
+			</h:panelGroup>
+
+            <ui:include src="/pages/common/edit_country.jspx" />
+
+			<ui:include src="/pages/common/countrySynchronizationResultModalPanel.jspx"/>
+
+            <ui:include src="/pages/utils/confirmPanel.jspx">
+                <ui:param name="backingBean" value="#{MbCountry}"/>
+                <ui:param name="yesAction" value="delete"/>
+                <ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/>
+                <ui:param name="rerenderList" value="countriesTable, countriesDs, pagesNum, btnPanel, detailsTab"/>
+                <ui:param name="confirmQuestion" value=" "/>
+                <ui:param name="subviewId" value="deleteViewId"/>
+                <ui:param name="yes" value="#{lblForm.ok}"/>
+                <ui:param name="no" value="#{lblForm.cancel}"/>
+            </ui:include>
+	
+		<script type="text/javascript">
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'countriesSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'countriesForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'countriesBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'countryDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'countryDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>	
+</ui:define>
+</ui:composition>
+</f:view>
+</html>

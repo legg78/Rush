@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+	
+   	<h:form id="poolsBtmForm">
+		<h:panelGroup layout="block" style="margin:0px;padding:0px;"
+			id="poolsTableWrapper">
+			<rich:extendedDataTable id="poolsTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbNameIndexPools.nameIndexPools}"
+				selection="#{MbNameIndexPools.itemSelection}"
+				rows="0" enableContextMenu="true"
+				tableState="#{MbNameIndexPools.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="poolsBtmForm:btnPanel" />
+
+				<rich:column id="value" label="#{lblCommon.value}" sortBy="#{'value'}" width="90%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.value}"
+								title="#{lblCommon.value}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.value}" title="#{item.value}" />
+				</rich:column>
+
+				<rich:column id="status" label="#{lblCommon.status}" sortBy="#{'isUsed'}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.status}"
+							title="#{lblCommon.status}" />
+					</f:facet>
+					<h:outputText value="#{lblCommon.used}" title="#{lblCommon.used}"
+						rendered="#{item.isUsed}" />
+					<h:outputText value="#{lblCommon.unused}"
+						title="#{lblCommon.unused}" rendered="#{!item.isUsed}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+
+	            <h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	            	<h:panelGroup>
+	            	<bre:taggedCommandButton id="addValueBtn"
+                      		reRender="poolModalPanel"
+                      		value="#{lblForm.add}"
+                   			oncomplete="#{rich:component('poolModalPanel')}.show()"
+                      		action="#{MbNameIndexPools.addValue}"
+                      		disabled="#{MbNameIndexPools.filter.indexRangeId == null}"
+                      		rendered="#{usession.inRole['SYNC_RULE_NAME_POOL']}"
+                      		image="/images/create_doc.gif"
+                      		/>
+	            	<bre:taggedCommandButton id="addPoolBtn"
+                      		reRender="poolModalPanel"
+                      		value="#{lblRul.add_pool}"
+                   			oncomplete="#{rich:component('poolModalPanel')}.show()"
+                      		action="#{MbNameIndexPools.addPool}"
+                      		disabled="#{MbNameIndexPools.filter.indexRangeId == null}"
+                      		rendered="#{usession.inRole['SYNC_RULE_NAME_POOL']}"
+                      		image="/images/create_doc.gif"
+                      		/>
+					<bre:taggedCommandButton id="deleteValueBtn"
+                      		value="#{lblForm.delete}"
+                      		oncomplete="#{rich:component('deleteValueViewId:confirmPanel')}.show()"
+                      		disabled="#{MbNameIndexPools.activeNameIndexPool == null}"
+                      		rendered="#{usession.inRole['REMOVE_RULE_NAME_POOL']}"
+                      		image="/images/delete.gif"
+                      		/>
+					<bre:taggedCommandButton id="deletePoolBtn"
+                      		value="#{lblRul.delete_pool}"
+                      		disabled="#{MbNameIndexPools.poolEmpty}"
+                      		oncomplete="#{rich:component('deletePoolViewId:confirmPanel')}.show()"
+                      		rendered="#{usession.inRole['REMOVE_RULE_NAME_POOL']}"
+                      		image="/images/delete.gif"
+                      		/>
+					<bre:taggedCommandButton id="deletePoolRangeBtn"
+                      		reRender="poolModalPanel"
+                      		value="#{lblForm.delete_values}"
+                      		action="#{MbNameIndexPools.deletePoolRangeInit}"
+                      		oncomplete="#{rich:component('poolModalPanel')}.show()"
+                      		disabled="#{MbNameIndexPools.poolEmpty}"
+                      		rendered="#{usession.inRole['REMOVE_RULE_NAME_POOL']}"
+                      		image="/images/delete.gif"
+                      		/>
+					<bre:taggedCommandButton id="clearPoolBtn"
+                      		value="#{lblRul.clear_pool}"
+                      		disabled="#{MbNameIndexPools.poolEmpty}"
+                      		oncomplete="#{rich:component('clearPoolViewId:confirmPanel')}.show()"
+                      		rendered="#{usession.inRole['SYNC_RULE_NAME_POOL']}"
+                      		image="/images/delete.gif"
+                      		/>
+                    </h:panelGroup>
+                    
+                    <h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="savePoolTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deletePoolTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="savePoolTableState" action="#{MbNameIndexPools.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deletePoolTableState" action="#{MbNameIndexPools.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+    </h:form>
+
+	<ui:include src="/pages/rules/naming/indexPoolEdit.jspx">
+		<ui:param name="rerenderList" value="poolsBtmForm"/>
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbNameIndexPools}"/>
+		<ui:param name="yesAction" value="deleteValue"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="poolsBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteValueViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+		
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbNameIndexPools}"/>
+		<ui:param name="yesAction" value="deletePool"/>
+		<ui:param name="warningMsg" value="#{lblRul.confirm_delete_pool}"/> 
+		<ui:param name="rerenderList" value="poolsBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deletePoolViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+		
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbNameIndexPools}"/>
+		<ui:param name="yesAction" value="clearPool"/>
+		<ui:param name="warningMsg" value="#{lblRul.confirm_clear_pool}"/> 
+		<ui:param name="rerenderList" value="poolsBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="clearPoolViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+</ui:composition>
+</html>

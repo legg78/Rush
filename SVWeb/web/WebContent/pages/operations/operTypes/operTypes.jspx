@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html" xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j" xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext" xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+	<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+		<ui:define name="navigatableContent">
+
+			<script>
+				//<![CDATA[
+
+		    var entities = new Tabs(null, 'cheksTab');
+			function selectTab(tabName) {
+				setTabName(tabName);
+				if (!entities.loaded(tabName)) {
+					refreshEntityTab();
+				}
+				entities.set(tabName);
+			}
+
+			function checkFieldOperType(){
+				var colorOk = "#FFFFFF";
+		    	var colorMandatory = "#FF5555";
+				var check = false;
+				var operType = document.getElementById("operTypesSearchForm:operType").value;
+				if (operType != null && operType != "") {check = true;}
+				if (check){
+					document.getElementById("operTypesSearchForm:operType").style.backgroundColor = colorOk;
+				}else{
+					document.getElementById("operTypesSearchForm:operType").style.backgroundColor = colorMandatory;
+				}
+				return check;
+			}
+
+		//]]>
+			</script>
+
+			<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr" />
+			<f:loadBundle var="lblAut" basename="ru.bpc.sv2.ui.bundles.Aut" />
+			<f:loadBundle var="lblAtm" basename="ru.bpc.sv2.ui.bundles.Atm" />
+			<f:loadBundle var="lblAsc" basename="ru.bpc.sv2.ui.bundles.Asc" />
+			<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net" />
+
+			<!-- navigation bar -->
+			<bpct:navBar pageName="#{lblCom.com_label}" />
+			<bpct:filterBarModalPanels id="filterPanels"
+									   rerenderList="filtersTable, #{MbOperTypes.entityTab}, save_filter_panel_div, workplacePanel"
+									   selectedFilter="#{MbOperTypes.selectedSectionFilter}"
+									   sectionFilter="#{MbOperTypes.sectionFilter}"
+									   sectionFilterModeEdit="#{MbOperTypes.sectionFilterModeEdit}"
+									   searchAutomatically="#{MbOperTypes.searchAutomatically}"
+									   sectionId="2288"
+									   beanName="MbOperTypes"/>
+
+			<!-- search panel -->
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+			<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('operTypesSearchForm:searchBtn').click();
+					 return false;
+				}
+				return true;
+			 }
+			//]]>
+			</script>
+
+			<h:form id="operTypesSearchForm" onkeypress="handleEnter(event)">
+				<a4j:jsFunction name="setTabName" reRender="err_ajax"
+					limitToList="true" ajaxSingle="true" eventsQueue="queue">
+					<a4j:actionparam name="tabName"
+						assignTo="#{MbOperTypes.entityTab}" />
+				</a4j:jsFunction>
+
+				<a4j:jsFunction name="refreshEntityTab"
+					requestDelay="500" limitToList="true" ajaxSingle="true"
+					reRender="#{MbOperTypes.entityTab}, err_ajax, workplacePanel"
+					action="#{MbOperTypes.loadEntityTab}" oncomplete="updateHeight();">
+				</a4j:jsFunction>
+
+				<h:panelGroup layout="block" styleClass="search_block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+							<h:panelGroup layout="block" styleClass="search_block_left">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses=",link-cont">
+									<h:panelGrid styleClass="field-cont oneColumnTable" id="filtersTable"
+										columns="2">
+
+										<h:outputLabel for="operType" value="#{lblOpr.oper_type}:" />
+										<h:selectOneMenu id="operType" onchange="document.getElementById('operTypesSearchForm:searchBtn').click();"
+											value="#{MbOperTypes.activeOperType}">
+											<f:selectItem itemValue="" />
+											<f:selectItems value="#{MbOperTypes.operTypes}" />
+											<a4j:support event="onchange" reRender="#{MbOperTypes.entityTab}"
+															oncomplete="document.getElementById('operTypesSearchForm:operType').focus();"
+								      						limitToList="true" ajaxSingle="true"/>
+										</h:selectOneMenu>
+
+									</h:panelGrid>
+
+									<h:panelGrid columns="1">
+										<h:panelGroup styleClass="stdButton">
+											<bre:taggedCommandButton action="#{MbOperTypes.search}"
+												reRender="#{MbOperTypes.entityTab}, workplacePanel, operTypesResultPanel"
+												id="searchBtn"
+												onclick="if (!checkFieldOperType()) {return false;} disableModalPanelBtns(this);"
+												oncomplete="entities.flush(); enableModalPanelBtns(this); updateHeight();" image="/_img/icon_search.png"
+												eventsQueue="queue"
+												value="#{lblForm.search }" style="width:85px;" />
+										</h:panelGroup>
+
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+												action="#{MbOperTypes.clearFilter}" oncomplete="entities.flush();"
+												reRender="#{MbOperTypes.entityTab},workplacePanel, operTypesSearchForm, operTypesResultPanel">
+											</a4j:commandLink>
+										</h:panelGroup>
+										<h:panelGroup>
+											<bpct:filterBar sectionId="2288"/>
+										</h:panelGroup>
+									</h:panelGrid>
+
+								</h:panelGrid>
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+            <h:form>
+                <a4j:jsFunction name="storeEntitiesTab" ajaxSingle="true" limitToList="true" eventsQueue="queue"
+                                ignoreDupResponses="true" requestDelay="500" reRender="workplacePanel, #{MbOperTypes.entityTab}">
+                </a4j:jsFunction>
+                <a4j:jsFunction name="storeReasonMappingTab" ajaxSingle="true" limitToList="true" eventsQueue="queue"
+                                ignoreDupResponses="true" requestDelay="500" reRender="workplacePanel, #{MbOperTypes.entityTab}">
+                    <a4j:actionparam value="reasonMappingTab" assignTo="#{MbOperTypes.entityTab}" />
+                </a4j:jsFunction>
+            </h:form>
+
+			<!-- Result panel -->
+			<h:panelGroup layout="block" id="operTypesResultPanel"
+				styleClass="result-block-tab">
+				<h:panelGroup layout="block" styleClass="header-stub-curve"
+					style="display:none;" id="operTypesResultWrapperPanel"/>
+				<h:panelGroup layout="block" styleClass="result-block-tab-body">
+					<rich:tabPanel switchType="client" tabClass="tab-cell"
+						activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+						contentClass="tab-content" selectedTab="#{MbOperTypes.entityTab}"
+						>
+					<a4j:support event="onchange" reRender="operTypesResultPanel, #{MbOperTypes.entityTab}" />
+
+						<rich:tab onlabelclick = "selectTab('checksTab'); storeEntitiesTab();" label="#{lblOpr.checks}" name="checksTab">
+							<f:facet name="label">
+								<h:panelGroup styleClass="first tab-label" layout="block">
+									<h:outputText value="#{lblOpr.checks}" title="#{lblOpr.checks}" />
+								</h:panelGroup>
+							</f:facet>
+
+							<h:panelGroup id="checksTab" layout="block">
+								<ui:include src="/pages/operations/operTypes/checksTable.jspx">
+									<ui:param name="reRenderList" value="checksDetailsTab, operTypeChecksTab, workplacePanel, btnPanel"/>
+								</ui:include>
+
+							</h:panelGroup>
+						</rich:tab>
+
+						<rich:tab onlabelclick = "selectTab('scenariosTab'); storeEntitiesTab();" label="#{lblAtm.scenarios}" name="scenariosTab"
+							rendered="#{users.inRole[VIEW_AUTH_SCENARIO]}">
+							<f:facet name="label">
+								<h:panelGroup styleClass="tab-label" layout="block">
+									<h:outputText value="#{lblAtm.scenarios}" title="#{lblAtm.scenarios}" />
+								</h:panelGroup>
+							</f:facet>
+
+							<h:panelGroup id="scenariosTab" layout="block">
+								<ui:include src="/pages/operations/operTypes/scenariosTable.jspx" />
+							</h:panelGroup>
+						</rich:tab>
+
+						<rich:tab onlabelclick = "selectTab('respCodesTab'); storeEntitiesTab();" label="#{lblAut.response_code}" name="respCodesTab">
+
+							<f:facet name="label">
+								<h:panelGroup styleClass="tab-label" layout="block">
+									<h:outputText value="#{lblAut.response_code}"
+										title="#{lblAut.response_code}" />
+								</h:panelGroup>
+							</f:facet>
+
+							<h:panelGroup id="respCodesTab" layout="block">
+								<ui:include src="/pages/operations/operTypes/respCodesTable.jspx" />
+							</h:panelGroup>
+						</rich:tab>
+
+						<rich:tab onlabelclick = "selectTab('reasonMappingTab'); storeEntitiesTab();" label="Reason mapping" name="reasonMappingTab">
+							<f:facet name="label">
+								<h:panelGroup styleClass="tab-label" layout="block">
+									<h:outputText value="Reason mapping" title="Reason mapping" />
+								</h:panelGroup>
+							</f:facet>
+
+							<h:panelGroup id="reasonMappingTab" layout="block">
+								<ui:include
+									src="/pages/operations/operTypes/reasonMappingTable.jspx" />
+							</h:panelGroup>
+						</rich:tab>
+
+						<rich:tab onlabelclick = "selectTab('procTemplatesTab'); storeEntitiesTab();" label="#{lblOpr.processing_templates}" name="procTemplatesTab">
+							<f:facet name="label">
+								<h:panelGroup styleClass="tab-label" layout="block">
+									<h:outputText value="#{lblOpr.processing_templates}"
+										title="#{lblOpr.processing_templates}" />
+								</h:panelGroup>
+							</f:facet>
+
+							<h:panelGroup id="procTemplatesTab" layout="block">
+								<ui:include
+									src="/pages/operations/operTypes/procTemplatesTable.jspx" />
+							</h:panelGroup>
+						</rich:tab>
+
+						<rich:tab onlabelclick = "selectTab('participantsTab'); storeEntitiesTab();" label="#{lblOpr.participants}" name="participantsTab">
+							<f:facet name="label">
+								<h:panelGroup styleClass="tab-label" layout="block">
+									<h:outputText value="#{lblOpr.participants}"
+										title="#{lblOpr.participants}" />
+								</h:panelGroup>
+							</f:facet>
+
+							<h:panelGroup id="participantsTab" layout="block">
+								<ui:include
+									src="/pages/operations/operTypes/participantsTable.jspx" />
+							</h:panelGroup>
+						</rich:tab>
+
+					</rich:tabPanel>
+				</h:panelGroup>
+				<a4j:outputPanel ajaxRendered="true" layout="none">
+					<h:graphicImage url="/_img/hd_searchblock.gif"
+						styleClass="hd-searchblock" />
+					<h:panelGroup styleClass="collapse-vert table-collapse-vert"
+						layout="block" />
+				</a4j:outputPanel>
+			</h:panelGroup>
+			<h:panelGroup id="operTypesBtnForm" style="visibility: hidden"/>
+
+            <h:form>
+                <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbOperTypes.tabName}">
+                    <a4j:actionparam name="tabName" assignTo="#{MbOperTypes.tabName}" />
+                </a4j:jsFunction>
+            </h:form>
+
+			<h:panelGroup styleClass="workplace" layout="block"
+				id="workplacePanel">
+				<rich:tabPanel switchType="client" id="details"
+					tabClass="tab-cell" activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content">
+
+					<rich:tab label="#{lblCommon.details}" name="participantDetailsTab"
+						rendered="#{MbOperTypes.entityTab == 'participantsTab'}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup layout="block" id="participantDetailsTab">
+							<ui:include src="/pages/operations/operTypes/participantDetails.jspx" />
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons" />
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblCommon.details}" name="checksDetailsTab"
+						rendered="#{MbOperTypes.entityTab == 'checksTab'}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup layout="block" id="checksDetailsTab">
+							<ui:include src="/pages/operations/checkSelectionDetails.jspx" />
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons" />
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab ontabenter="storeTab('checksTab')" label="#{lblOpr.checks}"
+						rendered="#{usession.inRole['VIEW_OPR_CHECK'] and MbOperTypes.entityTab == 'checksTab'}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblOpr.checks}" title="#{lblOpr.checks}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup layout="block" id="operTypeChecksTab">
+							<ui:include src="/pages/operations/checksListBottom.jspx">
+								<ui:param name="hideButtons" value="false" />
+							</ui:include>
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblCommon.details}" name="scenariosDetailsTab"
+						rendered="#{MbOperTypes.entityTab == 'scenariosTab'}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup layout="block" id="scenariosDetailsTab">
+							<ui:include src="/pages/operations/operTypes/scenarioDetails.jspx" />
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons" />
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblCommon.details}" name="respCodesDetailsTab"
+						rendered="#{MbOperTypes.entityTab == 'respCodesTab'}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup layout="block" id="respCodeDetailsTab">
+							<ui:include src="/pages/aut/respCodeDetails.jspx" />
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons" />
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblCommon.details}" name="reasonMappingDetailsTab"
+						rendered="#{MbOperTypes.entityTab == 'reasonMappingTab'}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup layout="block" id="reasonMappingDetailsTab">
+							<ui:include src="/pages/operations/reason_mapping_details.jspx" />
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons" />
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblRul.rules}" name="procTemplateRulesTab"
+							  ontabenter="storeTab('rulesTab')"
+							  rendered="#{MbOperTypes.entityTab == 'procTemplatesTab'}"
+							  style="height:100%;">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblRul.rules}" title="#{lblRul.rules}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<h:panelGroup id="procTemplateRulesTab" layout="block"
+									  styleClass="carddata-wrapper"
+									  style="height: 100%;overflow:hidden;position:relative;">
+								<ui:include src="/pages/rules/list_rules.jspx" />
+						</h:panelGroup>
+					</rich:tab>
+
+				</rich:tabPanel>
+			</h:panelGroup>
+
+			<script>
+			//<![CDATA[
+
+
+
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'operTypesSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'operTypesResultPanel',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'operTypesResultWrapperPanel',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'operTypesBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'participantTypeDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'participantTypeDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'chkSelectionDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'chkSelectionDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'checksBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'checksTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'scenarioDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'scenarioDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+		                                    TAB_FORM_ID:            'respCodeDetailsForm',
+		                                    TAB_FORM_WRAPPER_ID:    'respCodeDetailsWrapper',
+		                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    	}, {
+		                                    TAB_FORM_ID:            'reasonMappingDetailsForm',
+		                                    TAB_FORM_WRAPPER_ID:    'reasonMappingDetailsWrapper',
+		                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+		                                    }, {
+		                                    TAB_FORM_ID:            'rulesFormWrapper',
+		                                    TAB_FORM_WRAPPER_ID:    'procTemplateRulesTab',
+		                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    	}]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+
+			updateHeight();
+			//]]>
+			</script>
+
+		</ui:define>
+	</ui:composition>
+</html>

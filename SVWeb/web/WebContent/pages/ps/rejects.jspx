@@ -1,0 +1,1070 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+        >
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+<ui:define name="navigatableContent">
+<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css"/>
+<script type="text/javascript" src="#{request.contextPath}/js/stretch.js"/>
+
+
+<f:loadBundle var="lblRej" basename="ru.bpc.sv2.ui.bundles.Reject"/>
+
+<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+<a4j:loadScript src="/js/stretch.js"/>
+<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+<h:form>
+    <a4j:jsFunction name="initBean" action="#{MbReject.init}">
+        <a4j:actionparam name="param1" assignTo="#{MbReject.module}"/>
+    </a4j:jsFunction>
+</h:form>
+
+<script type="text/javascript">
+    //<![CDATA[
+    window.onload = function () {
+        initBean('#{module}');
+    };
+
+    function handleEnter(event) {
+        if (event.keyCode == 13) {
+            document.getElementById('entitySearchForm:searchBtn').click();
+            return false;
+        }
+        return true;
+    }
+    //]]>
+</script>
+
+<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"
+               onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+               zindex="1000" inputClass="hidden" buttonClass="hidden"/>
+
+<script>
+    #{rich:component('calendar')}.customExpand = customExpand;
+</script>
+
+<!-- navigation bar -->
+
+<bpct:navBar pageName="#{lblCrd.debts}"/>
+
+
+<!-- search panel -->
+<h:panelGroup layout="block" styleClass="search_block_tabs" id="operationSearchFormDiv">
+<h:panelGroup layout="block" styleClass="search_block_tabs_inner1">
+
+<rich:tabPanel switchType="client" id="opFilterTabs" tabClass="tab-cell"
+               activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+               contentClass="search_block"
+               selectedTab="#{MbReject.searchTabName}">
+
+<rich:tab label="#{lblRej.reject}" name="rejectTab">
+    <f:facet name="label">
+        <h:panelGroup styleClass="first tab-label" layout="block">
+            <h:outputText value="#{lblRej.reject}" title="#{lblRej.reject}"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup layout="block" styleClass="search_block_tab">
+        <h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" style="height: 110px">
+            <a4j:form id="rejectSearchForm">
+                <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                    <a4j:outputPanel id="personPanel">
+                        <h:panelGrid styleClass="filter-table field-cont threeColumnTable" columns="6"
+                                     columnClasses="first,secondCol,firstCol,secondCol,firstCol,secondCol"
+                                     id="filtersTable">
+                            <h:outputLabel for="caseId" value="#{lblRej.id}: "
+                                           title="#{lblRej.id}"/>
+                            <h:inputText id="caseId" value="#{MbReject.filter.id}"/>
+
+                            <h:outputLabel for="scheme" value="#{lblRej.scheme}: "
+                                           title="#{lblRej.scheme}"/>
+                            <h:inputText id="scheme" value="#{MbReject.filter.scheme}"/>
+
+                            <h:outputLabel for="arn" value="#{lblRej.arn}: "
+                                           title="#{lblRej.arn}"/>
+                            <h:inputText id="arn" value="#{MbReject.filter.arn}"/>
+
+                            <h:outputLabel for="assigned" value="#{lblRej.assigned_user}: "
+                                           title="#{lblRej.assigned_user}"/>
+                            <h:selectOneMenu id="assigned" value="#{MbReject.filter.assigned}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{MbReject.allUsers}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel for="type" value="#{lblRej.reject_type}: "
+                                           title="#{lblRej.reject_type}"/>
+                            <h:selectOneMenu id="type" value="#{MbReject.filter.type}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{DictUtils.rejectTypes}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel for="rstatus" value="#{lblRej.status}: "
+                                           title="#{lblRej.status}"/>
+                            <h:selectOneMenu id="rstatus" value="#{MbReject.filter.status}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{DictUtils.rejectStatuses}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel for="resolution" value="#{lblRej.resolution_mode}: "
+                                           title="#{lblRej.resolution_mode}"/>
+                            <h:selectOneMenu id="resolution" value="#{MbReject.filter.resolution}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{DictUtils.resolutionModes}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel for="processDate" value="#{lblRej.process_date}: "
+                                           title="#{lblRej.process_date}"/>
+                            <h:panelGroup>
+                                <h:inputText id="processDate" style="max-width:225px"
+                                             value="#{MbReject.filter.processDate}"
+                                             onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('rejectSearchForm:processDate')}, #{rich:element('rejectSearchForm:processDateBtn')});">
+                                    <f:convertDateTime pattern="#{usession.datePattern}"
+                                                       timeZone="#{CommonUtils.timeZone}"/>
+                                </h:inputText>
+                                <h:graphicImage
+                                        value="/images/calendar.gif"
+                                        onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('rejectSearchForm:processDate')}, #{rich:element('rejectSearchForm:processDateBtn')});"
+                                        id="processDateBtn"/>
+                            </h:panelGroup>
+                            <h:outputLabel for="resolutionDate" value="#{lblRej.resolution_date}: "
+                                           title="#{lblRej.resolution_date}"/>
+                            <h:panelGroup>
+                                <h:inputText id="resolutionDate" style="max-width:225px"
+                                             value="#{MbReject.filter.resolutionDate}"
+                                             onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('rejectSearchForm:resolutionDate')}, #{rich:element('rejectSearchForm:resolutionDateBtn')});">
+                                    <f:convertDateTime pattern="#{usession.datePattern}"
+                                                       timeZone="#{CommonUtils.timeZone}"/>
+                                </h:inputText>
+                                <h:graphicImage
+                                        value="/images/calendar.gif"
+                                        onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('rejectSearchForm:resolutionDate')}, #{rich:element('rejectSearchForm:resolutionDateBtn')});"
+                                        id="resolutionDateBtn"/>
+                            </h:panelGroup>
+
+                            <h:outputLabel for="code" value="#{lblRej.reject_code}: "
+                                           title="#{lblRej.reject_code}"/>
+                            <h:inputText id="code" label="#{lblRej.reject_code}"
+                                         value="#{MbReject.filter.code}"/>
+                        </h:panelGrid>
+                    </a4j:outputPanel>
+                    <h:panelGrid columns="1">
+                        <bre:taggedCommandButton eventsQueue="queue"
+                                                 action="#{MbReject.search}"
+                                                 reRender="entityTable, entityBtnForm, operWrapper, generalWrapper, partWrapper, finWrapper, codesWrapper"
+                                                 image="/_img/icon_search.png" type="submit"
+                                                 value="#{lblForm.search}" style="width:85px;">
+                        </bre:taggedCommandButton>
+                        <h:panelGrid columns="1">
+                            <h:panelGroup styleClass="link-clear" layout="block">
+                                <h:graphicImage url="/_img/icon_clear.png"/>
+                                <a4j:commandLink value="#{lblForm.clear_all}" oncomplete="updateHeight();"
+                                                 action="#{MbReject.clearFilter}"
+                                                 reRender="rejectSearchForm, details">
+                                </a4j:commandLink>
+                            </h:panelGroup>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                </h:panelGrid>
+            </a4j:form>
+        </h:panelGroup>
+    </h:panelGroup>
+</rich:tab>
+<rich:tab label="#{lblRej.networks}" name="networksTab">
+    <f:facet name="label">
+        <h:panelGroup styleClass="first tab-label" layout="block">
+            <h:outputText value="#{lblRej.networks}" title="#{lblRej.networks}"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup layout="block" styleClass="search_block_tab">
+        <h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden">
+            <a4j:form id="networksSearchForm">
+                <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                    <a4j:outputPanel id="personPanel">
+                        <h:panelGrid styleClass="filter-table field-cont oneColumnTable" columns="2"
+                                     columnClasses="firstCol,secondCol">
+                            <h:outputLabel for="origNetwork" value="#{lblRej.originator_network}: "
+                                           title="#{lblRej.orig_network}"/>
+                            <h:selectOneMenu id="origNetwork" value="#{MbReject.filter.origNetwork}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{DictUtils.networks}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel for="dstNetwork" value="#{lblRej.destination_network}: "
+                                           title="#{lblRej.dst_network}"/>
+                            <h:selectOneMenu id="dstNetwork" value="#{MbReject.filter.dstNetwork}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{DictUtils.networks}"/>
+                            </h:selectOneMenu>
+                        </h:panelGrid>
+                    </a4j:outputPanel>
+                    <h:panelGrid columns="1">
+                        <bre:taggedCommandButton eventsQueue="queue"
+                                                 action="#{MbReject.search}"
+                                                 reRender="entityTable, entityBtnForm, workplacePanel"
+                                                 image="/_img/icon_search.png" type="submit"
+                                                 value="#{lblForm.search}" style="width:85px;">
+                        </bre:taggedCommandButton>
+                        <h:panelGrid columns="1">
+                            <h:panelGroup styleClass="link-clear" layout="block">
+                                <h:graphicImage url="/_img/icon_clear.png"/>
+                                <a4j:commandLink value="#{lblForm.clear_all}" oncomplete="updateHeight();"
+                                                 action="#{MbReject.clearFilter}"
+                                                 reRender="networksSearchForm, details">
+                                </a4j:commandLink>
+                            </h:panelGroup>
+                            <h:panelGroup>
+                            </h:panelGroup>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                </h:panelGrid>
+            </a4j:form>
+        </h:panelGroup>
+    </h:panelGroup>
+</rich:tab>
+<rich:tab label="#{lblRej.operation}" name="operationTab">
+    <f:facet name="label">
+        <h:panelGroup styleClass="first tab-label" layout="block">
+            <h:outputText value="#{lblRej.operation}" title="#{lblRej.operation}"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup layout="block" styleClass="search_block_tab">
+        <h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden">
+            <a4j:form id="operationSearchForm">
+                <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                    <a4j:outputPanel id="personPanel">
+                        <h:panelGrid styleClass="filter-table field-cont oneColumnTable" columns="2"
+                                     columnClasses="firstCol,secondCol">
+                            <h:outputLabel for="operationType" value="#{lblRej.operation_type}: "
+                                           title="#{lblRej.oper_type}"/>
+                            <h:selectOneMenu id="operationType" value="#{MbReject.filter.operType}">
+                                <f:selectItem itemValue=""/>
+                                <f:selectItems value="#{DictUtils.operTypes}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel for="cardNumber" value="#{lblRej.card_number}: "
+                                           title="#{lblRej.card_number}"/>
+                            <h:inputText id="cardNumber" value="#{MbReject.filter.pan}"/>
+                        </h:panelGrid>
+                    </a4j:outputPanel>
+                    <h:panelGrid columns="1">
+                        <bre:taggedCommandButton eventsQueue="queue"
+                                                 action="#{MbReject.search}"
+                                                 reRender="entityTable, entityBtnForm, workspace"
+                                                 image="/_img/icon_search.png" type="submit"
+                                                 value="#{lblForm.search}" style="width:85px;">
+                        </bre:taggedCommandButton>
+                        <h:panelGrid columns="1">
+                            <h:panelGroup styleClass="link-clear" layout="block">
+                                <h:graphicImage url="/_img/icon_clear.png"/>
+                                <a4j:commandLink value="#{lblForm.clear_all}" oncomplete="updateHeight();"
+                                                 action="#{MbReject.clearFilter}"
+                                                 reRender="operationSearchForm">
+                                </a4j:commandLink>
+                            </h:panelGroup>
+                            <h:panelGroup>
+                            </h:panelGroup>
+                        </h:panelGrid>
+                    </h:panelGrid>
+                </h:panelGrid>
+            </a4j:form>
+        </h:panelGroup>
+    </h:panelGroup>
+</rich:tab>
+</rich:tabPanel>
+</h:panelGroup>
+<a4j:outputPanel ajaxRendered="true">
+    <h:panelGroup styleClass="show-more-vert show-more-vert-tab" layout="block"/>
+    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+    <h:panelGroup styleClass="collapse-vert collapse-vert-tab" layout="block"/>
+</a4j:outputPanel>
+</h:panelGroup>
+
+<h:form id="entityForm">
+    <!-- result panel -->
+    <h:panelGroup styleClass="search_result_block" layout="block">
+        <h:panelGroup styleClass="search_result_block_left fix-ff"
+                      layout="block">
+            <h:panelGroup id="mainTableWrapper" layout="block"
+                          styleClass="search_result_block_inner">
+                <a4j:jsFunction name="updateTabs"
+                                reRender="assWindowForm, buttonsPanel, operWrapper, generalWrapper, partWrapper, finWrapper, codesWrapper">
+                </a4j:jsFunction>
+                <rich:extendedDataTable id="entityTable" styleClass="res-table"
+                                        tableState="#{MbReject.tableState}"
+                                        headerClass="res-table-header" rowClasses=",odd"
+                                        selectedClass="res-table-selected" var="item"
+                                        value="#{MbReject.items}"
+                                        selection="#{MbReject.itemSelection}"
+                                        rows="#{MbReject.rowsNum}" selectionMode="single"
+                                        width="100%" height="255px" enableContextMenu="true"
+                                        onselectionchange="updateTabs()"
+                                        noDataLabel="#{MbReject.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}">
+
+                    <rich:column width="8%" label="#{lblRej.id}" title="#{lblRej.id}" sortBy="#{'id'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.id}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.id}"/>
+                    </rich:column>
+                    <rich:column width="8%" label="#{lblRej.reject_type}" title="#{lblRej.reject_type}"
+                                 sortBy="#{'type'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.reject_type}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{DictUtils.rejectTypesMap[item.type]}"/>
+                    </rich:column>
+                    <rich:column width="10%" label="#{lblRej.process_date}" title="#{lblRej.process_date}"
+                                 sortBy="#{'processDate'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.process_date}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.processDate}">
+                            <f:convertDateTime type="date" pattern="#{usession.fullDatePatternSeconds}"
+                                               timeZone="#{CommonUtils.timeZone}"/>
+                        </h:outputText>
+                    </rich:column>
+                    <rich:column width="10%" label="#{lblRej.originator_network}" title="#{lblRej.originator_network}"
+                                 sortBy="#{'origNetwork'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.originator_network}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText rendered="#{DictUtils.networksMap[item.origNetwork]!=null}"
+                                      value="#{DictUtils.networksMap[item.origNetwork]}"/>
+                        <h:outputText rendered="#{DictUtils.networksMap[item.origNetwork]==null}"
+                                      value="#{item.origNetwork}"/>
+                    </rich:column>
+                    <rich:column width="10%" label="#{lblRej.destination_network}" title="#{lblRej.destination_network}"
+                                 sortBy="#{'dstNetwork'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.destination_network}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText rendered="#{DictUtils.networksMap[item.dstNetwork]!=null}"
+                                      value="#{DictUtils.networksMap[item.dstNetwork]}"/>
+                        <h:outputText rendered="#{DictUtils.networksMap[item.dstNetwork]==null}"
+                                      value="#{item.dstNetwork}"/>
+                    </rich:column>
+                    <rich:column width="5%" label="#{lblRej.reject_code}" title="#{lblRej.reject_code}"
+                                 sortBy="#{'code'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.reject_code}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.code}"/>
+                    </rich:column>
+                    <rich:column width="10%" label="#{lblRej.operation_type}" title="#{lblRej.operation_type}"
+                                 sortBy="#{'operType'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.operation_type}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{DictUtils.operTypesMap[item.operType]}"/>
+                    </rich:column>
+                    <rich:column width="8%" label="#{lblRej.card_number}" title="#{lblRej.card_number}"
+                                 sortBy="#{'pan'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.card_number}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.panMask}"/>
+                    </rich:column>
+                    <rich:column width="7%" label="#{lblRej.resolution_mode}" title="#{lblRej.resolution_mode}"
+                                 sortBy="#{'resolution'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.resolution_mode}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{DictUtils.resolutionModesMap[item.resolution]}"/>
+                    </rich:column>
+                    <rich:column width="10%" label="#{lblRej.resolution_date}" title="#{lblRej.resolution_date}"
+                                 sortBy="#{'resolutionDate'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.resolution_date}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.resolutionDate}">
+                            <f:convertDateTime type="date" pattern="#{usession.fullDatePatternSeconds}"
+                                               timeZone="#{CommonUtils.timeZone}"/>
+                        </h:outputText>
+                    </rich:column>
+                    <rich:column width="7%" label="#{lblRej.status}" title="#{lblRej.status}" sortBy="#{'status'}">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="#{lblRej.status}"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{DictUtils.rejectStatusesMap[item.status]}"/>
+                    </rich:column>
+                </rich:extendedDataTable>
+            </h:panelGroup>
+            <a4j:outputPanel ajaxRendered="true">
+                <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+                <h:graphicImage url="/_img/hd_searchblock.gif"
+                                styleClass="hd-searchblock"/>
+                <h:panelGroup styleClass="collapse-vert table-collapse-vert"
+                              layout="block"/>
+            </a4j:outputPanel>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+<!-- navigation footer-->
+<h:form id="entityBtnForm">
+    <h:panelGroup layout="block" styleClass="bottom_search_result_block" id="bottomSearchResultBlock">
+        <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+            <h:panelGroup layout="block" styleClass="table_tools" id="tableTools">
+                <h:panelGrid styleClass="fw field-cont" columns="5"
+                             columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+                    <h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}"
+                                   title="#{lblCommon.rows_per_page}"/>
+                    <h:selectOneMenu id="rows_num" value="#{MbReject.rowsNum}"
+                                     style="width:50px">
+                        <a4j:support event="onchange" reRender="entityBtnForm, entityForm"/>
+                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                    </h:selectOneMenu>
+
+                    <rich:datascroller maxPages="10" fastControls="hide"
+                                       pagesVar="pages" styleClass="res-datascroller" id="dsentity"
+                                       for="entityTable"
+                                       reRender="pagesNum"
+                                       pageIndexVar="pageIndex">
+                        <f:facet name="first">
+                            <h:outputText value="&lt;&lt;" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="first_disabled">
+                            <h:outputText value="&lt;&lt;" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="last">
+                            <h:outputText value="&gt;&gt;" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="last_disabled">
+                            <h:outputText value="&gt;&gt;" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="previous">
+                            <h:outputText value="#{lblCommon.prev}" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="previous_disabled">
+                            <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="next">
+                            <h:outputText value="#{lblCommon.next}" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="next_disabled">
+                            <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="pages">
+                        </f:facet>
+                    </rich:datascroller>
+
+                    <h:panelGroup id="pagesNum">
+                        <h:outputText styleClass="strongClass" value="#{pages} "/>
+                        <h:outputText value=" #{lblCommon.pages}"/>
+                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                        <h:outputText styleClass="strongClass" value="#{MbReject.items.rowCount}"/>
+                        <h:outputText value=" #{lblCommon.records}"/>
+                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                    </h:panelGroup>
+
+                    <h:panelGroup>
+                        <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}"
+                                        styleClass="action_icon"
+                                        onclick="saveTableState();"/>
+                        <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}"
+                                        styleClass="action_icon"
+                                        onclick="deleteTableState();"/>
+                        <a4j:queue name="tablestatequeue"/>
+                        <a4j:jsFunction name="saveTableState" action="#{MbReject.saveTableStateDB}"
+                                        eventsQueue="tablestatequeue"/>
+                        <a4j:jsFunction name="deleteTableState"
+                                        action="#{MbReject.deleteTableStateDB}"
+                                        eventsQueue="tablestatequeue"/>
+                    </h:panelGroup>
+                </h:panelGrid>
+            </h:panelGroup>
+            <h:panelGrid id="buttonsPanel" columns="3" styleClass="buttons_block">
+                <bre:taggedCommandButton id="actionBtn"
+                                         disabled="#{MbReject.activeItem==null or MbReject.activeItem.id==null}"
+                                         onclick="Richfaces.showModalPanel('actionWindow');return false;"
+                                         value="#{lblRej.action}"
+                                         image="/images/lightning.png"/>
+                <bre:taggedCommandButton id="assignBtn"
+                                         disabled="#{MbReject.activeItem==null or MbReject.activeItem.id==null}"
+                                         rendered="#{MbReject.admin}"
+                                         onclick="Richfaces.showModalPanel('assignWindow');return false;"
+                                         value="#{lblRej.assign}"/>
+            </h:panelGrid>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+<h:form>
+    <a4j:jsFunction name="selectTab">
+        <a4j:actionparam name="currentTab" assignTo="#{MbReject.tab}"/>
+    </a4j:jsFunction>
+</h:form>
+
+<h:form>
+    <a4j:jsFunction name="selectRow"
+                    reRender="fieldButtonsPanel, operFieldButtonsPanel, partFieldButtonsPanel, finFieldButtonsPanel, fieldWindow">
+        <a4j:actionparam name="currentRow" assignTo="#{MbReject.selProp}"/>
+    </a4j:jsFunction>
+</h:form>
+
+<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+               activeTabClass="active-tab-cell" headerClass="tabs"
+               headerSpacing="0px" contentClass="tab-content">
+
+<rich:tab label="#{lblRej.general_fields}" name="generalTab" ontabenter="selectTab(0)">
+    <f:facet name="label">
+        <h:panelGroup styleClass="first tab-label" layout="block">
+            <h:outputText value="#{lblRej.general_fields}" title="#{lblRej.general_fields}"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup layout="block" id="generalTab">
+        <h:form id="generalForm">
+            <h:panelGroup id="generalWrapper" layout="block" styleClass="carddata-wrapper"
+                          style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+                <rich:extendedDataTable id="generalTable"
+                                        value="#{MbReject.genProps}"
+                                        var="item"
+                                        selectionMode="none"
+                                        height="300px"
+                                        onRowClick="selectRow('#{item.column}')"
+                                        styleClass="res-table" width="100%">
+                    <rich:column width="20%" filterBy="#{lblRej[item.column]}" filterEvent="onkeyup"
+                                 label="#{lblRej.field_name}" title="#{lblRej.field_name}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.field_name}"/>
+                        </f:facet>
+                        <h:outputText value="#{lblRej[item.column]}"/>
+                    </rich:column>
+                    <rich:column width="80%" label="#{lblRej.value}" title="#{lblRej.value}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.value}"/>
+                        </f:facet>
+                        <h:outputText rendered="#{item.column=='oper_type'}"
+                                      value="#{item.value} - #{DictUtils.operTypesMap[item.value]}"/>
+                        <h:outputText rendered="#{item.column!='oper_type' and item.dataType!='date'}"
+                                      value="#{item.value}"/>
+                        <h:outputText rendered="#{item.column!='oper_type' and item.dataType=='date'}"
+                                      value="#{item.date}">
+                            <f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+                                               timeZone="#{CommonUtils.timeZone}"/>
+                        </h:outputText>
+                    </rich:column>
+                </rich:extendedDataTable>
+                <h:panelGrid style="background-color: rgb(231, 233, 218);width: 100%">
+                    <h:panelGroup id="fieldButtonsPanel" layout="block"
+                                  styleClass="bottom_search_result_left_buttons"
+                                  style="width:200px">
+                        <a4j:region>
+                            <h:panelGrid styleClass="fw buttons_block" columns="4">
+                            </h:panelGrid>
+                        </a4j:region>
+                    </h:panelGroup>
+                </h:panelGrid>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:tab>
+<rich:tab label="#{lblRej.oper_fields}" name="operTab" ontabenter="selectTab(1)">
+    <f:facet name="label">
+        <h:panelGroup styleClass="second tab-label" layout="block">
+            <h:outputText value="#{lblRej.oper_fields}" title="#{lblRej.oper_fields}"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup layout="block">
+        <h:form id="operForm">
+            <h:panelGroup id="operWrapper" layout="block" styleClass="carddata-wrapper"
+                          style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+                <rich:extendedDataTable id="operTable"
+                                        value="#{MbReject.origOperProps}"
+                                        var="item"
+                                        height="300px"
+                                        onRowClick="selectRow('#{item.column}')"
+                                        styleClass="res-table" width="100%">
+                    <rich:column width="20%" filterBy="#{lblRej[item.column]}" filterEvent="onkeyup"
+                                 label="#{lblRej.field_name}" title="#{lblRej.field_name}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.field_name}"/>
+                        </f:facet>
+                        <h:outputText value="#{lblRej[item.column]}"/>
+                    </rich:column>
+                    <rich:column width="80%" label="#{lblRej.value}" title="#{lblRej.value}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.value}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.value}"/>
+                    </rich:column>
+                </rich:extendedDataTable>
+                <h:panelGrid style="background-color: rgb(231, 233, 218);width: 100%">
+                    <h:panelGroup id="operFieldButtonsPanel" layout="block"
+                                  styleClass="bottom_search_result_left_buttons"
+                                  style="width:200px">
+                        <a4j:region>
+                            <h:panelGrid styleClass="fw buttons_block" columns="4">
+                                <bre:taggedCommandButton value="#{lblRej.upd_sel_field}"
+                                                         onclick="Richfaces.showModalPanel('fieldWindow');return false;"
+                                                         disabled="#{MbReject.activeItem==null or MbReject.prop==null or MbReject.prop.column==null}"
+                                                         image="/images/edit.gif"/>
+                            </h:panelGrid>
+                        </a4j:region>
+                    </h:panelGroup>
+                </h:panelGrid>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:tab>
+<rich:tab label="#{lblRej.participants}" name="partTab" ontabenter="selectTab(2)">
+    <f:facet name="label">
+        <h:panelGroup styleClass="second tab-label" layout="block">
+            <h:outputText value="#{lblRej.participants}" title="#{lblRej.participants}"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup layout="block">
+        <h:form id="partForm">
+            <h:panelGroup id="partWrapper" layout="block" styleClass="carddata-wrapper"
+                          style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+                <rich:extendedDataTable id="partTable"
+                                        value="#{MbReject.participantProps}"
+                                        var="item"
+                                        height="300px"
+                                        onRowClick="selectRow('#{item.column}')"
+                                        styleClass="res-table" width="100%">
+                    <rich:column width="20%" filterBy="#{lblRej[item.column]}" filterEvent="onkeyup"
+                                 label="#{lblRej.field_name}" title="#{lblRej.field_name}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.field_name}"/>
+                        </f:facet>
+                        <h:outputText value="#{lblRej[item.column]}"/>
+                    </rich:column>
+                    <rich:column width="10%" label="#{lblRej.participant_type}" title="#{lblRej.participant_type}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.participant_type}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.partType}"/>
+                    </rich:column>
+                    <rich:column width="70%" label="#{lblRej.value}" title="#{lblRej.value}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.value}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.value}"/>
+                    </rich:column>
+                </rich:extendedDataTable>
+                <h:panelGrid style="background-color: rgb(231, 233, 218);width: 100%">
+                    <h:panelGroup id="partFieldButtonsPanel" layout="block"
+                                  styleClass="bottom_search_result_left_buttons"
+                                  style="width:200px">
+                        <a4j:region>
+                            <h:panelGrid styleClass="fw buttons_block" columns="4">
+                                <bre:taggedCommandButton value="#{lblRej.upd_sel_field}"
+                                                         onclick="Richfaces.showModalPanel('fieldWindow');return false;"
+                                                         disabled="#{MbReject.activeItem==null or MbReject.prop==null or MbReject.prop.column==null}"
+                                                         image="/images/edit.gif"/>
+                            </h:panelGrid>
+                        </a4j:region>
+                    </h:panelGroup>
+                </h:panelGrid>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:tab>
+<rich:tab label="#{lblRej.fin_messages}" name="finTab" ontabenter="selectTab(3)">
+    <f:facet name="label">
+        <h:panelGroup styleClass="second tab-label" layout="block">
+            <h:outputText value="#{lblRej.fin_messages}" title="#{lblRej.fin_messages}"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup layout="block">
+        <h:form id="finForm">
+            <h:panelGroup id="finWrapper" layout="block" styleClass="carddata-wrapper"
+                          style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+                <rich:extendedDataTable id="finTable"
+                                        value="#{MbReject.finMesProps}"
+                                        var="item"
+                                        height="300px"
+                                        onRowClick="selectRow('#{item.column}')"
+                                        styleClass="res-table" width="100%">
+                    <rich:column width="20%" filterBy="#{lblRej[item.column]}" filterEvent="onkeyup"
+                                 label="#{lblRej.field_name}" title="#{lblRej.field_name}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.field_name}"/>
+                        </f:facet>
+                        <h:outputText value="#{lblRej[item.column]}"/>
+                    </rich:column>
+                    <rich:column width="80%" label="#{lblRej.value}" title="#{lblRej.value}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.value}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.value}"/>
+                    </rich:column>
+                </rich:extendedDataTable>
+                <h:panelGrid style="background-color: rgb(231, 233, 218);width: 100%">
+                    <h:panelGroup id="finFieldButtonsPanel" layout="block"
+                                  styleClass="bottom_search_result_left_buttons"
+                                  style="width:200px">
+                        <a4j:region>
+                            <h:panelGrid styleClass="fw buttons_block" columns="4">
+                                <bre:taggedCommandButton value="#{lblRej.upd_sel_field}"
+                                                         onclick="Richfaces.showModalPanel('fieldWindow');return false;"
+                                                         disabled="#{MbReject.activeItem==null or MbReject.prop==null or MbReject.prop.column==null}"
+                                                         image="/images/edit.gif"/>
+                            </h:panelGrid>
+                        </a4j:region>
+                    </h:panelGroup>
+                </h:panelGrid>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:tab>
+<rich:tab label="#{lblRej.reject_codes}" name="codesTab">
+    <f:facet name="label">
+        <h:panelGroup styleClass="second tab-label" layout="block">
+            <h:outputText value="#{lblRej.reject_codes}" title="#{lblRej.reject_codes}"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup layout="block">
+        <h:form id="codesForm">
+            <h:panelGroup id="codesWrapper" layout="block" styleClass="carddata-wrapper"
+                          style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+                <rich:extendedDataTable value="#{MbReject.visaRejectCodes}"
+                                        rendered="#{module=='VISA'}"
+                                        var="item"
+                                        selectionMode="none"
+                                        height="300px"
+                                        styleClass="res-table" width="100%">
+                    <rich:column width="7%" label="#{lblRej.id}" title="#{lblRej.id}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.id}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.id}"/>
+                    </rich:column>
+                    <rich:column width="10%" label="#{lblRej.code}" title="#{lblRej.code}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.code}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.code}"/>
+                    </rich:column>
+                    <rich:column width="30%" label="#{lblRej.description}" title="#{lblRej.description}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.description}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.description}"/>
+                    </rich:column>
+                    <rich:column width="10%" label="#{lblRej.field}" title="#{lblRej.field}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.field}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.field}"/>
+                    </rich:column>
+                </rich:extendedDataTable>
+                <rich:extendedDataTable value="#{MbReject.mcRejectCodes}"
+                                        rendered="#{module=='MC'}"
+                                        var="item"
+                                        height="300px"
+                                        selectionMode="none"
+                                        styleClass="res-table" width="100%">
+                    <rich:column width="10%" label="#{lblRej.id}" title="#{lblRej.id}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.id}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.id}"/>
+                    </rich:column>
+
+                    <rich:column width="10%" label="#{lblRej.de_number}" title="#{lblRej.de_number}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.de_number}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.deNumber}"/>
+                    </rich:column>
+
+                    <rich:column width="10%" label="#{lblRej.severity_code}" title="#{lblRej.severity_code}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.severity_code}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.severityCode}"/>
+                    </rich:column>
+
+                    <rich:column width="10%" label="#{lblRej.message_code}" title="#{lblRej.message_code}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.message_code}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.messageCode}"/>
+                    </rich:column>
+
+                    <rich:column width="10%" label="#{lblRej.subfield_id}" title="#{lblRej.subfield_id}">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.subfield_id}"/>
+                        </f:facet>
+                        <h:outputText value="#{item.subfieldId}"/>
+                    </rich:column>
+
+                    <rich:column width="15%" label="#{lblRej.is_from_orig_msg}" title="#{lblRej.is_from_orig_msg}"
+                                 style="text-align: center">
+                        <f:facet name="header">
+                            <h:outputText value="#{lblRej.is_from_orig_msg}"/>
+                        </f:facet>
+                        <h:selectBooleanCheckbox value="#{item.fromOrigMsg}" rendered="#{item.fromOrigMsg!=null}"
+                                                 onclick="return false"/>
+                    </rich:column>
+                </rich:extendedDataTable>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:tab>
+</rich:tabPanel>
+</h:panelGroup>
+
+<rich:modalPanel id="actionWindow" autosized="true" minWidth="300" minHeight="100">
+    <f:facet name="header">
+        <h:panelGroup id="editWindowHeader">
+            <h:outputText value="#{lblRej.act_on_reject}"/>
+        </h:panelGroup>
+    </f:facet>
+    <f:facet name="controls">
+        <h:panelGroup>
+            <h:outputText value="X" styleClass="hidelink" id="hideActLink"/>
+            <rich:componentControl for="actionWindow" attachTo="hideActLink"
+                                   operation="hide" event="onclick"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup id="actionWindowDiv">
+        <h:form id="actionWindowForm">
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper paddingTop14">
+                <h:panelGrid id="fields" columns="2" styleClass="cardholderdata"
+                             style="margin-top: 14px"
+                             columnClasses="firstColModal nowrap top, width250">
+                    <h:outputLabel for="action" value="#{lblRej.sel_act}"/>
+                    <h:selectOneMenu id="action" value="#{MbReject.action}">
+                        <f:selectItems value="#{DictUtils.resolutionModes}"/>
+                    </h:selectOneMenu>
+                </h:panelGrid>
+            </h:panelGroup>
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                        <h:outputText/>
+                        <bre:taggedCommandButton value="#{lblForm.save}" id="saveBtn"
+                                                 action="#{MbReject.executeAction}"
+                                                 reRender="entityTable"
+                                                 oncomplete="if(#{usession.noErrorResponse}) Richfaces.hideModalPanel('actionWindow')"
+                                />
+                        <bre:taggedCommandButton value="#{lblForm.cancel}" id="cancelBtn"
+                                                 onclick="Richfaces.hideModalPanel('actionWindow');return false;"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:modalPanel>
+
+<rich:modalPanel id="assignWindow" autosized="true" minWidth="300" minHeight="100">
+    <f:facet name="header">
+        <h:panelGroup>
+            <h:outputText value="#{lblRej.assign_user}"/>
+        </h:panelGroup>
+    </f:facet>
+    <f:facet name="controls">
+        <h:panelGroup>
+            <h:outputText value="X" styleClass="hidelink" id="hideAssLink"/>
+            <rich:componentControl for="assignWindow" attachTo="hideAssLink"
+                                   operation="hide" event="onclick"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup id="assWindowDiv">
+        <h:form id="assWindowForm">
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper paddingTop14">
+                <h:panelGrid columns="2" styleClass="cardholderdata"
+                             style="margin-top: 14px"
+                             columnClasses="firstColModal nowrap top, width250">
+                    <h:outputLabel for="roleId" value="#{lblRej.user_role}"/>
+                    <h:selectOneMenu id="roleId" value="#{MbReject.groupId}">
+                        <f:selectItems value="#{MbReject.groups}"/>
+                        <a4j:support event="onchange" ajaxSingle="true"
+                                     reRender="userId"/>
+                    </h:selectOneMenu>
+
+                    <h:outputLabel for="userId" value="#{lblRej.user}"/>
+                    <h:selectOneMenu id="userId" value="#{MbReject.activeItem.assignedUserId}">
+                        <f:selectItems value="#{MbReject.groupUsers}"/>
+                    </h:selectOneMenu>
+                </h:panelGrid>
+            </h:panelGroup>
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                        <h:outputText/>
+                        <bre:taggedCommandButton value="#{lblRej.assign}" id="assignBtn"
+                                                 action="#{MbReject.assignUser}"
+                                                 reRender="generalWrapper"
+                                                 oncomplete="if(#{usession.noErrorResponse}) Richfaces.hideModalPanel('assignWindow')"
+                                />
+                        <bre:taggedCommandButton value="#{lblForm.cancel}" id="cancelBtn"
+                                                 onclick="Richfaces.hideModalPanel('assignWindow');return false;"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:modalPanel>
+
+<rich:modalPanel id="fieldWindow" autosized="true" minWidth="300" minHeight="100">
+    <f:facet name="header">
+        <h:panelGroup id="fieldWindowHeader">
+            <h:outputText value="#{lblRej.act_on_reject}"/>
+        </h:panelGroup>
+    </f:facet>
+    <f:facet name="controls">
+        <h:panelGroup>
+            <h:outputText value="X" styleClass="hidelink" id="hideLink"/>
+            <rich:componentControl for="fieldWindow" attachTo="hideLink"
+                                   operation="hide" event="onclick"/>
+        </h:panelGroup>
+    </f:facet>
+    <h:panelGroup id="fieldWindowDiv">
+        <h:form id="fieldWindowForm">
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <h:panelGrid columns="2" styleClass="cardholderdata"
+                             style="margin-top: 14px"
+                             columnClasses="firstColModal nowrap top, width250">
+                    <h:outputLabel value="#{lblRej[MbReject.prop.column]}"/>
+                    <h:inputText
+                            rendered="#{MbReject.prop.dataType!='date' and MbReject.prop.column!='code' and MbReject.prop.column!='resolution' and MbReject.prop.column!='status' and MbReject.prop.column!='type' and MbReject.prop.column!='oper_type'}"
+                            value="#{MbReject.prop.value}"
+                            style="margin-left: 10px"/>
+                    <h:panelGroup rendered="#{MbReject.prop.dataType=='date'}">
+                        <h:inputText id="fieldDate" style="max-width:150px; vertical-align: top; margin-left: 10px"
+                                     value="#{MbReject.prop.date}"
+                                     onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('fieldWindowForm:fieldDate')}, #{rich:element('fieldWindowForm:fieldDateBtn')});">
+                            <f:convertDateTime pattern="#{usession.datePattern}"
+                                               timeZone="#{CommonUtils.timeZone}"/>
+                        </h:inputText>
+                        <h:graphicImage
+                                value="/images/calendar.gif"
+                                onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('fieldWindowForm:fieldDate')}, #{rich:element('fieldWindowForm:fieldDateBtn')});"
+                                id="fieldDateBtn"/>
+                    </h:panelGroup>
+                    <h:selectOneMenu rendered="#{MbReject.prop.column=='code'}" value="#{MbReject.prop.value}"
+                                     style="margin-left: 10px">
+                        <f:selectItem itemLabel="All" itemValue=""/>
+                    </h:selectOneMenu>
+                    <h:selectOneMenu rendered="#{MbReject.prop.column=='resolution'}" value="#{MbReject.prop.value}"
+                                     style="margin-left: 10px">
+                        <f:selectItem itemLabel="All" itemValue=""/>
+                        <f:selectItem itemLabel="Forward" itemValue="FORWARD"/>
+                        <f:selectItem itemLabel="Canceled" itemValue="CANCELED"/>
+                        <f:selectItem itemLabel="No actions" itemValue="NO ACTIONS"/>
+                    </h:selectOneMenu>
+                    <h:selectOneMenu rendered="#{MbReject.prop.column=='status'}" value="#{MbReject.prop.value}"
+                                     style="margin-left: 10px">
+                        <f:selectItem itemLabel="All" itemValue=""/>
+                        <f:selectItem itemValue="Opened"/>
+                        <f:selectItem itemValue="Closed"/>
+                        <f:selectItem itemValue="Resolved"/>
+                    </h:selectOneMenu>
+                    <h:selectOneMenu rendered="#{MbReject.prop.column=='type'}" value="#{MbReject.prop.value}"
+                                     style="margin-left: 10px">
+                        <f:selectItem itemValue=""/>
+                        <f:selectItem itemValue="1"/>
+                        <f:selectItem itemValue="2"/>
+                        <f:selectItem itemValue="3"/>
+                    </h:selectOneMenu>
+                    <h:selectOneMenu rendered="#{MbReject.prop.column=='oper_type'}" value="#{MbReject.prop.value}"
+                                     style="margin-left: 10px">
+                        <f:selectItems value="#{DictUtils.operTypes}"/>
+                    </h:selectOneMenu>
+                </h:panelGrid>
+            </h:panelGroup>
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                        <h:outputText/>
+                        <bre:taggedCommandButton value="#{lblForm.save}" id="saveBtn"
+                                                 reRender="entityTable, generalTable, operTable, partTable, finTable"
+                                                 action="#{MbReject.saveProperty}"
+                                                 oncomplete="if(#{usession.noErrorResponse}) Richfaces.hideModalPanel('fieldWindow')"
+                                />
+                        <bre:taggedCommandButton value="#{lblForm.cancel}" id="cancelBtn"
+                                                 onclick="Richfaces.hideModalPanel('fieldWindow');return false;"/>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </h:panelGroup>
+</rich:modalPanel>
+
+<script type="text/javascript">
+    function updateHeight() {
+        updateGridHeight();
+    }
+    //<![CDATA[
+    layout =
+    {
+        SEARCH_FORM_ID: 'entitySearchForm',
+        SEARCH_RESULT_FORM_ID: 'entityForm',
+        SEARCH_RESULT_FORM_WRAPPER_ID: 'mainTableWrapper',
+        SEARCH_RESULT_FOOTER_FORM_ID: 'entityBtnForm',
+        TAB_PANEL_ID: 'workplacePanel',
+
+        TAB_DATA: [
+            {
+                TAB_FORM_ID: 'generalForm',
+                TAB_FORM_WRAPPER_ID: 'generalWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            },
+            {
+                TAB_FORM_ID: 'operForm',
+                TAB_FORM_WRAPPER_ID: 'operWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            },
+            {
+                TAB_FORM_ID: 'partForm',
+                TAB_FORM_WRAPPER_ID: 'partWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            },
+            {
+                TAB_FORM_ID: 'finForm',
+                TAB_FORM_WRAPPER_ID: 'finWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            },
+            {
+                TAB_FORM_ID: 'codesForm',
+                TAB_FORM_WRAPPER_ID: 'codesWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            }
+        ]
+    };
+    updateHeight();
+    jQuery(window).resize(updateHeight);
+    //]]>
+</script>
+</ui:define>
+</ui:composition>
+
+</html>

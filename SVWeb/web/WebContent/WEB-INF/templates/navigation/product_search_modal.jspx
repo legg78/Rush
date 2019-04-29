@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:o="http://openfaces.org/"
+      xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition>
+    <f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App"/>
+    <f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+    <f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+
+    <rich:modalPanel id="#{viewIdColon}productSearchModalPanel" autosized="true" minWidth="900" minHeight="200">
+        <f:facet name="header">
+            <h:outputText value="#{lblCommon.product}" />
+        </f:facet>
+        <f:facet name="controls"/>
+
+        <!-- search panel -->
+        <h:panelGroup layout="block" styleClass="search_block_tabs">
+            <h:panelGroup layout="block" styleClass="search_block_tab">
+
+                <h:panelGroup layout="block" styleClass="search_block search_block_inner search_block_inner-hidden" >
+                    <h:form id="#{viewIdColon}productFindForm">
+                        <h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+                            <a4j:outputPanel id="productsPanel">
+                                <h:panelGrid styleClass="filter-table field-cont"
+                                             columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+                                    <h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+                                    <h:selectOneMenu id="instId" value="#{MbProductSearchModal.filter.instId}">
+                                        <f:selectItem itemValue=""/>
+                                        <f:selectItems value="#{MbProductSearchModal.institutions}"/>
+                                        <a4j:support event="onchange" limitToList="true" ajaxSingle="true"/>
+                                    </h:selectOneMenu>
+
+                                    <h:outputText value="#{lblCommon.product_number}:" title="#{lblCommon.product_number}"/>
+                                    <h:panelGroup>
+                                        <h:inputText id="productNumber" value="#{MbProductSearchModal.filter.productNumber}"/>
+                                    </h:panelGroup>
+                                </h:panelGrid>
+                            </a4j:outputPanel>
+
+                            <h:panelGrid columns="1">
+                                <bre:taggedCommandButton id="#{viewIdColon}searchProdBtn" action="#{MbProductSearchModal.search()}"
+                                                         eventsQueue="queue" onclick="flushTabs();"
+                                                         reRender="#{viewIdColon}productResultModalForm"
+                                                         image="/_img/icon_search.png" type="submit"
+                                                         value="#{lblForm.search}" style="width:85px;">
+                                </bre:taggedCommandButton>
+                                <h:panelGrid columns="1">
+                                    <h:panelGroup styleClass="link-clear" layout="block">
+                                        <h:graphicImage url="/_img/icon_clear.png"/>
+                                        <a4j:commandLink value="#{lblForm.clear_all}"
+                                                         action="#{MbProductSearchModal.clearFilter}"
+                                                         reRender="#{viewIdColon}productsSearchModalForm, #{viewIdColon}productFindForm, #{viewIdColon}productResultModalForm"
+                                                         oncomplete="toggleTabs(currentTab);">
+                                        </a4j:commandLink>
+                                    </h:panelGroup>
+                                </h:panelGrid>
+                            </h:panelGrid>
+                        </h:panelGrid>
+                    </h:form>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:panelGroup>
+
+        <h:form id="#{viewIdColon}productResultModalForm">
+            <o:treeTable id="productsTable"
+                         var="prod"
+                         expansionState="allExpanded" sortColumnId="nodeName"
+                         headerHorizSeparator="1px solid #D7DAC2"
+                         headerVertSeparator="1px solid #D7DAC2"
+                         headerSectionClass="res-tree-table-header"
+                         commonHeaderRowClass="res-tree-table-header"
+                         sortableHeaderClass="res-tree-table-header"
+                         sortedColumnHeaderClass="res-tree-table-header"
+                         sortableHeaderRolloverClass="res-tree-table-header"
+                         styleClass="res-tree-table"
+                         bodyOddRowClass="res-tree-table-row odd-tree-table"
+                         bodyRowClass="res-tree-table-row"
+                         headerRowClass="res-tree-table-header"
+                         verticalGridLines="1px solid #D7DAC2"
+                         cellpadding="0"
+                         cellspacing="0"
+                         preloadedNodes="all"
+                         style="height:220px;"
+                         onmousedown="handleMouseClick(event)">
+                <o:scrolling />
+                <o:columnResizing minColWidth="70px" />
+                <f:facet name="noDataMessage">
+                    <h:panelGroup>
+                        <h:outputText value="#{lblCommon['no_records_found']}"
+                                      rendered="#{MbProductSearchModal.searching}" />
+                        <h:outputText
+                                value="#{lblCommon['enter_search_criteria_above']}"
+                                rendered="#{!MbProductSearchModal.searching}" />
+                    </h:panelGroup>
+                </f:facet>
+
+                <o:dynamicTreeStructure nodeChildren="#{MbProductSearchModal.nodeChildren}"
+                                        nodeHasChildren="#{MbProductSearchModal.nodeHasChildren}"
+                                        nodeKey="#{prod.id}" />
+
+                <o:singleNodeSelection nodePath="#{MbProductSearchModal.nodePath}"
+                                       nodeData="#{MbProductSearchModal.node}" keyboardSupport="false"
+                                       styleClass="treetable_selection">
+                    <a4j:support event="onchange" eventsQueue="queue"
+                                 reRender="productsBtnForm:btnPanel,#{MbProductSearchModal.tabName},btnsBlockAccount" />
+                </o:singleNodeSelection>
+
+                <o:treeColumn id="nodeName" sortingExpression="#{prod.name}"
+                              width="30%" sortingComparator="#{MbProductSearchModal.nameComparator}">
+                    <f:facet name="header">
+                        <a4j:outputPanel layout="none">
+                            <script>updateHeight();</script>
+                            <h:outputText value="#{lblCommonQ.name}" />
+                        </a4j:outputPanel>
+                    </f:facet>
+                    <bm:entityDisplay contextType="ENTTPROD" bean="MbProductSearchModal" value="#{prod.name}"
+                                      styleClass="treeTableText" />
+                </o:treeColumn>
+
+                <o:column id="nodeId" sortingExpression="#{prod.id}" width="10%"
+                          sortingComparator="#{MbProductSearchModal.nameComparator}">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblCommonQ.id}" />
+                    </f:facet>
+                    <bm:entityDisplay contextType="ENTTPROD" bean="MbProductSearchModal" value="#{prod.id}"
+                                      styleClass="treeTableText" />
+                </o:column>
+
+                <o:column id="productNumber" sortingExpression="#{prod.productNumber}" width="10%"
+                          sortingComparator="#{MbProductSearchModal.nameComparator}">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblCommonQ.product_number}" />
+                    </f:facet>
+                    <bm:entityDisplay contextType="ENTTPROD" bean="MbProductSearchModal" value="#{prod.productNumber}"
+                                      styleClass="treeTableText" />
+                </o:column>
+
+                <o:column id="contractType"
+                          sortingExpression="#{prod.contractType}" width="15%"
+                          sortingComparator="#{MbProductSearchModal.nameComparator}">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblPrdQ.contract_type}" />
+                    </f:facet>
+                    <bm:entityDisplay contextType="ENTTPROD" bean="MbProductSearchModal"
+                                      value="#{DictUtils.articles[prod.contractType]}"
+                                      styleClass="treeTableText"
+                                      rendered="#{prod.contractType != null }" />
+                    <h:outputText value="" styleClass="treeTableText"
+                                  rendered="#{prod.contractType == null }" />
+                </o:column>
+
+                <o:column id="Status" styleClass="res-tree-table-cell" width="15%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblCommonQ.status}" />
+                    </f:facet>
+                    <bm:entityDisplay contextType="ENTTPROD" bean="MbProductSearchModal"
+                                      value="#{DictUtils.articles[prod.status]}"
+                                      styleClass="treeTableText" rendered="#{prod.status != null }" />
+                    <h:outputText value="" styleClass="treeTableText"
+                                  rendered="#{prod.status == null }" />
+                </o:column>
+
+                <o:column styleClass="res-tree-table-cell" width="20%" minResizingWidth="100px">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblCommonQ.institution}" />
+                    </f:facet>
+                    <bm:entityDisplay link = "true" contextType="ENTTINST" bean="MbProductSearchModal" entityId="#{prod.instId}" value="#{prod.instName != null ? prod.instName : '...'}"
+                                      styleClass="treeTableText" rendered="#{prod.instId != null }" />
+                </o:column>
+            </o:treeTable>
+
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                        <h:outputText />
+                        <bre:taggedCommandButton id="selectBtn"
+                                                 value="#{lblApp.select}"
+                                                 action="#{viewScope[MbProductSearchModal.beanName][MbProductSearchModal.methodName]}"
+                                                 reRender="${MbProductSearchModal.renderList}"
+                                                 oncomplete="if (#{usession.noErrorResponse}) Richfaces.hideModalPanel('#{extraIdColon}#{viewIdColon}productSearchModalPanel');" />
+                        <bre:taggedCommandButton value="#{lblForm.cancel}"
+                                                 immediate="true"
+                                                 limitToList="true"
+                                                 oncomplete="Richfaces.hideModalPanel('#{extraIdColon}#{viewIdColon}productSearchModalPanel')" />
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </rich:modalPanel>
+</ui:composition>
+</html>

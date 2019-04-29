@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<![CDATA[
+	function checkLimitationFields() {
+		var checked = true;
+
+        if (!x$('#limitation_field_modal_form .required').validate()) {
+            checked = false;
+        }
+
+        if (!x$('#limitation_field_modal_form:newLabel').validate({
+	        check: function() {
+	            return !app.isEmpty(x$('#limitation_field_modal_form:newLabelId').val());
+	        }
+        })) {
+            checked = false;
+        }
+
+		return checked;
+	}
+
+	function isASCII(str) {
+	    return /^[\x00-\x7F]*$/.test(str);
+	}
+	//]]>
+	</script>
+	<style type="text/css">
+	.width100p {
+		width:100%;
+	}
+	</style>
+	
+	<rich:modalPanel id="limitation_field_modal_panel" autosized="true" minWidth="300" minHeight="100">
+    	<f:facet name="header">
+    		<h:panelGroup id="limitation_field_modal_header">
+        		<h:outputText value="#{lblAcm.edit_limitation_field}" rendered="#{MbPrivLimitationField.editMode}"/>
+        		<h:outputText value="#{lblAcm.new_limitation_field}" rendered="#{MbPrivLimitationField.newMode}"/>
+        	</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:panelGroup id="limitation_field_modal_div">
+		<h:form id="limitation_field_modal_form">
+		    <h:panelGrid id="limitationFieldDiv">
+		    	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+						<h:outputLabel value="* #{lblCommon.field}: " title="#{lblCommon.field}" />
+						<h:panelGroup layout="block">
+							<h:selectOneMenu id="newField" styleClass="required"
+							                 value="#{MbPrivLimitationField.newItem.field}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbPrivLimitationField.fields}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							                id="newFieldError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.field}"/>
+							</h:outputFormat>
+						</h:panelGroup>
+
+						<h:outputLabel value="* #{lblCommon.condition}: " title="#{lblCommon.condition}" />
+						<h:panelGroup layout="block">
+		           			<h:inputTextarea id="newCondition" styleClass="required"
+		           					value="#{MbPrivLimitationField.newItem.condition}"
+		           					rows="3"
+		           					onkeypress="if (!limitText(event,this,2000)) return false;"
+		           					onblur="hideErrorField(this)"/>
+		           			<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newConditionError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.condition}"/>
+							</h:outputFormat>
+		           		</h:panelGroup>
+
+						<h:outputLabel value="* #{lblCommon.label}: " title="#{lblCommon.label}" />
+						<h:panelGroup id="newLabelsSelect" layout="block">
+							<h:inputText id="newLabel"
+							             value="#{MbPrivLimitationField.newItem.label}"
+							             onchange="x$('#limitation_field_modal_form:newLabelId').val(null);">
+							</h:inputText>
+							<h:inputHidden id="newLabelId" value="#{MbPrivLimitationField.newItem.labelId}"></h:inputHidden>
+							<div>
+								<h:outputFormat value="#{lblMsg.min_length_select}" id="newLabelMinError">
+									<f:param name="minLength" value="3"/>
+								</h:outputFormat>
+							</div>
+							<div>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								                id="newLabelError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.label}"/>
+								</h:outputFormat>
+							</div>
+							<rich:suggestionbox for="newLabel" var="result"
+							                    suggestionAction="#{MbPrivLimitationField.labelAutocomplete}"
+							                    nothingLabel="No values"
+							                    fetchValue="#{result.text}"
+							                    width="400"
+							                    status="null"
+							                    ajaxSingle="true"
+							                    minChars="3"
+							                    rules="none"
+							                    shadowOpacity="1"
+							                    shadowDepth="1">
+								<a4j:support event="onselect" reRender="newLabelsSelect" action="#{MbPrivLimitationField.selectLabel(result)}" />
+								<h:column>
+									<h:outputText value="#{result.text}"/>
+								</h:column>
+								<h:column>
+									<h:outputText value="#{result.name}"/>
+								</h:column>
+							</rich:suggestionbox>
+						</h:panelGroup>
+
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGrid>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	     	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton
+			            		value="#{lblForm.save}" id="limitation_modal_add_btn" type="submit"
+			                	reRender="privLimitationFieldsForm"
+			                	action="#{MbPrivLimitationField.save}"
+								onclick="if (!checkLimitationFields()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('limitation_field_modal_panel')}.hide()"
+			                	/>
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}" id="limitation_modal_cancel_btn"
+								onclick="#{rich:component('limitation_field_modal_panel')}.hide(); return false;"
+								/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		</h:panelGroup>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

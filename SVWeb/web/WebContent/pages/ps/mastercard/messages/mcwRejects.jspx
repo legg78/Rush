@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html
+        PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bm="http://www.bpc.ru/jsf/misc"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	  xmlns:fmt="http://www.bpc.ru/el/formatter">
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+<ui:define name="navigatableContent">
+<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css"/>
+<script type="text/javascript" src="#{request.contextPath}/js/stretch.js"/>
+
+
+
+<f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+
+<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+<a4j:loadScript src="/js/stretch.js"/>
+<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+<script type="text/javascript">
+//<![CDATA[
+
+
+
+
+function handleEnter(event) {
+    if (event.keyCode == 13) {
+        document.getElementById('entitySearchForm:searchBtn').click();
+        return false;
+    }
+    return true;
+}
+//]]>
+</script>
+
+<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"
+               onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+               zindex="1000" inputClass="hidden" buttonClass="hidden"/>
+
+
+<script>
+    #{rich:component('calendar')}.customExpand = customExpand;
+</script>
+
+<!-- navigation bar -->
+
+<bpct:navBar pageName="#{lblCrd.debts}"/>
+
+
+<!-- search panel -->
+<h:form id="entitySearchForm" onkeypress="handleEnter(event)">
+
+    <h:panelGroup layout="block" styleClass="search_block">
+        <h:panelGroup layout="block" styleClass="search_block_inner1">
+            <h:panelGroup layout="block" styleClass="search_block_inner2">
+                <h:panelGroup layout="block" styleClass="search_block_left">
+                	<h:panelGroup styleClass="search_block_inner search_block_inner-hidden-filter" layout="block">
+                    <h:panelGrid styleClass="fw" columns="2"
+                                 columnClasses="top ,link-cont">
+                        <h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+                                     columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+
+                            <h:outputLabel for="sessionNumber" title="Session ID "
+                                           value="Session ID:"/>
+                            <h:inputText id="sessionNumber"
+                                         value="#{MbMcwRejectSearch.filter.sessionId}"/>
+
+
+                            <h:outputLabel for="fileName" title="#{'File name'}"
+                                           value="#{'File name'}:"/>
+                            <h:inputText id="fileName"
+                                         value="#{MbMcwRejectSearch.filter.fileName}"/>                                         
+
+                            <h:outputText value="#{lblCommon.date_from }:" title="#{lblCommon.date_from}"/>
+                            <h:panelGroup>
+                                <h:inputText id="dateFrom" style="max-width:225px"
+                                             value="#{MbMcwRejectSearch.filter.dateFrom}"
+                                             onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateFrom')}, #{rich:element('dateFromBtn')});">
+                                    <f:convertDateTime pattern="#{usession.datePattern}"
+                                                       timeZone="#{CommonUtils.timeZone}"/>
+                                </h:inputText>
+                                <h:graphicImage
+                                        value="/images/calendar.gif"
+                                        onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateFrom')}, #{rich:element('dateFromBtn')});"
+                                        id="dateFromBtn"/>
+                            </h:panelGroup>
+
+                            <h:outputText value="#{lblCommon.date_to}:" title="#{lblCommon.date_to}"/>
+                            <h:panelGroup>
+                                <h:inputText id="dateTo" style="max-width:225px"
+                                             value="#{MbMcwRejectSearch.filter.dateTo}"
+                                             onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateTo')}, #{rich:element('dateFromBtn')});">
+                                    <f:convertDateTime pattern="#{usession.datePattern}"
+                                                       timeZone="#{CommonUtils.timeZone}"/>
+                                </h:inputText>
+                                <h:graphicImage
+                                        value="/images/calendar.gif"
+                                        onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateTo')}, #{rich:element('dateToBtn')});"
+                                        id="dateToBtn"/>
+                            </h:panelGroup>
+                        </h:panelGrid>
+
+                        <h:panelGrid columns="1">
+                            <h:panelGroup styleClass="stdButton">
+                                <bre:taggedCommandButton action="#{MbMcwRejectSearch.search}"
+                                                         reRender="entityTable, dsentity, pagesNum, #{MbMcwRejectSearch.tabName}"
+                                                         id="searchBtn"
+                                                         image="/_img/icon_search.png" type="submit"
+                                                         value="#{lblForm.search}"
+
+                                                         oncomplete="enableModalPanelBtns(this);"
+                                                         eventsQueue="queue"
+                                                         style="width:85px;"/>
+
+                            </h:panelGroup>
+
+                            <h:panelGroup styleClass="link-clear" layout="block">
+                                <h:graphicImage url="/_img/icon_clear.png"/>
+                                <a4j:commandLink value="#{lblForm.clear_all}"
+                                                 action="#{MbMcwRejectSearch.clearFilter}"
+                                                 reRender="entitySearchForm, entityForm, entityBtnForm, details">
+                                </a4j:commandLink>
+                            </h:panelGroup>
+                        </h:panelGrid>
+
+                    </h:panelGrid>
+                    </h:panelGroup>
+	                	<a4j:outputPanel ajaxRendered="true">
+		                	<h:panelGroup styleClass="show-more-vert" layout="block"/>
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+
+<h:form id="entityForm">
+    <!-- result panel -->
+    <h:panelGroup styleClass="search_result_block" layout="block">
+        <h:panelGroup styleClass="search_result_block_left fix-ff"
+                      layout="block">
+            <h:panelGroup id="mainTableWrapper" layout="block"
+                          styleClass="search_result_block_inner">
+                <rich:extendedDataTable id="entityTable" styleClass="res-table"
+                                        tableState="#{MbMcwRejectSearch.tableState}"
+                                        headerClass="res-table-header" rowClasses=",odd"
+                                        selectedClass="res-table-selected" var="item"
+                                        value="#{MbMcwRejectSearch.rejects}"
+                                        selection="#{MbMcwRejectSearch.itemSelection}"
+                                        rows="#{MbMcwRejectSearch.rowsNum}" selectionMode="single"
+                                        width="100%" height="255px" enableContextMenu="true"
+                                        noDataLabel="#{MbMcwRejectSearch.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+                                        reRender="#{MbMcwRejectSearch.tabName}">
+
+                    <a4j:support event="onselectionchange" eventsQueue="queue"
+                                 limitToList="true" reRender="#{MbMcwRejectSearch.tabName}"/>
+
+					<rich:column title="Network Id" sortBy="#{'networkId'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'network_id'}" title="#{'network_id'}" />
+							</f:facet>
+						<h:outputText value="#{item.networkId}"
+								title="#{item.networkId}"/>
+					</rich:column>
+					
+					<rich:column title="Inst Id" sortBy="#{'instId'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'inst_id'}" title="#{'inst_id'}" />
+							</f:facet>
+						<h:outputText value="#{item.instId}"
+								title="#{item.instId}"/>
+					</rich:column>
+					
+					<rich:column title="File Id" sortBy="#{'fileId'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'file_id'}" title="#{'file_id'}" />
+							</f:facet>
+						<h:outputText value="#{item.fileId}"
+								title="#{item.fileId}"/>
+					</rich:column>
+					
+					<rich:column title="Rejected Fin Id" sortBy="#{'rejectedFinId'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'rejected_fin_id'}" title="#{'rejected_fin_id'}" />
+							</f:facet>
+						<h:outputText value="#{item.rejectedFinId}"
+								title="#{item.rejectedFinId}"/>
+					</rich:column>
+					
+					<rich:column title="Rejected File Id" sortBy="#{'rejectedFileId'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'rejected_file_id'}" title="#{'rejected_file_id'}" />
+							</f:facet>
+						<h:outputText value="#{item.rejectedFileId}"
+								title="#{item.rejectedFileId}"/>
+					</rich:column>
+					
+					<rich:column title="Mti" sortBy="#{'mti'}" width="5%">
+						<f:facet name="header">
+							<h:outputText value="#{'mti'}" title="#{'mti'}" />
+							</f:facet>
+						<h:outputText value="#{item.mti}" title="#{item.mti}"/>
+					</rich:column>
+					
+					<rich:column title="De024" sortBy="#{'de024'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'de024'}" title="#{'de024'}" />
+							</f:facet>
+						<h:outputText value="#{item.de024}"
+								title="#{item.de024}"/>
+					</rich:column>
+					
+					<rich:column title="De071" sortBy="#{'de071'}" width="5%" visible="true">
+						<f:facet name="header">
+							<h:outputText value="#{'de071'}" title="#{'de071'}" />
+							</f:facet>
+						<h:outputText value="#{item.de071}"
+								title="#{item.de071}"/>
+					</rich:column>
+					
+					<rich:column title="De072" sortBy="#{'de072'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'de072'}" title="#{'de072'}" />
+							</f:facet>
+						<h:outputText value="#{item.de072}"
+								title="#{item.de072}"/>
+					</rich:column>
+					
+					<rich:column title="De093" sortBy="#{'de093'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'de093'}" title="#{'de093'}" />
+							</f:facet>
+						<h:outputText value="#{item.de093}"
+								title="#{item.de093}"/>
+					</rich:column>
+					
+					<rich:column title="De094" sortBy="#{'de094'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'de094'}" title="#{'de094'}" />
+							</f:facet>
+						<h:outputText value="#{item.de094}"
+								title="#{item.de094}"/>
+					</rich:column>
+					
+					<rich:column title="De100" sortBy="#{'de100'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'de100'}" title="#{'de100'}" />
+							</f:facet>
+						<h:outputText value="#{item.de100}"
+								title="#{item.de100}"/>
+					</rich:column>
+					
+					<rich:column title="P0005" sortBy="#{'p0005'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'p0005'}" title="#{'p0005'}" />
+							</f:facet>
+						<h:outputText value="#{item.p0005}"
+								title="#{item.p0005}"/>
+					</rich:column>
+					
+					<rich:column title="P0006" sortBy="#{'p0006'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'p0006'}" title="#{'p0006'}" />
+							</f:facet>
+						<h:outputText value="#{item.p0006}"
+								title="#{item.p0006}"/>
+					</rich:column>
+					
+					<rich:column title="P0025" sortBy="#{'p0025'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'p0025'}" title="#{'p0025'}" />
+							</f:facet>
+						<h:outputText value="#{item.p0025}"
+								title="#{item.p0025}"/>
+					</rich:column>
+					
+					<rich:column title="P0026" sortBy="#{'p0026'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'p0026'}" title="#{'p0026'}" />
+							</f:facet>
+						<h:outputText value="#{item.p0026}"
+								title="#{item.p0026}"/>
+					</rich:column>
+					
+					<rich:column title="P0138" sortBy="#{'p0138'}" width="5%" visible="true">
+						<f:facet name="header">
+							<h:outputText value="#{'p0138'}" title="#{'p0138'}" />
+							</f:facet>
+						<h:outputText value="#{item.p0138}"
+								title="#{item.p0138}"/>
+					</rich:column>
+					
+					<rich:column title="P0165" sortBy="#{'p0165'}" width="5%" visible="false">
+						<f:facet name="header">
+							<h:outputText value="#{'p0165'}" title="#{'p0165'}" />
+							</f:facet>
+						<h:outputText value="#{item.p0165}"
+								title="#{item.p0165}"/>
+					</rich:column>
+					
+					<rich:column title="P0280" sortBy="#{'p0280'}" width="5%" visible="true">
+						<f:facet name="header">
+							<h:outputText value="#{'p0280'}" title="#{'p0280'}" />
+							</f:facet>
+						<h:outputText value="#{item.p0280}"
+								title="#{item.p0280}"/>
+					</rich:column>
+
+
+                    <rich:column label="#{'Session Id'}" title="Session Id" id="sessionid" sortBy="#{'session_id'}"
+                                 width="10%" visible="false">
+                        <f:facet name="header">
+                            <a4j:outputPanel layout="none">
+                                <h:outputText value="Session ID" title="Session ID"/>
+                            </a4j:outputPanel>
+                        </f:facet>
+                        <h:outputText value="#{item.sessionId}" title="#{item.sessionId}"/>
+                    </rich:column>
+
+                    <rich:column label="File name" title="File name" id="fileName" sortBy="#{'file_name'}"
+                                 width="10%">
+                        <f:facet name="header">
+
+                            <h:outputText value="File name" title="File name"/>
+
+                        </f:facet>
+                        <h:outputText value="#{item.fileName}" title="#{item.fileName}"/>
+                    </rich:column>
+
+
+                </rich:extendedDataTable>
+            </h:panelGroup>
+            <a4j:outputPanel ajaxRendered="true">
+                <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+                <h:graphicImage url="/_img/hd_searchblock.gif"
+                                styleClass="hd-searchblock"/>
+                <h:panelGroup styleClass="collapse-vert table-collapse-vert"
+                              layout="block"/>
+            </a4j:outputPanel>
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+<!-- navigation footer-->
+<h:form id="entityBtnForm">
+    <h:panelGroup layout="block" styleClass="bottom_search_result_block" id="bottomSearchResultBlock">
+        <h:panelGroup layout="block" styleClass="bottom_search_result_left">
+            <h:panelGroup layout="block" styleClass="table_tools" id="tableTools">
+                <h:panelGrid styleClass="fw field-cont" columns="5"
+                             columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+                    <h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}"
+                                   title="#{lblCommon.rows_per_page}"/>
+                    <h:selectOneMenu id="rows_num" value="#{MbMcwRejectSearch.rowsNum}"
+                                     style="width:40px">
+                        <a4j:support event="onchange"
+                                     reRender="entityBtnForm, entityTable, pagesNum, #{MbMcwRejectSearch.tabName}"/>
+                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+                    </h:selectOneMenu>
+
+                    <rich:datascroller maxPages="10" fastControls="hide"
+                                       pagesVar="pages" styleClass="res-datascroller" id="dsentity"
+                                       for="entityTable"
+                                       reRender="#{MbMcwRejectSearch.tabName}, pagesNum"
+                                       pageIndexVar="pageIndex">
+                        <f:facet name="first">
+                            <h:outputText value="&lt;&lt;" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="first_disabled">
+                            <h:outputText value="&lt;&lt;" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="last">
+                            <h:outputText value="&gt;&gt;" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="last_disabled">
+                            <h:outputText value="&gt;&gt;" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="previous">
+                            <h:outputText value="#{lblCommon.prev}" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="previous_disabled">
+                            <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="next">
+                            <h:outputText value="#{lblCommon.next}" styleClass="prev-next"/>
+                        </f:facet>
+                        <f:facet name="next_disabled">
+                            <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis"/>
+                        </f:facet>
+                        <f:facet name="pages">
+                        </f:facet>
+                    </rich:datascroller>
+
+                    <h:panelGroup id="pagesNum">
+                        <h:outputText styleClass="strongClass" value="#{pages} "/>
+                        <h:outputText value=" #{lblCommon.pages}"/>
+                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                        <h:outputText styleClass="strongClass" value="#{MbMcwRejectSearch.items.rowCount}"/>
+                        <h:outputText value=" #{lblCommon.records}"/>
+                        <h:outputText value="" style="padding-left: 20px; padding-right: 20px;"/>
+                    </h:panelGroup>
+
+                    <h:panelGroup>
+                        <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}"
+                                        styleClass="action_icon"
+                                        onclick="saveTableState();"/>
+                        <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}"
+                                        styleClass="action_icon"
+                                        onclick="deleteTableState();"/>
+                        <a4j:queue name="tablestatequeue"/>
+                        <a4j:jsFunction name="saveTableState" action="#{MbMcwRejectSearch.saveTableStateDB}"
+                                        eventsQueue="tablestatequeue"/>
+                        <a4j:jsFunction name="deleteTableState"
+                                        action="#{MbMcwRejectSearch.deleteTableStateDB}"
+                                        eventsQueue="tablestatequeue"/>
+                    </h:panelGroup>
+                </h:panelGrid>
+            </h:panelGroup>
+
+        </h:panelGroup>
+    </h:panelGroup>
+</h:form>
+
+<h:form>
+    <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true"
+                    reRender="#{MbMcwRejectSearch.rerenderList}">
+        <a4j:actionparam name="tabName" assignTo="#{MbMcwRejectSearch.tabName}"/>
+    </a4j:jsFunction>
+</h:form>
+
+<!-- workspace -->
+<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+    <rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+                   activeTabClass="active-tab-cell" headerClass="tabs"
+                   headerSpacing="0px" contentClass="tab-content"
+                   selectedTab="#{MbMcwRejectSearch.tabName}">
+
+        <rich:tab ontabenter="storeTab('detailsTab')" label="#{lblCommon.details}" name="detailsTab">
+            <f:facet name="label">
+                <h:panelGroup styleClass="first tab-label" layout="block">
+                    <h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+                </h:panelGroup>
+            </f:facet>
+            <ui:include src="/pages/ps/mastercard/messages/rejectDetails.jspx"></ui:include>
+        </rich:tab>
+        
+        <rich:tab ontabenter="storeTab('rejectCodeTab')" label="Reject" name="rejectCodeTab"  style="height:100%;">
+            <f:facet name="label">
+                <h:panelGroup styleClass="first tab-label" layout="block">
+                    <h:outputText value="#{'Reject codes'}" title="#{'Reject codes'}" />
+                </h:panelGroup>
+            </f:facet>
+            <h:panelGroup id="rejectCodeTab" layout="block"
+                          styleClass="carddata-wrapper"
+                          style="height: 100%; overflow: hidden;position:relative;">
+                <ui:include src="/pages/ps/mastercard/messages/rejectCodesBottom.jspx"></ui:include>
+            </h:panelGroup>
+        </rich:tab>
+    </rich:tabPanel>
+</h:panelGroup>
+
+
+
+<script type="text/javascript">
+    function updateHeight(){
+        updateGridHeight();
+    }
+    //<![CDATA[
+    layout =
+    {
+        SEARCH_FORM_ID: 'entitySearchForm',
+        SEARCH_RESULT_FORM_ID: 'entityForm',
+        SEARCH_RESULT_FORM_WRAPPER_ID: 'mainTableWrapper',
+        SEARCH_RESULT_FOOTER_FORM_ID: 'entityBtnForm',
+        TAB_PANEL_ID: 'workplacePanel',
+
+        TAB_DATA: [
+            {
+                TAB_FORM_ID: 'rejectDetailsForm',
+                TAB_FORM_WRAPPER_ID: 'entityDetailsWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            }, {
+                TAB_FORM_ID: 'rejectCodeBottomForm',
+                TAB_FORM_WRAPPER_ID: 'rejectCodeBottomTableWrapper',
+                CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+            }
+        ]
+    };
+    updateHeight();
+    jQuery(window).resize(updateHeight);
+    //]]>
+</script>
+</ui:define>
+</ui:composition>
+
+</html>

@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:fmt="http://www.bpc.ru/el/formatter"
+		>
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+		function checkGlAccountFields() {
+			var checked = true;
+			
+			if (document.getElementById('acc_create_gl_modal_div:newCurrency').value == "") {
+				document.getElementById('acc_create_gl_modal_div:newCurrencyError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('acc_create_gl_modal_div:newAccountType').value == "") {
+				document.getElementById('acc_create_gl_modal_div:newAccountTypeError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+
+		function checkGenGLAccounts() {
+			var checked = true;
+			checked = checkField("acc_generate_gl_modal_div:currency");
+
+			return checked;
+		}
+		//-->
+	</script>
+
+	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+	<h:form id="glAccBtmForm">
+		<h:panelGroup id="mainTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable headerClass="res-table-header table-header-ext"
+				selectedClass="res-table-selected" styleClass="res-table"
+				rowClasses=",odd" id="mainTable" var="item"
+				value="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).accounts}"
+				selection="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).itemSelection}" rows="0"
+				height="220px" selectionMode="single" enableContextMenu="true"
+				tableState="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" reRender="btnPanelAccounts" />
+
+				<rich:column id="account_number" label="#{lblAcc.account_number}" title="Account number" sortExpression="ASCENDING"
+					sortBy="#{'accountNumber'}" width="20%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<h:outputText value="#{lblAcc.account_number}"
+							title="#{lblAcc.account_number}" />
+							<script>updateHeight();</script>
+						</a4j:outputPanel>
+					</f:facet>
+					<f:facet name="filter">
+						<bm:entityDisplay value="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).filter.accountNumber}" 
+								description ="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).filter.accountNumber}"/>
+						<h:inputText value="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).filter.accountNumber}"
+							style="width: 100%;" onkeydown="if (ignoreEnter(event)) disableModalPanelBtns(document.getElementById('glAccBtmForm:deleteBtn'));">
+							<a4j:support event="onkeyup" requestDelay="1000"
+								reRender="mainTable, btnPanelAccounts"
+								action="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).search}" />
+						</h:inputText>
+					</f:facet>
+					<bm:entityDisplay value="#{item.accountNumber}" 
+								description ="#{item.accountNumber}"/>
+				</rich:column>
+
+				<rich:column id="balance" label="#{lblAcc.balance}" title="Balance" sortBy="#{'balance'}" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcc.balance}" title="#{lblAcc.balance}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:inputText style="display: none;"/>
+					</f:facet>
+					<bm:entityDisplay value="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}" 
+								description ="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}"/>
+
+				</rich:column>
+
+				<rich:column id="currency" label="#{lblCommon.currency}" title="Currency" width="20%" sortBy="#{'currency'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.currency}"
+							title="#{lblCommon.currency}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu value="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).filter.currency}"
+							style="width: 100%;">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{CurrencyUtils.allCurrencies}" />
+							<a4j:support event="onchange" reRender="glAccBtmForm:mainTable"
+								action="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<bm:entityDisplay entityId="#{item.currency}" value="#{CurrencyUtils.currencyObjectsMap[item.currency].currencyName}" 
+			                		entityName="ENTT0046" showIcon="true"/>
+					
+				</rich:column>
+
+				<rich:column id="account_type" label="#{lblAcc.account_type}" title="Account type" sortBy="#{'accountType'}"
+					width="15%" filterEvent="onkeyup">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcc.account_type}"
+							title="#{lblAcc.account_type}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu value="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).filter.accountType}"
+							style="width: 100%;">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).accountTypes}" />
+							<a4j:support event="onchange" reRender="glAccBtmForm:mainTable"
+								action="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<bm:entityDisplay value="#{DictUtils.articles[item.accountType]}" 
+								description="#{DictUtils.articles[item.accountType]}"/>
+				</rich:column>
+
+				<rich:column id="contract" label="#{lblPrd.contract}" title="Contract" sortBy="#{'contractNumber'}"
+					width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrd.contract}"
+							title="#{lblPrd.contract}" />
+					</f:facet>
+					<bm:entityDisplay value="#{item.contractNumber}" 
+								description="#{item.contractNumber}"/>
+				</rich:column>
+
+				<rich:column id="status" label="#{lblCommon.status}" title="Status" sortBy="#{'status'}" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.status}"
+							title="#{lblCommon.status}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu value="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).filter.status}"
+							style="width: 100%;">
+							<f:selectItems value="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).accountStatuses}" />
+							<a4j:support event="onchange" reRender="glAccBtmForm:mainTable"
+								action="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<bm:entityDisplay value="#{DictUtils.articles[item.status]}" 
+								description="#{DictUtils.articles[item.status]}"/>
+				</rich:column>
+
+				<f:facet name="footer">
+
+				</f:facet>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{glAccountsBean==null}">
+               	<h:panelGrid id="btnPanelAccounts" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+               		<h:panelGroup>
+					<bre:taggedCommandButton disabled="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).filter.entityId == null}"
+							rendered="#{usession.inRole['CREATE_ALL_GL_ACCOUNTS']}"
+							value="#{lblForm.generate}" 
+							action="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).generateGL}" 
+							reRender="acc_generate_gl_modal_div"
+							oncomplete="#{rich:component('acc_generate_gl_modal_panel')}.show()"
+							/>
+					<bre:taggedCommandButton disabled="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).filter.entityId == null}"
+							rendered="#{usession.inRole['CREATE_ONE_GL_ACCOUNT']}"
+							value="#{lblForm.add}"
+							action="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).createGL}"
+							reRender="acc_create_gl_modal_div" 
+							oncomplete="#{rich:component('acc_create_gl_modal_panel')}.show()"
+							image="/images/create_doc.gif"
+							/>
+					<bre:taggedCommandButton id="deleteBtn"
+                      		value="#{lblForm.delete}"
+                      		disabled="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).activeAccount == null}"
+                      		image="/images/delete.gif"
+                      		oncomplete="#{rich:component('deleteGlAccView:confirmPanel')}.show()"/>
+                     </h:panelGroup> 		
+                     <h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveGlAccTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteGlAccTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveGlAccTableState" action="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteGlAccTableState" action="#{(glAccountsBean==null ? MbGLAccountsSearch : glAccountsBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup> 
+                      
+                </h:panelGrid>
+    		</h:panelGroup>
+		</h:panelGroup>
+	</h:form>            
+	<rich:modalPanel id="acc_generate_gl_modal_panel" autosized="true" minWidth="300" minHeight="50">
+      	<f:facet name="header">
+        	<h:outputText value="#{lblAcc.generate_gl_accounts}" />
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	
+      	<h:form id="acc_generate_gl_modal_div">
+	        <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal,">
+					<h:outputLabel value="* #{lblCommon.currency}: " title="#{lblCommon.currency}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="currency" value="#{MbGLAccountsSearch.filter.currency}">
+			                <f:selectItem itemValue=""/>
+			            	<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>			                
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="currencyError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.currency}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+	      	<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+       	    		<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+       	    			<h:outputText/>
+						<bre:taggedCommandButton 
+								value="#{lblForm.generate}" 
+								action="#{MbGLAccountsSearch.generateGLaccounts}"
+								reRender="mainTable, btnPanelAccounts" 
+								onclick="if (!checkGenGLAccounts()) return false;"
+								oncomplete="if (#{usession.noErrorResponse}) #{rich:component('acc_generate_gl_modal_panel')}.hide()"
+								/>
+                		<bre:taggedCommandButton 
+	                    	   	value="#{lblForm.cancel}" 
+	                    	   	action="#{MbGLAccountsSearch.cancelGenerateGLaccounts}" 
+	                    	   	immediate="true" limitToList="true"
+	                       		oncomplete="#{rich:component('acc_generate_gl_modal_panel')}.hide()"
+	                       		>
+                       		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                    </bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>					
+		</h:form>
+		
+	</rich:modalPanel>
+	
+	<rich:modalPanel id="acc_create_gl_modal_panel" autosized="true" minWidth="300" minHeight="50">
+      	<f:facet name="header">
+        	<h:outputText value="#{lblAcc.create_gl_account}"/>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	
+      	<h:form id="acc_create_gl_modal_div">
+	        <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width200">
+					<h:outputLabel value="* #{lblCommon.currency}: " title="#{lblCommon.currency}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width:100%">
+						<h:selectOneMenu id="newCurrency" label="#{lblCommon.currency}" 
+			                	value="#{MbGLAccountsSearch.newAccount.currency}"
+			                	onblur="hideErrorField(this)">
+			                <f:selectItem itemValue=""/>
+			            	<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>			                
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newCurrencyError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.currency}"/>
+						</h:outputFormat>
+		            </h:panelGrid>
+		            
+		            <h:outputLabel value="* #{lblAcc.account_type}: " title="#{lblAcc.account_type}"/>
+		            <h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width:100%">
+						<h:selectOneMenu id="newAccountType" label="#{lblAcc.account_type}"
+			                	value="#{MbGLAccountsSearch.newAccount.accountType}"
+			                	onblur="hideErrorField(this)">
+			                <f:selectItem itemValue=""/>
+			            	<f:selectItems value="#{MbGLAccountsSearch.accountTypes}"/>			                
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newAccountTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAcc.account_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="#{lblAcc.account_number}: " title="#{lblAcc.account_number}"/>
+					<h:inputText value="#{MbGLAccountsSearch.newAccount.accountNumber}" maxlength="32" onkeypress="if (!alfaNumbersOnly(this, event)) return false"/>
+				</h:panelGrid>
+			</h:panelGroup>
+	      	<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+       	    		<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+       	    			<h:outputText/>
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+								action="#{MbGLAccountsSearch.createGLaccounts}"
+								reRender="mainTable, btnPanelAccounts" 
+								onclick="if (!checkGlAccountFields()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); if(#{usession.noErrorResponse})#{rich:component('acc_create_gl_modal_panel')}.hide()"
+								/>
+                		<bre:taggedCommandButton 
+	                    	   	value="#{lblForm.cancel}" 
+	                    	   	action="#{MbGLAccountsSearch.cancelCreateGLaccount}" 
+	                    	   	immediate="true" limitToList="true"
+	                       		oncomplete="#{rich:component('acc_create_gl_modal_panel')}.hide()">
+	                       	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                    </bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>					
+		</h:form>
+		
+	</rich:modalPanel>		
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbGLAccountsSearch}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="mainTable, btnPanelAccounts"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteGlAccView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+</ui:composition>
+</html>

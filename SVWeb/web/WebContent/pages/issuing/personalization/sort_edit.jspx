@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<rich:modalPanel id="sortModalPanel" autosized="true" minWidth="300" minHeight="100">
+   	    <f:facet name="header">
+  	    	<h:panelGroup id="sortModalHeader">
+        	    <h:outputText value="#{lblPrs.new_sorting}" rendered="#{MbPersoSortsSearch.newMode}"/>
+        	    <h:outputText value="#{lblPrs.edit_sorting}" rendered="#{MbPersoSortsSearch.editMode}"/>
+   	    	</h:panelGroup>
+        </f:facet>
+        <f:facet name="controls">
+   	    </f:facet>
+	   	<h:form id="sortEditForm">
+			<script type="text/javascript">
+//<!--
+				oldValue["sortEditForm"] = "#{MbPersoSortsSearch.newSort.lang}";
+				
+				function checkSortFields() {
+					var checked = true;
+					
+					if (document.getElementById('sortEditForm:label').value == "") {
+						document.getElementById('sortEditForm:labelError').style.display = "block";
+						checked = false;
+					}
+					
+					if (document.getElementById('sortEditForm:newInst').value == ""
+							&& document.getElementById('sortEditForm:newInst').disabled == false) {
+						document.getElementById('sortEditForm:newInstError').style.display = "block";
+						checked = false;
+					}	
+					if (document.getElementById('sortEditForm:condition').value == "") {
+						document.getElementById('sortEditForm:conditionError').style.display = "inline";
+						checked = false;
+					}	
+					
+					if (document.getElementById('sortEditForm:descr').value == "") {
+						document.getElementById('sortEditForm:descrError').style.display = "inline";
+						checked = false;
+					}
+					
+					return checked;
+				}
+			//-->
+			</script>
+
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">        
+					
+					<h:outputLabel for="lang" value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+					<h:selectOneMenu id="newLang" value="#{MbPersoSortsSearch.newSort.lang}"
+							rendered="#{MbPersoSortsSearch.newMode}" style="max-width: none;width:inherit;">
+						<f:selectItems value="#{MbPersoSortsSearch.languages}"/>
+					</h:selectOneMenu>
+					<h:selectOneMenu id="editLang" value="#{MbPersoSortsSearch.newSort.lang}"
+							rendered="#{MbPersoSortsSearch.editMode}"
+							onchange="document.getElementById('confirmPanelView:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('confirmPanel')}.show()" style="max-width: none;width:inherit;">
+						<f:selectItems value="#{MbPersoSortsSearch.languages}"/>
+					</h:selectOneMenu>
+					
+					<h:outputLabel value="* #{lblCommon.label}: " title="#{lblCommon.label}"/>
+					<h:panelGroup>
+						<h:inputText id="label" value="#{MbPersoSortsSearch.newSort.label}" 
+								label="#{lblCommon.label}"
+								maxlength="200"
+								onblur="hideErrorField(this)" style="max-width: none;width:98%;">
+							<f:validateLength minimum="3"/>
+							<a4j:support event="onchange" reRender="labelErr" limitToList="true" ajaxSingle="true"/>	
+						</h:inputText>
+						<rich:message for="label" id="labelErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="labelError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.label}"/>
+						</h:outputFormat>
+					</h:panelGroup>
+					
+					<h:outputLabel value="* #{lblCommon.description}: " title="#{lblCommon.description}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="descr" value="#{MbPersoSortsSearch.newSort.description}" 
+								label="#{lblCommon.description}"
+								maxlength="2000"
+								onblur="hideErrorField(this)">
+							<f:validateLength minimum="3"/>
+							<a4j:support event="onchange" reRender="descrErr" limitToList="true" />	
+						</h:inputText>
+						<rich:message for="descr" id="descrErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="descrError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.description}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+					<h:panelGroup> 
+						<h:selectOneMenu id="newInst" 
+								value="#{MbPersoSortsSearch.newSort.instId}"
+								label="#{lblCommon.institution}"
+								disabled="#{MbPersoSortsSearch.editMode}"
+								onblur="hideErrorField(this)" style="max-width: none;width:inherit;">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbPersoSortsSearch.institutions}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newInstError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.institution}"/>
+						</h:outputFormat>
+					</h:panelGroup>
+					
+					<h:outputLabel value="* #{lblCommon.condition}: " title="#{lblCommon.condition}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:panelGrid columns="3" cellspacing="0" cellpadding="0">
+							<a4j:region>
+								<h:selectOneMenu id="cond_param" style="width:160px;"
+										value="#{MbPersoSortsSearch.selectedParam}"
+										valueChangeListener="#{MbPersoSortsSearch.applyParamToFormatter}">
+									<a4j:support event="onchange" reRender="btn_add_cond"/>
+									<f:selectItems value="#{MbPersoSortsSearch.parameters}"/>
+								</h:selectOneMenu>
+							</a4j:region>
+							
+							<h:selectOneMenu id="cond_param_condition" style="width:50px;" value="#{MbPersoSortsSearch.conditionFormatter.condition}">
+								<f:selectItem itemLabel="ASC" itemValue="ASC"/>
+								<f:selectItem itemLabel="DESC" itemValue="DESC"/>
+							</h:selectOneMenu>
+							
+							<h:panelGroup styleClass="stdButton">
+								<bre:taggedCommandButton value="#{lblForm.add}" id="btn_add_cond"
+										disabled="#{MbPersoSortsSearch.selectedParam == null}" >
+									<f:param name="skipValidation" value="true"></f:param>
+									<a4j:support event="onclick" action="#{MbPersoSortsSearch.addToCondition}" 
+										reRender="condition,conditionError"/>
+								</bre:taggedCommandButton>
+							</h:panelGroup>
+						</h:panelGrid>
+						
+						<h:inputTextarea id="condition" value="#{MbPersoSortsSearch.newSort.condition}" rows="3" cols="10" style="max-width: none;width:98%;" 
+							onblur="hideErrorField(this)"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="conditionError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.condition}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>		
+			</h:panelGroup>   
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbPersoSortsSearch.save}"
+                       			onclick="if (!checkSortFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); 
+                       					if (#{usession.noErrorResponse}) #{rich:component('sortModalPanel')}.hide()"
+                       			reRender="#{rerenderList}"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbPersoSortsSearch.close}" immediate="true"
+                        		oncomplete="#{rich:component('sortModalPanel')}.hide()"
+                        		reRender="sortEditForm">
+                       		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                        </bre:taggedCommandButton>			                        		
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+    <ui:include src="/pages/utils/langConfirmPanel.jspx">
+    	<ui:param name="backingBean" value="#{MbPersoSortsSearch}"/>
+    	<ui:param name="rerenderList" value="sortEditForm:label"/>
+    	<ui:param name="editElem" value="sortEditForm:editLang"/>
+    	<ui:param name="newValue" value="#{MbPersoSortsSearch.newSort.lang}"/>
+    	<ui:param name="formName" value="sortEditForm"/>
+    </ui:include>
+</ui:composition>
+</html>

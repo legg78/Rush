@@ -1,0 +1,164 @@
+<project name="ru.bpc.sv.ia.prototype" default="all" basedir=".">
+	<property name="build.dir" value="${basedir}/build"/>	
+	<property name="dist.dir" value="${basedir}/dist"/>	
+	<property name="lib.dir" value="${basedir}/build/lib"/>
+	
+	<property name="common.dir" value="../ru.bpc.sv.ia.prototype.common"/>	
+	<property name="process.dir" value="../ru.bpc.sv.ia.process"/>			
+	<property name="dao.dir" value="../ru.bpc.sv.ia.prototype.dao"/>
+	<property name="web.dir" value="../ru.bpc.sv.ia.prototype.web"/>
+	
+	<property name="weblogic.dir" value="D:/AS/bea/modules"/>	
+	<property name="application.lib.dir"  value="./EarContent/APP-INF/lib"/>
+	<property name="web.lib.dir"  value="${web.dir}/WebContent/WEB-INF/lib"/>
+	<property name="log.file"  value="${basedir}/log.txt"/>
+	
+	<property name="build.log.dir" location="${basedir}/logs"/>		
+	
+	<path id="compile.classpath">	 
+		<!-- Application Libraries -->
+		<fileset dir="${application.lib.dir}">
+		  <include name="*.jar"/>
+		</fileset>
+		<fileset dir="${weblogic.dir}">
+		  <include name="*.jar"/>
+		</fileset>
+		<fileset dir="${lib.dir}">
+		  <include name="*.jar"/>
+		</fileset>
+		<fileset dir="${web.lib.dir}">
+		  <include name="*.jar"/>
+		</fileset>
+	</path>
+	
+	<target name="logging" description="Create log for each target">
+		<tstamp>
+			<format property="timestamp" pattern="yyyyMMdd-HHmmss"/>
+		</tstamp>	
+		<property name="build.log.filename" value="build_${timestamp}.log"/>		
+		<mkdir dir="${build.log.dir}"/>		
+		<record name="${build.log.dir}/${build.log.filename}"
+			loglevel="info" append="false"/>
+		<echo message="Write logs to ${build.log.filename}"/>
+	</target>
+	
+	<target name="clean" description="Delete old build and dist directories" depends="logging">		
+		<delete dir="${common.dir}/build"/>		
+		<delete dir="${common.dir}/dist"/>
+		<delete dir="${dao.dir}/src/build"/>
+		<delete dir="${dao.dir}/dist"/>
+		
+		<delete dir="${web.dir}/build"/>	
+		<delete dir="${web.dir}/dist"/>
+		
+		<delete dir="${build.dir}"/>	
+		<delete dir="${lib.dir}"/>		
+		<delete dir="${dist.dir}"/>
+	</target>
+	
+	<target name="prepare" description="Create build directories as needed" depends="logging">
+		<!-- Create build directories as needed -->			
+		<mkdir dir="${common.dir}/build"/>		
+		<mkdir dir="${common.dir}/dist"/>
+		<mkdir dir="${dao.dir}/src/build"/>
+		<mkdir dir="${dao.dir}/dist"/>
+		
+		<mkdir dir="${web.dir}/build/WEB-INF/classes"/>
+		<mkdir dir="${web.dir}/build/WEB-INF/lib" />
+		<mkdir dir="${web.dir}/dist"/>
+		
+		<mkdir dir="${build.dir}"/>		
+		<mkdir dir="${lib.dir}"/>
+		<mkdir dir="${dist.dir}"/>
+	</target>
+	
+	
+	<!--++++ Make jar file for common project ++++++-->
+	<target name="compile-common" depends="logging,prepare" description="Compile common sources">
+		<!-- Compile Java classes as necessary -->		
+		<javac srcdir="${common.dir}/src"
+			  destdir="${common.dir}/build">
+			<classpath refid="compile.classpath"/>
+		</javac> 		
+	</target>
+	
+	<target name="dist-common" depends="logging,compile-common" description="Create jar file for common">
+		<jar destfile="${common.dir}/dist/ru.bpc.sv.ia.prototype.common.jar" manifest="${common.dir}/bin/META-INF/MANIFEST.MF">
+			<fileset dir="${common.dir}/build" />			
+		</jar>
+		<copy todir="${lib.dir}" file="${common.dir}/dist/ru.bpc.sv.ia.prototype.common.jar" overwrite="true" />
+	</target>
+	<!--+++++++++++++++++++++++++++++++++++++++-->
+	
+	<!-- Make jar file for dao project ++++-->
+	<target name="compile-dao" depends="logging,dist-process" description="Compile dao sources">
+		<!-- Compile Java classes as necessary -->		
+		<javac srcdir="${dao.dir}/src" destdir="${dao.dir}/src/build">
+			<classpath refid="compile.classpath"/>			
+		</javac> 		
+	</target>
+	
+	<target name="dist-dao" depends="logging,compile-dao" description="Create jar file for dao">
+		<jar destfile="${dao.dir}/dist/ru.bpc.sv.ia.prototype.dao.jar" manifest="${dao.dir}/src/META-INF/MANIFEST.MF">
+			<fileset dir="${dao.dir}/src/build" />
+		</jar>
+		<copy todir="${lib.dir}" file="${dao.dir}/dist/ru.bpc.sv.ia.prototype.dao.jar" overwrite="true" />
+	</target>
+	<!--+++++++++++++++++++++++++++++++++++++++++++-->
+	
+	<!-- Make war file for web project ++++-->
+	<target name="compile-web" depends="logging,dist-dao" description="Compile web sources">
+		<javac srcdir="${web.dir}/src" destdir="${web.dir}/build/WEB-INF/classes" fork="yes">
+			<classpath refid="compile.classpath"/>
+		</javac>
+		<copy todir="${web.dir}/build/WEB-INF/classes">
+			<fileset dir="${web.dir}/src">
+				<include name="**/*.properties" />
+			</fileset>
+		</copy>
+	</target>
+	<target name="pre-war" depends="logging,compile-web" description="Preliminary activities for creating war file">		
+		<copy todir="${web.dir}/build/WEB-INF">
+			<fileset dir="${web.dir}/WebContent/WEB-INF">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+	</target>
+	<target name="war" depends="logging,pre-war" description="Create war file for web">
+		<war destfile="${web.dir}/dist/ru.bpc.sv.ia.prototype.web.war" webxml="${web.dir}/build/WEB-INF/web.xml" 
+			manifest="${web.dir}/WebContent/META-INF/MANIFEST.MF">
+			<fileset dir="${web.dir}/build">
+				<include name="WEB-INF/**" />
+			</fileset>
+			<fileset dir="${web.dir}/WebContent">				
+				<include name="**/*.css" />
+				<include name="**/images/**/*" />
+				<include name="**/js/**/*" />
+				<include name="META-INF/*" />
+				<include name="**/pages/**/*" />
+				<include name="**/_img/**/*" />
+				<include name="**/*.html" />
+				
+			</fileset>
+		</war>
+		<copy todir="${lib.dir}" file="${web.dir}/dist/ru.bpc.sv.ia.prototype.web.war" overwrite="true" />
+	</target>	
+	<!--+++++++++++++++++++++++++++++++++++++++++++-->
+	
+	<!-- Make EAR file for prototype project ++++-->
+	<target name="ear" depends="logging,war" description="Create ear file for prototype">
+		<ear destfile="${dist.dir}/ru.bpc.sv.ia.prototype.ear" appxml="${basedir}/EarContent/META-INF/application.xml">
+			<fileset dir="${basedir}/EarContent">
+				<include name="**/**/*" />
+			</fileset>
+			<fileset dir="${lib.dir}">				
+				<include name="*.jar" />
+				<include name="*.war" />
+			</fileset>
+		</ear>		
+	</target>	
+	<!--+++++++++++++++++++++++++++++++++++++++++++-->
+	
+	<target name="all" depends="logging,clean,ear" description="Clean build and create ear file for prototype"/>
+ 
+</project>

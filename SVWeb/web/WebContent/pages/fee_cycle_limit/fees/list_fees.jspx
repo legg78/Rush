@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:param name="pageHelp" value="fees_browse.htm" />
+    <ui:define name="navigatableContent">
+    	<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+		<a4j:loadScript src="/js/stretch.js" />
+
+		<!-- navigation bar -->
+        <bpct:navBar pageName="#{lblFcl.fees}"/>
+        <a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+        
+        <script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('feesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			      	
+		<h:form id="feesSearchForm" onkeypress="handleEnter(event)">
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+		                <h:panelGroup styleClass="search_block_left" layout="block">
+		                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+			                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+		                			<h:outputLabel for="feeInst" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+									<h:selectOneMenu id="feeInst" immediate="true"
+											value="#{MbFeesSearch.filter.instId}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbFees.institutions}"/>
+									</h:selectOneMenu>
+
+		                			<h:outputLabel for="filter_fee_type" value="#{lblFcl.fee_type}: " title="#{lblFcl.fee_type}" />
+									<h:selectOneMenu id="filter_fee_type" immediate="true"
+											value="#{MbFeesSearch.filter.feeType}">
+										<f:selectItems value="#{MbFeesSearch.feeTypes}"/>
+									</h:selectOneMenu>
+
+		                			<h:outputLabel for="filterCurrency" value="#{lblCommon.currency}: " title="#{lblCommon.currency}" />
+									<h:selectOneMenu id="filterCurrency" immediate="true"
+											value="#{MbFeesSearch.filter.currency}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+									</h:selectOneMenu>
+
+		                			<h:outputLabel for="feeRateCalc" value="#{lblFcl.fee_rate_calc}: " title="#{lblFcl.fee_rate_calc}" />
+									<h:selectOneMenu id="feeRateCalc" immediate="true"
+											value="#{MbFeesSearch.filter.feeRateCalc}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbFeesSearch.feeRatesCalc}"/>
+									</h:selectOneMenu>
+
+		                			<h:outputLabel for="feeBaseCalc" value="#{lblFcl.fee_base_calc}: " title="#{lblFcl.fee_base_calc}" />
+									<h:selectOneMenu id="feeBaseCalc" immediate="true"
+											value="#{MbFeesSearch.filter.feeBaseCalc}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbFeesSearch.feeBasesCalc}"/>
+									</h:selectOneMenu>
+
+								</h:panelGrid>
+			                	<h:panelGrid columns="1" >
+			                		<bre:taggedCommandButton value="#{lblForm.search}" 
+			                				style="width:85px;" 
+			                				reRender="feesTable, dsFees, pagesNum, feesBtnForm:btnPanel, tierTab, detailsTab"
+			                				action="#{MbFeesSearch.search}"
+			                				id="searchBtn"
+			                				image="/_img/icon_search.png" type="submit"
+			                				onclick="disableModalPanelBtns(this);"
+			                				oncomplete="enableModalPanelBtns(this);"
+			                				eventsQueue="queue"/>
+	
+			                		<h:panelGroup styleClass="link-clear" layout="block"  >
+			                			<h:graphicImage url="/_img/icon_clear.png"/>
+			                			<a4j:commandLink value="#{lblForm.clear_all}"
+			                					action="#{MbFeesSearch.clearFilter}"
+			                					reRender="feesSearchForm, feesForm, feesBtnForm, details">
+			                			</a4j:commandLink>
+			                		</h:panelGroup>
+			                	</h:panelGrid>
+		                	</h:panelGrid>
+		                	<a4j:outputPanel ajaxRendered="true">
+			                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+			                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+		                	</a4j:outputPanel>
+		                </h:panelGroup>
+	                </h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="feesForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+            	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+            		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable enableContextMenu="true"
+				           	id="feesTable"
+				           	tableState="#{MbFeesSearch.tableState}"
+				           	styleClass="res-table"
+				           	headerClass="res-table-header"
+				           	rowClasses=",odd"
+				           	selectedClass="res-table-selected"
+				           	var="item"
+				           	value="#{MbFeesSearch.fees}"
+				           	selection="#{MbFeesSearch.itemSelection}"
+				           	rows="#{MbFeesSearch.rowsNum}"
+				           	height="255px"
+				           	selectionMode="#{MbFeesSearch.selectMode == true?'multi':'single' }"
+				           	noDataLabel="#{MbFeesSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+				           	reRender="#{MbFeesSearch.tabName}, feesBtnForm:btnPanel"
+				           	>
+
+	                    <a4j:support event="onselectionchange" eventsQueue="queue"
+	                    		reRender="#{MbFeesSearch.tabName}, feesBtnForm:btnPanel" />
+
+		                <rich:column label="#{lblCommon.id}" title="Id" id="id" sortBy="#{'id'}" width="10%" sortOrder="ASCENDING">
+	                        <f:facet name="header">
+	                            <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+								</a4j:outputPanel>		
+	                        </f:facet>
+	                        <h:outputText value="#{item.id}" title="#{item.id}"/>
+	                    </rich:column>
+
+				        <rich:column label="#{lblFcl.fee_type}" title="Fee type" id="feeType" sortBy="#{'feeType'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblFcl.fee_type}" title="#{lblFcl.fee_type}" />
+			                </f:facet>
+			                <h:outputText value="#{DictUtils.articles[item.feeType]}"
+			                		title="#{DictUtils.articles[item.feeType]}"
+			                		rendered="#{item.feeType != null}" />
+			                <h:outputText value="" title="" rendered="#{item.feeType == null}" />
+				        </rich:column>
+
+				       <rich:column id="currency" label="#{lblCommon.currency}" title="Currency" width="15%" sortBy="#{'currency'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.currency}" title="#{lblCommon.currency}" />
+			                </f:facet>
+			                <div class="#{EntityIcons.objectsMapS['ENTT0046'][item.currency]}"/>
+			                <h:outputText value="#{CurrencyUtils.currencyMap[item.currency]}"
+									title="#{CurrencyUtils.currencyMap[item.currency]}"/>
+				        </rich:column>
+
+				        <rich:column id="fee_rate_calc" label="#{lblFcl.fee_rate_calc}" title="Fee rate calc" width="15%" sortBy="#{'feeRateCalc'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblFcl.fee_rate_calc}" title="#{lblFcl.fee_rate_calc}" />
+			                </f:facet>
+			                <h:outputText value="#{DictUtils.articles[item.feeRateCalc]}"
+			                		title="#{DictUtils.articles[item.feeRateCalc]}"
+			                		rendered="#{item.feeRateCalc != null}" />
+			                <h:outputText value="" title="" rendered="#{item.feeRateCalc == null}" />
+				        </rich:column>
+
+				        <rich:column id="fee_base_calc" label="#{lblFcl.fee_base_calc}" title="Fee base calc" width="15%" sortBy="#{'feeBaseCalc'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblFcl.fee_base_calc}" title="#{lblFcl.fee_base_calc}" />
+			                </f:facet>
+			                <h:outputText value="#{DictUtils.articles[item.feeBaseCalc]}"
+			                		title="#{DictUtils.articles[item.feeBaseCalc]}"
+			                		rendered="#{item.feeBaseCalc != null}" />
+			                <h:outputText value="" title="" rendered="#{item.feeBaseCalc == null}" />
+				        </rich:column>
+
+				        <rich:column id="limit_id" label="#{lblFcl.limit_id}" title="Limit id" width="10%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblFcl.limit_id}" title="#{lblFcl.limit_id}" />
+			                </f:facet>
+			                <h:outputText value="#{item.limitId}" title="#{item.limitId}"/>
+				        </rich:column>
+
+				        <rich:column id="cycle_id" label="#{lblFcl.cycle_id}" title="Cycle id" width="10%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblFcl.cycle_id}" title="#{lblFcl.cycle_id}" />
+			                </f:facet>
+			                <h:outputText value="#{item.cycleId}" title="#{item.cycleId}"/>
+				        </rich:column>
+
+				        <rich:column id="institution" label="#{lblCommon.institution}" title="Institution" width="10%" sortBy="#{'instName'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}" />
+			                </f:facet>
+			                <bm:entityDisplay  entityId="#{item.instId}"
+									value="#{item.instName}"/>
+				        </rich:column>
+				        <f:facet name="footer">
+
+			            </f:facet>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+		    </h:panelGroup>
+        </h:form>
+
+        <h:form id="feesBtnForm">
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+	        		<h:panelGroup layout="block" styleClass="table_tools">
+		        		<h:panelGrid styleClass="fw field-cont" columns="5"
+		        				columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+			        		<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+                        	<h:selectOneMenu id="rows_num" value="#{MbFeesSearch.rowsNum}" styleClass="row_per_page" >
+                        		<a4j:support event="onchange" reRender="feesTable, dsFees, pagesNum, #{MbFeesSearch.tabName}, feesBtnForm"/>
+	                        	<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+	                    	</h:selectOneMenu>
+
+	                    	<rich:datascroller maxPages="10" fastControls="hide" 
+	                    			pagesVar="pages" styleClass="res-datascroller"
+			                    	id="dsFees" for="feesTable"
+			                    	reRender="#{MbFeesSearch.tabName}, feesBtnForm:btnPanel">
+			                    <f:facet name="first">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="first_disabled">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="last">
+			                        <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="last_disabled">
+			                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="previous">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="previous_disabled">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="next">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="next_disabled">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="pages">
+			                    </f:facet>
+			                </rich:datascroller>
+
+			                <h:panelGroup id="pagesNum">
+				            	<h:outputText styleClass="strongClass" value="#{pages} "/>
+				            	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbFeesSearch.fees.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+			            	</h:panelGroup>
+			            	
+			            	<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbFeesSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbFeesSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+			        	</h:panelGrid>
+		            </h:panelGroup>
+
+					<h:panelGrid styleClass="buttons_block" id="btnPanel" columns="5">
+				    	<bre:taggedCommandButton id="selectBtn"
+				        		value="#{lblForm.select}"
+                        		action="#{MbFeesSearch.select}"
+                        		disabled="#{MbFeesSearch.activeFee == null}"
+                        		rendered="#{MbFeesSearch.selectMode}"
+                        		/>
+						<bre:taggedCommandButton id="btn_cancel_select_fee"
+								value="#{lblForm.cancel}"
+			            		action="#{MbFeesSearch.cancelSelect}"
+			            		rendered="#{MbFeesSearch.selectMode}"
+			        			/>
+			        			
+                       	<bre:taggedCommandButton image="/images/create_doc.gif" 
+                       			action="#{MbFeesSearch.createFee}"
+                       			value="#{lblForm.add}"
+                        		reRender="feesEditHeader, feesEditDiv"
+                       			oncomplete="#{rich:component('feesModalPanel')}.show()"
+                       			rendered="false"
+                       			/>
+                        <bre:taggedCommandButton id="btn_edit_fee"
+		                        value="#{lblForm.edit}"
+                        		image="/images/edit.gif"
+                        		action="#{MbFeesSearch.editFee}"
+                        		disabled="#{MbFeesSearch.activeFee == null}"
+                        		rendered="false"
+                        		reRender="feesEditHeader, feesEditDiv"
+                       			oncomplete="#{rich:component('feesModalPanel')}.show()"
+                       			/>
+                       	<bre:taggedCommandButton id="btn_delete_fee"
+                        		image="/images/delete.gif" 
+                        		value="#{lblForm.delete}"
+                        		rendered="false"
+                        		disabled="#{MbFeesSearch.activeFee == null}"
+                        		oncomplete="#{rich:component('deleteFeeView:confirmPanel')}.show()"/>
+					</h:panelGrid>
+               	</h:panelGroup>
+            </h:panelGroup>
+		</h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbFeesSearch.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbFeesSearch.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+	    <h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+		    		activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    		contentClass="tab-content">
+				<rich:tab label="Details" ontabenter="storeTab('detailsTab')" >
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/fee_cycle_limit/fees/fee_details.jspx" />
+						<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('tierTab')" label="Tiers" style="height:100%;">
+              		<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblFcl.tiers}" title="#{lblFcl.tiers}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					
+					<h:panelGroup id="tierTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+                   		<ui:include src="/pages/fee_cycle_limit/fees/list_fee_tiers.jspx">
+                   			<ui:param name="renderBtns" value="false"></ui:param>
+                   		</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<rich:modalPanel id="feesModalPanel" autosized="true" 
+				minWidth="200" minHeight="100" showWhenRendered="#{MbFeesSearch.showModal}">
+	      	<f:facet name="header">
+	      		<h:panelGroup id="feesEditHeader">
+	      			<h:outputText value="#{lblFcl.new_fee}" rendered="#{MbFeesSearch.managingNew}"/>
+	        		<h:outputText value="#{lblFcl.edit_fee}" rendered="#{!MbFeesSearch.managingNew}"/>
+	        	</h:panelGroup>
+	        </f:facet>
+	  	    <f:facet name="controls">
+	      	</f:facet>
+	      	<h:panelGroup id="feesEditDiv">
+	      		<h:form>
+		      	    <ui:include src="/pages/fee_cycle_limit/fees/editFee.jspx"/>
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+								<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+										action="#{MbFees.commit}"
+										reRender="feesTable, dsFees, pagesNum, btnPanel, #{MbFeesSearch.tabName}"
+										onclick="disableModalPanelBtns(this)"
+										oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('feesModalPanel')}.hide()"
+										/>
+			                	<bre:taggedCommandButton
+				                       	value="#{lblForm.cancel}" action="#{MbFees.cancel}"
+				                       	immediate="true" limitToList="true"
+				                       	oncomplete="#{rich:component('feesModalPanel')}.hide()"
+				                       	/>
+							</h:panelGrid>
+						</h:panelGroup>
+					</h:panelGroup>
+	      	    </h:form>
+			</h:panelGroup>
+		</rich:modalPanel>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbFeesSearch}"/>
+			<ui:param name="yesAction" value="deleteFee"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="feesTable, dsFees, pagesNum, btnPanel, #{MbFeesSearch.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteFeeView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script type="text/javascript">
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'feesSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'feesForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'feesBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'feesDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'feesDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'feeTiersForm',
+                            TAB_FORM_WRAPPER_ID:    'tiersTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>		
+    </ui:define>
+</ui:composition>
+</html>

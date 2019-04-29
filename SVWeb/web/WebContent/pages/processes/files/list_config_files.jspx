@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<style type="text/css">
+.noLeftPadding {
+	padding-left: 0;
+}
+</style>
+	<script type="text/javascript">
+	//<![CDATA[
+	function checkCommentFields(){
+		var commentValue = document.getElementById('configCommitForm:comment').value;
+		document.getElementById('configCommitForm:commentError').style.display = "none";
+		if (commentValue != null && commentValue!= ''){
+			return true;
+		}
+
+		if(document.getElementById('configCommitForm:download').checked){
+			return true;
+		}
+		document.getElementById('configCommitForm:commentError').style.display = "inline";
+		return false;
+	}
+	//]]>
+	</script>
+	<f:loadBundle var="lblProcess" basename="ru.bpc.sv2.ui.bundles.Process" />
+	<rich:modalPanel id="configFileListModalPanel" width="640" height="430">
+		<f:facet name="header">
+			<h:panelGroup id="configFileListHeader">
+				<h:outputText value="#{lblCommon.commit_files}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:panelGroup id="configCommitDiv">
+			<h:form id="configCommitForm">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata"
+						id="detailsData" width="100%"
+						columnClasses="firstColModal top, width250 top">
+
+						<h:outputLabel for="comment" value="* #{lblCommon.comments}: " title="#{lblCommon.comments}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0" width="100%">
+							<h:inputTextarea id="comment" 
+									value="#{MbConfigurationFiles.comment}"
+									onkeypress="if (!limitText(event,this,2000)) return false;"
+									onblur="hideErrorField(this)"
+	            					label="#{lblCommon.comment}"
+	            					rows="4"
+	            					style="max-width:none; resize:none; padding:0; width: 100%;">
+				            	<f:validateLength maximum="2000" />
+					        </h:inputTextarea>
+					        <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="commentError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.comments}"/>
+								</h:outputFormat>
+						</h:panelGrid>
+						
+					</h:panelGrid>
+				</h:panelGroup>
+				<rich:panel style="border:none" rendered="#{usession.inRole['VIEW_CONFIG_FILES']}">
+					<rich:extendedDataTable id="configFilesTable" enableContextMenu="true"
+						styleClass="res-table" headerClass="res-table-header table-header-ext"
+						rowClasses=",odd" selectedClass="res-table-selected" var="item"
+						selection="#{MbConfigurationFiles.itemSelection}"
+						rows="#{MbConfigurationFiles.rowsNum}"
+						selectionMode="single" 
+						value="#{MbConfigurationFiles.files}" width="100%" 
+						height="250px" noDataLabel="#{lblCommon['no_records_found']}"
+						reRender="btnPanel, configPreviewForm">
+						
+						<a4j:support event="onselectionchange" eventsQueue="queue" reRender="btnPanel, configPreviewForm"/>
+						
+						<rich:column id="id" label="#{lblCommon.id}" width="10%">
+							<f:facet name="header">
+								<a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.id}" />
+								</a4j:outputPanel>
+							</f:facet>
+							<h:outputText value="#{item.id}" title="#{item.id}" />
+						</rich:column>
+	
+						<rich:column id="name" label="#{lblCommon.name}" width="22%">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.name}" />
+							</f:facet>
+							<h:outputText value="#{item.fileName}" title="#{item.fileName}" />
+						</rich:column>
+						
+						<rich:column id="file_type" label="#{lblProcess.file_type}" width="22%">
+							<f:facet name="header">
+								<h:outputText value="#{lblProcess.file_type}" />
+							</f:facet>
+							<h:outputText value="#{item.fileType}" title="#{item.fileType}" />
+						</rich:column>
+						
+						<rich:column id="purpose" label="#{lblProcess.purpose}" width="22%">
+							<f:facet name="header">
+								<h:outputText value="#{lblProcess.purpose}" />
+							</f:facet>
+							<h:outputText value="#{DictUtils.articles[item.filePurpose]}" title="#{DictUtils.articles[item.filePurpose]}" />
+							
+						</rich:column>
+						
+						<rich:column id="location" label="#{lblProcess.location}" width="24%">
+							<f:facet name="header">
+								<h:outputText value="#{lblProcess.location}" />
+							</f:facet>
+							
+							
+								<h:outputText value="#{item.location}" title="#{item.location}"/>
+							<ui:remove>
+								<h:outputLink value="#{item.location} + #{item.fileName}">	
+								</h:outputLink>
+							</ui:remove>
+						</rich:column>
+					</rich:extendedDataTable>
+
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_left_buttons">
+							<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+								<h:panelGroup>
+									<bre:taggedCommandButton value="#{lblForm.view}"
+										id="previewBtn"
+										oncomplete="#{rich:component('configuration:code_mirror_modal_panel')}.show(); setCodeValue_configuration();"
+										reRender="configuration:code_mirror_modal_panel"
+										disabled="#{MbConfigurationFiles.activeItem == null}"
+										title="Open editor">
+									</bre:taggedCommandButton>
+									
+								</h:panelGroup>
+							
+								<h:panelGroup>
+								</h:panelGroup>
+						</h:panelGrid>
+						</h:panelGroup>
+					</h:panelGroup>
+				</rich:panel>
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block_buttons"
+					style="position: absolute; left: 0; width: 100%; bottom: 0;">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="7" columnClasses="width99P,,paddingR12">
+							<h:outputText />
+							<h:commandLink id="exportZip"
+								action="#{MbConfigurationFiles.downloadZip}"
+								value="exportZip" style="display:none" />
+							<a4j:commandLink id="turnonMonitor"
+								action="#{MbConfigurationFiles.turnonMonitor}"
+								value="turnonMonitor" style="display:none" 
+								reRender="configCommitForm:poll"/>
+
+							<bre:taggedCommandButton id="download"
+													 value="#{lblProcess.download}" type="submit"
+													 onclick="document.getElementById('configCommitForm:turnonMonitor').click();"
+													 reRender="configCommitForm:poll, configCommitForm:pollDownload"
+													 rendered="#{usession.inRole['COMMIT_CONFIG_FILES'] and MbConfigurationFiles.files.rowCount > 0}"
+													 oncomplete="if (#{usession.noErrorResponse}) {returnFormFields(); document.getElementById('configCommitForm:exportZip').click();}"
+									/>
+
+							<bre:taggedCommandButton id="commit"
+													 value="#{lblForm.commit}" type="submit"
+													 action="#{MbConfigurationFiles.commitFiles}"
+													 onclick="if (!checkCommentFields()) return false; document.getElementById('configCommitForm:commit').disabled = true;
+			            			document.getElementById('configCommitForm:turnonMonitor').click();"
+													 reRender="configCommitForm:poll, configCommitForm:pollDownload"
+													 rendered="#{usession.inRole['COMMIT_CONFIG_FILES'] and MbConfigurationFiles.files.rowCount > 0}"
+													 oncomplete="if (#{usession.noErrorResponse}) {#{rich:component('commitView:confirmPanel')}.show();}"
+									/>
+			                <bre:taggedCommandButton action="#{usession.logout}" value="#{lblCommon.logout}"
+			                	oncomplete="document.location.href='#{MbSystemInfo.websphere ? 'ibm_security_logout?logoutExitPage=' : ''}#{request.contextPath}/'" />
+							
+							<bre:taggedCommandButton 
+									value="#{lblForm.close}"	
+									action="#{MbConfigurationFiles.close}"			                        		
+									immediate="true"
+									oncomplete="#{rich:component('configFileListModalPanel')}.hide()" 
+									reRender="configCommitForm">
+								<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+							</bre:taggedCommandButton>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+				<a4j:region>
+					<!--Disabled functionality related to SVN as project is switched to Git-->
+					<ui:remove>
+					<!--<a4j:poll timeout="" -->
+						<!--id="poll" -->
+						<!--interval="3000"-->
+						<!--action="#{MbConfigurationFiles.checkMonitor}"-->
+						<!--enabled="#{MbConfigurationFiles.monitor}"-->
+						<!--reRender="configCommitForm:poll"-->
+						<!--oncomplete="if (#{MbConfigurationFiles.commitEditor.locked}) {-->
+							<!--#{rich:component('lockView:confirmPanel')}.show();-->
+							<!--} else {-->
+							<!--#{rich:component('lockView:confirmPanel')}.hide();}"-->
+						<!--ajaxSingle="true"-->
+						<!--limitToList="true"/>-->
+					</ui:remove>
+					<a4j:poll 
+						id="pollDownload" 
+						interval="3000"
+						action="#{MbConfigurationFiles.checkDownloading}"
+						enabled="#{MbConfigurationFiles.downloading}"
+						oncomplete="if (!#{MbConfigurationFiles.downloading}) #{rich:component('commitView:confirmPanel')}.show();"
+						reRender="configCommitForm:pollDownload"
+						ajaxSingle="true"
+						limitToList="true"/>
+				</a4j:region>
+			</h:form>
+		</h:panelGroup>
+		
+		<h:form id="configPreviewForm" style="display: none">
+
+			<h:inputTextarea id="previewBox" readonly="true"
+				value="#{MbConfigurationFiles.activeItem.fileContents}" cols="50"
+				rows="15" />
+
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/codeMirrorPanel.jspx">
+		<ui:param name="codeElement" value="configPreviewForm:previewBox"/>
+		<ui:param name="subviewId" value="configuration"/>
+		<ui:param name="readOnly" value="true"/>
+		<ui:param name="title" value="Editor"/>
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{usession}"/>
+		<ui:param name="yesAction" value="logout"/>
+		<ui:param name="warningMsg" value="#{lblMsg.notify_commit}"/> 
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="commitView"/>
+		<ui:param name="yes" value="#{lblCommon.logout}"/>
+		<ui:param name="no" value="#{lblForm.close}"/>
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="warningMsg" value="#{lblMsg.notify_file_locked}"/> 
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="lockView"/>
+		<ui:param name="yesAction" value=""/>
+		<ui:param name="noAction" value=""/>
+		<ui:param name="no" value="#{lblForm.close}"/>
+	</ui:include>
+</ui:composition>
+</html>

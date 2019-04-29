@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	>
+<ui:composition>
+	<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/checks.js" />
+
+	<script type="text/javascript">
+    	//<![CDATA[
+		//setOrLabel('#{lblMsg.or_label}');
+		function checkPmoFilters(){
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) return true;
+			
+			var form = 'pmoSearchForm:';
+			
+			var dateFrom = document.getElementById(form + 'dateFrom');
+			var customerNumber = document.getElementById(form + "customerNumberVwcustomerInfo");
+			var customerNumberValue = document.getElementById(form + "customerNumberVwcustomerNumberHidden");
+			var recieverCustomerNumber = document.getElementById(form + "recieverCustomerNumberVwcustomerInfo");
+			var recieverCustomerNumberValue = document.getElementById(form + "recieverCustomerNumberVwcustomerNumberHidden");
+			
+			var fields = [dateFrom, customerNumber, customerNumberValue, recieverCustomerNumber, recieverCustomerNumberValue];
+			
+			for (i=0; i<fields.length; i++){
+				if (fields[i] == null){
+					throw "An exception occured: some of the important fields is not found";
+				}
+			}
+			cleanAll(fields);
+			var errorMsg = '';
+			
+			if (dateInvalid = empty(dateFrom)){
+				paint(dateFrom);
+			}
+			if (!empty(customerNumber)){
+				if (contain(customerNumber, '*')){
+					paint(customerNumber);
+				} else if (!dateInvalid){
+					cleanAll(fields);
+					return true;
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.customer_number_date_group}');
+			}
+			if (!empty(recieverCustomerNumber)){
+				if (contain(recieverCustomerNumber, '*')){
+					paint(recieverCustomerNumber);
+				} else if (!dateInvalid){
+					cleanAll(fields);
+					return true;
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.reciever_customer_number_date_group}');
+			}
+			if (errorMsg == ''){
+				paintAll(fields);
+				if (!dateInvalid){
+					clean(dateFrom);	
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.customer_number_date_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.reciever_customer_number_date_group}');
+			}
+			alert(errorMsg);
+			return false;
+		}
+		
+		function checkParticipantFilters(){
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) return true;
+			
+			var form = 'participantSearchForm:';
+				
+			var dateFrom = document.getElementById(form + 'dateFrom');
+			var cardMask = document.getElementById(form + 'cardMask');
+			var accountNumber = document.getElementById(form + 'accountNumber');
+			var clientIdValue = document.getElementById(form + 'clientIdValue');
+			var clientIdType = document.getElementById(form + 'clientIdType');
+			
+			if (dateFrom == null || cardMask == null || accountNumber == null
+			|| clientIdValue == null || clientIdType == null){
+				throw "An exception occured: some of the important fields is not found";
+			}
+			
+			var fields = [dateFrom, cardMask, accountNumber, clientIdValue, clientIdType];
+			cleanAll(fields);
+			var errorMsg = '';
+			
+			var dateInvalid;
+			if (dateInvalid = empty(dateFrom)){
+				paint(dateFrom);
+			}
+			
+			if (!empty(cardMask)){
+				if (!dateInvalid){
+					cleanAll(fields);
+					return true;
+				} else {
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.date_mask_group}');
+				}
+			}
+						
+			if (!empty(accountNumber)){
+				if (!dateInvalid){
+					cleanAll(fields);
+					return true;
+				} else {
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.date_account_number_group}');
+				}
+			}
+			
+			var clientIdValueInvalid = empty(clientIdValue);
+			var clientIdTypeInvalid = empty(clientIdType);
+			if (!clientIdValueInvalid && !clientIdTypeInvalid){
+				cleanAll(fields);
+				return true;
+			}
+			if (clientIdValueInvalid != clientIdTypeInvalid){
+				if (dateInvalid){
+					clean(cardMask);
+					clean(accountNumber);
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.date_client_id_type_group}');
+				if (clientIdValueInvalid){
+					paint(clientIdValue);
+				}
+				if (clientIdTypeInvalid){
+					paint(clientIdType);
+				}
+			}
+			
+			if (errorMsg == ''){
+				paintAll(fields);
+				if (!dateInvalid){
+					clean(dateFrom);	
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.date_mask_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.date_account_number_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.date_client_id_type_group}');
+			}
+
+			alert(errorMsg);
+			return false;
+			
+		}
+		
+		function checkDocumentFilters(){
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) return true;
+			
+			var form = 'documentFilterForm:';
+			
+			var docNumber = document.getElementById(form + 'docNumber');
+			var docDate = document.getElementById(form + 'docDate');
+			
+			if (docNumber == null || docDate == null){
+				throw "An exception occured: some of the important fields is not found";
+			}
+			
+			var fields = [docNumber, docDate];
+			cleanAll(fields);
+			
+			var invalid = false;
+			if (empty(docNumber)){
+				invalid = true;
+				paint(docNumber);
+			}
+			if (empty(docDate)){
+				invalid = true;
+				paint(docDate);
+			}
+			if (invalid){
+				var errorMsg = '#{lblMsg.doc_date_number_group}';
+				alert(errorMsg);
+				return false;
+			} else {
+				return true;
+			}
+		}
+
+		function checkTagFilters(){
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) return true;
+			
+			var form = 'tagsFilterForm:';
+			
+			var tagType = document.getElementById(form + 'tagType');
+			var tagValue = document.getElementById(form + 'tagValue');
+			
+			if (tagValue == null || tagType == null){
+				throw "An exception occured: some of the important fields is not found";
+			}
+			
+			var fields = [tagType, tagValue];
+			cleanAll(fields);
+			
+			var invalid = false;
+			if (empty(tagValue)){
+				invalid = true;
+				paint(tagValue);
+			}
+			if (empty(tagType)){
+				invalid = true;
+				paint(tagType);
+			}
+			if (invalid){
+				var errorMsg = "#{lblMsg.tag_value_type_group}";
+				alert(errorMsg);
+				return false;
+			} else {
+				return true;
+			}
+		}
+		
+		function checkOperationFilters(){
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) return true;
+			
+			var form = 'operationSearchForm:';
+			
+			var operId = document.getElementById(form + 'operId');
+			var dateFrom = document.getElementById(form + 'dateFrom');
+			var terminalNumber = document.getElementById(form + 'terminalNumber');
+			var merchantNumber = document.getElementById(form + 'merchantNumber');
+			var operationStatus = document.getElementById(form + 'status');
+			var statusReason = document.getElementById(form + 'statusReason');
+			
+			if (operId == null || dateFrom == null || terminalNumber == null 
+			||  merchantNumber == null || operationStatus == null || statusReason == null){
+				throw "An exception occured: some of the important fields is not found";
+			}
+			
+			var fields = [operId, dateFrom, terminalNumber, merchantNumber, operationStatus, statusReason];
+		    cleanAll(fields);
+		    var errorMsg = '';				
+			
+			if (!empty(operId)){
+				cleanAll(fields);
+				return true;
+			} else {
+				paint(operId);
+			}
+			
+			var dateFromInvalid = false;
+			if (dateFromInvalid = empty(dateFrom)){
+				paint(dateFrom);
+			} else {
+				clean(operId);
+			}								
+			
+			var statusInvalid = empty(operationStatus);
+			if (statusInvalid){
+				paint(operationStatus)
+			} 
+			var reasonInvalid = empty(statusReason);
+			if (reasonInvalid){					
+				paint(statusReason);
+			}
+			if (!reasonInvalid && !statusInvalid && !dateFromInvalid){
+				cleanAll(fields);
+				return true;				
+			} else if ((reasonInvalid != statusInvalid) || (dateFromInvalid && !reasonInvalid && !statusInvalid)){
+				clean(operId);
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.reason_status_date_group}');
+			}
+			
+			if (!empty(terminalNumber)){
+				clean(operId);
+				clean(operationStatus);
+				clean(statusReason);
+				if (!contain(terminalNumber, '*')){
+					if (!dateFromInvalid){
+						cleanAll(fields);
+						return true;						
+					}
+				} else {
+					paint(terminalNumber);
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.terminal_number_date_group}');
+			}
+			if (!empty(merchantNumber)){
+				clean(operId);
+				clean(operationStatus);
+				clean(statusReason);
+				if (!contain(merchantNumber, '*')){
+					if (!dateFromInvalid){
+						cleanAll(fields);
+						return true;
+					}
+				} else {
+					paint(merchantNumber);
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.merchant_number_date_group}');
+			}				
+			
+			if (errorMsg == ''){
+				paintAll(fields);
+				if (dateFromInvalid){
+					errorMsg = appendMsg(errorMsg, '#{lblMsg.operation_id_group}');
+				} else {
+					clean(operId);
+				}
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.terminal_number_date_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.merchant_number_date_group}');
+				errorMsg = appendMsg(errorMsg, '#{lblMsg.reason_status_date_group}');
+				
+			}
+			alert(errorMsg);
+			return false;							
+		}
+		//]]>
+	</script>
+</ui:composition>
+</html>

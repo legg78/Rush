@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition>
+	<style type="text/css">
+		.search_block_oper.width70important {
+			 width: 70% !important;
+		}
+	</style>
+
+	<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"
+				   timeZone="#{CommonUtils.timeZone}"
+				   onchanged="if(#{rich:component('calendar')}.customInput.value!=event.rich.component.getSelectedDateString()){
+						#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();
+						#{rich:component('calendar')}.customInput.onchange();
+					}" zindex="1000"
+				   inputClass="hidden" buttonClass="hidden" showApplyButton="true" defaultTime="00:00"/>
+
+	<script>
+        #{rich:component('calendar')}.customExpand = customExpand;
+	</script>
+
+	<script type="text/javascript">
+        //<![CDATA[
+
+        x$(document).ready(function() {
+            x$('#pmoOrdersSearchForm:id').inputValidation({numbersOnly: true});
+        });
+
+        var colorOk = "#FFFFFF";
+        var colorMandatory = "#FF5555";
+        var instFieldId = "pmoOrdersSearchForm:instId";
+        var orderDateFromFieldId = "pmoOrdersSearchForm:orderDateFrom";
+        var entityTypeFieldId = "pmoOrdersSearchForm:entityType";
+        var objectNumberFieldId = "pmoOrdersSearchForm:objectId";
+
+        function allOkPmoOrders(){
+            document.getElementById(instFieldId).style.backgroundColor = colorOk;
+            document.getElementById(orderDateFromFieldId).style.backgroundColor = colorOk;
+            document.getElementById(objectNumberFieldId).style.backgroundColor = colorOk;
+        }
+
+        function checkPmoFields() {
+			var pmoCheckFieldsResult = true;
+
+            allOkPmoOrders();
+
+            var instIdField = document.getElementById(instFieldId);
+            var orderDateFromField = document.getElementById(orderDateFromFieldId);
+            var entityTypeField = document.getElementById(entityTypeFieldId);
+            var objectNumberField = document.getElementById(objectNumberFieldId);
+
+            if (instIdField.value == "") {
+                instIdField.style.background = colorMandatory;
+                pmoCheckFieldsResult = false;
+			}
+            if (orderDateFromField.value == "") {
+                orderDateFromField.style.background = colorMandatory;
+                pmoCheckFieldsResult = false;
+            }
+            if (entityTypeField.value != "" && objectNumberField.value == "") {
+                objectNumberField.style.background = colorMandatory;
+                pmoCheckFieldsResult = false;
+			}
+
+            return pmoCheckFieldsResult;
+        }
+        //]]>
+	</script>
+
+	<bpct:customerSearchModalPanels id="custSearchPanels"/>
+
+	<h:form id="pmoOrdersSearchForm">
+		<h:panelGroup layout="block" styleClass="search_block_tabs">
+			<h:panelGroup layout="block" styleClass="search_block_tabs_inner1">
+				<h:panelGrid columns="2" columnClasses="search_block_oper width70important, search_block_tabPanel" cellspacing="0"
+							 cellpadding="0">
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width: 100%">
+						<h:panelGroup layout="block" style="height: 27px; background: #ffffff"/>
+						<h:panelGroup layout="block" style="border-top: 1px outset; padding-top:10px;">
+							<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" style="overflow: visible;">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+									<a4j:outputPanel>
+										<h:panelGrid styleClass="filter-table field-cont threeColumnTable" columns="6"
+													 columnClasses="firstCol,secondCol,firstCol,secondCol,firstCol,secondCol"
+													 id="filtersTable">
+											<h:outputLabel for="id" value="#{lblRec.order_id}:" title="#{lblRec.order_id}"/>
+											<h:inputText id="id" value="#{MbPmoPaymentOrdersSearch.filter.id}"/>
+
+											<h:outputLabel for="instId" value="#{lblCommon.institution}:" title="#{lblCommon.institution}"/>
+											<h:selectOneMenu id="instId" value="#{MbPmoPaymentOrdersSearch.filter.instId}">
+												<f:selectItem itemValue=""/>
+												<f:selectItems value="#{DictUtils.institutes}"/>
+												<a4j:support event="onchange" limitToList="true" ajaxSingle="true"
+															 action="#{MbPmoPaymentOrdersSearch.onInstitutionChange}"
+															 reRender="customerInfo, objectId"/>
+											</h:selectOneMenu>
+
+											<h:outputLabel for="customerNumber" value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}" />
+											<bm:selectCustomer
+													id="customerNumber"
+													valueId="#{MbPmoPaymentOrdersSearch.filter.customerId}"
+													valueNumber="#{MbPmoPaymentOrdersSearch.filter.customerNumber}"
+													custInfoField="#{MbPmoPaymentOrdersSearch.filter.custInfo}"
+													beanName="MbPmoPaymentOrdersSearch"
+													modalPanel="customerSearchModalPanel"
+													readonly="false"
+													style="max-width: 164px; margin:0px 0px;"
+													iconStyle="padding-left: 4px;"
+													formName="pmoOrdersSearchForm"
+													manualInput="true"
+													rerenderList="pmoOrdersSearchForm:instId"
+													disabled="false" rendered="true"/>
+
+											<h:outputText value="#{lblPmo.order_date_from}:" title="#{lblPmo.order_date_from}" />
+											<h:panelGroup>
+												<h:inputText id="orderDateFrom" style="max-width:145px"
+															 value="#{MbPmoPaymentOrdersSearch.filter.orderDateFrom}"
+															 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('pmoOrdersSearchForm:orderDateFrom')}, #{rich:element('pmoOrdersSearchForm:orderDateFromBtn')});">
+													<f:convertDateTime pattern="#{usession.fullDatePattern}"
+																	   timeZone="#{CommonUtils.timeZone}"/>
+													<a4j:support event="onchange" ajaxSingle="true"
+																 limitToList="true"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('pmoOrdersSearchForm:orderDateFrom')}, #{rich:element('pmoOrdersSearchForm:orderDateFromBtn')});"
+														id="orderDateFromBtn"/>
+											</h:panelGroup>
+
+											<h:outputLabel for="entityType" value="#{lblCommon.entity_type}: " title="#{lblCommon.entity_type}"/>
+											<h:selectOneMenu id="entityType"
+															 value="#{MbPmoPaymentOrdersSearch.filter.entityType}"
+															 label="#{lblCommon.entity_type}">
+												<f:selectItem itemValue=""/>
+												<f:selectItems value="#{MbPmoPaymentOrdersSearch.entityTypes}"/>
+												<a4j:support event="onchange" reRender="selectObject, objectId"
+															 action="#{MbPmoPaymentOrdersSearch.prepareObject}"/>
+											</h:selectOneMenu>
+
+
+											<h:outputLabel for="purpose" value="#{lblPmo.purpose}:" title="#{lblPmo.purpose}"/>
+											<h:selectOneMenu id="purpose" value="#{MbPmoPaymentOrdersSearch.filter.purposeId}">
+												<f:selectItem itemValue=""/>
+												<f:selectItems value="#{MbPmoPaymentOrdersSearch.purposes}"/>
+											</h:selectOneMenu>
+
+											<h:outputText value="#{lblPmo.order_date_to}:" title="#{lblPmo.order_date_to}" />
+											<h:panelGroup>
+												<h:inputText id="orderDateTo" style="max-width:145px"
+															 value="#{MbPmoPaymentOrdersSearch.filter.orderDateTo}"
+															 onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('pmoOrdersSearchForm:orderDateTo')}, #{rich:element('pmoOrdersSearchForm:orderDateToBtn')});">
+													<f:convertDateTime pattern="#{usession.fullDatePattern}"
+																	   timeZone="#{CommonUtils.timeZone}"/>
+													<a4j:support event="onchange" ajaxSingle="true"
+																 limitToList="true"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('pmoOrdersSearchForm:orderDateTo')}, #{rich:element('pmoOrdersSearchForm:orderDateToBtn')});"
+														id="orderDateToBtn"/>
+											</h:panelGroup>
+
+											<h:outputLabel for="objectId" value="#{lblCommon.object_number}: " title="#{lblCommon.object_number}"/>
+											<h:panelGroup layout="block" style="max-width: 164px;">
+												<h:panelGrid columns="2" cellpadding="0" cellspacing="0" columnClasses="width99P," width="100%">
+													<h:inputText value="#{MbPmoPaymentOrdersSearch.filter.objectNumber}"
+																 id="objectId" readonly="true"/>
+													<h:panelGroup>
+														<h:graphicImage url="/_img/icon_search.png" styleClass="searchComponent-icon" id="selectObject" style="padding-left: 4px;">
+															<a4j:support immediate="true" event="onclick"
+																		 rendered="#{not empty MbPmoPaymentOrdersSearch.filter.entityType}"
+																		 action="#{MbPmoPaymentOrdersSearch.prepareObjectId}"
+																		 oncomplete="Richfaces.showModalPanel('objectModalPanel');"
+																		 reRender="objectModalPanel" limitToList="true" ajaxSingle="true">
+															</a4j:support>
+														</h:graphicImage>
+													</h:panelGroup>
+												</h:panelGrid>
+											</h:panelGroup>
+
+											<h:outputLabel for="status" value="#{lblCommon.status}:" title="#{lblCommon.status}"/>
+											<h:selectOneMenu id="status" value="#{MbPmoPaymentOrdersSearch.filter.status}">
+												<f:selectItem itemValue=""/>
+												<f:selectItems value="#{MbPmoPaymentOrdersSearch.statuses}"/>
+											</h:selectOneMenu>
+
+										</h:panelGrid>
+									</a4j:outputPanel>
+								</h:panelGrid>
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGrid>
+					<h:panelGroup style="height: 100%" layout="block">
+						<rich:tabPanel switchType="client" id="pmoFilterTabs" tabClass="tab-cell"
+									   style="height: 100%"
+									   activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+									   contentClass="search_block">
+							<rich:tab label="#{lblCommon.parameters}" name="parameters">
+								<f:facet name="label">
+									<h:panelGroup styleClass="first tab-label" layout="block">
+										<h:outputText value="#{lblCommon.parameters}" title="#{lblCommon.parameters}"/>
+									</h:panelGroup>
+								</f:facet>
+								<h:panelGroup layout="block" styleClass="search_block_tab">
+									<h:panelGroup layout="block"
+												  styleClass="search_block_inner search_block_inner-hidden">
+										<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+											<a4j:outputPanel id="paramsPanel">
+												<h:panelGrid styleClass="filter-table field-cont twoColumnTable"
+															 columns="2"
+															 columnClasses="firstCol,secondCol">
+													<h:outputLabel for="paramName" value="#{lblCommon.param_name}: "
+																   title="#{lblCommon.param_name}"/>
+													<h:selectOneMenu id="paramName"
+																	 value="#{MbPmoPaymentOrdersSearch.filter.parameterId}">
+														<f:selectItem itemValue=""/>
+														<f:selectItems value="#{MbPmoPaymentOrdersSearch.paymentOrderParams}"/>
+													</h:selectOneMenu>
+
+													<h:outputLabel for="paramValue" value="#{lblCommon.param_value}: "
+																   title="#{lblCommon.param_value}"/>
+													<h:inputText id="paramValue"
+																 value="#{MbPmoPaymentOrdersSearch.filter.parameterValue}"/>
+
+												</h:panelGrid>
+											</a4j:outputPanel>
+											<h:panelGrid columns="1">
+												<bre:taggedCommandButton eventsQueue="queue"
+																		 onclick="if (!checkPmoFields()) {return false}; disableModalPanelBtns(this);"
+																		 action="#{MbPmoPaymentOrdersSearch.search}"
+																		 oncomplete="enableModalPanelBtns(this)"
+																		 reRender="pmoOrdersTableForm, #{MbPmoPaymentOrdersSearch.tabName}, pmoOrdersTableButtonsForm"
+																		 image="/_img/icon_search.png" type="submit"
+																		 value="#{lblForm.search}"
+																		 style="width:85px;">
+												</bre:taggedCommandButton>
+
+												<h:panelGrid columns="1">
+													<h:panelGroup styleClass="link-clear" layout="block">
+														<h:graphicImage url="/_img/icon_clear.png"/>
+														<a4j:commandLink value="#{lblForm.clear_all}"
+																		 action="#{MbPmoPaymentOrdersSearch.clearFilter}"
+																		 reRender="pmoOrdersSearchForm, pmoOrdersTableForm, #{MbPmoPaymentOrdersSearch.tabName}, pmoOrdersTableButtonsForm"
+														>
+														</a4j:commandLink>
+
+													</h:panelGroup>
+
+													<h:panelGroup>
+
+													</h:panelGroup>
+												</h:panelGrid>
+											</h:panelGrid>
+										</h:panelGrid>
+									</h:panelGroup>
+								</h:panelGroup>
+							</rich:tab>
+						</rich:tabPanel>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+			<a4j:outputPanel ajaxRendered="true">
+				<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+				<h:panelGroup styleClass="collapse-vert collapse-vert-tab" layout="block"/>
+			</a4j:outputPanel>
+		</h:panelGroup>
+	</h:form>
+	<ui:include src="/pages/pmo/pmoSelectObjectModalPanel.jspx">
+		<ui:param name="reRenderList" value="objectId, pmoOrdersSearchForm:instId"/>
+		<ui:param name="bean" value="#{MbPmoPaymentOrdersSearch}"/>
+		<ui:param name="selectMethod" value="selectObject"/>
+	</ui:include>
+</ui:composition>
+</html>

@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblCmn" basename="ru.bpc.sv2.ui.bundles.Cmn"/>
+	
+	<h:form id="cmnVersionsForm">
+		<h:panelGrid columns="1" width="100%" cellpadding="0" cellspacing="0" style="height:219px;">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable" id="detailsData"
+					 columnClasses="firstCol,secondCol">
+					<h:outputLabel value="#{lblCommon.lang_selector}: " title="#{lblCommon.lang_selector}" />
+					<h:selectOneMenu disabled="#{MbCmnVersions.standardId == null}"
+							value="#{MbCmnVersions.curLang}"
+							valueChangeListener="#{MbCmnVersions.changeLanguage}">
+						<a4j:support event="onchange" reRender="versionsTable"
+								limitToList="true" />
+						<f:selectItems value="#{MbCmnVersions.languages}" />
+					</h:selectOneMenu>
+				</h:panelGrid>
+			</h:panelGroup>
+			<rich:extendedDataTable id="versionsTable" styleClass="res-table"
+					headerClass="res-table-header" rowClasses=",odd"
+					selectedClass="res-table-selected" var="item"
+					value="#{MbCmnVersions.versions}"
+					selection="#{MbCmnVersions.itemSelection}" height="178px"
+					enableContextMenu="false" rows="0"
+					noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange" reRender="btnPanel, paramsTable, paramLang, btnParamPanel" />
+
+				<rich:column title="Id" sortBy="#{'id'}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+					</f:facet>
+					<h:outputText value="#{item.id}" />
+				</rich:column>
+
+				<rich:column title="versionNumber" sortBy="#{'versionNumber'}"
+						width="30%">
+					<f:facet name="header">
+							<h:outputText value="#{lblCmn.version_number}" title="#{lblCmn.version_number}" />
+					</f:facet>
+					<h:outputText value="#{item.versionNumber}"
+							title="#{item.versionNumber}"
+							 />
+				</rich:column>
+
+				<rich:column title="description" sortBy="#{'description'}" width="50%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.description}" title="#{lblCommon.description}" />
+					</f:facet>
+					<h:outputText value="#{item.description}" title="#{item.description}" />
+				</rich:column>
+			</rich:extendedDataTable>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	            	<h:panelGrid id="btnPanel" columns="4" style="vertical-align: top;" cellpadding="0" cellspacing="0">
+						<bre:taggedCommandButton id="viewBtn"
+								reRender="cmn_version_view_modal_div" value="#{lblForm.view}"
+								oncomplete="#{rich:component('cmn_version_view_modal_panel')}.show()"
+								action="#{MbCmnVersions.view}"
+								disabled="#{MbCmnVersions.standardId == null || MbCmnVersions.activeVersion == null}" />
+						<bre:taggedCommandButton id="addBtn"
+								reRender="cmn_version_modal_header, versionEditForm, paramsTable"
+								value="#{lblForm.add}"
+								oncomplete="#{rich:component('cmn_version_modal_panel')}.show()"
+								action="#{MbCmnVersions.add}"
+								disabled="#{MbCmnVersions.standardId == null}"
+								image="/images/create_doc.gif" />
+						<bre:taggedCommandButton id="editBtn"
+								reRender="cmn_version_modal_header, versionEditForm"
+								value="#{lblForm.edit}" action="#{MbCmnVersions.edit}"
+								oncomplete="#{rich:component('cmn_version_modal_panel')}.show()"
+								disabled="#{MbCmnVersions.standardId == null || MbCmnVersions.activeVersion == null}"
+								image="/images/edit.gif" />
+						<bre:taggedCommandButton id="deleteBtn"
+								reRender="versionsTable, btnPanel, paramsTable, btnParamPanel" value="#{lblForm.delete}"
+								action="#{MbCmnVersions.delete}"
+								onclick="if (!confirm('#{lblMsg.confirm_delete}')) return false;"
+								disabled="#{MbCmnVersions.standardId == null || MbCmnVersions.activeVersion == null}"
+								image="/images/delete.gif" />
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:panelGrid>
+	</h:form>
+
+	<ui:include src="/pages/communication/standard_version_edit.jspx">
+		<ui:param name="saveBean" value="#{MbCmnVersions}"/>
+		<ui:param name="rerenderList" value="cmnVersionsForm:versionsTable, cmnVersionsForm:btnPanel"/>
+	</ui:include>
+
+	<rich:modalPanel id="cmn_version_view_modal_panel" autosized="true" minWidth="300" minHeight="100">
+ 	    <f:facet name="header">
+	      	<h:outputText value="#{lblCmn.version}"/> 			
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+		<h:form>
+			<h:panelGroup id="cmn_version_view_modal_div">
+				<h:outputLabel value="#{lblCommon.id}: " title="#{lblCommon.id}" />
+				<h:inputText value="#{MbCmnVersions.activeVersion.id}" readonly="true" />
+	
+				<h:outputLabel value="#{lblCmn.version_number}: " title="#{lblCmn.version_number}" />
+				<h:inputText value="#{MbCmnVersions.activeVersion.versionNumber}" readonly="true" />
+	
+				<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}" />
+				<h:selectOneMenu id="newLang"
+					value="#{MbCmnVersions.activeVersion.lang}" disabled="true">
+					<f:selectItems value="#{MbCmnVersions.languages}" />
+				</h:selectOneMenu>
+	
+				<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}" />
+				<h:inputTextarea id="description"
+					value="#{MbCmnVersions.activeVersion.description}" readonly="true"
+					rows="5" cols="150" />
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" 
+                        		action="#{MbCmnVersions.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('cmn_version_view_modal_panel')}.hide()">
+	                        <f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                	</bre:taggedCommandButton>	
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>		
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:bpc="http://www.bpc.ru/jsf/misc"
+      xmlns:a4j="http://richfaces.org/a4j">
+<ui:composition>
+    <h:panelGroup layout="block" style="width:100%;${style}" styleClass="searchComponent ${styleClass}" rendered="#{!nocustForm}">
+        <script>
+            // <![CDATA[
+            jQuery(document).ready(function(){
+                if ('#{searchButton}' && (!'#{searchOnBlur}' || '#{searchOnBlur}' != 'false')) {
+                    var $searchButton = jQuery("#"+'#{formName}'+"\\:"+"#{searchButton}");
+                    if ($searchButton.size() == 0)
+                        return;
+                    var markerName = "#{viewIdColon}productField";
+                    if (!$searchButton.attr(markerName)) {
+                        $searchButton.attr(markerName, "1");
+                        var waitForBusy = function(){
+                            var isBusy = window['#{viewIdColon}productFieldBusy'];
+                            var $searchButton = jQuery("#"+'#{formName}'+"\\:"+"#{searchButton}"); // redefine again
+                            var counterName = '#{viewIdColon}productFieldWaitForBusyCnt';
+                            if (!window[counterName])
+                                window[counterName] = 1;
+                            else
+                                window[counterName] = window[counterName] + 1;
+                            if (window[counterName] < 10 && isBusy) {
+                                window.setTimeout(function(){$searchButton.click();}, 500);
+                                return false;
+                            }
+                            // exiting if not busy
+                            window[counterName] = null;
+                            return true;
+                        };
+                        var oldClick = $searchButton.attr("onclick");
+                        $searchButton[0].onclick = function (event) {
+                            var clickRes = waitForBusy();
+                            if (!clickRes)
+                                return false;
+                            return oldClick.apply($searchButton[0], [event]);
+                        };
+                    }
+                }
+            });
+            // ]]>
+        </script>
+        <h:panelGrid columns="3" columnClasses="width99P," width="100%"
+                     cellpadding="0" cellspacing="0">
+            <h:inputText id="#{viewIdColon}product"
+                         value="#{valueProduct}" title="#{valueProduct}"
+                         styleClass="searchComponent-input" style="max-width: 100%;"
+                         onfocus="if (#{readonly==null || !readonly}) {clearText('#{formName}');}"
+                         disabled="#{disabled}" rendered="#{rendered}" readonly="true">
+                <a4j:support event="onblur" limitToList="true" ajaxSingle="true"
+                             rendered="#{searchOnBlur == null || searchOnBlur}"
+                             onsubmit="window['#{viewIdColon}productFieldBusy']=true;"
+                             oncomplete="window['#{viewIdColon}productFieldBusy']=false;"
+                             reRender="#{viewIdColon}product,
+                                       #{viewIdColon}productId,
+                                       #{viewIdColon}productName,
+                                       #{viewIdColon}productIdHidden,
+                                       #{viewIdColon}productNumberHidden,
+                                       #{viewIdColon}productNameHidden"/>
+            </h:inputText>
+
+            <h:panelGroup>
+                <h:inputHidden id="#{viewIdColon}productNumberHidden" value="#{valueProductNumber}"/>
+                <h:inputHidden id="#{viewIdColon}productIdHidden" value="#{valueProductId}"/>
+                <h:inputHidden id="#{viewIdColon}productNameHidden" value="#{valueProductName}"/>
+                <h:inputHidden id="#{viewIdColon}productHidden" value="#{valueProduct}"/>
+            </h:panelGroup>
+
+            <h:graphicImage id="#{viewIdColon}selectProduct"
+                            url="/_img/icon_search.png"
+                            styleClass="searchComponent-icon"
+                            rendered="#{rendered}" readonly="#{readonly}">
+                <a4j:support id="#{viewIdColon}productsLink"
+                             immediate="true" event="onclick"
+                             reRender="#{modalPanel}"
+                             disabled="#{readonly}"
+                             action="#{viewScope[beanName].showProducts}"
+                             oncomplete="if (${readonly}) {return false;}; Richfaces.showModalPanel('${modalPanel}');">
+                    <a4j:actionparam name="beanNameForProductsModal"
+                                     value="#{beanName}"
+                                     assignTo="#{MbProductSearchModal.beanName}"/>
+                    <a4j:actionparam name="methodNameForProductsModal"
+                                     value="#{methodName}"
+                                     assignTo="#{MbProductSearchModal.methodName}"/>
+                    <a4j:actionparam name="rerenderListProductsModal"
+                                     value="#{formName}:#{viewIdColon}product,
+                                            #{formName}:#{viewIdColon}productId,
+                                            #{formName}:#{viewIdColon}productName,
+                                            #{formName}:#{viewIdColon}productNumberHidden,
+                                            #{formName}:#{viewIdColon}productIdHidden,
+                                            #{formName}:#{viewIdColon}productNameHidden,
+                                            #{renderList}"
+                                     assignTo="#{MbProductSearchModal.renderList}"/>
+                </a4j:support>
+            </h:graphicImage>
+        </h:panelGrid>
+    </h:panelGroup>
+
+    <h:panelGroup layout="block" style="width:100%;${style}" styleClass="${styleClass}" rendered="#{nocustForm}">
+        <h:panelGrid columns="2" columnClasses="width99P," width="100%"
+                     cellpadding="0" cellspacing="0">
+            <h:inputText id="#{viewIdColon}parameter" value="#{valueField}"
+                         title="#{valueField}"
+                         readonly="true" rendered="#{rendered}"
+                         onclick="document.getElementById('#{viewIdColon}selectParameter').click();"
+                         styleClass="searchComponent-input">
+            </h:inputText>
+            <h:graphicImage url="/_img/icon_search.png"
+                            id="#{viewIdColon}selectParameter"
+                            styleClass="searchComponent-icon"
+                            rendered="#{rendered}" readonly="#{readonly}">
+                <a4j:support immediate="true"
+                             id="#{viewIdColon}parameterLink"
+                             event="onclick"
+                             disabled="#{readonly}"
+                             oncomplete="Richfaces.showModalPanel('#{viewScope[modalBean].modalPanel}');"
+                             reRender="modalPage" >
+                    <a4j:actionparam name="beanNameForProductsModal" value="#{beanName}" assignTo="#{viewScope[modalBean].beanName}" />
+                    <a4j:actionparam name="methodNameForProductsModal" value="#{methodName}" assignTo="#{viewScope[modalBean].methodName}"/>
+                    <a4j:actionparam name="rerenderListProductsModal" value="#{viewIdColon}parameter" assignTo="#{viewScope[modalBean].renderList}"/>
+                </a4j:support>
+            </h:graphicImage>
+        </h:panelGrid>
+    </h:panelGroup>
+</ui:composition>
+</html>

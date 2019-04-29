@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/">
+<ui:composition>
+     <rich:modalPanel id="set_param_modal_panel" autosized="true" minWidth="300" minHeight="50">
+      	<f:facet name="header">
+        	<h:outputText value="#{lblCommon.parameter_setup}" />
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:panelGroup id="set_param_modal_div">
+      		<h:form>
+	      	    <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstCol firstColModal, width250">
+				      	<h:outputLabel value="#{MbSettingParamsSearch.newNode.name}: " 
+				      			title="#{MbSettingParamsSearch.newNode.name}"
+				      			rendered="#{MbSettingParamsSearch.newNode.name != null}"/>
+				      	<h:outputLabel value="#{MbSettingParamsSearch.newNode.name}: "
+				      			title="#{MbSettingParamsSearch.newNode.name}"
+				      			rendered="#{MbSettingParamsSearch.newNode.name == null}"/>
+						
+						<h:inputText id="inplace1clear"
+									 value="#{MbSettingParamsSearch.newNode.valueV}"
+									 title="#{MbSettingParamsSearch.newNode.valueV}"
+									 rendered="#{MbSettingParamsSearch.newNode.char and
+									             MbSettingParamsSearch.newNode.lovId == null and
+									             !MbSettingParamsSearch.newNode.encrypted}"
+									 maxlength="200"/>
+						<h:inputSecret id="inplace1crypt"
+									   value="#{MbSettingParamsSearch.newNode.valueV}"
+									   title="#{MbSettingParamsSearch.newNode.valueV}"
+									   rendered="#{MbSettingParamsSearch.newNode.char and
+									             MbSettingParamsSearch.newNode.lovId == null and
+									             MbSettingParamsSearch.newNode.encrypted}"
+									   maxlength="200"/>
+						<h:panelGroup layout="block" rendered="#{MbSettingParamsSearch.newNode.number and MbSettingParamsSearch.newNode.lovId == null}">
+		                <h:inputText id="inplace2" 
+								value="#{MbSettingParamsSearch.newNode.valueN}"
+								title="#{MbSettingParamsSearch.newNode.valueN}"
+								label="#{MbSettingParamsSearch.newNode.name}"
+								onkeypress="if (!numbersOnly(this, event, true)) {
+													return false;
+											} else {
+												if (!limitText(event,this,18)) return false;
+											}">
+								<f:validateLength maximum="18" />
+		                </h:inputText>
+		                <rich:message for="inplace2" id="inplace2Err" styleClass="errorMarker"/>
+		                </h:panelGroup>
+		                <h:selectOneMenu rendered="#{MbSettingParamsSearch.newNode.number and MbSettingParamsSearch.newNode.lovId != null }" 
+								id="inplace3" value="#{MbSettingParamsSearch.newNode.valueN}">
+		                	<f:selectItems value="#{MbSettingParamsSearch.listValues}"/>			                
+		                </h:selectOneMenu>
+						
+						 <h:selectOneMenu rendered="#{MbSettingParamsSearch.newNode.char and MbSettingParamsSearch.newNode.lovId != null }" 
+								id="inplace4" value="#{MbSettingParamsSearch.newNode.valueV}">
+		                	<f:selectItems value="#{MbSettingParamsSearch.listValues}"/>			                
+		                </h:selectOneMenu>	
+					</h:panelGrid>
+				</h:panelGroup>
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+							<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+									action="#{MbSettingParamsSearch.save}" limitToList="true"
+									reRender="#{rerenderList},settings_warn_ajax"
+									oncomplete="if (#{usession.noErrorResponse} || #{usession.severityWarning}) {
+											#{rich:component('set_param_modal_panel')}.hide();
+											if (#{MbSettingParamsSearch.newNode.systemName == 'LANGUAGE' and not omitRerender}) {
+												if (#{systemParams != null and systemParams}) {
+													document.getElementById('sysRerenderForm:rerenderFormBtn').click();
+												} else {
+													document.getElementById('rerenderForm:rerenderFormBtn').click();
+												}
+											}
+											if (#{MbSettingParamsSearch.newNode.systemName == 'MENU_BOOKMARKS_PLAIN' and not omitRerender}) {
+												rerenderFavourites();
+											}
+											updateHeight();
+										}">								
+							</bre:taggedCommandButton>
+		                	<bre:taggedCommandButton
+			                       	value="#{lblForm.cancel}" action="#{MbSettingParamsSearch.cancel}" 
+			                       	immediate="true" limitToList="true"
+			                       	oncomplete="#{rich:component('set_param_modal_panel')}.hide()"
+			                       	/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>					
+      	    </h:form>
+      	    
+		</h:panelGroup>
+	</rich:modalPanel>
+	
+	<h:form id="rerenderForm" style="display:none">
+		<h:commandButton id="rerenderFormBtn" action="#{MbUserSettingParams.showUserParams}"/>
+	</h:form>
+
+	<h:form id="sysRerenderForm" style="display:none">
+		<h:commandButton id="rerenderFormBtn"/>
+	</h:form>
+
+	<a4j:outputPanel ajaxRendered="true" id="settings_warn_ajax">
+		<h:form rendered="#{!usession.noErrorResponse and usession.unrenderedMessagesExist}" layout="none">
+			<rich:modalPanel domElementAttachment="parent"
+			                 id="warn_modal_panel" autosized="true" minWidth="300" minHeight="50"
+			                 showWhenRendered="true" zindex="999">
+				<f:facet name="header">
+					<h:panelGroup>
+						<h:outputText value="#{lblCommon.warning_label}" rendered="#{usession.severityWarning}"/>
+						<h:outputText value="#{lblForm.error}" rendered="#{usession.severityError}" />
+						<h:outputText value="#{lblForm.system_error}" rendered="#{usession.severityFatal}" />
+					</h:panelGroup>
+				</f:facet>
+
+				<f:facet name="controls">
+					<h:panelGroup>
+						<h:outputText value="X" styleClass="hidelink" id="hideErrorLink"/>
+						<rich:componentControl for="warn_modal_panel" attachTo="hideErrorLink" operation="hide" event="onclick"/>
+					</h:panelGroup>
+				</f:facet>
+
+				<bre:messages style="color:red;padding-right:10px"/>
+
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" style="text-align:center">
+						<h:panelGroup styleClass="stdButton">
+							<a4j:commandLink value="#{lblForm.close}" immediate="true" id="cancel_btn" oncomplete="#{rich:component('warn_modal_panel')}.hide(); return false;"/>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</rich:modalPanel>
+		</h:form>
+	</a4j:outputPanel>
+</ui:composition>
+</html>

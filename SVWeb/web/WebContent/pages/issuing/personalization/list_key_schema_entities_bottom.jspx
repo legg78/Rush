@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblPrs" basename="ru.bpc.sv2.ui.bundles.Prs" />
+
+	<h:form id="keySchemaEntBtmForm">
+		<h:panelGroup id="mainTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable headerClass="res-table-header table-header-ext"
+				selectedClass="res-table-selected" styleClass="res-table"
+				rowClasses=",odd" id="mainTable" var="item"
+				value="#{MbKeySchemaEntitySearch.keySchemaEntities}"
+				selection="#{MbKeySchemaEntitySearch.itemSelection}" rows="0"
+				height="220px" selectionMode="single" enableContextMenu="true"
+				tableState="#{MbKeySchemaEntitySearch.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="keySchemaEntBtmForm:btnPanelEntity" />
+
+				<rich:column id="key_type" label="#{lblPrs.key_type}" title="Key type" sortBy="#{'keyType'}" width="50%"
+					filterEvent="onkeyup">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblPrs.key_type}"
+								title="#{lblPrs.key_type}" />						
+						</a4j:outputPanel>
+
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu value="#{MbKeySchemaEntitySearch.filter.keyType}"
+							style="width: 100%;">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbKeySchemaEntitySearch.keyTypes}" />
+							<a4j:support event="onchange" reRender="mainTable"
+								action="#{MbKeySchemaEntitySearch.search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.keyType]}"
+						title="#{DictUtils.articles[item.keyType]}" />
+				</rich:column>
+
+				<rich:column id="entity_type" label="#{lblCommon.entity_type}" title="Status" sortBy="#{'entityType'}" width="50%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.entity_type}"
+							title="#{lblCommon.entity_type}" />
+					</f:facet>
+					<f:facet name="filter">
+						<h:selectOneMenu
+							value="#{MbKeySchemaEntitySearch.filter.entityType}"
+							style="width: 100%;">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbKeySchemaEntitySearch.entityTypes}" />
+							<a4j:support event="onchange" reRender="mainTable"
+								action="#{MbKeySchemaEntitySearch.search}" />
+						</h:selectOneMenu>
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.entityType]}"
+						title="#{DictUtils.articles[item.entityType]}" />
+				</rich:column>
+
+				<f:facet name="footer">
+				</f:facet>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid id="btnPanelEntity" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						reRender="prs_key_schema_entity_modal_div,prs_key_schema_entity_modal_header"
+						value="#{lblForm.add}"
+						oncomplete="#{rich:component('prs_key_schema_entity_modal_panel')}.show()"
+						action="#{MbKeySchemaEntitySearch.add}"
+						rendered="#{usession.inRole['ADD_PERSO_KEY_SCHEMA_ENTITY']}"
+						disabled="#{MbKeySchemaEntitySearch.filter.keySchemaId == null}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="prs_key_schema_entity_modal_div,prs_key_schema_entity_modal_header"
+						value="#{lblForm.edit}" action="#{MbKeySchemaEntitySearch.edit}"
+						oncomplete="#{rich:component('prs_key_schema_entity_modal_panel')}.show()"
+						disabled="#{MbKeySchemaEntitySearch.activeKeySchemaEntity == null}"
+						rendered="#{usession.inRole['MODIFY_PERSO_KEY_SCHEMA_ENTITY']}"
+						image="/images/edit.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						disabled="#{MbKeySchemaEntitySearch.activeKeySchemaEntity == null}"
+						rendered="#{usession.inRole['REMOVE_PERSO_KEY_SCHEMA_ENTITY']}"
+						image="/images/delete.gif" 
+						oncomplete="#{rich:component('deleteKeyEntityView:confirmPanel')}.show()"/>
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveKeySchemaTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteKeySchemaTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveKeySchemaTableState" action="#{MbKeySchemaEntitySearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteKeySchemaTableState" action="#{MbKeySchemaEntitySearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="prs_key_schema_entity_modal_panel"
+		autosized="true" minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup id="prs_key_schema_entity_modal_header">
+				<h:outputText value="#{lblPrs.new_key_schema_entity}"
+					rendered="#{MbKeySchemaEntitySearch.newMode}" />
+				<h:outputText value="#{lblPrs.edit_key_schema_entity}"
+					rendered="#{MbKeySchemaEntitySearch.editMode}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="prs_key_schema_entity_modal_div">
+			<ui:include
+				src="/pages/issuing/personalization/key_schema_entity_edit.jspx"></ui:include>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							action="#{MbKeySchemaEntitySearch.save}"
+							onclick="if (!checkEntityFields()) return false; disableModalPanelBtns(this)"
+							oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('prs_key_schema_entity_modal_panel')}.hide()"
+							reRender="keySchemaEntBtmForm" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbKeySchemaEntitySearch.close}" immediate="true"
+							oncomplete="#{rich:component('prs_key_schema_entity_modal_panel')}.hide()"
+							reRender="prs_key_schema_entity_modal_div">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbKeySchemaEntitySearch}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="keySchemaEntBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteKeyEntityView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

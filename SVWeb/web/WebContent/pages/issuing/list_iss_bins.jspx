@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+		<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+		<a4j:loadScript src="/js/stretch.js" />
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblIss.bins}"/>
+		
+		<script type="text/javascript">
+    	 //<![CDATA[
+	    	 function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('issBinsSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }
+		 //]]>
+		</script>
+			
+    	<h:form id="issBinsSearchForm" onkeypress="handleEnter(event)">
+    	
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+		                		
+		            			<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+				      			<h:selectOneMenu id="instId"
+				      						value="#{MbIssBinsSearch.filter.instId}">
+				      				<f:selectItem itemValue=""/>
+				      				<f:selectItems value="#{MbIssBinsSearch.institutions}"/>
+				      			</h:selectOneMenu>
+				      			
+								<h:outputLabel for="nameFilter" value="#{lblCommon.name}: " title="#{lblCommon.name}" />
+		            			<h:inputText id="nameFilter"
+		            						value="#{MbIssBinsSearch.filter.name}"/>
+		            			
+				      			<h:outputLabel for="binFilter" value="#{lblIss.bin}: " title="#{lblIss.bin}" />
+		            			<h:inputText id="binFilter"
+		            						value="#{MbIssBinsSearch.filter.bin}"/>
+		            			
+		            			<h:outputLabel for="netId" value="#{lblIss.network}: " title="#{lblIss.network}" />
+				      			<h:selectOneMenu id="netId"
+				      						value="#{MbIssBinsSearch.filter.networkId}">
+				      				<f:selectItem itemValue=""/>
+				      				<f:selectItems value="#{MbIssBinsSearch.networks}"/>
+				      			</h:selectOneMenu>
+				      			
+                			</h:panelGrid>
+	                		<h:panelGrid columns="1">
+		                		<bre:taggedCommandButton
+			                			action="#{MbIssBinsSearch.search}"
+	        							reRender="binTable, dsbin, pagesNum, issBinsBtnForm:btnPanel, #{MbIssBinsSearch.tabName}"
+	        							id="searchBtn"		
+	                					image="/_img/icon_search.png" type="submit"
+	                					onclick="disableModalPanelBtns(this);"
+	                					oncomplete="updateHeight();enableModalPanelBtns(this);"
+	                					value="#{lblForm.search}" style="width:85px;"
+	                					eventsQueue="queue"/>
+	                			<h:panelGroup styleClass="link-clear" layout="block">
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+							        		action="#{MbIssBinsSearch.clearFilter}"
+							        		reRender="issBinsSearchForm, issBinsForm, issBinsBtnForm, #{MbIssBinsSearch.tabName}">
+							        </a4j:commandLink>
+	            	    		</h:panelGroup>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+		               		<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		               		<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	               		</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	
+		
+		<h:form id="issBinsForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		    		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    	<rich:extendedDataTable
+							id="binTable"
+							tableState="#{MbIssBinsSearch.tableState}"
+							styleClass="res-table"
+							headerClass="res-table-header"
+							rowClasses=",odd"
+							selectedClass="res-table-selected"
+							var="item"
+							value="#{MbIssBinsSearch.bins}"
+							selection="#{MbIssBinsSearch.itemSelection}"
+							rows="#{MbIssBinsSearch.rowsNum}"
+							selectionMode="single"
+							width="100%"
+							height="255px"
+							enableContextMenu="true"
+							noDataLabel="#{MbIssBinsSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="issBinsBtnForm:btnPanel, #{MbIssBinsSearch.tabName}">
+
+						<a4j:support event="onselectionchange" limitToList="true" eventsQueue="queue"
+								reRender="issBinsBtnForm:btnPanel, #{MbIssBinsSearch.tabName}"/>
+
+						<rich:column id="id" label="#{lblCommon.id}" title="Id" sortBy="#{'id'}" width="10%">
+		                    <f:facet name="header">
+		                    	<a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+								</a4j:outputPanel>
+		                    </f:facet>
+		                	<h:outputText value="#{item.id}" />
+						</rich:column>
+
+						<rich:column id="name" label="#{lblCommon.name}" title="Name" sortBy="#{'description'}" width="20%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+			                </f:facet>
+			                <h:outputText value="#{item.name}" title="#{item.name}" />
+				        </rich:column>
+				        
+				        <rich:column id="bin" label="#{lblIss.bin}" title="BIN" sortBy="#{'bin'}" width="18%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblIss.bin}" title="#{lblIss.bin}" />
+			                </f:facet>
+			                <h:outputText value="#{item.bin}" title="#{item.bin}"/>
+				        </rich:column>
+				      
+						<rich:column id="institution" label="#{lblCommon.institution}" title="Inst" sortBy="#{'inst_name'}" width="20%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}" />
+			                </f:facet>
+							<bm:entityDisplay link = "true" contextType="ENTTINST" bean="MbIssBinsSearch" entityId="#{item.instId}" value="#{item.instName != null ? item.instName : '...'}"/>
+				        </rich:column>
+				        
+				        <rich:column id="network" label="#{lblIss.network}" title="Network" sortBy="#{'network_name'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblIss.network}" title="#{lblIss.network}" />
+			                </f:facet>			              	 
+								<bm:entityDisplay entityId="#{item.networkId}" value="#{item.networkName}"
+			                		description="#{item.networkName}" entityName="ENTTNETW" showIcon="true"/>
+			              
+				        </rich:column>
+				        
+				        <rich:column id="card_type" label="#{lblIss.card_type}" title="Card type" sortBy="#{'card_type_name'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblIss.card_type}" title="#{lblIss.card_type}" />
+			                </f:facet>
+			                <h:outputText value="#{item.cardTypeName}" title="#{item.cardTypeName}" />
+				        </rich:column>
+				        
+					    </rich:extendedDataTable>
+					    
+						<a4j:jsFunction name="rerenderContextMenuBin" reRender="binCtxForm:binCtxMenu"
+							oncomplete="#{rich:component('binCtxForm:binCtxMenu')}.doShow((isIE) ? event : document.lkjasdf, {});">
+							<a4j:actionparam name="param1" assignTo="#{MbIssBinsSearch.ctxItemEntityType}"/> 
+						</a4j:jsFunction>
+			
+						<h:panelGrid id="defaultActionScriptBin">
+							<script>
+								defaultActionBin = function(){
+									if (#{MbIssBinsSearch.ctxType.defaultAction.modalItem}) {
+									    defaultOpenModalBin();
+									} else {
+										defaultOpenFormBin();
+									}
+			
+								}
+							</script>
+						</h:panelGrid>
+			
+						<a4j:jsFunction name="defaultOpenModalBin"
+							action="#{MbIssBinsSearch.ctxType.initCtxParams}"
+							reRender="contextMenuModalPanel"
+							oncomplete="Richfaces.showModalPanel('contextMenuModalPanel:#{MbContextMenu.actionParams[MbIssBinsSearch.ctxType.defaultAction.action]['panelName']}');">
+						</a4j:jsFunction>
+			
+						<a4j:jsFunction name="defaultOpenFormBin"
+							action="#{MbIssBinsSearch.ctxType.ctxPageForward}">
+						</a4j:jsFunction>
+			
+					    <a4j:outputPanel ajaxRendered="true">
+					    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+						    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+					    </a4j:outputPanel>
+				    </h:panelGroup>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+        <h:form id="issBinsBtnForm">
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+							<h:selectOneMenu id="rows_num" value="#{MbIssBinsSearch.rowsNum}" styleClass="row_per_page">
+								<a4j:support event="onchange" reRender="binTable, issBinsBtnForm, dsbin, pagesNum, #{MbIssBinsSearch.tabName}"/>
+		                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+		                    		pagesVar="pages" styleClass="res-datascroller"
+				                    id="dsbin" for="binTable"
+				                    reRender="issBinsBtnForm:btnPanel, #{MbIssBinsSearch.tabName}">
+				            	<f:facet name="first">
+				                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+				                <f:facet name="first_disabled">
+				                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="last">
+				                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="last_disabled">
+				                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="previous_disabled">
+				                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="next">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="next_disabled">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="pages">
+				                </f:facet>
+							</rich:datascroller>
+
+		                    <h:panelGroup id="pagesNum">
+		                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+		                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbIssBinsSearch.bins.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+		                    </h:panelGroup>
+		                    
+		                    <h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbIssBinsSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbIssBinsSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+		            <h:panelGrid id="btnPanel" columns="4" styleClass="buttons_block">
+		            	<bre:taggedCommandButton id="addBtn"
+	                      		reRender="issBinEditForm, issBinModalHeader"
+	                      		value="#{lblForm.add}"
+                    			oncomplete="#{rich:component('issBinModalPanel')}.show()"
+	                      		action="#{MbIssBinsSearch.add}"
+	                      		rendered="#{usession.inRole['ADD_ISSUING_BIN']}"
+	                      		image="/images/create_doc.gif"
+	                      		/>
+						<bre:taggedCommandButton id="editBtn"
+	                      		reRender="issBinEditForm, issBinModalHeader"
+	                      		value="#{lblForm.edit}"
+	                      		action="#{MbIssBinsSearch.edit}"
+                    			oncomplete="#{rich:component('issBinModalPanel')}.show()"
+	                      		disabled="#{MbIssBinsSearch.activeBin == null}"
+	                      		rendered="#{usession.inRole['MODIFY_ISSUING_BIN']}"
+	                      		image="/images/edit.gif"
+	                      		/>
+						<bre:taggedCommandButton id="deleteBtn"
+	                      		value="#{lblForm.delete}"
+	                      		disabled="#{MbIssBinsSearch.activeBin == null}"
+	                      		rendered="#{usession.inRole['REMOVE_ISSUING_BIN']}"
+	                      		image="/images/delete.gif"
+	                      		oncomplete="#{rich:component('deleteBinView:confirmPanel')}.show()"/>
+                        <bre:taggedCommandButton
+								action="#{MbIssBinsSearch.generateCert}"
+								disabled="#{MbIssBinsSearch.activeBin == null}"
+								value="#{lblForm.generateReqCert}"
+								oncomplete="choiceAction();"					
+								reRender="downloadFileLink, choiceAction"			
+								/>
+					</h:panelGrid>
+				</h:panelGroup>
+		    </h:panelGroup>
+	    </h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbIssBinsSearch.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbIssBinsSearch.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+	    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content">
+
+				<rich:tab ontabenter="storeTab('detailsTab')" label="Details">
+					<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/issuing/iss_bin_details.jspx"/>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+				</rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('rangesTab')" label="Ranges" rendered="#{usession.inRole['VIEW_BIN_INDEX_RANGE']}" style="height:100%">
+					<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblIss.ranges}" title="#{lblIss.ranges}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="rangesTab" >
+						<h:panelGroup layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow-x:hidden;position:relative;">
+	      					<ui:include src="/pages/issuing/list_iss_bin_index_ranges_bottom.jspx"/>
+	       				</h:panelGroup>	       				
+					</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('keysTab')" label="Keys" name="keysTab" style="height:100%;" rendered="#{usession.inRole['VIEW_TAB_DES_KEY'] and MbIssBinsSearch.useHsm}">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblAcq.keys}" title="#{lblAcq.keys}"/>
+        				</h:panelGroup>
+        			</f:facet>
+
+					<h:panelGroup id="keysTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+   						<ui:include src="/pages/security/list_des_keys_bottom.jspx"/>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('schemesTab')" label="Schemes" name="schemesTab" style="height:100%;">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblAup.schemes}" title="#{lblAup.schemes}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup layout="block" id="schemesTab" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/aup/list_scheme_object.jspx">
+      					</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('rsaKeysTab')" label="RSA Keys" name="rsaKeysTab" rendered="#{usession.inRole['VIEW_RSA_KEYPAIR']}" style="height:100%;">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblSec.rsa_keys}" title="#{lblSec.rsa_keys}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup layout="block" id="rsaKeysTab" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/issuing/binRsaKeysBottom.jspx">
+      					</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('hmacKeysTab')" label="HMAC Keys" name="hmacKeysTab" rendered="#{usession.inRole['VIEW_HMAC_KEY']}" style="height:100%;">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblSec.hmac_keys}" title="#{lblSec.hmac_keys}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup layout="block" id="hmacKeysTab" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/issuing/hmacKeysBottom.jspx">
+      					</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('suitesTab')" label="Suites" name="suitesTab" style="height:100%;"
+			    	rendered="#{usession.inRole['VIEW_TAB_SUITE']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblFrp.suites}" title="#{lblFrp.suites}" />
+						</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="suitesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+   						<ui:include src="/pages/fraud/list_fraud_object.jspx" />
+					</h:panelGroup>
+       			</rich:tab>
+			    
+		    </rich:tabPanel>
+        </h:panelGroup>
+
+		<ui:include src="/pages/issuing/iss_bin_edit.jspx">
+			<ui:param name="rerenderList" value="binTable, dsbin, pagesNum, btnPanel, #{MbIssBinsSearch.tabName}"/>
+		</ui:include>
+		
+		<h:form id="binCtxForm">
+			<rich:contextMenu id="binCtxMenu" attached="false"
+				submitMode="ajax" disableDefaultMenu="true"
+				selectItemClass="selected-menu-item">
+				<c:forEach items="#{MbIssBinsSearch.ctxType.menuItems}"
+					var="ctxItem">
+					<rich:menuItem value="#{ctxItem.label}"
+						action="#{MbIssBinsSearch.ctxType.ctxPageForward}"
+						rendered="#{ctxItem.actionItem}">
+						<f:setPropertyActionListener value="#{ctxItem}"
+							target="#{MbIssBinsSearch.ctxType.selectedCtxItem}" />
+					</rich:menuItem>
+					<rich:menuItem value="#{ctxItem.label}"
+						action="#{MbIssBinsSearch.ctxType.initCtxParams}"
+						oncomplete="Richfaces.showModalPanel('contextMenuModalPanel:#{MbContextMenu.actionParams[ctxItem.action]['panelName']}');"
+						rendered="#{ctxItem.modalItem}"
+						reRender="contextMenuModalPanel">
+						<f:setPropertyActionListener value="#{ctxItem}"
+							target="#{MbIssBinsSearch.ctxType.selectedCtxItem}" />
+					</rich:menuItem>
+					<rich:menuGroup value="#{ctxItem.label}" rendered="#{ctxItem.group}">
+						<c:forEach items="#{ctxItem.children}" var="innerItem">
+							<rich:menuItem value="#{innerItem.label}"
+								action="#{MbIssBinsSearch.ctxType.ctxPageForward}"
+								rendered="#{innerItem.actionItem}">
+								<f:setPropertyActionListener value="#{innerItem}"
+									target="#{MbIssBinsSearch.ctxType.selectedCtxItem}" />
+							</rich:menuItem>
+							<rich:menuItem value="#{innerItem.label}"
+								action="#{MbIssBinsSearch.ctxType.initCtxParams}"
+								oncomplete="Richfaces.showModalPanel('contextMenuModalPanel:#{MbContextMenu.actionParams[innerItem.action]['panelName']}');"
+								rendered="#{innerItem.modalItem}"
+								reRender="contextMenuModalPanel">
+								<f:setPropertyActionListener value="#{innerItem}"
+									target="#{MbIssBinsSearch.ctxType.selectedCtxItem}" />
+							</rich:menuItem>
+						</c:forEach>
+					</rich:menuGroup>
+				</c:forEach>
+			</rich:contextMenu>
+		</h:form>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbIssBinsSearch}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="binTable, dsbin, pagesNum, btnPanel, #{MbIssBinsSearch.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteBinView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<h:panelGrid id="choiceAction">
+				<script>
+				choiceAction = function(){
+						if (#{MbIssBinsSearch.generated}){
+							document.getElementById('downloadFileLink').click();
+						}
+					}
+				</script>
+		</h:panelGrid>
+		<h:outputLink id="downloadFileLink" value="#{request.contextPath}/file/#{MbIssBinsSearch.activeBin.id}.pem" />
+		
+		<script type="text/javascript">
+		
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'issBinsSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'issBinsForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'issBinsBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'issBinDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'issBinDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'issBinRangesIndexFormBtm',
+                            TAB_FORM_WRAPPER_ID:    'mainTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'desKeysBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'desKeysTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'schemesForm',
+                            TAB_FORM_WRAPPER_ID:    'schemesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'rsaKeyResultForm',
+                            TAB_FORM_WRAPPER_ID:    'rsaKeyTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'hmacKeyForm',
+                            TAB_FORM_WRAPPER_ID:    'hmacKeyTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'fraudObjectsForm',
+                            TAB_FORM_WRAPPER_ID:    'fraudObjectsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>
+    </ui:define>
+</ui:composition>
+</html>

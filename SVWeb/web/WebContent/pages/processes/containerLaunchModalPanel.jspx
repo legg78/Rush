@@ -1,0 +1,1057 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<f:loadBundle var="lblProcess" basename="ru.bpc.sv2.ui.bundles.Process"/>
+	<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+	<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+
+	<style type="text/css">
+		.extdt-content { overflow-x: hidden; overflow-y: auto; }
+		.extdt-innerdiv { overflow-x: auto !important; overflow-y: hidden; position: static; }
+		.extdt-outerdiv { overflow: visible !important; }
+		.extdt-row-selected .rich-extdt-cell {color: #000000 !important;}
+	</style>
+
+	<ui:include src="/pages/processes/oracle_tracing_modal_panel.jspx"/>
+
+	<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+	<rich:modalPanel id="containerLaunchModalPanel" autosized="true"
+					 minWidth="1000" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="#{lblPrc.launch}" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+
+        <h:form>
+            <a4j:jsFunction name="rerenderLovs" ajaxSingle="true" limitToList="true" reRender="containerLaunchModalPanelForm:mainTable:inplace3, containerLaunchModalPanelForm:mainTable:inplace4">
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:form id="containerLaunchModalPanelForm">
+			<a4j:queue name="processQueue" status="hiddenStatus" />
+			<h:panelGrid columns="1" styleClass="cardholderdata-wrapper">
+				<h:panelGroup>
+					<a4j:region>
+						<o:treeTable id="containerLaunchStructure"
+									 var="structureItem"
+									 expansionState="allExpanded"
+									 sortColumnId="nodeName"
+									 headerHorizSeparator="1px solid #D7DAC2"
+									 headerVertSeparator="1px solid #D7DAC2"
+									 headerSectionClass="res-tree-table-header"
+									 commonHeaderRowClass="res-tree-table-header"
+									 sortableHeaderClass="res-tree-table-header"
+									 sortedColumnHeaderClass="res-tree-table-header"
+									 sortableHeaderRolloverClass="res-tree-table-header"
+									 styleClass="extdt-table-layout res-tree-table"
+									 bodyOddRowClass="res-tree-table-row odd-tree-table"
+									 bodyRowClass="res-tree-table-row"
+									 headerRowClass="res-tree-table-header"
+									 verticalGridLines="1px solid #D7DAC2"
+									 cellpadding="0"
+									 cellspacing="0"
+									 preloadedNodes="all"
+									 style="height: 200px; border-style: solid; border-color:#D7DAC2;border-width:1px;">
+							<o:scrolling />
+
+							<f:facet name="noDataMessage">
+								<h:panelGroup>
+									<h:outputText value="#{lblCommonQ.no_records_found}" />
+								</h:panelGroup>
+							</f:facet>
+
+							<o:dynamicTreeStructure
+									nodeChildren="#{MbContainersAllSearch.containerLaunchData.structNodeChildren}"
+									nodeHasChildren="#{MbContainersAllSearch.containerLaunchData.structNodeHashChildren}"
+									nodeKey="#{structureItem.modelId}" />
+
+							<o:singleNodeSelection
+									nodeData="#{MbContainersAllSearch.containerLaunchData.currentStructureItem}"
+									nodePath="#{MbContainersAllSearch.containerLaunchData.currentStructureItemPath}"
+									keyboardSupport="false"
+
+									styleClass="treetable_selection">
+								<a4j:support event="onchange" eventsQueue="processQueue"
+											 reRender="containerLaunchModalPanelForm:threadsTable,
+										  containerLaunchModalPanelForm:traceTableWrapper,
+										  containerLaunchModalPanelForm:fileTableWrapper" limitToList="true"/>
+							</o:singleNodeSelection>
+
+							<o:column width="20px">
+								<h:graphicImage url="/images/tick-icon.png"
+												rendered="#{structureItem.successfullyCompleted}" width="18px" />
+								<h:graphicImage url="/images/icon_error.png"
+												rendered="#{structureItem.notSuccessfullyCompleted}"
+												width="18px" />
+								<h:graphicImage url="/images/icon_warning.png"
+												rendered="#{structureItem.completedWithErrors}"
+												width="18px" />
+								<h:graphicImage url="/images/ajax-loader1.gif"
+												rendered="#{structureItem.running}" width="18px" />
+							</o:column>
+
+							<o:treeColumn width="4%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.num}" />
+								</f:facet>
+								<h:outputText value="#{structureItem.executionOrder}" />
+							</o:treeColumn>
+
+							<o:treeColumn width="8%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.id}" />
+								</f:facet>
+								<h:outputText value="#{structureItem.id}" />
+							</o:treeColumn>
+
+							<o:column width="20%">
+								<f:facet name="header">
+									<h:outputText value="#{lblPrc.process}" />
+								</f:facet>
+								<h:outputText value="#{structureItem.name}"
+											  title="#{structureItem.name}" />
+							</o:column>
+
+							<o:column width="16%">
+								<f:facet name="header">
+									<h:outputText value="#{lblCommon.description}" />
+								</f:facet>
+								<h:outputText value="#{structureItem.description}"
+											  title="#{structureItem.description}" />
+							</o:column>
+
+							<o:column width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblPrc.session_id}" />
+								</f:facet>
+								<h:outputText
+										value="#{structureItem.processStatSummary.sessionId}" />
+							</o:column>
+
+							<o:column width="8%">
+								<f:facet name="header">
+									<h:outputText value="#{lblPrc.threads}" />
+								</f:facet>
+								<h:outputText
+										value="#{structureItem.processStatSummary.threadCount}" />
+							</o:column>
+
+							<o:column width="60px">
+								<rich:progressBar enabled="false" value="#{structureItem.progress}" maxValue="100" minValue="0" style="height:15px;width:59px">
+									<h:outputText value="{value}%"/>
+								</rich:progressBar>
+							</o:column>
+
+						</o:treeTable>
+					</a4j:region>
+				</h:panelGroup>
+
+				<rich:tabPanel switchType="client" id="detailsProcess"
+							   tabClass="tab-cell" activeTabClass="active-tab-cell"
+							   headerClass="tabs" headerSpacing="0px" contentClass="tab-content"
+							   style="overflow: visible;">
+
+					<rich:tab name="paramsTab" >
+
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.parameters}"
+											  title="#{lblCommon.parameters}" />
+							</h:panelGroup>
+						</f:facet>
+
+						<rich:calendar buttonIcon="/images/calendar.gif" id="calendar1"
+									   datePattern="#{usession.fullDatePattern}" showApplyButton="true"
+									   timeZone="#{CommonUtils.timeZone}" inputClass="hidden"
+									   buttonClass="hidden"
+									   onchanged="#{rich:component('calendar1')}.customInput.value=event.rich.component.getSelectedDateString();"
+									   zindex="1000" />
+
+						<script>
+							#{rich:component('calendar1')}.customExpand=customExpand;
+						</script>
+
+						<h:panelGroup>
+
+							<h:panelGrid columns="4" rendered="#{usession.inRole['SET_PROCESS_EFFECTIVE_DATE']}">
+								<h:outputText value="#{lblCommon.eff_date}: " />
+								<h:panelGroup>
+									<h:inputText
+											value="#{MbContainersAllSearch.containerLaunchData.processDate}"
+											id="processDate" style="width:150px; vertical-align: middle"
+											onkeypress="return false;"
+											onclick="#{rich:component('calendar1')}.customExpand(event, #{rich:element('processDate')}, #{rich:element('processDateBtn')});">
+										<f:convertDateTime pattern="#{usession.datePattern} HH:mm"
+														   timeZone="#{CommonUtils.timeZone}" />
+									</h:inputText>
+									<h:graphicImage
+											value="/images/calendar.gif"
+											onclick="#{rich:component('calendar1')}.customExpand(event, #{rich:element('processDate')}, #{rich:element('processDateBtn')});"
+											id="processDateBtn" style="vertical-align: middle" />
+								</h:panelGroup>
+							</h:panelGrid>
+
+							<a4j:region>
+								<rich:extendedDataTable headerClass="res-table-header"
+														selectedClass="res-table-selected"
+														styleClass="res-table"
+														rowClasses=",odd"
+														id="mainTable"
+														var="item"
+														value="#{MbContainersAllSearch.containerLaunchData.processParameters}"
+														rows="0"
+														height="300px"
+														selectionMode="single"
+														enableContextMenu="false"
+														noDataLabel="#{lblCommon['no_records_found']}"
+														width="100%">
+
+									<rich:column title="Number" width="50px">
+										<f:facet name="header">
+											<h:outputText value="#{lblCommon.num}" title="#{lblCommon.num}"/>
+										</f:facet>
+										<h:outputText value="#{(item.visualExecOrder == null) ? '&#160;' : item.visualExecOrder}" />
+										<h:outputText value="#{(item.visualExecOrder == null) ? '&#160;' : item.visualExecOrder}"
+													  rendered="#{item.visualExecOrder == null}" />
+									</rich:column>
+
+									<rich:column title="Process" width="100px">
+										<f:facet name="header">
+											<h:outputText value="#{lblPrc.process}" title="#{lblPrc.process}" />
+										</f:facet>
+										<h:outputText value="#{item.procId}" />
+										<h:outputText value="#{item.procId}"
+													  rendered="#{item.procId == null}" />
+									</rich:column>
+
+									<rich:column title="Name" width="250px">
+										<f:facet name="header">
+											<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}"/>
+										</f:facet>
+										<h:outputText
+												value="#{item.mandatory ? '*' : '' } #{item.name}" />
+										<h:outputText
+												value="#{item.mandatory ? '*' : '' } #{item.systemName}"
+												rendered="#{item.name == null}" />
+									</rich:column>
+
+									<rich:column title="Value" width="210px">
+										<f:facet name="header">
+											<h:outputText value="#{lblCommon.value}" title="#{lblCommon.value}"/>
+										</f:facet>
+
+										<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+											<h:inputText id="val1"
+														 disabled="#{MbContainersAllSearch.containerLaunchData.processed or MbContainersAllSearch.containerLaunchData.inProcessing}"
+														 rendered="#{item.char and item.lovId == null}"
+														 value="#{item.valueV}" label="#{item.name}"
+														 style="width:185px" required="#{item.mandatory}">
+												<a4j:support event="onblur" reRender="val1Error"
+															 limitToList="true" ajaxSingle="true" />
+											</h:inputText>
+
+											<h:panelGroup layout="block">
+												<h:inputText id="val2"
+															 disabled="#{MbContainersAllSearch.containerLaunchData.processed or MbContainersAllSearch.containerLaunchData.inProcessing}"
+															 rendered="#{item.number and item.lovId == null}"
+															 value="#{item.valueN}" label="#{item.name}"
+															 style="width:185px" required="#{item.mandatory}">
+													<bm:convertNumberNew groupingUsed="false" minFractionDigits="0"
+																		 maxIntegerDigits="18" />
+													<a4j:support event="onblur" reRender="val2Error" oncomplete="checkFieldsLaunch(this)"
+																 limitToList="true" ajaxSingle="true" />
+												</h:inputText>
+												<h:outputFormat value="#{lblMsg.pos_number}"
+																styleClass="errorMarker" id="elementVal2Error"	style="display:none;">
+													<f:param name="fieldName" value="#{lblCommon.value}" />
+												</h:outputFormat>
+												<h:inputHidden id="elementVal2SysName" value="#{item.systemName}"/>
+											</h:panelGroup>
+
+											<h:selectOneMenu
+													disabled="#{MbContainersAllSearch.containerLaunchData.processed or MbContainersAllSearch.containerLaunchData.inProcessing}"
+													rendered="#{item.char and item.lovId != null }" id="inplace3"
+													value="#{item.valueV }" label="#{item.name}"
+													required="#{item.mandatory}" style="width:185px">
+												<f:selectItem itemValue="" />
+												<f:selectItems value="#{MbContainersAllSearch.listValues}" />
+                                                <a4j:support event="onchange" reRender="inplace3Error" oncomplete="rerenderLovs();"
+                                                             limitToList="true" ajaxSingle="true" />
+											</h:selectOneMenu>
+
+											<h:selectOneMenu
+													disabled="#{MbContainersAllSearch.containerLaunchData.processed or MbContainersAllSearch.containerLaunchData.inProcessing}"
+													rendered="#{item.number and item.lovId != null }"
+													id="inplace4" value="#{item.valueN }"
+													label="#{item.name}" required="#{item.mandatory}"
+													style="width:185px">
+												<f:selectItem itemValue="" />
+												<f:selectItems value="#{MbContainersAllSearch.listValues}" />
+                                                <a4j:support event="onchange" reRender="inplace4Error" oncomplete="rerenderLovs();"
+                                                             limitToList="true" ajaxSingle="true" />
+											</h:selectOneMenu>
+
+											<h:panelGroup rendered="#{item.date}">
+												<rich:calendar buttonIcon="/images/calendar.gif" datePattern="#{usession.fullDatePatternSeconds}" inputStyle="width:160px; vertical-align: middle"
+															   disabled="#{MbContainersAllSearch.containerLaunchData.processed or MbContainersAllSearch.containerLaunchData.inProcessing}"
+															   value="#{item.valueD}" id="input2" required="#{item.mandatory}" zindex="1000"
+															   timeZone="#{CommonUtils.timeZone}" label="#{item.name}" showApplyButton="true"
+															   enableManualInput="true" onchanged="this.value = this.value.replace('ss', '00')">
+													<f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+																	   timeZone="#{CommonUtils.timeZone}" />
+													<a4j:support event="onchanged" limitToList="true" ajaxSingle="true" />
+												</rich:calendar>
+											</h:panelGroup>
+
+											<rich:message for="val1" id="val1Error"
+														  styleClass="errorMarker"
+														  rendered="#{item.char and item.lovId == null}" />
+											<rich:message for="val2" id="val2Error"
+														  styleClass="errorMarker"
+														  rendered="#{item.number and item.lovId == null}" />
+											<rich:message for="inplace3" id="inplace3Error"
+														  styleClass="errorMarker"
+														  rendered="#{item.char and item.lovId != null }" />
+											<rich:message for="inplace4" id="inplace4Error"
+														  styleClass="errorMarker"
+														  rendered="#{item.number and item.lovId != null }" />
+											<rich:message for="input2" id="input2Error"
+														  styleClass="errorMarker" rendered="#{item.date}" />
+										</h:panelGrid>
+									</rich:column>
+
+									<rich:column title="Data type" width="150px">
+										<f:facet name="header">
+											<h:outputText value="#{lblCommon.data_type}" title="#{lblCommon.data_type}"/>
+										</f:facet>
+										<h:outputText
+												value="#{DictUtils.articles[item.dataType]}"
+												title="#{DictUtils.articles[item.dataType]}" />
+									</rich:column>
+
+								</rich:extendedDataTable>
+							</a4j:region>
+						</h:panelGroup>
+
+					</rich:tab>
+
+					<rich:tab name="statisticsTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.statistics}"
+											  title="#{lblCommon.statistics}" />
+							</h:panelGroup>
+						</f:facet>
+						<a4j:region>
+							<rich:extendedDataTable id="threadsTable"
+													headerClass="res-table-header" selectedClass="res-table-selected"
+													styleClass="res-table" rowClasses=",odd" var="item"
+													value="#{MbContainersAllSearch.containerLaunchData.processThreads}"
+													rows="0" height="300px" selectionMode="single"
+													enableContextMenu="false"
+													noDataLabel="#{lblCommon['no_records_found']}" width="100%">
+
+								<rich:column title="Process Name" sortBy="#{'processName'}"
+											 width="15%">
+									<f:facet name="header">
+										<h:outputText value="#{lblCommon.process_name}"
+													  title="#{lblCommon.process_name}" />
+									</f:facet>
+									<h:outputText value="#{item.processName}"
+												  title="#{item.processName}" />
+								</rich:column>
+
+								<rich:column title="Start Time" sortBy="#{'startTime'}"
+											 width="12%">
+									<f:facet name="header">
+										<h:outputText value="#{lblCommon.start_time}"
+													  title="#{lblCommon.start_time}" />
+									</f:facet>
+									<h:outputText value="#{item.startTime}"
+												  title="#{item.startTime}">
+										<f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+														   timeZone="#{CommonUtils.timeZone}" />
+									</h:outputText>
+								</rich:column>
+
+								<rich:column title="End Time" sortBy="#{'endTime'}" width="13%">
+									<f:facet name="header">
+										<h:outputText value="#{lblCommon.end_time}"
+													  title="#{lblCommon.end_time}" />
+									</f:facet>
+									<h:outputText value="#{item.endTime}" title="#{item.endTime}">
+										<f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+														   timeZone="#{CommonUtils.timeZone}" />
+									</h:outputText>
+								</rich:column>
+
+								<rich:column title="Estimated Count" sortBy="#{'estimatedCount'}"
+											 width="13%">
+									<f:facet name="header">
+										<h:outputText value="#{lblPrc.estimated_count}"
+													  title="#{lblPrc.estimated_count}" />
+									</f:facet>
+									<h:outputText value="#{item.estimatedCount}"
+												  title="#{item.estimatedCount}" />
+								</rich:column>
+
+								<rich:column title="Processed Total" sortBy="#{'processedTotal'}"
+											 width="13%">
+									<f:facet name="header">
+										<h:outputText value="#{lblPrc.processed_total}"
+													  title="#{lblPrc.processed_total}" />
+									</f:facet>
+									<h:outputText value="#{item.processedTotal}"
+												  title="#{item.processedTotal}" />
+								</rich:column>
+
+								<rich:column title="Rejected Total" sortBy="#{'rejectedTotal'}"
+											 width="13%">
+									<f:facet name="header">
+										<h:outputText value="#{lblPrc.rejected_total}"
+													  title="#{lblPrc.rejected_total}" />
+									</f:facet>
+									<h:outputText value="#{item.rejectedTotal}"
+												  title="#{item.rejectedTotal}" />
+								</rich:column>
+
+								<rich:column title="Excepted Total" sortBy="#{'exceptedTotal'}"
+											 width="12%">
+									<f:facet name="header">
+										<h:outputText value="#{lblPrc.excepted_total}"
+													  title="#{lblPrc.excepted_total}" />
+									</f:facet>
+									<h:outputText value="#{item.exceptedTotal}"
+												  title="#{item.exceptedTotal}" />
+								</rich:column>
+
+								<rich:column title="Result Code" sortBy="#{'resultCode'}"
+											 width="9%">
+									<f:facet name="header">
+										<h:outputText value="#{lblCommon.result_code}"
+													  title="#{lblCommon.result_code}" />
+									</f:facet>
+									<h:outputText value="#{item.resultCode}"
+												  title="#{item.resultCode}" />
+								</rich:column>
+
+							</rich:extendedDataTable>
+						</a4j:region>
+					</rich:tab>
+
+					<rich:tab name="traceTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.trace}"
+											  title="#{lblCommon.trace}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup></h:panelGroup>
+						<a4j:region>
+							<h:panelGroup id="traceTableWrapper" layout="block"
+										  style="padding:0px;margin:0px;">
+								<rich:extendedDataTable id="traceTable" enableContextMenu="false"
+														styleClass="res-table" headerClass="res-table-header"
+														selectedClass="res-table-selected" var="trcItem" rowClasses=",odd"
+														value="#{MbProcessTrace.processSessions}"
+														selection="#{MbProcessTrace.itemSelection}"
+														rows="#{MbProcessTrace.rowsNum}"
+														height="300px"
+														selectionMode="single" noDataLabel="#{lblCommon['no_records_found']}">
+									<a4j:support event="onselectionchange" requestDelay="500"
+												 reRender="traceBtnPanel" />
+									<rich:column width="5%" sortBy="#{'threadNumber'}">
+										<f:facet name="header">
+											<a4j:outputPanel layout="none">
+												<script>updateHeight();</script>
+												<h:outputText value="#{lblProcess.thread_number}"
+															  title="#{lblProcess.thread_number}" />
+											</a4j:outputPanel>
+										</f:facet>
+										<f:facet name="filter">
+											<h:selectOneMenu value="#{MbProcessTrace.filter.threadNumber}"
+															 style="width: 100%;">
+												<f:selectItems value="#{MbProcessTrace.threadNumbers}" />
+												<a4j:support event="onchange" reRender="traceTableWrapper"
+															 action="#{MbProcessTrace.search}" />
+											</h:selectOneMenu>
+										</f:facet>
+										<h:outputText value="#{trcItem.threadNumber}" />
+									</rich:column>
+									<rich:column width="12%" sortBy="#{'traceLevel'}">
+										<f:facet name="header">
+											<h:outputText value="#{lblProcess.trace_level}"
+														  title="#{lblProcess.trace_level}" />
+										</f:facet>
+										<f:facet name="filter">
+											<h:selectOneMenu value="#{MbProcessTrace.filter.traceLevelFilter}"
+															 style="width: 100%;">
+												<f:selectItem itemValue="" />
+												<f:selectItems value="#{MbProcessTrace.traceLevels}" />
+												<a4j:support event="onchange" reRender="traceTableWrapper"
+															 action="#{MbProcessTrace.search}" limitToList="true" eventsQueue="pollQueue"/>
+											</h:selectOneMenu>
+										</f:facet>
+										<h:outputText value="#{trcItem.traceLevel}" />
+									</rich:column>
+									<rich:column width="43%" sortBy="#{'traceText'}">
+										<f:facet name="header">
+											<h:outputText value="#{lblProcess.trace_text}"
+														  title="#{lblProcess.trace_text}" />
+										</f:facet>
+										<h:outputText value="#{trcItem.traceText}"
+													  title="#{trcItem.traceText}">
+											<f:attribute name="stringLength" value="100" />
+										</h:outputText>
+									</rich:column>
+									<rich:column width="18%" sortBy="#{'traceTimestamp'}">
+										<f:facet name="header">
+											<h:outputText value="#{lblProcess.trace_timestamp}"
+														  title="#{lblProcess.trace_timestamp}" />
+										</f:facet>
+										<h:outputText value="#{trcItem.traceTimestamp}">
+											<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss:SSS"
+															   timeZone="#{CommonUtils.timeZone}" />
+										</h:outputText>
+									</rich:column>
+									<rich:column width="10%">
+										<f:facet name="header">
+											<h:outputText value="#{lblCommon.entity_type}"
+														  title="#{lblCommon.entity_type}" />
+										</f:facet>
+										<h:outputText value="#{DictUtils.articles[trcItem.entityType]}"
+													  title="#{trcItem.entityDescription}"/>
+									</rich:column>
+									<rich:column width="10%">
+										<f:facet name="header">
+											<h:outputText value="#{lblCommon.object_id}"
+														  title="#{lblCommon.object_id}" />
+										</f:facet>
+										<h:outputText value="#{trcItem.objectId}" title="#{trcItem.entityDescription}"/>
+									</rich:column>
+								</rich:extendedDataTable>
+								<h:panelGroup layout="block" styleClass="bottom_search_result_block paginated_tab">
+									<h:panelGroup layout="block" styleClass="table_tools">
+										<h:panelGrid styleClass="fw field-cont" columns="4"
+													 columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount">
+											<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+											<h:selectOneMenu id="rows_num" value="#{MbProcessTrace.rowsNum}" style="width:40px">
+												<a4j:support event="onchange" reRender="traceTable, dsTraceTable, pagesNum"/>
+												<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+											</h:selectOneMenu>
+
+											<rich:datascroller maxPages="10" fastControls="hide"
+															   pagesVar="pages" styleClass="res-datascroller"
+															   id="dsTraceTable" for="traceTable">
+												<f:facet name="first">
+													<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+												</f:facet>
+												<f:facet name="first_disabled">
+													<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+												</f:facet>
+												<f:facet name="last">
+													<h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+												</f:facet>
+												<f:facet name="last_disabled">
+													<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+												</f:facet>
+												<f:facet name="previous">
+													<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+												</f:facet>
+												<f:facet name="previous_disabled">
+													<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+												</f:facet>
+												<f:facet name="next">
+													<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+												</f:facet>
+												<f:facet name="next_disabled">
+													<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+												</f:facet>
+												<f:facet name="pages">
+												</f:facet>
+											</rich:datascroller>
+
+											<h:panelGroup id="pagesNum">
+												<h:outputText styleClass="strongClass" value="#{pages} "/>
+												<h:outputText value=" #{lblCommon.pages}"/>
+											</h:panelGroup>
+										</h:panelGrid>
+									</h:panelGroup>
+
+									<h:panelGrid id="traceBtnPanel" columns="5">
+										<h:panelGroup styleClass="stdButton">
+											<bre:taggedCommandButton id="viewBtn"
+																	 reRender="prc_trace_view_modal_div" value="#{lblForm.view}"
+																	 action="#{MbProcessTrace.view}"
+																	 oncomplete="#{rich:component('prc_trace_view_modal_panel')}.show()"
+																	 disabled="#{MbProcessTrace.activeProcessTrace == null}" />
+											<bre:taggedCommandButton id="exportBtn"
+																	 reRender="prc_trace_export_modal_div" value="#{lblForm.export}"
+																	 action="#{MbProcessTrace.view}"
+																	 oncomplete="#{rich:component('prc_trace_export_modal_panel')}.show()"
+																	 disabled="#{MbProcessTrace.activeProcessTrace == null}" />
+										</h:panelGroup>
+									</h:panelGrid>
+								</h:panelGroup>
+							</h:panelGroup>
+						</a4j:region>
+						<h:outputLink id="downloadTraceFileLink" value="#{request.contextPath}/file/#{MbProcessTrace.reportName}" />
+						<script>
+							downloadTraceFileAction = function(){
+								document.getElementById('containerLaunchModalPanelForm:downloadTraceFileLink').click();
+							}
+						</script>
+					</rich:tab>
+
+					<rich:tab label="Files" name="fileTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.files}" title="#{lblCommon.files}"/>
+							</h:panelGroup>
+						</f:facet>
+						<h:panelGroup id="fileTableWrapper">
+							<a4j:region>
+								<rich:extendedDataTable id="fileTable" enableContextMenu="false"
+														styleClass="res-table" headerClass="res-table-header"
+														selectedClass="res-table-selected" var="item"
+														rowClasses=",odd" value="#{MbSessionFiles.files}"
+														selection="#{MbSessionFiles.itemSelection}" rows="0"
+														height="300px" selectionMode="single" noDataLabel="#{lblCommon['no_records_found']}">
+									<a4j:support event="onselectionchange" requestDelay="500"
+												 reRender="fileBtnPanel" eventsQueue="processQueue" />
+									<rich:column width="10%">
+										<f:facet name="header">
+											<h:outputText value="#{lblCommon.id}"
+														  title="#{lblCommon.id}" />
+										</f:facet>
+										<h:outputText  value="#{item.id}" title="#{item.id}"/>
+									</rich:column>
+
+									<rich:column width="19%">
+										<f:facet name="header">
+											<h:outputText value="#{lblCommon.name}" />
+										</f:facet>
+										<h:outputText value="#{item.fileName}" title="#{item.fileName}" />
+									</rich:column>
+
+									<rich:column width="19%">
+										<f:facet name="header">
+											<h:outputText value="#{lblProcess.file_type}" />
+										</f:facet>
+										<h:outputText value="#{DictUtils.articles[item.fileType]}" title="#{DictUtils.articles[item.fileType]}" />
+									</rich:column>
+
+									<rich:column id="records_count" label="#{lblProcess.records_count}" width="12%">
+										<f:facet name="header">
+											<h:outputText value="#{lblProcess.records_count}" />
+										</f:facet>
+										<h:outputText value="#{item.recordCount}" title="#{item.recordCount}" />
+									</rich:column>
+
+									<rich:column width="19%">
+										<f:facet name="header">
+											<h:outputText value="#{lblProcess.purpose}" />
+										</f:facet>
+										<h:outputText value="#{DictUtils.articles[item.filePurpose]}" title="#{DictUtils.articles[item.filePurpose]}" />
+
+									</rich:column>
+
+									<rich:column width="21%">
+										<f:facet name="header">
+											<h:outputText value="#{lblProcess.location}" />
+										</f:facet>
+
+
+										<h:outputText value="#{item.location}" title="#{item.location}"/>
+										<ui:remove>
+											<h:outputLink value="#{item.location} + #{item.fileName}">
+											</h:outputLink>
+										</ui:remove>
+									</rich:column>
+
+								</rich:extendedDataTable>
+							</a4j:region>
+
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+								<h:panelGrid id="fileBtnPanel" columns="5" style="vertical-align: top;" cellpadding="0" cellspacing="0">
+									<h:panelGroup styleClass="stdButton">
+										<bre:taggedCommandButton
+												action="#{MbSessionFiles.link}"
+												value="#{lblProcess.download}"
+												disabled="#{MbSessionFiles.activeItem == null}"
+												reRender="warningModalPanel,choiceAction,downloadFileLink"
+												oncomplete="choiceAction();"
+										/>
+									</h:panelGroup>
+								</h:panelGrid>
+							</h:panelGroup>
+						</h:panelGroup>
+
+						<h:panelGrid id="choiceAction">
+							<script>
+								choiceAction = function(){
+									if (#{MbSessionFiles.action == 'show'}) {
+										#{rich:component('warningModalPanel')}.show();
+									} else if (#{MbSessionFiles.action == 'click'}){
+										document.getElementById('containerLaunchModalPanelForm:downloadFileLink').click();
+									}
+								}
+							</script>
+						</h:panelGrid>
+						<h:outputLink id="downloadFileLink" value="#{request.contextPath}/file/#{MbSessionFiles.fileLink}" />
+
+					</rich:tab>
+
+				</rich:tabPanel>
+
+				<a4j:region>
+					<a4j:poll
+							id="poll"
+							interval="3000"
+							eventsQueue="pollQueue"
+							action="#{MbContainersAllSearch.updateRunningProcStatSummary}"
+							enabled="#{MbContainersAllSearch.containerLaunchData.inProcessing}"
+							reRender="containerLaunchModalPanelForm:poll,
+						containerLaunchModalPanelForm:containerLaunchStructure,
+						containerLaunchModalPanelForm:threadsTable,
+						containerLaunchModalPanelForm:traceTableWrapper,
+						containerLaunchModalPanelForm:fileTableWrapper"
+							ajaxSingle="true"
+							limitToList="true"/>
+				</a4j:region>
+			</h:panelGrid>
+
+			<h:panelGrid id="checkScript">
+				<script>
+					checkInputFile = function(){
+						if (#{MbContainersAllSearch.uploadRequired}) {
+							showFileUploadPanel();
+						} else {
+							enableLaunchingStateRefreshing();
+						}
+
+					}
+
+				</script>
+			</h:panelGrid>
+
+			<a4j:jsFunction name="showFileUploadPanel"
+							reRender="prc_upload_modal_panel"
+							oncomplete="Richfaces.showModalPanel('prc_upload_modal_panel');">
+			</a4j:jsFunction>
+
+			<a4j:jsFunction ajaxSingle="true" limitToList="true"
+							name="checkFileUpload"
+							action="#{MbContainersAllSearch.checkFileUpload}"
+							reRender="prc_upload_modal_panel, checkScript"
+							oncomplete="checkInputFile()"
+			/>
+
+			<a4j:jsFunction ajaxSingle="true" limitToList="true"
+							name="enableLaunchingStateRefreshing"
+							action="#{MbContainersAllSearch.enableLaunchingStateRefreshing}"
+							reRender="containerLaunchModalPanelForm"
+							oncomplete="launchContainer();" />
+
+			<a4j:jsFunction ajaxSingle="true"
+							name="launchContainer" oncomplete="updateRunningProcStatSummary();"
+							action="#{MbContainersAllSearch.launchContainer}"/>
+
+			<a4j:jsFunction ajaxSingle="true" limitToList="true"
+							name="updateRunningProcStatSummary" eventsQueue="pollQueue"
+							action="#{MbContainersAllSearch.updateRunningProcStatSummary}"
+							reRender="containerLaunchModalPanelForm"/>
+
+			<script>
+				function launchContainerOnCompleted() {
+					//alert('#{lblCommon.processing_complete}');
+				}
+
+
+				function switchLanunchButton(){
+					var launchBtn = document.getElementById('containerLaunchModalPanelForm:launchBtn');
+					if (launchBtn.disabled){
+						launchBtn.disabled = false;
+					} else {
+						launchBtn.disabled = true;
+					}
+				}
+
+				function switchCancelButton(){
+					var cancelBtn = document.getElementById('containerLaunchModalPanelForm:cancelBtn');
+					if (cancelBtn.disabled){
+						cancelBtn.disabled = false;
+					} else {
+						cancelBtn.disabled = true;
+					}
+				}
+			</script>
+
+			<h:panelGroup layout="block"
+						  styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+							  styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="4" columnClasses="paddingR12,width99P,paddingR12">
+						<h:outputLabel></h:outputLabel>
+
+						<bre:taggedCommandButton id="oracleTracingBtn"
+												 value="#{lblCommon.oracle_tracing}"
+												 immediate="true"
+												 oncomplete="#{rich:component('oracleTracingModalPanel')}.show()"
+												 reRender="oracleTracingModalPanel">
+							<f:setPropertyActionListener value="false"
+														 target="#{MbContainersAllSearch.launchTraceParam.applyImmediately}"/>
+						</bre:taggedCommandButton>
+
+						<bre:taggedCommandButton value="#{lblPrc.launch}" id="launchBtn"
+												 disabled="#{(empty MbContainersAllSearch.containerLaunchData.containerTree) or MbContainersAllSearch.containerLaunchData.inProcessing or MbContainersAllSearch.containerLaunchData.processed}"
+												 reRender="ajax_err" onclick="if(!checkFieldsLaunch()){return false;} else {switchLanunchButton();switchCancelButton();}"
+												 oncomplete="switchCancelButton();if (#{usession.noErrorResponse}){checkFileUpload()
+																							  } else {switchLanunchButton()}">
+						</bre:taggedCommandButton>
+
+						<bre:taggedCommandButton value="#{lblForm.cancel}" id="cancelBtn"
+												 action="#{MbContainersAllSearch.cancel}" immediate="true"
+												 rendered="#{not MbContainersAllSearch.containerLaunchData.inProcessing
+										and not MbContainersAllSearch.containerLaunchData.processed}"
+												 oncomplete="#{rich:component('containerLaunchModalPanel')}.hide()">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+						<bre:taggedCommandButton value="#{lblForm.hide}"
+												 action="#{MbContainersAllSearch.resetLaunchData}" immediate="true" onclick="disableModalPanelBtns(this);#{rich:component('containerLaunchModalPanel')}.hide();"
+												 rendered="#{MbContainersAllSearch.containerLaunchData.inProcessing}"
+												 oncomplete="enableModalPanelBtns(this);" reRender="containerLaunchModalPanelForm">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+						<bre:taggedCommandButton value="#{lblForm.close}"
+												 action="#{MbContainersAllSearch.clearContainerLaunchData}"
+												 immediate="true"
+												 rendered="#{MbContainersAllSearch.containerLaunchData.processed}"
+												 oncomplete="#{rich:component('containerLaunchModalPanel')}.hide()">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="prc_trace_export_modal_panel" autosized="true" minWidth="300" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="Exporting format" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="prc_trace_export_modal_div">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					<h:outputLabel value="* #{lblCommon.format}: " title="#{lblCommon.format}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="exportType" value="#{MbProcessTrace.exportFormat}"
+										 label="#{lblCommon.format}" onblur="hideErrorField(this)">
+							<a4j:support event="onchange" reRender="exportTypeError"
+										 limitToList="true" ajaxSingle="true"/>
+							<f:selectItem itemValue="XLS" itemLabel="XLS"/>
+							<f:selectItem itemValue="XML" itemLabel="XML"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="exportTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.format}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton
+								value="#{lblForm.ok}" type="submit" action="#{MbProcessTrace.export}"
+								onclick="if (!checkFormat()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); downloadTraceFileAction(); if (#{usession.noErrorResponse}) #{rich:component('prc_trace_export_modal_panel')}.hide()"
+								reRender="prc_trace_view_modal_div, downloadTraceFileLink" />
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}" action="#{MbProcessTrace.cancel}" immediate="true"
+								oncomplete="#{rich:component('prc_trace_export_modal_panel')}.hide()">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="prc_trace_view_modal_panel" autosized="true"
+					 minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:outputText value="#{lblProcess.trace}" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:panelGroup id="prc_trace_view_modal_div">
+			<h:form>
+				<ui:include src="/pages/processes/monitoring/trace_details.jspx"></ui:include>
+
+				<h:panelGroup layout="block"
+							  styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+								  styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+							<h:outputText />
+							<h:panelGroup styleClass="stdButton">
+								<bre:taggedCommandButton value="#{lblForm.close}"
+														 action="#{MbProcessTrace.cancel}" immediate="true"
+														 oncomplete="#{rich:component('prc_trace_view_modal_panel')}.hide()"
+														 reRender="prc_trace_view_modal_div">
+									<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+								</bre:taggedCommandButton>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="prc_upload_modal_panel" autosized="true"
+					 minWidth="400" minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup id="prc_upload_modal_header">
+				<h:outputText value="Upload file for '#{MbContainersAllSearch.processName}' "/>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="prc_upload_modal_div">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+							 columnClasses="firstColModal, width250">
+					<h:outputLabel value="* #{lblRpt.template}: " title="#{lblRpt.template}" />
+					<rich:fileUpload addControlLabel="#{lblForm.add }"
+									 onclick="hideErrorField(this)"
+									 fileUploadListener="#{MbContainersAllSearch.fileUploadListener}"
+									 acceptedTypes="#{MbContainersAllSearch.getAcceptedFileTypes(null)}"
+									 ontyperejected="alert('#{lblRpt.type_not_allowed}')"
+									 id="upload"
+									 listHeight="50px;"
+									 listWidth="100%"
+									 immediateUpload="true">
+
+						<a4j:support event="onclear" reRender="upload" oncomplete="containerEdit.updateRichLabels();containerEdit.setListeners();"
+									 ajaxSingle="true" limitToList="true" />
+						<a4j:support event="onfileuploadcomplete" oncomplete="containerEdit.updateRichLabels();"
+									 ajaxSingle="true" limitToList="true" />
+
+					</rich:fileUpload>
+					<h:outputLabel></h:outputLabel>
+					<h:outputFormat value="#{lblMsg.value_request}"
+									styleClass="errorMarker" id="uploadError" style="display:none;">
+						<f:param name="fieldName" value="#{lblRpt.template}" />
+					</h:outputFormat>
+					<h:outputLabel></h:outputLabel>
+					<h:outputText value="* #{lblMsg.container_file_missing}"
+								  style="color: #999; display:inline-block; text-align: justify ;" />
+				</h:panelGrid>
+			</h:panelGroup>
+			<h:panelGroup layout="block"
+						  styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+							  styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+												 oncomplete="if (#{usession.noErrorResponse}){ checkFileUpload(); #{rich:component('prc_upload_modal_panel')}.hide()}"
+												 reRender="templatesTable, btnPanelTemplates" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+												 oncomplete="#{rich:component('prc_upload_modal_panel')}.hide()"
+												 reRender="prc_upload_modal_panel">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<ui:include src="/pages/processes/monitoring/sessionFileWarning.jspx"/>
+
+	<script type="text/javascript">
+		//<![CDATA[
+		function checkFormat() {
+			var checked = true;
+			if (document.getElementById('prc_trace_export_modal_div:exportType').value == "") {
+				document.getElementById('prc_trace_export_modal_div:exportTypeError').style.display = "inline";
+				checked = false;
+			}
+			return checked;
+		}
+
+		function checkFieldsLaunch(el){
+			if(el!=null){
+				pattern = el;
+			} else{
+				pattern = "input[id^='containerLaunchModalPanelForm:mainTable:'][id$=:val2]";
+			}
+
+			check = true;
+			jQuery.each( jQuery(pattern), function () {
+				e = jQuery(this);
+				er = e.next("span[id^='containerLaunchModalPanelForm:mainTable:'][id$=:elementVal2Error]");
+				sysName = er.next('input[id$=:elementVal2SysName]');
+				if(e.val() != null && e.val() != "") {
+					if (sysName.val() == 'I_COUNT' && e.val() <= 0) {
+						er.css("display", "inline");
+						check = check && false;
+					} else {
+						er.css("display", "none");
+						check = check && true;
+					}
+				}
+			});
+			return check;
+		}
+
+
+		var containerEdit = {
+			updateRichLabels : function() {
+				var contentDiv = document.getElementById('prc_upload_modal_div:upload:add2');
+				contentDiv.innerHTML = "#{lblForm.add}";
+				var borderDiv = document.getElementById('prc_upload_modal_div:upload:add1');
+				jQuery(document.getElementById('prc_upload_modal_div:upload:file')).parent().css('width', borderDiv.offsetWidth + 'px');
+				var clearContentDiv = document.getElementById('rpt_template_modal_div:upload:clean2');
+				if (clearContentDiv)
+					clearContentDiv.innerHTML = "#{lblForm.clear}";
+
+				jQuery('.rich-fileupload-name-padding').filter(':odd').html('#{lblForm.done}');
+				jQuery('.rich-fileupload-anc ').html('#{lblForm.clear}');
+			},
+			setListeners : function(){
+				jQuery('.rich-fileupload-hidden').change(function(){
+					jQuery('.rich-fileupload-ico-stop').text('#{lblForm.stop}');
+				});
+				jQuery('.rich-fileupload-ico-stop').click(function(){
+					jQuery('.rich-fileupload-ico-stop').text('#{lblForm.upload}');
+				});
+			}
+		};
+		containerEdit.updateRichLabels();
+		containerEdit.setListeners();
+
+		//]]>
+	</script>
+
+
+
+</ui:composition>
+</html>

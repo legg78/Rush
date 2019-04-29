@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+
+
+ <ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent"> 
+		<!-- <h:panelGroup rendered="#{usession.inRole['']}"> -->
+		 	<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+ 			<script type="text/javascript" src="#{request.contextPath}/js/stretch.js" /> 
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+			<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+			<f:loadBundle var="lblEmv" basename="ru.bpc.sv2.ui.bundles.Emv"/>
+			<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+			
+			<!-- navigation bar -->
+
+			<bpct:navBar pageName="#{lblEmv.card_instances}" />
+			<bpct:customerSearchModalPanels id="custSearchPanels"/>
+			<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+							 if (event.keyCode == 13) {
+								 document.getElementById('cardInstancesSearchForm:searchBtn').click(); 
+								 return false; 
+							} 
+							return true;
+						 }	
+			//]]>
+			</script>  
+
+			<!-- search panel -->
+			<h:form id="cardInstancesSearchForm" onkeypress="handleEnter(event)">
+				<h:panelGroup layout="block" styleClass="search_block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+							<h:panelGroup layout="block" styleClass="search_block_left">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses="top ,link-cont">
+									<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+										columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+										<h:outputLabel for="instId" title="#{lblCommon.institution}" 
+										 	value="#{lblCommon.institution}:" />
+										
+										 	 
+										<h:selectOneMenu id="instId"
+											label="#{lblCommon.institution}"
+											value="#{MbEmvCardInstances.filter.instId}">
+											<f:selectItem itemValue="" />
+											<f:selectItems value="#{MbEmvCardInstances.institutions}" />
+										</h:selectOneMenu>
+ 
+										<h:outputLabel for="card_number" value="#{lblIss.card_number}:" title="#{lblIss.card_number}" />
+										<h:inputText id="card_number"  value="#{MbEmvCardInstances.filter.cardNumber}"> 
+										</h:inputText>
+
+										<h:outputLabel for="customerNumber" value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}" />
+				                		<bm:selectCustomer  
+				                			valueId="#{MbEmvCardInstances.filter.customerId}"
+											valueNumber="#{MbEmvCardInstances.filter.customerNumber}"
+											custInfoField="#{MbEmvCardInstances.filter.custInfo}"
+											beanName="MbEmvCardInstances" 
+											modalPanel="customerSearchModalPanel"
+											formName="cardInstancesSearchForm"
+											searchButton="searchBtn"
+											manualInput="true"
+											rerenderList="cardInstancesSearchForm:instId"
+                                            disabled="false" rendered="true"/>
+										
+										<h:outputLabel for="applType" value="#{lblEmv.scheme_type}:" title="#{lblEmv.scheme_type}" />
+										<h:selectOneMenu id="applType"
+											label="#{lblEmv.scheme_type}"
+											value="#{MbEmvCardInstances.filter.applType}">
+											<f:selectItem itemValue="" />
+											<f:selectItems value="#{MbEmvCardInstances.emvApplicationTypes}" />
+										</h:selectOneMenu>
+										
+			                			<h:outputLabel for="expirDate" value="#{lblIss.expir_date}: " title="#{lblIss.expir_date}" />
+				            			<rich:calendar id="expirDate" value="#{MbEmvCardInstances.filter.expirDate}"
+				            				datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}" inputClass="inputDate"/>
+
+									</h:panelGrid>
+
+						 		<h:panelGrid columns="1">
+						
+										<h:panelGroup styleClass="stdButton">
+											<bre:taggedCommandButton action="#{MbEmvCardInstances.search}"
+												id="searchBtn"
+												reRender="CardInstancesTable, EmvCarcInstancesScroller, pagesNum, scriptTab,showNumberBtn"
+												image="/_img/icon_search.png" value="#{lblForm.search }"
+												onclick="disableModalPanelBtns(this);"
+												oncomplete="updateHeight();enableModalPanelBtns(this);"
+												eventsQueue="queue"
+												style="width:85px;" />
+
+										</h:panelGroup>
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+												action="#{MbEmvCardInstances.clearFilter}"
+												reRender="emvCardInstancesResultForm, cardInstancesSearchForm, emvCardInstancesBtnForm, #{MbEmvCardInstances.tabName}"
+												oncomplete="updateHeight();">
+												
+											</a4j:commandLink>
+										</h:panelGroup>
+										
+									</h:panelGrid>
+
+								</h:panelGrid>
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+						
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<!-- result panel  -->
+			<h:form id="emvCardInstancesResultForm">
+			
+				<h:panelGroup styleClass="search_result_block" layout="block">
+					<h:panelGroup styleClass="search_result_block_left fix-ff"
+						layout="block">
+						<h:panelGroup id="CardInstancesTableWrapper" layout="block"
+								styleClass="search_result_block_inner">
+						<rich:extendedDataTable id="CardInstancesTable"
+							tableState="res-table" headerClass="res-table-header"
+							rowClasses=",odd" selectedClass="res-table-selected" var="item"
+							value="#{MbEmvCardInstances.dataModel}"
+							selection="#{MbEmvCardInstances.itemSelection}"
+							rows="#{MbEmvCardInstances.rowsNum}" height="255px"
+							selectionMode="single" width="100%" enableContextMenu="true"
+							noDataLabel="#{MbEmvCardInstances.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+							reRender="scriptTab,ScriptBtnPanel"
+							>
+							
+							
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="scriptTab, showNumberBtn" oncomplete="updateHeight();"/>								 							
+								
+							<rich:column id="cardMask" label="#{lblIss.card_mask}" title="Сard Mask" sortBy="#{'card_mask'}" width="20%">
+								<f:facet name="header">
+									 <a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText 
+												value="#{lblIss.card_mask}" 
+												title="#{lblIss.card_mask}" 
+									/>
+									</a4j:outputPanel>		
+								</f:facet>
+								<h:outputText 
+											value="#{item.cardMask}" 
+											title="#{item.cardMask}" 
+								/>
+							</rich:column>
+							
+							<rich:column id="expirDate" label="#{lblIss.expir_date}" 
+										title="Expiry Date" sortBy="#{'expir_date'}" width="20%">
+								<f:facet name="header">
+									<h:outputText 
+												value="#{lblIss.expir_date}" 
+												title="#{lblIss.expir_date}" 
+									/>
+								</f:facet>
+								<h:outputText 
+											value="#{item.expirDate}" 
+											title="#{item.expirDate}" 
+								/>
+							</rich:column>
+							
+							<rich:column id="applType" label="#{lblEmv.scheme_type}" 
+										title="#{lblEmv.scheme_type}" sortBy="#{'appl_type'}" width="30%">
+								<f:facet name="header">
+									<h:outputText 
+												value="#{lblEmv.scheme_type}" 
+												title="#{lblEmv.scheme_type}" 
+									/>
+								</f:facet>
+								<h:outputText 
+											value="#{DictUtils.allArticlesDesc[item.applType]}" 
+											title="#{DictUtils.allArticlesDesc[item.applType]}" 
+								/>
+							</rich:column>
+							
+							<rich:column id="instIid" label="#{lblCommon.institution}" title="#{lblCommon.institution}" sortBy="#{'inst_id'}" width="30%" >
+								<f:facet name="header" >
+								<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>						
+									<h:outputText 
+											value="#{lblCommon.institution}" 
+											title="#{lblCommon.institution}" 
+									/>
+									</a4j:outputPanel>
+									
+								</f:facet>
+								<bm:entityDisplay  entityId="#{item.instId}"
+									value="#{item.instName}"/>
+							</rich:column>
+																				
+						</rich:extendedDataTable>
+							
+						</h:panelGroup>
+						
+						 <a4j:outputPanel ajaxRendered="true">
+						 	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    	<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    	<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+					    </a4j:outputPanel>
+					    
+					</h:panelGroup>
+				</h:panelGroup>
+            </h:form>
+
+            <h:form id="emvCardInstancesBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block" >
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="5"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />														
+								
+								<h:selectOneMenu id="rows_num"
+									value="#{MbEmvCardInstances.rowsNum}"
+									 styleClass="row_per_page">
+									<a4j:support event="onchange"
+										reRender="CardInstancesTable, EmvCarcInstancesScroller, emvCardInstancesBtnForm, pagesNum, scriptTab" />
+									<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+								</h:selectOneMenu>
+	
+								<rich:datascroller id="EmvCarcInstancesScroller" maxPages="10"
+									fastControls="hide" pagesVar="pages"
+									styleClass="res-datascroller" for="CardInstancesTable"
+									reRender="emvCardInstancesBtnForm:btnPanel, scriptTab">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbEmvCardInstances.dataModel.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+								
+								<h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbEmvCardInstances.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbEmvCardInstances.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+
+						<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+							<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+								<h:panelGrid styleClass="buttons_block" columns="5" id="btnPanel">
+									<bre:taggedCommandButton id="showNumberBtn"
+				                      		value="#{lblIss.view_number}"
+				                      		rendered="#{usession.inRole['VIEW_CARD_NUMBER']}"
+				                      		action="#{MbEmvCardInstances.viewCardNumber}"
+				                      		disabled="#{MbEmvCardInstances.activeItem == null}"
+				                      		reRender="cardNumberModalDiv:cardNumber"
+				                      		limitToList="true"
+				                      		oncomplete="Richfaces.showModalPanel('cardNumberModalPanel');return false;"
+				                      		>
+				                	</bre:taggedCommandButton>
+	
+								</h:panelGrid>
+			                </h:panelGroup>
+						</h:panelGroup>
+					
+					</h:panelGroup>
+				</h:panelGroup>		
+			
+			</h:form>
+
+            <h:form>
+                <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbEmvCardInstances.tabName}">
+                    <a4j:actionparam name="tabName" assignTo="#{MbEmvCardInstances.tabName}" />
+                </a4j:jsFunction>
+            </h:form>
+			
+				<!-- Working panel -->
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+				<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content">
+	
+					<rich:tab ontabenter="storeTab('scriptTab')"  label="#{lblEmv.scripts}" name="scriptTab" style="height:100%;">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblEmv.scripts}"
+									title="#{lblEmv.scripts}" />
+							</h:panelGroup>
+						</f:facet>
+	
+						<h:panelGroup layout="block" id="scriptTab" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+								<ui:include src="/pages/emv/scriptListBottom.jspx"></ui:include>
+						</h:panelGroup>
+					</rich:tab>
+	
+				</rich:tabPanel>
+			</h:panelGroup>
+														
+			<rich:modalPanel id="cardNumberModalPanel" autosized="true"
+				minWidth="300" minHeight="50">
+				<f:facet name="header">
+					<h:outputText value="Card number" />
+				</f:facet>
+				<f:facet name="controls">
+				</f:facet>
+				<h:form id="cardNumberModalDiv">
+		
+					<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+						<h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+							columnClasses="firstColModal, width250">
+		
+							<h:outputLabel value="#{lblIss.card_number}" title="#{lblIss.card_number}" />
+							<h:inputText value="#{MbEmvCardInstances.activeItem.cardNumber}"
+								readonly="true" id="cardNumber" style="width: 200px" rendered="#{usession.inRole['VIEW_CARD_NUMBER']}">
+							</h:inputText>
+						</h:panelGrid>
+					</h:panelGroup>
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_left_buttons">
+							<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+								<h:outputText />
+								<bre:taggedCommandButton value="#{lblForm.close}"
+									onclick="#{rich:component('cardNumberModalPanel')}.hide();return false;"
+									>
+								</bre:taggedCommandButton>
+							</h:panelGrid>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:form>
+			</rich:modalPanel>
+
+		<script type="text/javascript">
+		
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'cardInstancesSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'emvCardInstancesResultForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'CardInstancesTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'emvCardInstancesBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'scriptsForm',
+                            TAB_FORM_WRAPPER_ID:    'scriptsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>					
+	</ui:define>
+</ui:composition> 
+</html>

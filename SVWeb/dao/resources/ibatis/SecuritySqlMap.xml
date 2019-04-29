@@ -1,0 +1,963 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="sec">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+     
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>                  
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-des-key" class="ru.bpc.sv2.security.DesKey">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="objectId" column="object_id"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="lmkId" column="lmk_id"/>
+        <result property="keyType" column="key_type"/>
+        <result property="keyIndex" column="key_index"/>
+        <result property="keyLength" column="key_length"/>
+        <result property="keyValue" column="key_value"/>
+        <result property="keyPrefix" column="key_prefix"/>
+        <result property="checkValue" column="check_value"/>
+        <result property="standardKeyType" column="standard_key_type"/>
+        <result property="lmkDescription" column="lmk_description"/>
+        <result property="objectDescription" column="object_description"/>
+        <result property="generateDate" column="generate_date" />
+        <result property="generateUserName" column="generate_user_name" />
+	</resultMap>
+
+	<select id="get-des-keys"
+		    parameterClass="qparams"
+		    resultMap="mapping-des-key">
+		<include refid="paginatedOpen"/>
+			SELECT 	  dk.id
+					, dk.seqnum
+		            , dk.object_id
+		            , dk.entity_type
+		            , dk.lmk_id
+					, dk.key_type
+		            , dk.key_index
+		            , dk.key_length
+		            , dk.key_value
+					, dk.key_prefix
+		            , dk.check_value
+		            , dk.standard_key_type
+		            , lmk.description lmk_description
+		            , get_object_desc(i_object_id => dk.object_id, i_entity_type => dk.entity_type, i_lang => lmk.lang) object_description
+                    , dk.generate_date
+                    , dk.generate_user_name
+		    FROM 
+		    	sec_ui_des_key_vw dk
+		    	, hsm_ui_lmk_vw lmk 
+		    WHERE
+		    	dk.lmk_id = lmk.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">dk.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lmk.lang(+) = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="keyType">dk.key_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">dk.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="key">dk.key_value like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="keyPrefix">dk.key_prefix like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="keyLength">dk.key_length = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">dk.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lmkId">dk.lmk_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardKeyType">dk.standard_key_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lmkDescription">upper(lmk.description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="hsmId">
+					dk.lmk_id = (
+						SELECT lmk_id FROM hsm_ui_device_vw 
+						WHERE id = #filters[].value# AND lang = com_ui_user_env_pkg.get_user_lang
+					)
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">dk.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="keyType">dk.key_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="keyPrefix">dk.key_prefix $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="keyIndex">dk.key_index $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="keyLength">dk.key_length $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="checkValue">dk.check_value $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="key">dk.key_value $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="standardKeyType">dk.standard_key_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="lmkDescription">lmk.description $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="generateDate">dk.generate_date $sorting[].direction$</isEqual>
+                    <isEqual property="sorting[].property" compareValue="generateUserName">dk.generate_user_name $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend="ORDER BY ">dk.id ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-des-keys-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			dk.id 
+		FROM 
+	    	sec_ui_des_key_vw dk
+	    	, hsm_ui_lmk_vw lmk 
+		WHERE
+	    	dk.lmk_id = lmk.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dk.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lmk.lang(+) = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyType">dk.key_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">dk.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="key">dk.key_value like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyPrefix">dk.key_prefix like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyLength">dk.key_length = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">dk.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lmkId">dk.lmk_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardKeyType">dk.standard_key_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lmkDescription">upper(lmk.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hsmId">
+				dk.lmk_id = (
+					SELECT lmk_id FROM hsm_ui_device_vw 
+					WHERE id = #filters[].value# AND lang = com_ui_user_env_pkg.get_user_lang
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-des-key"
+			parameterClass="ru.bpc.sv2.security.DesKey">
+    	{call SEC_UI_DES_KEY_PKG.add_des_key( 
+				  o_des_key_id        => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum            => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_object_id         => #objectId#
+				, i_entity_type       => #entityType#
+				, i_hsm_device_id     => #hsmId#
+				, i_standard_key_type => #standardKeyType#
+				, i_key_index         => #keyIndex#
+				, i_key_length        => #keyLength#
+				, i_key_value         => #keyValue#
+				, i_key_prefix        => #keyPrefix#
+				, i_check_value       => #checkValue#
+				, i_check_kcv         => #checkKcv#
+				)}
+	</procedure>
+
+	<procedure id="edit-des-key"
+			parameterClass="ru.bpc.sv2.security.DesKey">
+    	{call SEC_UI_DES_KEY_PKG.modify_des_key( 
+				  i_des_key_id        => #id#
+				, io_seqnum           => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_object_id         => #objectId#
+				, i_entity_type       => #entityType#
+				, i_hsm_device_id     => #hsmId#
+				, i_standard_key_type => #standardKeyType#
+				, i_key_index         => #keyIndex#
+				, i_key_prefix        => #keyPrefix#
+				, i_key_length        => #keyLength#
+				, i_key_value         => #keyValue#
+				, i_check_value       => #checkValue#
+				, i_check_kcv         => #checkKcv#
+				)}
+	</procedure>
+
+	<procedure id="delete-des-key"
+			parameterClass="ru.bpc.sv2.security.DesKey">
+    	{call SEC_UI_DES_KEY_PKG.remove_des_key(
+				  i_des_key_id		=> #id#
+				, i_seqnum			=> #seqNum#)}
+	</procedure>
+	
+	<procedure id="generate-des-key"
+			parameterClass="ru.bpc.sv2.security.DesKey">
+    	{call SEC_UI_DES_KEY_PKG.generate_des_key( 
+				  io_id               => #id,jdbcType=NUMERIC,mode=INOUT#
+				, io_seqnum           => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_object_id         => #objectId#
+				, i_entity_type       => #entityType#		
+				, i_hsm_device_id     => #hsmId#							
+				, i_standard_key_type => #standardKeyType#
+				, i_key_index         => #keyIndex#
+				, i_key_length        => #keyLength#	
+				, i_key_prefix        => #keyPrefix#		
+				, i_key_comp_num      => #componentsNumber#						
+				, i_format_id         => #formatId#									
+				)}
+	</procedure>
+	
+	<procedure id="translate-des-key"
+			parameterClass="ru.bpc.sv2.security.DesKey">
+    	{call SEC_UI_DES_KEY_PKG.translate_des_key( 
+				  io_id               => #id,jdbcType=NUMERIC,mode=INOUT#
+				, io_seqnum           => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_object_id         => #objectId#
+				, i_entity_type       => #entityType#	
+				, i_hsm_device_id     => #hsmId#
+				, i_standard_key_type => #standardKeyType#
+				, i_key_index         => #keyIndex#
+				, i_key_length        => #keyLength#
+				, i_source_key_prefix => #keyPrefix#
+				, i_source_key        => #keyValue#
+				, i_key_enc_key       => #keyEncriptionType#
+				, io_dest_check_value => #checkValue#
+				, i_dest_key_prefix   => #destKeyPrefix#
+				)}
+	</procedure>
+	
+	<procedure id="generate-key-check-value"
+			parameterClass="ru.bpc.sv2.security.DesKey">
+    	{call SEC_UI_DES_KEY_PKG.generate_key_check_value( 
+    			  i_object_id         => #objectId#
+    			, i_entity_type       => #entityType#
+				, i_hsm_device_id     => #hsmId#
+				, i_standard_key_type => #standardKeyType#
+				, i_key_length        => #keyLength#
+				, i_key_value         => #keyValue#
+				, i_key_prefix        => #keyPrefix#
+				, o_check_value       => #checkValue,jdbcType=NUMERIC,mode=OUT#								
+				)}
+	</procedure>
+	
+	<procedure id="check-des-key"
+			parameterClass="ru.bpc.sv2.security.DesKey">
+    	{#id,jdbcType=NUMERIC,mode=OUT# = call SEC_UI_DES_KEY_PKG.get_des_key( 
+				  i_object_id         => #objectId#
+				, i_entity_type       => #entityType#
+				, i_hsm_device_id     => #hsmId#
+				, i_standard_key_type => #standardKeyType#
+				, i_key_index         => #keyIndex#
+				)}
+	</procedure>
+	
+	<procedure id="get-key-type" parameterClass="ru.bpc.sv2.security.DesKey">
+    	{#keyType,jdbcType=VARCHAR,mode=OUT# = call SEC_UI_DES_KEY_PKG.get_key_type(
+				  i_object_id         => #objectId#
+				, i_entity_type       => #entityType#
+				, i_standard_key_type => #standardKeyType#
+				)}
+	</procedure>
+	
+	<parameterMap id="check-word-param-map" class="ru.bpc.sv2.security.QuestionWord">
+		<parameter property="validated" javaType="boolean" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="entityType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="objectId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="word" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+		<parameter property="question" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+	</parameterMap>
+
+	<procedure id="check-security-word"
+			parameterMap="check-word-param-map">
+		{? = call SEC_UI_QUESTION_PKG.check_security_word(
+				  i_entity_type		=> ?
+				, i_object_id		=> ?
+				, i_word			=> ?
+				, i_question		=> ?
+				)}
+	</procedure>
+	
+	<resultMap  id="mapping-question" class="ru.bpc.sv2.security.QuestionWord">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="entityType" column="entity_type"/>
+        <result property="objectId" column="object_id"/>
+        <result property="question" column="question"/>
+        <result property="wordHash" column="word_hash"/>
+        <result property="word" column="word"/>
+	</resultMap>
+	
+	<select id="get-questions"
+		    parameterClass="qparams"
+		    resultMap="mapping-question">
+		SELECT 	  
+				  q.id
+				, q.seqnum
+				, q.entity_type
+				, q.object_id
+	            , q.question
+	            , q.word_hash
+	            , q.word
+	    FROM  sec_ui_question_vw q
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">q.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">q.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">q.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="question">q.question = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<resultMap  id="mapping-sec-authority"
+	            class="ru.bpc.sv2.security.SecAuthority"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="type" column="type" />
+	    <result property="rid" column="rid" />
+	    <result property="name" column="name" />
+	    <result property="lang" column="lang" />
+	</resultMap>	
+	
+	<select id="get-authorities"
+			parameterClass="qparams" resultMap="mapping-sec-authority">
+		<include refid="paginatedOpen" />
+			SELECT
+				aut.id
+				,aut.seqnum
+				,aut.type
+				,aut.rid
+				,aut.name
+				,aut.lang
+			FROM
+				sec_ui_authority_vw aut
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">aut.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="seqnum">aut.seqnum = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="type">aut.type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="rid">aut.rid like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">aut.name like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">aut.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">aut.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqnum">aut.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="type">aut.type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="rid">aut.rid $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="name">aut.name $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lang">aut.lang $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-authorities-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			aut.id
+		FROM
+			sec_ui_authority_vw aut
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">aut.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">aut.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">aut.type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="rid">aut.rid like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">aut.name like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">aut.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-authority"
+			parameterClass="ru.bpc.sv2.security.SecAuthority">
+		{call sec_ui_authority_pkg.add_authority(
+			  o_id			=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum		=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_type		=> #type#
+			, i_rid			=> #rid#
+			, i_lang		=> #lang#
+			, i_name		=> #name#
+		)}
+	</procedure>
+	
+	<procedure id="modify-authority"
+			parameterClass="ru.bpc.sv2.security.SecAuthority">
+		{call sec_ui_authority_pkg.modify_authority(
+			  i_id			=> #id#
+			, io_seqnum		=> #seqnum,mode=INOUT,jdbcType=NUMERIC#
+			, i_type		=> #type#
+			, i_rid			=> #rid#
+			, i_lang		=> #lang#
+			, i_name		=> #name#
+		)}
+	</procedure>
+	
+	<procedure id="remove-authority"
+			parameterClass="ru.bpc.sv2.security.SecAuthority">
+		{call sec_ui_authority_pkg.remove_authority(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqnum#
+		)}
+	</procedure>	
+		
+	<resultMap  id="mapping-rsa-certificate"
+	            class="ru.bpc.sv2.security.RsaCertificate"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="state" column="state" />
+	    <result property="authorityId" column="authority_id" />
+	    <result property="certifiedKeyId" column="certified_key_id" />
+	    <result property="authorityKeyId" column="authority_key_id" />
+	    <result property="certificate" column="certificate" />
+	    <result property="reminder" column="reminder" />
+	    <result property="hash" column="hash" />
+	    <result property="expirDate" column="expir_date" />
+	    <result property="trackingNumber" column="tracking_number" />
+	    <result property="subjectId" column="subject_id" />
+	    <result property="serialNumber" column="serial_number" />
+	    <result property="visaServiceId" column="visa_service_id" />
+	</resultMap>
+	
+	<select id="get-rsa-certificates"
+			parameterClass="qparams" resultMap="mapping-rsa-certificate">
+		<include refid="paginatedOpen" />
+			SELECT
+				rcv.id
+				,rcv.seqnum
+				,rcv.state
+				,rcv.authority_id
+				,rcv.certified_key_id
+				,rcv.authority_key_id
+				,rcv.certificate
+				,rcv.reminder
+				,rcv.hash
+				,rcv.expir_date
+				,rcv.tracking_number
+				,rcv.subject_id
+				,rcv.serial_number
+				,rcv.visa_service_id
+			FROM
+				sec_ui_rsa_certificate_vw rcv
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">rcv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="seqnum">rcv.seqnum = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="state">rcv.state = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="authorityId">rcv.authority_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="certifiedKeyId">rcv.certified_key_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="authorityKeyId">rcv.authority_key_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="certificate">rcv.certificate = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="reminder">rcv.reminder = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="hash">rcv.hash = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="expirDate">rcv.expir_date = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="trackingNumber">rcv.tracking_number = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="subjectId">rcv.subject_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="serialNumber">rcv.serial_number = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="visaServiceId">rcv.visa_service_id = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">rcv.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqnum">rcv.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="state">rcv.state $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="authorityId">rcv.authority_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="certifiedKeyId">rcv.certified_key_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="authorityKeyId">rcv.authority_key_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="certificate">rcv.certificate $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="reminder">rcv.reminder $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="hash">rcv.hash $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="expirDate">rcv.expir_date $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="trackingNumber">rcv.tracking_number $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="subjectId">rcv.subject_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="serialNumber">rcv.serial_number $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="visaServiceId">rcv.visa_service_id $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-rsa-certificates-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(rcv.id)
+		FROM
+			sec_ui_rsa_certificate_vw rcv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">rcv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">rcv.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="state">rcv.state = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="authorityId">rcv.authority_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="certifiedKeyId">rcv.certified_key_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="authorityKeyId">rcv.authority_key_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="certificate">rcv.certificate = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="reminder">rcv.reminder = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hash">rcv.hash = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="expirDate">rcv.expir_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="trackingNumber">rcv.tracking_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="subjectId">rcv.subject_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="serialNumber">rcv.serial_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="visaServiceId">rcv.visa_service_id = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+	
+	<procedure id="remove-certificate"
+			parameterClass="ru.bpc.sv2.security.RsaCertificate">
+		{call sec_ui_rsa_certificate_pkg.remove_certificate(
+			  i_id		=> #id#
+			, i_seqnum	=> #seqnum#
+		)}
+	</procedure>
+	
+	<resultMap  id="mapping-rsa-key"
+	            class="ru.bpc.sv2.security.RsaKey"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="objectId" column="object_id" />
+	    <result property="entityType" column="entity_type" />
+	    <result property="lmkId" column="lmk_id" />
+	    <result property="keyType" column="key_type" />
+	    <result property="keyIndex" column="key_index" />
+	    <result property="expirDate" column="expir_date" />
+	    <result property="signAlgorithm" column="sign_algorithm" />
+	    <result property="modulusLength" column="modulus_length" />
+	    <result property="exponent" column="exponent" />
+	    <result property="publicKey" column="public_key" />
+	    <result property="privateKey" column="private_key" />
+	    <result property="publicKeyMac" column="public_key_mac" />
+	    <result property="standardKeyType" column="standard_key_type" />
+	    <result property="description" column="description" />
+	    <result property="lang" column="lang" />
+	    <result property="authorityId" column="authority_id" />
+	    <result property="trackingNumber" column="tracking_number" />
+	    <result property="subjectId" column="subject_id" />
+	    <result property="visaServiceId" column="visa_service_id" />
+	    <result property="authorityKeyIndex" column="authority_key_index" />
+	</resultMap>
+
+	<select id="get-rsa-keys"
+			parameterClass="qparams" resultMap="mapping-rsa-key">
+		<include refid="paginatedOpen" />
+			SELECT
+				rkv.id
+				,rkv.seqnum
+				,rkv.object_id
+				,rkv.entity_type
+				,rkv.lmk_id
+				,rkv.key_type
+				,rkv.key_index
+				,rkv.expir_date
+				,rkv.sign_algorithm
+				,rkv.modulus_length
+				,rkv.exponent
+				,rkv.public_key
+				,rkv.private_key
+				,rkv.public_key_mac
+				,rkv.standard_key_type
+				,rkv.description
+				,rkv.lang
+				,rcv.authority_id
+				,rcv.tracking_number
+				,rcv.subject_id
+				,rcv.visa_service_id
+				,(select key_index from sec_rsa_certificate_vw c, sec_rsa_key k 
+					where c.certified_key_id =  rcv.certified_key_id 
+					  and c.authority_key_id != c.certified_key_id 
+					  and k.id =  c.authority_key_id and rownum=1) as authority_key_index
+			FROM
+				sec_ui_rsa_key_vw rkv 
+				left outer join sec_ui_rsa_certificate_vw rcv on rcv.certified_key_id = rkv.id
+				and rcv.authority_key_id = rkv.id
+				
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">rkv.id >= #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="seqnum">rkv.seqnum = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="objectId">rkv.object_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="entityType">rkv.entity_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lmkId">rkv.lmk_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="keyType">rkv.key_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="keyIndex">rkv.key_index = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="expirDate">rkv.expir_date = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="signAlgorithm">rkv.sign_algorithm = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="modulusLength">rkv.modulus_length = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="exponent">rkv.exponent = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="publicKey">rkv.public_key = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="privateKey">rkv.private_key = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="publicKeyMac">rkv.public_key_mac = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardKeyType">rkv.standard_key_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">rkv.description = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">rkv.lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">rkv.id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="seqnum">rkv.seqnum $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="objectId">rkv.object_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="entityType">rkv.entity_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lmkId">rkv.lmk_id $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="keyType">rkv.key_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="keyIndex">rkv.key_index $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="expirDate">rkv.expir_date $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="signAlgorithm">rkv.sign_algorithm $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="modulusLength">rkv.modulus_length $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="exponent">rkv.exponent $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="publicKey">rkv.public_key $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="privateKey">rkv.private_key $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="publicKeyMac">rkv.public_key_mac $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="standardKeyType">rkv.standard_key_type $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="description">rkv.description $sorting[].direction$</isEqual>		
+					<isEqual property="sorting[].property" compareValue="lang">rkv.lang $sorting[].direction$</isEqual>		
+				</isNotEqual>
+			</iterate>				
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-rsa-keys-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(rkv.id)
+		FROM
+			sec_ui_rsa_key_vw rkv
+			
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">rkv.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">rkv.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">rkv.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">rkv.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lmkId">rkv.lmk_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyType">rkv.key_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyIndex">rkv.key_index = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="expirDate">rkv.expir_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="signAlgorithm">rkv.sign_algorithm = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modulusLength">rkv.modulus_length = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="exponent">rkv.exponent = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="publicKey">rkv.public_key = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="privateKey">rkv.private_key = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="publicKeyMac">rkv.public_key_mac = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardKeyType">rkv.standard_key_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">rkv.description = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">rkv.lang = #filters[].value#</isEqual>
+		</iterate>			
+	</select>	
+	
+	<procedure id="add-rsa-key"
+			parameterClass="ru.bpc.sv2.security.RsaKey">
+		{call sec_ui_rsa_key_pkg.generate_rsa_keypair(
+			  o_id				=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum			=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_authority_id	=> #authorityId#
+			, i_object_id		=> #objectId#
+			, i_entity_type		=> #entityType#
+			, i_hsm_device_id	=> #hsmDeviceId#
+			, i_key_index		=> #keyIndex#
+			, i_sign_algorithm	=> #signAlgorithm#
+			, i_modulus_length	=> #modulusLength#
+			, i_exponent		=> #exponent#
+			, i_expir_date		=> #expirDate#
+			, i_tracking_number	=> #trackingNumber#
+			, i_subject_id		=> #subjectId#
+			, i_visa_service_id	=> #visaServiceId#
+			, i_lang			=> #lang#
+			, i_description		=> #description#
+			, i_authority_key_index => #authorityKeyIndex#
+		)}
+	</procedure>
+	
+	<procedure id="remove-rsa-keypair"
+			parameterClass="ru.bpc.sv2.security.RsaKey">
+		{call sec_ui_rsa_key_pkg.remove_rsa_keypair(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqnum#
+		)}
+	</procedure>
+	
+	<parameterMap id="rsa-keys-for-cert-param-map" class="java.util.Map">
+		<parameter property="authorityKeyId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="certifiedKeyId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN" />
+	</parameterMap>
+	
+	<select id="get-rsa-keys-for-cert"
+			resultMap="mapping-rsa-key" parameterMap="rsa-keys-for-cert-param-map">
+			SELECT
+				rkv.id
+				,rkv.seqnum
+				,rkv.object_id
+				,rkv.entity_type
+				,rkv.lmk_id
+				,rkv.key_type
+				,rkv.key_index
+				,rkv.expir_date
+				,rkv.sign_algorithm
+				,rkv.modulus_length
+				,rkv.exponent
+				,rkv.public_key
+				,rkv.private_key
+				,rkv.public_key_mac
+				,rkv.standard_key_type
+				,rkv.description
+				,rkv.lang
+				,rcv.authority_id
+				,rcv.tracking_number
+				,rcv.subject_id
+				,rcv.visa_service_id
+				,null as authority_key_index
+			FROM
+				sec_ui_rsa_key_vw rkv 
+				left outer join sec_ui_rsa_certificate_vw rcv on rcv.certified_key_id = rkv.id
+				and rcv.authority_key_id = rkv.id
+			WHERE
+				rcv.authority_key_id = ?
+				and rcv.certified_key_id = ?
+				and lang = ?
+	</select>
+	
+	<select id="get-rsa-keys-for-cert-count"
+			resultClass="int" parameterMap="rsa-keys-for-cert-param-map">
+			SELECT
+				count(rkv.id)
+			FROM
+				sec_ui_rsa_key_vw rkv 
+				left outer join sec_ui_rsa_certificate_vw rcv on rcv.certified_key_id = rkv.id
+				and rcv.authority_key_id = rkv.id
+			WHERE
+				rcv.authority_key_id = ?
+				and rcv.certified_key_id = ?
+				and lang = ?
+	</select>
+	
+	<select id="get-rsa-certificates-by-key-id"
+			parameterClass="qparams" resultMap="mapping-rsa-certificate">
+		SELECT
+			rcv.id
+			,rcv.seqnum
+			,rcv.state
+			,rcv.authority_id
+			,rcv.certified_key_id
+			,rcv.authority_key_id
+			,rcv.certificate
+			,rcv.reminder
+			,rcv.hash
+			,rcv.expir_date
+			,rcv.tracking_number
+			,rcv.subject_id
+			,rcv.serial_number
+			,rcv.visa_service_id
+		FROM
+			sec_ui_rsa_certificate_vw rcv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="keyId">rcv.certified_key_id = #filters[].value# or rcv.authority_key_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">rcv.id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="seqnum">rcv.seqnum $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="state">rcv.state $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="authorityId">rcv.authority_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="certifiedKeyId">rcv.certified_key_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="authorityKeyId">rcv.authority_key_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="certificate">rcv.certificate $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="reminder">rcv.reminder $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="hash">rcv.hash $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="expirDate">rcv.expir_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="trackingNumber">rcv.tracking_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="subjectId">rcv.subject_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="serialNumber">rcv.serial_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="visaServiceId">rcv.visa_service_id $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>
+	</select>
+		
+	<select id="get-rsa-certificates-count-by-key-id"
+			parameterClass="qparams" resultClass="int">
+		SELECT
+			count(rcv.id)
+		FROM
+			sec_ui_rsa_certificate_vw rcv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="keyId">rcv.certified_key_id = #filters[].value# or rcv.authority_key_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">rcv.id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="seqnum">rcv.seqnum $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="state">rcv.state $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="authorityId">rcv.authority_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="certifiedKeyId">rcv.certified_key_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="authorityKeyId">rcv.authority_key_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="certificate">rcv.certificate $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="reminder">rcv.reminder $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="hash">rcv.hash $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="expirDate">rcv.expir_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="trackingNumber">rcv.tracking_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="subjectId">rcv.subject_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="serialNumber">rcv.serial_number $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="visaServiceId">rcv.visa_service_id $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>
+	</select>	
+
+	<parameterMap id="link-authority-key-index-map" class="map">
+		<parameter property="certifiedKeyId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+		<parameter property="authorityKeyIndex" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" />
+	</parameterMap>
+
+	<procedure id="link-authority-key-index"
+			parameterMap="link-authority-key-index-map">
+		{call sec_ui_rsa_key_pkg.link_authority_key_index(
+			  i_certified_key_id		=> ?
+			, i_authority_key_index		=> ?
+		)}
+	</procedure>
+	
+	<procedure id="set-rsa-keypair"
+			parameterClass="ru.bpc.sv2.security.RsaKey">
+		{call sec_ui_rsa_key_pkg.set_rsa_keypair(
+			  io_id            => #id,mode=INOUT,jdbcType=NUMERIC#
+			, i_object_id      => #objectId#
+			, i_entity_type    => #entityType#
+			, i_lmk_id         => #lmkId#
+			, i_key_type       => #keyType#
+			, i_key_index      => #keyIndex#
+			, i_expir_date     => #expirDate#
+			, i_sign_algorithm => #signAlgorithm#
+			, i_modulus_length => #modulusLength#
+			, i_exponent       => #exponent#
+			, i_public_key     => #publicKey#
+			, i_private_key    => #privateKey#
+			, i_public_key_mac => #publicKeyMac#
+		)}
+	</procedure>
+	
+	<resultMap  id="mapping-hmac-key"
+	            class="ru.bpc.sv2.security.HmacKey"  >
+	    <result property="id" column="id" />
+	    <result property="seqnum" column="seqnum" />
+	    <result property="objectId" column="object_id" />
+	    <result property="entityType" column="entity_type" />
+	    <result property="lmkId" column="lmk_id" />
+	    <result property="keyIndex" column="key_index" />
+	    <result property="keyLength" column="key_length" />
+	    <result property="keyValue" column="key_value" />
+	    <result property="generateDate" column="generate_date" />
+	    <result property="generateUserName" column="generate_user_name" />
+	</resultMap>	
+	
+	<select id="get-hmac-keys"
+			parameterClass="qparams" resultMap="mapping-hmac-key">
+			SELECT
+				sec.id
+				,sec.seqnum
+				,sec.object_id
+				,sec.entity_type
+				,sec.lmk_id
+				,sec.key_index
+				,sec.key_length
+				,sec.key_value
+				,sec.generate_date
+				,sec.generate_user_name
+			FROM
+				sec_ui_hmac_key_vw sec
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">sec.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">sec.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">sec.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">sec.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lmkId">sec.lmk_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyIndex">sec.key_index = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyLength">sec.key_length = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyValue">sec.key_value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="generateDate">sec.generate_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="generateUserName">sec.generate_user_name = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">sec.id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="seqnum">sec.seqnum $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="objectId">sec.object_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="entityType">sec.entity_type $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="lmkId">sec.lmk_id $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="keyIndex">sec.key_index $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="keyLength">sec.key_length $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="keyValue">sec.key_value $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="generateDate">sec.generate_date $sorting[].direction$</isEqual>		
+				<isEqual property="sorting[].property" compareValue="generateUserName">sec.generate_user_name $sorting[].direction$</isEqual>		
+			</isNotEqual>
+		</iterate>				
+	</select>
+	
+	<select id="get-hmac-keys-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+			count(sec.id)
+		FROM
+			sec_ui_hmac_key_vw sec
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">sec.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqnum">sec.seqnum = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">sec.object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">sec.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lmkId">sec.lmk_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyIndex">sec.key_index = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyLength">sec.key_length = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyValue">sec.key_value = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="generateDate">sec.generate_date = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="generateUserName">sec.generate_user_name = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+	
+	<procedure id="add-hmac-key"
+			parameterClass="ru.bpc.sv2.security.HmacKey">
+		{call sec_ui_hmac_key_pkg.add_hmac_key(
+			  o_id				=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum			=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_object_id		=> #objectId#
+			, i_entity_type		=> #entityType#
+			, i_hsm_device_id	=> #hsmId#
+			, i_key_index		=> #keyIndex#
+			, i_key_length		=> #keyLength#
+			, i_key_value		=> #keyValue#
+	)}
+	</procedure>
+	
+	<procedure id="generate-hmac-key"
+			parameterClass="ru.bpc.sv2.security.HmacKey">
+		{call sec_ui_hmac_key_pkg.generate_hmac_key(
+			  o_id				=> #id,mode=OUT,jdbcType=NUMERIC#
+			, o_seqnum			=> #seqnum,mode=OUT,jdbcType=NUMERIC#
+			, i_object_id		=> #objectId#
+			, i_entity_type		=> #entityType#
+			, i_hsm_device_id	=> #hsmId#
+			, i_key_index		=> #keyIndex#
+			, i_key_length		=> #keyLength#
+	)}
+	</procedure>
+		
+	<procedure id="remove-hmac-key"
+			parameterClass="ru.bpc.sv2.security.HmacKey">
+		{call sec_ui_hmac_key_pkg.remove_hmac_key(
+			  i_id			=> #id#
+			, i_seqnum		=> #seqnum#
+	)}
+	</procedure>
+	
+	<parameterMap class="java.util.Map" id="map-iss-bin">
+		<parameter property="bin" javaType="java.lang.String" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN" />
+	</parameterMap>
+	
+	<procedure id="get-iss-bin"
+			parameterMap="map-iss-bin">
+		{? = call  iss_ui_bin_pkg.get_iss_bin(
+				  i_id		=> ?
+				)}
+	</procedure>
+</sqlMap>

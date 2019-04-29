@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:fmt="http://www.bpc.ru/el/formatter"
+		xmlns:c="http://java.sun.com/jstl/core"
+		>
+<ui:composition>
+	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+	<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+	
+	<h:form id="accountsBtmForm">
+		<h:panelGroup id="accountsTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable
+					headerClass="res-table-header table-header-ext" 
+		           	selectedClass="res-table-selected" styleClass="res-table"           
+		           	rowClasses=",odd"
+		           	id="accountsTable"
+		           	var="item"
+		           	value="#{(accountsBean==null ? MbAccountsSearch : accountsBean).accounts}"
+		           	selection="#{(accountsBean==null ? MbAccountsSearch : accountsBean).itemSelection}"
+		           	rows="0"
+		           	height="220px" 
+		           	selectionMode="single" enableContextMenu="true"
+		           	tableState="#{(accountsBean==null ? MbAccountsSearch : accountsBean).tableState}"
+		           	noDataLabel="#{lblCommon['no_records_found']}"
+		           	onRowMouseDown="handleMouseClick(event)"
+		           	>
+				           
+				<a4j:support event="onselectionchange" reRender="btn_delete_account,btn_edit_account, contextPanel"
+						limitToList="true"/>
+				<a4j:support event="onclick" reRender="contextPanel, ctxPanel"
+						limitToList="true"/>
+				
+				
+	            <rich:column id="account_number" label="Account number" title="Account number" sortExpression="asc" sortBy="#{'account_number'}" 
+						width="17%">
+					<f:facet name="header">
+						<h:panelGroup>         
+							<script>updateHeight();</script>
+	                   		<h:outputText value="#{lblAcc.account_number}" title="#{lblAcc.account_number}" />
+	                   	</h:panelGroup>
+					</f:facet>
+					<f:facet name="filter">
+						<h:inputText value="#{(accountsBean==null ? MbAccountsSearch : accountsBean).filter.accountNumber}"  style="width: 100%;"
+								onkeydown="if (ignoreEnter(event)) return false;">
+							<a4j:support event="onkeyup" requestDelay="500"
+									onsubmit="if (isNonFunctionalKey(event, true)) return false;"
+									reRender="accountsTable" 
+									action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).search}"/>
+						</h:inputText>
+					</f:facet>
+				
+               		<bm:entityDisplay link = "true" contextType="ENTTACCT" bean="#{(accountsBean==null ? MbAccountsSearch : accountsBean).class.name}" value="#{item.accountNumber != null ? item.accountNumber : '...'}"/>	
+				</rich:column>
+	            
+	            <rich:column id="balance" label="Balance" title="Balance" sortBy="#{'balance'}"
+		        		width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcc.balance}" title="#{lblAcc.balance}" />
+					</f:facet>
+             		<bm:entityDisplay contextType="ENTTACCT" bean="#{(accountsBean==null ? MbAccountsSearch : accountsBean).class.name}" value="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}"/>
+		        </rich:column>
+		        
+	           	<rich:column id="currency" label="Currency" title="Currency" width="15%" sortBy="#{'currency'}">
+					<f:facet name="header">
+	                    <h:outputText value="#{lblCommon.currency}" title="#{lblCommon.currency}" />
+	                </f:facet>
+	                <f:facet name="filter">
+						<h:selectOneMenu value="#{(accountsBean==null ? MbAccountsSearch : accountsBean).filter.currency}"  style="width: 100%;">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{CurrencyUtils.allCurrencies}" />
+							<a4j:support event="onchange" reRender="accountsTable" action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).search}"/>
+						</h:selectOneMenu>
+					</f:facet>
+					<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.currency]}"/>
+	                <bm:entityDisplay contextType="ENTTACCT" bean="#{(accountsBean==null ? MbAccountsSearch : accountsBean).class.name}" value="#{item.currency} - #{CurrencyUtils.currencyObjectsMap[item.currency].currencyName}"/>
+		        </rich:column>
+		        
+		        <rich:column id="account_type" label="Account type" title="Account type" sortBy="#{'account_type'}"
+		        		width="15%"
+						filterEvent="onkeyup">
+					<f:facet name="header">
+	                    <h:outputText value="#{lblAcc.account_type}" title="#{lblAcc.account_type}" />
+	                </f:facet>
+	                <f:facet name="filter">
+						<h:selectOneMenu value="#{(accountsBean==null ? MbAccountsSearch : accountsBean).filter.accountType}"  style="width: 100%;">
+							<f:selectItem itemValue="" itemLabel="" />
+							<f:selectItems value="#{(accountsBean==null ? MbAccountsSearch : accountsBean).allAccountTypes}" />
+							<a4j:support event="onchange" reRender="accountsTable" action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).search}"/>
+						</h:selectOneMenu>
+					</f:facet>
+	                <h:outputText value="#{DictUtils.articles[item.accountType]}"
+	                			title="#{DictUtils.articles[item.accountType]}" />
+		        </rich:column>
+		        
+		        <rich:column id="contract" label="Contract" title="Contract" sortBy="#{'contract_number'}" width="15%">
+					<f:facet name="header">
+	                    <h:outputText value="#{lblPrd.contract}" title="#{lblPrd.contract}"/>
+	                </f:facet>
+	                <bm:entityDisplay link = "true" contextType="ENTTCNTR" bean="#{(accountsBean==null ? MbAccountsSearch : accountsBean).class.name}" value="#{item.contractNumber != null ? item.contractNumber : '...'}"/>
+		        </rich:column>
+		        
+		        <rich:column id="status" label="Status" title="Status" sortBy="#{'status'}"
+		        		width="10%">
+					<f:facet name="header">
+	                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}" />
+	                </f:facet>
+	                <f:facet name="filter">
+						<h:selectOneMenu value="#{(accountsBean==null ? MbAccountsSearch : accountsBean).filter.status}"  style="width: 100%;">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{(accountsBean==null ? MbAccountsSearch : accountsBean).accountStatuses}" />
+							<a4j:support event="onchange" reRender="accountsTable" action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).search}"/>
+						</h:selectOneMenu>
+					</f:facet>
+	                <bm:entityDisplay contextType="ENTTACCT" bean="#{(accountsBean==null ? MbAccountsSearch : accountsBean).class.name}" value="#{DictUtils.articles[item.status]}"/>
+		        </rich:column>
+
+				<rich:column id="default_acc_per_cur" label="Default account per currency" title="Default account per currency" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcc.default_account_per_currency}" title="#{lblAcc.default_account_per_currency}"/>
+					</f:facet>
+					<bm:entityDisplay contextType="ENTTACCT"
+									  bean="#{(accountsBean==null ? MbAccountsSearch : accountsBean).class.name}"
+									  value="#{item.defaultAccountPerCurrency}"/>
+				</rich:column>
+
+		    </rich:extendedDataTable>
+		</h:panelGroup>	
+
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" rendered="#{accountsBean==null}">
+               	<h:panelGrid styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+               	<h:panelGroup>
+					<bre:taggedCommandButton id="viewBtn"
+                      		reRender="acc_account_view_modal_div"
+                      		value="#{lblForm.view}" limitToList="true"
+                      		action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).view}"
+                      		oncomplete="#{rich:component('acc_account_view_modal_panel')}.show()"
+                      		disabled="#{(accountsBean==null ? MbAccountsSearch : accountsBean).activeAccount == null}"
+                      		/>
+					<bre:taggedCommandButton id="addAdjusmentBtn" rendered="false"
+							reRender="adjustmentEditForm"
+							value="#{lblOpr.create_adjusment}"
+							oncomplete="#{rich:component('adjustmentModalPanel')}.show()"
+							action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).addAdjustment}"
+							disabled="#{(accountsBean==null ? MbAccountsSearch : accountsBean).activeAccount == null}"
+							image="/images/create_doc.gif"
+							/>
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveAccTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteAccTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveAccTableState" action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteAccTableState" action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+               	</h:panelGrid>
+    		</h:panelGroup>
+		</h:panelGroup>
+	</h:form>            
+
+	<rich:modalPanel id="acc_account_view_modal_panel" autosized="true" minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:outputText value="#{lblAcc.account}"/>       	    	
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="acc_account_view_modal_div">
+		
+			<ui:include src="/pages/accounts/account_details_modal.jspx"></ui:include>
+			
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+	       	    		<h:outputText/>			                    
+                       	<bre:taggedCommandButton limitToList="true"
+                        		value="#{lblForm.cancel}" action="#{(accountsBean==null ? MbAccountsSearch : accountsBean).close}" immediate="true"
+                        		oncomplete="#{rich:component('acc_account_view_modal_panel')}.hide()"
+                        		reRender="acc_account_view_modal_div">
+                       		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                        </bre:taggedCommandButton>			                        		
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/accounts/adjusment_edit.jspx">
+		<ui:param name="rerenderList" value="accountsBtmForm"/>
+	</ui:include>
+		
+	
+</ui:composition>
+</html>

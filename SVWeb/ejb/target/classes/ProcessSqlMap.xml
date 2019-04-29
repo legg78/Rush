@@ -1,0 +1,3637 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="process">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+
+	
+	<procedure id="add-param" 
+			parameterClass="ru.bpc.sv2.process.ProcessParameter">
+    	{call PRC_UI_PARAMETER_PKG.add_parameter(
+    			  o_id		  	=> #id,jdbcType=NUMERIC,mode=OUT#     
+				, i_param_name  => #systemName#
+				, i_data_type   => #dataType#
+				, i_lov_id      => #lovId#
+				, i_parent_id   => #parentId#
+				, i_label		=> #name#
+				, i_description	=> #description#
+				, i_lang      	=> #lang#												
+				)}
+    </procedure>
+    
+    <procedure id="modify-param" 
+    		parameterClass="ru.bpc.sv2.process.ProcessParameter">
+    	{call PRC_UI_PARAMETER_PKG.modify_parameter(
+    			  i_id		  	=> #id#
+				, i_param_name  => #systemName#
+				, i_data_type   => #dataType#
+				, i_lov_id      => #lovId#
+				, i_parent_id   => #parentId#
+				, i_label		=> #name#
+				, i_description => #description#
+				, i_lang      	=> #lang#												
+				)}
+    </procedure>
+    
+    <procedure id="remove-param"
+    		parameterClass="int">
+    	{call PRC_UI_PARAMETER_PKG.remove_parameter(
+    			  i_id			=> #value#
+    			)}
+    </procedure>
+    
+    <procedure id="add-process-parameter"
+    		parameterClass="ru.bpc.sv2.process.ProcessParameter">
+    	{call PRC_UI_PARAMETER_PKG.add_process_parameter(
+    			  o_id					=> #prcParamId,jdbcType=NUMERIC,mode=OUT#  
+				, i_process_id			=> #processId#  
+				, i_param_id    		=> #id#
+				, i_default_value_char  => #valueV#
+				, i_default_value_num   => #valueN#
+				, i_default_value_date  => #valueD#
+				, i_display_order		=> #displayOrder#
+				, i_is_format			=> #format#
+				, i_is_mandatory		=> #mandatory#
+				)}
+    </procedure>
+    
+    <procedure id="modify-process-parameter"
+    		parameterClass="ru.bpc.sv2.process.ProcessParameter">
+    	{call PRC_UI_PARAMETER_PKG.modify_process_parameter(
+    			  i_id					=> #prcParamId# 
+				, i_default_value_char  => #valueV#  
+				, i_default_value_num   => #valueN#
+				, i_default_value_date  => #valueD#
+				, i_display_order		=> #displayOrder#  
+				, i_is_format   		=> #format#  
+				, i_is_mandatory		=> #mandatory#
+				)}
+    </procedure>
+    
+    <procedure id="remove-process-parameter"
+    		parameterClass="int">
+    	{call PRC_UI_PARAMETER_PKG.remove_process_parameter(
+    			  i_id 					=> #value#
+    			)}
+    </procedure>
+    
+    <resultMap  id="mapping-parameter"
+                class="ru.bpc.sv2.process.ProcessParameter"  >
+        <result property="id" column="id" />
+        <result property="systemName" column="param_name" />
+        <result property="dataType" column="data_type" />
+        <result property="lovId" column="lov_id" />
+        <result property="lovName" column="lov_name" />        
+        <result property="lang" column="lang" />
+        <result property="name" column="label" />
+        <result property="description" column="description" />
+	</resultMap>
+
+	<resultMap  id="mapping-parameter_ext"
+				class="ru.bpc.sv2.process.ProcessParameter" extends="mapping-parameter">
+		<result property="parentId" column="parent_id" />
+		<result property="parentName" column="parent_label" />
+	</resultMap>
+	
+     <select id="get-parameters"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-parameter_ext" >
+	    <include refid="paginatedOpen"/>
+		SELECT
+				  p.id
+				, p.param_name
+				, p.data_type
+				, p.lov_id
+				, p.lang
+				, p.label
+				, p.description
+				, l.name lov_name
+		 		, p.parent_id
+		 		, p.parent_label
+		FROM prc_ui_parameter_vw p, com_ui_lov_vw l
+		WHERE p.lov_id = l.id(+)                    	
+		<iterate prepend=" AND " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#
+				AND l.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">                            
+				<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="paramName">p.param_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">p.label $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="dataType">p.data_type $sorting[].direction$</isEqual>          
+			</isNotEqual>
+		</iterate>       
+		<include refid="paginatedClose"/>
+	</select>
+
+	<parameterMap id="get-file-info-map" class="java.util.Map">
+		<parameter property="processId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="containerId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+	<resultMap id="get-file-info-map-out"
+			   class="ru.bpc.sv2.process.ProcessFileInfo">
+		<result property="characterset" column="characterset"/>
+		<result property="fileNameMask" column="file_name_mask"/>
+		<result property="nameFormatId" column="name_format_id"/>
+		<result property="directoryPath" column="directory_path"/>
+		<result property="fileType" column="file_type"/>
+		<result property="filePurpose" column="file_purpose"/>
+		<result property="saverId" column="saver_id"/>
+	</resultMap>
+	<select id="get-file-info" parameterMap="get-file-info-map" resultMap="get-file-info-map-out">
+		SELECT characterset, file_name_mask, name_format_id, directory_path, file_type, file_purpose, saver_id FROM  prc_container_file_attr_vw WHERE process_id=? and container_process_id=?
+	</select>
+
+	<select id="get-parameters-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			p.*
+		FROM
+			prc_ui_parameter_vw p
+        <iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#                        	
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+    <select id="get-parameters-not-assigned-to-process"
+			parameterClass="qparams"
+			resultMap="mapping-parameter_ext" >
+		SELECT
+				  p.id
+				, p.param_name
+				, p.data_type
+				, p.lov_id
+				, p.lang
+				, p.label
+				, p.description
+				, l.name lov_name
+				, p.parent_id
+				, p.parent_label
+		FROM prc_ui_parameter_vw p, com_ui_lov_vw l
+		WHERE p.lov_id = l.id(+)                    	
+		<iterate prepend=" AND " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#
+				AND l.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">
+				p.id NOT IN (
+					SELECT pp.param_id 
+					FROM prc_ui_process_parameter_vw pp 
+					WHERE pp.process_id = #filters[].value#
+				)
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">                            
+				<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="paramName">p.param_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">p.label $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="dataType">p.data_type $sorting[].direction$</isEqual>          
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-parameters-not-assigned-to-process-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT count(p.id) 
+		FROM prc_ui_parameter_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#                        	
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="dataType">p.data_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">
+				p.id NOT IN (
+					SELECT pp.param_id 
+					FROM prc_ui_process_parameter_vw pp 
+					WHERE pp.process_id = #filters[].value#
+               	)
+			</isEqual>
+		</iterate>
+    </select>
+    
+	<resultMap id="mapping-process-group" class="ru.bpc.sv2.process.ProcessGroup">
+        <result property="id" column="id" />
+        <result property="semaphoreName" column="semaphore_name" />
+        <result property="name" column="name" />                
+        <result property="description" column="description" />        
+	</resultMap>
+	
+	<select id="get-process-groups"
+			parameterClass="qparams"
+			resultMap="mapping-process-group" >
+		<include refid="paginatedOpen"/>
+			SELECT	                   
+					  id
+					, semaphore_name
+					, name
+					, description	                       
+			FROM prc_ui_group_vw
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="semaphoreName">upper(semaphore_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(description) like #filters[].value#</isEqual>                    	
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="semaphoreName">semaphore_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">description $sorting[].direction$</isEqual>                            
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-process-groups-count"
+			parameterClass="qparams" 
+			resultClass="int">	       
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM prc_ui_group_vw
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="semaphoreName">upper(semaphore_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(description) like #filters[].value#</isEqual>                    	
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<parameterMap class="ru.bpc.sv2.process.ProcessGroup" id="mapping-add-process-group">
+		<parameter property="id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="INOUT"/>	
+		<parameter property="semaphoreName" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="description" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="lang" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="add-process-group"
+    		parameterClass="ru.bpc.sv2.process.ProcessGroup">
+    	{call PRC_UI_GROUP_PKG.add_group(
+    			  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_semaphore_name  => #semaphoreName#
+				, i_short_desc		=> #name#
+				, i_full_desc 		=> #description#
+				, i_lang      		=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="modify-process-group"
+    		parameterClass="ru.bpc.sv2.process.ProcessGroup">
+    	{call PRC_UI_GROUP_PKG.modify_group(
+    			  i_id				=> #id#
+				, i_semaphore_name  => #semaphoreName#
+				, i_short_desc		=> #name#
+				, i_full_desc 		=> #description#
+				, i_lang      		=> #lang#									
+				)}
+    </procedure>
+    
+    <procedure id="remove-process-group"
+    		parameterClass="ru.bpc.sv2.process.ProcessGroup">
+    	{call PRC_UI_GROUP_PKG.remove_group(
+    			  i_id				=> #id#
+    			)}
+    </procedure>
+    
+    <resultMap  id="mapping-process"
+                class="ru.bpc.sv2.process.ProcessBO"  >
+        <result property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="description" column="description" />
+        <result property="lang" column="lang" />
+        <result property="instId" column="inst_id" />
+        <result property="instName" column="inst_name" />
+        <result property="procedureName" column="procedure_name" />
+        <result property="external" javaType="boolean" column="is_external" nullValue="false"/>
+        <result property="parallel" javaType="boolean" column="is_parallel" nullValue="false"/>
+        <result property="container" javaType="boolean" column="is_container" nullValue="false"/>
+        <result property="interruptThreads" javaType="boolean" column="interrupt_threads" nullValue="false"/>
+	</resultMap>
+	
+	<select id="get-processes"
+		    parameterClass="qparams"
+		    resultMap="mapping-process" >
+       <include refid="paginatedOpen"/>
+			SELECT
+				      p.id
+					, p.name
+					, p.description
+					, p.procedure_name
+					, p.inst_id
+					, p.is_parallel
+					, p.is_external
+					, p.is_container
+					, p.lang
+					, i.name inst_name
+					, p.interrupt_threads
+			FROM
+				  prc_ui_process_vw p
+				, ost_ui_institution_sys_vw i
+			WHERE 
+				p.inst_id = i.id(+)						
+				<iterate prepend=" AND " conjunction=" AND " property="filters">
+					<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="instIdIn">p.inst_id IN (9999, #filters[].value#)</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">
+						p.lang = #filters[].value#
+						AND i.lang(+) = #filters[].value#
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="procedureName">upper(p.procedure_name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="containerId">
+						p.id in (SELECT b.process_id FROM prc_ui_container_process_vw b WHERE b.container_process_id = #filters[].value#)
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="isContainer">
+						p.is_container = #filters[].value#
+					</isEqual>
+				</iterate>
+				<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+					<isNotEqual property="sorting[].direction" compareValue="AUTO">
+						<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+						<isEqual property="sorting[].property" compareValue="name">upper(p.name) $sorting[].direction$</isEqual>
+						<isEqual property="sorting[].property" compareValue="procedureName">p.procedure_name $sorting[].direction$</isEqual>
+						<isEqual property="sorting[].property" compareValue="parallel">p.is_parallel $sorting[].direction$</isEqual>
+						<isEqual property="sorting[].property" compareValue="external">p.is_external $sorting[].direction$</isEqual>
+					</isNotEqual>
+				</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-processes-count"
+	    	parameterClass="qparams" 
+	    	resultClass="int"	>	       
+	    <include refid="limitationOpenCount"/>
+		SELECT *
+		FROM prc_ui_process_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instIdIn">p.inst_id IN (9999, #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#                        	
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureName">upper(p.procedure_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="containerId">
+				p.id in (SELECT b.process_id FROM prc_ui_container_process_vw b WHERE b.container_process_id = #filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="isContainer">
+				p.is_container = #filters[].value#
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-containers-all"
+			parameterClass="qparams"
+			resultMap="mapping-process" >
+		<include refid="paginatedOpen"/>
+			SELECT
+				      p.id
+					, p.name
+					, p.description
+					, p.procedure_name
+					, p.inst_id
+					, p.is_parallel
+					, p.is_external
+					, p.is_container
+					, p.lang
+					, i.name inst_name
+					, null as interrupt_threads
+			FROM
+					  prc_ui_container_vw p
+					, ost_ui_institution_sys_vw i
+			WHERE 
+					p.inst_id = i.id(+)						
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instIdIn">p.inst_id IN (9999, #filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					p.lang = #filters[].value#
+					AND i.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerId">
+					p.id in (SELECT b.process_id FROM prc_ui_container_process_vw b WHERE b.container_process_id = #filters[].value#)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="processId">
+					p.id in (SELECT b.container_process_id FROM prc_ui_container_process_vw b WHERE b.process_id = #filters[].value#)
+				</isEqual>
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">p.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="procedureName">p.procedure_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="parallel">p.is_parallel $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="external">p.is_external $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instId">p.inst_id $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">p.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-containers-all-count"
+			parameterClass="qparams"
+			resultClass="int">	      
+		<include refid="limitationOpenCount"/> 
+		SELECT p.*
+		FROM prc_ui_container_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instIdIn">p.inst_id IN (9999, #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#                        	
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="containerId">
+				p.id in (SELECT b.process_id FROM prc_ui_container_process_vw b WHERE b.container_process_id = #filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">
+				p.id in (SELECT b.container_process_id FROM prc_ui_container_process_vw b WHERE b.process_id = #filters[].value#)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-cu-process"
+                class="ru.bpc.sv2.process.ProcessBO"  >
+        <result property="id" column="id" />
+        <result property="executionOrder" column="exec_order" />
+        <result property="instId" column="inst_id"/>
+        <result property="containerBindId" column="container_id"/>
+        <result property="mainContainerId" column="main_container_id"/>
+        <result property="procedureName" column="procedure_name" />
+        <result property="parallel" javaType="boolean" column="is_parallel" />
+        <result property="external" javaType="boolean" column="is_external" />        
+	</resultMap>
+	
+	<select id="get-cu-process-list"	   
+			resultMap="mapping-cu-process"
+			parameterClass="java.lang.Integer">
+		SELECT  #value# main_container_id
+			, container_id
+			, inst_id
+			, is_external
+			, procedure_name
+			, is_parallel
+			, exec_order
+			, process_id id
+			, label
+		FROM  
+			(    
+			SELECT 
+				a.container_process_id
+				, a.id container_id
+				, a.process_id
+				, a.exec_order
+				, c.inst_id
+				, c.is_external
+				, c.procedure_name
+				, decode (c.is_parallel, get_true
+						, a.is_parallel, get_false
+						) is_parallel
+				, c.is_container
+				,get_text (i_table_name       => 'prc_process',
+		 				   i_column_name      => 'name',
+		 				   i_object_id        => c.ID
+						   ) label
+			FROM 
+				prc_container_vw a
+				, prc_process_vw c
+			WHERE 
+				c.id = a.process_id
+			)
+		CONNECT BY container_process_id = prior process_id
+		START WITH container_process_id = #value#
+		ORDER SIBLINGS BY exec_order		
+	</select>
+	
+	<select id="get-parallel-degree"	   
+			resultClass="int" >
+		SELECT prc_api_session_pkg.get_parallel_degree() 
+		FROM dual
+	</select>
+	
+	<resultMap  id="mapping-process-gr"
+                class="ru.bpc.sv2.process.ProcessBO"  >                
+        <result property="id" column="id" />
+        <result property="name" column="short_desc" />
+        <result property="parallel" javaType="boolean" column="is_parallel" /> 
+        <result property="groupBindId" column="group_bind_id" />
+        <result property="procedureName" column="procedure_name" />
+	</resultMap>
+	
+	<select id="get-processes-by-group"
+			parameterClass="qparams"
+			resultMap="mapping-process-gr" >
+		<include refid="limitationOpen"/>
+		SELECT
+			      a.process_id id
+				, a.process_desc_short short_desc
+				, a.procedure_name
+				, a.is_parallel
+				, a.group_process_id group_bind_id
+		FROM
+				prc_ui_group_process_vw a 
+		<iterate prepend=" WHERE " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="groupId">a.group_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">a.process_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="shortDesc">a.process_desc_short $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>            
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-processes-by-group-count"
+			parameterClass="qparams" 
+			resultClass="int"	>	       
+		<include refid="limitationOpenCount"/>
+		SELECT a.* 
+		FROM prc_ui_group_process_vw a 
+		<iterate prepend=" WHERE " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+		    <isEqual property="filters[].element" compareValue="groupId">a.group_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-process-cont"
+                class="ru.bpc.sv2.process.ProcessBO"  >
+        <result property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="description" column="description" />
+        <result property="executionOrder" column="exec_order" />
+        <result property="instId" column="inst_id"/>
+        <!-- result property="instName" column="inst_name"/-->
+        <result property="containerBindId" column="container_bind_id"/>
+        <result property="containerId" column="container_id"/>
+        <result property="parallel" javaType="boolean" column="is_parallel" />
+        <result property="parallelAllowed" javaType="boolean" column="is_parallel_allowed" />
+        <result property="errorLimit" column="error_limit"/>
+        <result property="trackThreshold" column="track_threshold"/>
+        <result property="lang" column="lang"/>
+        <result property="parallelDegree" column="parallel_degree"/>
+        <result property="stopOnFatal" column="stop_on_fatal" javaType="boolean" nullValue="false"/>
+		<result property="traceLevel" column="trace_level"/>
+		<result property="debugWritingMode" column="debug_writing_mode"/>
+		<result property="startTraceSize" column="start_trace_size"/>
+		<result property="errorTraceSize" column="error_trace_size"/>
+	</resultMap>
+	
+	<select id="get-processes-by-container"
+			parameterClass="qparams"
+			resultMap="mapping-process-cont" >	       
+		<include refid="limitationOpen"/>
+		SELECT
+				  c.process_id id
+				, c.name				       
+				, c.description
+				, c.exec_order
+				, c.is_parallel
+				, c.inst_id
+				, c.id container_bind_id
+				, c.container_process_id container_id
+				, c.error_limit
+				, c.track_threshold
+				, c.lang
+				, p.is_parallel is_parallel_allowed
+				, c.parallel_degree
+				, c.stop_on_fatal
+				, c.trace_level
+				, c.debug_writing_mode
+				, c.start_trace_size
+				, c.error_trace_size
+		FROM
+				prc_ui_container_process_vw c, prc_ui_process_all_vw p
+		WHERE 
+				c.process_id = p.id
+			<iterate prepend=" AND " conjunction="AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">c.process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					c.lang = #filters[].value#
+					AND p.lang = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(c.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerId">c.container_process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerBindId">c.id = #filters[].value#</isEqual>
+			</iterate>
+		<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="order">c.exec_order $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">p.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="parallel">c.is_parallel $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate> 
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-processes-by-container-count"
+			parameterClass="qparams"
+			resultClass="int">	       
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			*
+		FROM
+			prc_ui_container_process_vw c, prc_ui_process_all_vw p
+		WHERE 
+			c.process_id = p.id
+			<iterate prepend=" AND " conjunction="AND " property="filters">
+				<isEqual property="filters[].element" compareValue="id">c.process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					c.lang = #filters[].value#
+					AND p.lang = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(c.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerId">c.container_process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerBindId">c.id = #filters[].value#</isEqual>                                            	
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<resultMap  id="mapping-process-cont-hier"
+			    extends="mapping-process-cont"
+                class="ru.bpc.sv2.process.ProcessBO">
+        <result property="level" column="level"/>
+        <result property="isLeaf" column="is_leaf"/>
+        <result property="container" column="is_container"/>
+        <result property="description" column="link_description"/>
+		<result property="executionOrder" column="exec_order"/>
+		<result property="hierExecutionOrder" column="hier_exec_order"/>
+	</resultMap>
+
+	<select id="get-processes-by-container-hier"
+			parameterClass="qparams"
+			resultMap="mapping-process-cont-hier">	       
+		SELECT
+				  c.process_id id
+				, c.name
+				, c.description
+				, substr(sys_connect_by_path(lpad(c.exec_order, 4, '0'), '.'), 2) hier_exec_order
+				, c.exec_order
+				, c.is_parallel
+				, c.inst_id
+				, c.id container_bind_id
+				, c.container_process_id container_id
+				, c.error_limit
+				, c.track_threshold
+				, c.lang
+				, c.is_container
+				, p.is_parallel is_parallel_allowed
+				, c.PARALLEL_DEGREE
+				, level
+				, c.stop_on_fatal
+				, CONNECT_BY_ISLEAF AS is_leaf
+				, nvl(c.link_description, p.description) link_description
+				, c.trace_level
+				, c.debug_writing_mode
+				, c.start_trace_size
+				, c.error_trace_size
+		FROM
+				prc_ui_container_process_vw c, prc_ui_process_all_vw p
+		WHERE 
+				c.process_id = p.id
+				AND c.lang = p.lang
+		<iterate prepend="START WITH" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="containerId">c.container_process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">c.process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">c.lang = #filters[].value#</isEqual>
+		</iterate>
+		CONNECT BY PRIOR c.process_id = c.container_process_id
+			AND prior c.lang = c.lang
+		<iterate prepend="ORDER SIBLINGS BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="order">c.exec_order $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">p.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="parallel">c.is_parallel $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate> 
+		<isEmpty property="sorting">ORDER SIBLINGS BY c.exec_order</isEmpty>
+	</select>
+
+	<parameterMap id="mapping-groupId-processId" class="java.util.Map">
+		<parameter property="groupId" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="processId" javaType="int" jdbcType="NUMERIC" mode="IN"/>		
+		<parameter property="id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="INOUT"/>
+	</parameterMap>
+	
+	<procedure id="add-process-to-group"
+    		parameterMap="mapping-groupId-processId">
+    	{call PRC_UI_GROUP_PKG.add_group_process(
+				  i_group_id	=> ?
+				, i_process_id	=> ? 
+				, o_id			=> ?
+				)}
+    </procedure>
+    
+    <procedure id="remove-process-from-group"
+    		parameterClass="int">
+    	{call PRC_UI_GROUP_PKG.remove_group_process(
+    			  i_id => #value#
+    			)}
+    </procedure>
+    
+    <procedure id="add-process" 
+    		parameterClass="ru.bpc.sv2.process.ProcessBO">
+    	{call PRC_UI_PROCESS_PKG.add_process(
+				  o_id 				=> #id,jdbcType=NUMERIC,mode=OUT#      
+				, i_procedure_name 	=> #procedureName#
+				, i_is_parallel    	=> #parallel#
+				, i_is_external		=> #external#
+				, i_is_container	=> #container#
+				, i_inst_id			=> #instId#
+				, i_proc_short_desc => #name#
+				, i_proc_full_desc  => #description#
+				, i_lang       		=> #lang#
+				, i_interrupt_threads => #interruptThreads#
+				)}
+    </procedure>
+    
+    <procedure id="modify-process"
+    		parameterClass="ru.bpc.sv2.process.ProcessBO">
+    	{call PRC_UI_PROCESS_PKG.modify_process(
+    			  i_id	 			=> #id#         
+				, i_procedure_name 	=> #procedureName#
+				, i_is_parallel    	=> #parallel#
+				, i_is_external		=> #external#
+				, i_is_container	=> #container#
+				, i_proc_short_desc => #name#
+				, i_proc_full_desc  => #description#
+				, i_lang	       	=> #lang#
+				, i_interrupt_threads => #interruptThreads#
+				)}
+    </procedure>
+    
+    <procedure id="remove-process"
+    		parameterClass="ru.bpc.sv2.process.ProcessBO">
+    	{call PRC_UI_PROCESS_PKG.remove_process(
+    			  i_id 				=> #id#
+    			)}
+    </procedure>
+    
+    <procedure id="remove-container"
+    		parameterClass="ru.bpc.sv2.process.ProcessBO">
+    	{call PRC_UI_PROCESS_PKG.remove_process(
+    			  i_id 				=> #id#
+    			)}
+    </procedure>
+
+    <resultMap  id="mapping-process-parameter"
+                class="ru.bpc.sv2.process.ProcessParameter" extends="mapping-parameter">
+        <result property="defaultValue" column="default_value" />
+        <result property="valueV" column="value_v"/>
+        <result property="valueN" column="value_n"/>
+        <result property="valueD" column="value_d"/>
+        <result property="lovValue" column="lov_value"/>
+        <result property="displayOrder" column="display_order"/>
+        <result property="processId" column="process_id"/>
+        <result property="format" column="is_format" javaType="boolean" nullValue="false"/>
+        <result property="prcParamId" column="prc_param_id" /> <!-- this is bind id = param_process_id -->
+        <result property="mandatory" column="is_mandatory" javaType="Boolean"/>
+		<result property="parentId" column="parent_id"/>
+	</resultMap>
+	
+	<select id="get-process-params"
+			parameterClass="qparams"
+			resultMap="mapping-process-parameter" >
+		<include refid="limitationOpen"/>
+		SELECT
+				  p.param_id as id
+				, p.param_name
+				, p.lang
+				, p.label
+				, p.description
+				, p.data_type
+				, p.lov_id
+				, l.name lov_name
+				, p.default_value
+				, p.display_order
+				, p.process_id
+				, p.is_format
+				, p.default_char_value value_v
+				, p.default_number_value value_n
+				, p.default_date_value value_d  
+				, p.default_lov_value lov_value
+				, p.id as prc_param_id
+				, p.is_mandatory
+				, p.parent_id
+		FROM
+				prc_ui_process_parameter_vw p, com_ui_lov_vw l
+		WHERE
+				p.lov_id = l.id(+)
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">
+					p.lang = #filters[].value#
+					AND l.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="relationId">p.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="paramId">p.param_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="processId">p.process_id = #filters[].value#</isEqual>						
+				<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="displayOrder">p.display_order = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="mandatory">p.is_mandatory = #filters[].value#</isEqual>
+			</iterate>
+		ORDER BY p.display_order ASC    
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-process-params-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT p.*
+		FROM prc_ui_process_parameter_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="relationId">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">p.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">p.process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="displayOrder">p.display_order = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mandatory">p.is_mandatory = #filters[].value#</isEqual>	
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+    <select id="get-container-params"
+			parameterClass="qparams"
+			resultMap="mapping-parameter" >
+		SELECT
+				  p.param_id as id
+				, p.param_name
+				, p.lang
+				, p.label
+				, p.description
+				, p.data_type
+				, p.lov_id
+				, l.name lov_name				
+		FROM
+				prc_ui_container_parameter_vw p, com_ui_lov_vw l
+		WHERE
+				p.lov_id = l.id(+)
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">
+					p.lang = #filters[].value#
+					AND l.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="paramId">p.param_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="processId">p.process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+			</iterate>
+		ORDER BY p.label ASC    
+	</select>
+	
+	<select id="get-container-params-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT count(*)			
+		FROM prc_ui_container_parameter_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#				
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">p.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">p.process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+    <resultMap  id="mapping-container-launch-params"
+                class="ru.bpc.sv2.process.ProcessParameter" extends="mapping-parameter">
+        <result property="defaultValue" column="default_value" />
+        <result property="valueV" column="value_v" />
+        <result property="valueN" column="value_n" />
+        <result property="valueD" column="value_d" />
+        <result property="mandatory" column="is_mandatory" />
+        <result property="procId" column="proc_id" />
+		<result property="displayOrder" column="display_order" />
+		<result property="execOrder" column="exec_order" />
+		<result property="visualExecOrder" column="visual_exec_order" />
+		<result property="parentId" column="parent_id" />
+		<result property="parentName" column="parent_name" />
+		<result property="parentType" column="parent_type" />
+		<result property="parentValue" column="parent_value" />
+	</resultMap>
+	
+	<select id="get-container-launch-params"
+			parameterClass="qparams"
+			resultMap="mapping-container-launch-params" >
+		SELECT
+				  p.param_id as id
+				, p.param_name
+				, p.lang
+				, p.label
+				, p.description
+				, p.data_type
+				, p.lov_id
+				, l.name lov_name	
+				, p.default_value
+				, p.is_mandatory
+				, default_char_value value_v
+				, default_number_value value_n
+				, default_date_value value_d  
+				, default_lov_value lov_value
+				, p.proc_id
+				, p.display_order
+				, p.exec_order
+				, p.visual_exec_order
+				, p.parent_id
+				, p.parent_name
+				, p.parent_type
+				, p.parent_value
+		FROM		
+				prc_ui_launch_parameter_vw p, com_ui_lov_vw l
+		WHERE
+				p.lov_id = l.id(+)
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">
+					p.lang = #filters[].value#
+					AND l.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="paramId">p.param_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="processId">p.process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+			</iterate>
+		ORDER BY  p.exec_order ASC
+				, p.display_order ASC
+				, p.is_mandatory DESC
+				, p.label ASC
+
+	</select>
+	
+	<select id="get-container-launch-params-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT count(*)			
+		FROM prc_ui_launch_parameter_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#				
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="paramId">p.param_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">p.process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">upper(p.param_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.label) like #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+    <resultMap  id="mapping-container-process-parameter"
+                class="ru.bpc.sv2.process.ProcessParameter">
+        <result property="prcParamId" column="prc_param_id" />
+        <result property="id" column="id" />
+        <result property="systemName" column="param_name" />
+        <result property="dataType" column="data_type" />
+        <result property="lovId" column="lov_id" />
+        <result property="lang" column="lang" />
+        <result property="name" column="label" />
+        <result property="description" column="description" />
+        <result property="valueV" column="value_v" />
+		<result property="valueN" column="value_n" />
+		<result property="valueD" column="value_d" />
+		<result property="lovValue" column="lov_value" />
+		<result property="displayOrder" column="display_order" />
+		<result property="format" column="is_format" javaType="boolean" nullValue="false"/>
+		<result property="containerBindId" column="container_id" />
+		<result property="parentId" column="parent_id" />
+    </resultMap>
+    
+    <select
+	    id="get-container-process-params"
+	    parameterClass="qparams"
+	    resultMap="mapping-container-process-parameter" >
+	    <include refid="limitationOpen"/>
+	        SELECT
+        		id prc_param_id
+		  		, param_id as id
+	      		, param_name
+	      		, param_label label
+	      		, param_desc description
+	      		, lang
+				, data_type
+				, lov_id
+				, display_order
+				, process_id
+				, container_id
+				, is_format
+				, param_char_value value_v
+				, param_number_value value_n
+				, param_date_value value_d  
+				, param_lov_value lov_value
+				, parent_id
+			FROM
+				prc_ui_parameter_value_vw v
+			WHERE
+				param_name != 'I_OBJECT_ID'
+			<iterate prepend=" AND " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerBindId">container_id = #filters[].value#</isEqual>						
+				<isEqual property="filters[].element" compareValue="processId">process_id = #filters[].value#</isEqual>                    	
+			</iterate>
+			ORDER BY display_order ASC    
+		<include refid="limitationClose"/>
+	</select>
+
+	<select
+        id="get-container-process-params-count"
+        parameterClass="qparams"
+        resultClass="int">
+        <include refid="limitationOpenCount"/>
+			SELECT 
+				*
+			FROM
+				prc_ui_parameter_value_vw
+			<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerBindId">container_id = #filters[].value#</isEqual>						
+				<isEqual property="filters[].element" compareValue="processId">process_id = #filters[].value#</isEqual>                    	
+			</iterate>             
+		<include refid="limitationClose"/>  
+	</select>
+    
+    <procedure id="change-prc-attr_v"
+    		parameterClass="ru.bpc.sv2.process.ProcessParameter">
+    	{call PRC_UI_PARAMETER_PKG.set_parameter_value_char(
+    			  io_id				=> #prcParamId,jdbcType=NUMERIC,mode=INOUT#
+				, i_container_id	=> #containerBindId#
+				, i_param_id   		=> #id# 
+				, i_param_value 	=> #valueV#
+				)}
+    </procedure>
+    
+    <procedure id="change-prc-attr_n"
+    		parameterClass="ru.bpc.sv2.process.ProcessParameter">
+    	{call PRC_UI_PARAMETER_PKG.set_parameter_value_num(
+    			  io_id 			=> #prcParamId,jdbcType=NUMERIC,mode=INOUT#
+				, i_container_id	=> #containerBindId#
+				, i_param_id   		=> #id# 
+				, i_param_value 	=> #valueN#
+				)}
+    </procedure>
+    
+    <procedure id="change-prc-attr_d"
+    		parameterClass="ru.bpc.sv2.process.ProcessParameter">
+    	{call PRC_UI_PARAMETER_PKG.set_parameter_value_date(
+    			  io_id 			=> #prcParamId,jdbcType=NUMERIC,mode=INOUT#
+				, i_container_id	=> #containerBindId#
+				, i_param_id   		=> #id# 
+				, i_param_value 	=> #valueD#
+				)}
+    </procedure>
+    
+    
+    <procedure id="remove-prc-attr"
+    		parameterClass="ru.bpc.sv2.process.ProcessParameter">
+    	{call PRC_UI_PARAMETER_PKG.remove_parameter_value(
+				  i_id				=> #prcParamId#
+				)}
+    </procedure>
+    
+    <procedure id="remove-prc-from-container"
+    		parameterClass="int">
+    	{call PRC_UI_PROCESS_PKG.remove_process_from_container(
+    			  i_id				=> #value#
+    			)}
+    </procedure>
+    
+    <procedure id="add-prc-to-container"
+    		parameterClass="ru.bpc.sv2.process.ProcessBO">
+		{call PRC_UI_PROCESS_PKG.add_process_to_container(
+				  io_id						=> #containerBindId,jdbcType=NUMERIC,mode=INOUT#
+				, i_container_process_id	=> #containerId#
+				, i_process_id				=> #id#
+				, i_exec_order				=> #executionOrder#
+				, i_is_parallel				=> #parallel#
+				, i_error_limit				=> #errorLimit#
+				, i_track_threshold			=> #trackThreshold#
+				, i_force					=> #force#
+				, i_parallel_degree			=> #parallelDegree#
+				, i_proc_cont_desc			=> #description#
+				, i_lang					=> #lang#
+				, i_stop_on_fatal			=> #stopOnFatal#
+				, i_trace_level				=> #traceLevel#
+				, i_debug_writing_mode		=> #debugWritingMode#
+				, i_start_trace_size		=> #startTraceSize#
+				, i_error_trace_size		=> #errorTraceSize#
+				)}
+    </procedure>
+    
+    <parameterMap id="mapping-before-proc" class="java.util.Map">
+		<parameter property="processId" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="sessionId" javaType="long" jdbcType="NUMERIC" mode="INOUT"/>
+		<parameter property="threadNum" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="upSessionId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="effectiveDate" jdbcType="TIMESTAMP" javaType="java.util.Date" mode="IN"/>
+		<parameter property="respCode" javaType="boolean" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="errorDesc" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="containerId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="before-process"
+			   parameterMap="mapping-before-proc">
+		{call PRC_UI_RUN_PKG.before_process(
+			  i_process_id			=> ?
+			, io_session_id			=> ?
+			, i_thread_number		=> ?
+			, i_parent_session_id	=> ?
+			, i_eff_date			=> ?
+			, o_resp_code			=> ?
+			, o_error_desc			=> ?
+			, i_container_id		=> ?
+		)}
+	</procedure>
+   
+    <parameterMap id="mapping-run-container" class="java.util.Map">
+		<parameter property="processId" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="containerId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="effectiveDate" jdbcType="TIMESTAMP" javaType="java.util.Date" mode="IN"/>
+		<parameter property="sessionId" javaType="long" jdbcType="NUMERIC" mode="OUT"/>
+	</parameterMap>
+	
+    <procedure id="run-container"
+    		parameterMap="mapping-run-container">
+    	{call PRC_UI_RUN_PKG.run_container(
+    			  i_process_id	=> ?
+    			, i_parent_id	=> ?
+    			, i_eff_date	=> ?
+				, o_session_id	=> ?
+				)}
+    </procedure>
+     
+    <parameterMap id="mapping-post-proc" class="java.util.Map">
+		<parameter property="sessionId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="resultCode" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="containerId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="respCode" javaType="boolean" jdbcType="NUMERIC" mode="OUT"/>
+	</parameterMap>
+	
+    <procedure id="post-process"
+    		parameterMap="mapping-post-proc">
+    	{call PRC_UI_RUN_PKG.after_process(
+    			  i_session_id   => ?
+				, i_result_code  => ?
+				, i_container_id => ?
+				, o_resp_code    => ?
+				)}
+    </procedure>
+    
+    <parameterMap id="mapping-change-thread-status" class="java.util.Map">
+		<parameter property="sessionId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="threadNumber" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="resultCode" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+	
+    <procedure id="change-thread-status"
+    		parameterMap="mapping-change-thread-status">
+    	{call prc_api_stat_pkg.change_thread_status(
+    			  i_session_id 		=> ?
+				, i_thread_number 	=> ?
+				, i_result_code 	=> ?
+				)}
+    </procedure>
+    
+    <parameterMap id="mapping-run-proc" class="java.util.Map">
+		<parameter property="sessionId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="threadNum" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="containerId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="parameters" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="processDate" jdbcType="TIMESTAMP" javaType="java.util.Date" mode="IN"/>
+		<parameter property="oracleTraceLevel" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" nullValue="0"/>
+		<parameter property="oracleThreadNum" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN" nullValue="-1"/>
+	</parameterMap>
+	
+    <procedure id="run-process" parameterMap="mapping-run-proc">
+    	{call PRC_UI_RUN_PKG.run_process(
+    			  i_session_id			=> ?
+				, i_thread_number		=> ?
+				, i_container_id		=> ?
+				, i_param_tab			=> ?
+				, i_eff_date			=> ?
+				, i_oracle_trace_level	=> ?
+				, i_trace_thread_number	=> ?
+				)}
+    </procedure>
+    
+    <!-- Cron queries -->
+
+	<resultMap id="mapping-task" class="ru.bpc.sv2.schedule.ScheduledTask">
+		<result property="id"               column="id"/>
+		<result property="prcId"            column="process_id"/>
+		<result property="formedCronString" column="crontab_value"/>
+		<result property="cronString"       column="crontab_value"/>
+		<result property="lang"             column="lang"/>
+		<result property="shortDesc"        column="name"/>
+		<result property="fullDesc"         column="description"/>
+		<result property="active"           column="is_active"          javaType="java.lang.Boolean" nullValue="false"/>
+		<result property="stopOnFatal"      column="stop_on_fatal"      javaType="java.lang.Boolean" nullValue="false"/>
+		<result property="timePeriod"       column="repeat_interval"/>
+		<result property="timeActive"       column="repeat_period"/>
+		<result property="skipHolidays"     column="is_holiday_skipped" javaType="java.lang.Boolean" nullValue="false"/>
+	</resultMap>
+
+	<select id="get-tasks" parameterClass="qparams" resultMap="mapping-task" >
+		<include refid="limitationOpen"/>
+			select id
+			     , process_id
+			     , crontab_value
+			     , is_active
+			     , stop_on_fatal
+			     , name
+			     , description
+			     , lang
+			     , repeat_period
+			     , repeat_interval
+			     , is_holiday_skipped
+			  from prc_ui_task_vw
+			<iterate prepend=" where " conjunction=" and " property="filters">
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerId">process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="active">is_active = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="active">is_active = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="group_id">
+					process_id in (select process_id from prc_ui_group_process_vw where group_id = #filters[].value#)
+				</isEqual>
+			</iterate>
+			<iterate prepend=" order by " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="n">name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="containerId">process_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">name $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-tasks-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+			select *
+			  from prc_ui_task_vw
+			<iterate prepend=" where " conjunction=" and " property="filters">
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="containerId">process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="active">is_active = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="group_id">
+					process_id in (select process_id from prc_ui_group_process_vw where group_id = #filters[].value#)
+				</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-task" parameterClass="ru.bpc.sv2.schedule.ScheduledTask">
+		{call prc_ui_task_pkg.add_task(
+			  o_id					=> #id,jdbcType=NUMERIC,mode=INOUT#
+			, i_process_id			=> #prcId#
+			, i_crontab_value		=> #cronString#
+			, i_is_active			=> #active#
+			, i_stop_on_fatal		=> #stopOnFatal#
+			, i_repeat_period		=> #timeActive#
+			, i_repeat_interval		=> #timePeriod#
+			, i_short_desc			=> #shortDesc#
+			, i_full_desc			=> #fullDesc#
+			, i_lang				=> #lang#
+			, i_is_holiday_skipped	=> #skipHolidays#
+		)}
+	</procedure>
+
+	<procedure id="modify-task" parameterClass="ru.bpc.sv2.schedule.ScheduledTask">
+		{call prc_ui_task_pkg.modify_task(
+			  i_id					=> #id#
+			, i_process_id			=> #prcId#
+			, i_crontab_value		=> #cronString#
+			, i_is_active			=> #active#
+			, i_stop_on_fatal		=> #stopOnFatal#
+			, i_repeat_period		=> #timeActive#
+			, i_repeat_interval		=> #timePeriod#
+			, i_short_desc			=> #shortDesc#
+			, i_full_desc			=> #fullDesc#
+			, i_lang				=> #lang#
+			, i_is_holiday_skipped	=> #skipHolidays#
+		)}
+	</procedure>
+
+	<procedure id="remove-task" parameterClass="int">
+		{call prc_ui_task_pkg.remove_task(
+			i_id	=> #value#
+		)}
+	</procedure>
+    
+    <resultMap  id="mapping-progress-bar"
+                class="ru.bpc.sv2.process.ProgressBar"  >
+        <result property="sessionId" column="session_id" />
+        <result property="containerProcessId" column="container_process_id" />
+        <result property="processId" column="process_id" />
+        <result property="currentValue" column="progress_bar" />
+	</resultMap>
+	
+    <select
+        id="get-progress-bars"
+        parameterClass="qparams"
+        resultMap="mapping-progress-bar">
+  			SELECT
+				session_id
+				, process_id
+				, progress_bar
+				, container_process_id                     
+            FROM
+                prc_ui_progress_prc_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">session_id = #filters[].value#</isEqual>
+		</iterate>
+    </select>
+    
+    <!-- Process Files queries -->
+   
+    <procedure id="open-file"
+    		parameterClass="ru.bpc.sv2.process.ProcessFileAttribute">
+    	{call PRC_API_FILE_PKG.open_file(
+    			  o_sess_file_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_file_type		=> #fileType# 
+				, i_file_name		=> #fileName#
+				, i_file_purpose	=> #purpose#
+				)}
+    </procedure>
+    
+    <procedure id="open-file-nosession"
+    		parameterClass="ru.bpc.sv2.process.ProcessFileAttribute">
+    	{call PRC_API_FILE_PKG.open_file(
+    			  o_sess_file_id	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_file_type		=> #fileType# 
+				, i_file_name		=> #fileName#
+				, i_file_purpose	=> #purpose#
+				, i_no_session_id   => 1  
+				
+				)}
+    </procedure>
+    
+    <procedure id="close-file"
+    		parameterClass="long">
+    	{call PRC_API_FILE_PKG.close_file(
+    			  i_sess_file_id => #value#
+    			)}
+    </procedure>
+    
+    	
+	<parameterMap  id="mapping-put-line" class="java.util.Map"  >
+        <parameter property="sessionFileId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="rawData" jdbcType="VARCHAR" mode="IN"/>                
+	</parameterMap>
+	
+    <procedure id="put-line"
+    		parameterMap="mapping-put-line">
+    	{call PRC_API_FILE_PKG.put_line(
+    			  i_sess_file_id	=> ? 
+				, i_raw_data		=> ?
+				)}
+    </procedure>
+    
+    <parameterMap  id="mapping-put-file" class="java.util.Map"  >
+        <parameter property="sessionFileId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="xml" jdbcType="CLOB" mode="IN"/>                
+	</parameterMap>
+	
+    <procedure id="put-file"
+    		parameterMap="mapping-put-file">
+    	{call PRC_API_FILE_PKG.put_file(
+    			  i_sess_file_id	=> ? 
+    			, i_file_source		=> ?
+    			)}
+    </procedure>
+    
+    	
+	<resultMap  id="mapping-process-file-attributes-incoming"
+                class="ru.bpc.sv2.process.ProcessFileAttribute">
+        <result property="id" column="id"/>        
+    	<result property="instId" column="inst_id"/>
+    	<result property="fileId" column="file_id"/>
+    	<result property="characterSet" column="characterset"/>
+    	<result property="lineSeparator" column="line_separator"/>
+        <result property="purpose" column="file_purpose"/>
+        <result property="fileType" column="file_type"/>
+        <result property="fileNameMask" column="file_name_mask"/>  
+        <result property="uploadEmptyFile" column="upload_empty_file" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="location" column="location"/>
+        <result property="fileNature" column="file_nature"/>
+        <result property="xsltSource" column="xslt_source" jdbcType="CLOB"/>
+        <result property="xsdSource" column="xsd_source" jdbcType="CLOB"/>
+        <result property="saverClass" column="saver_class"/>
+        <result property="converterClass" column="converter_class"/>
+        <result property="isTar" column="is_tar" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="isZip" column="is_zip" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="loadPriority" column="load_priority"/>
+        <result property="signatureType" column="sign_transfer_type"/>
+        <result property="encryptionPlugin" column="encrypt_plugin"/>
+        <result property="fileEncryptionKeyExists" column="rsa_key_present"/>
+        <result property="ignoreFileErrors" column="ignore_file_errors" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="parallelDegree" column="parallel_degree"/>
+        <result property="isFileRequired" column="is_file_required" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="queueIdentifier" column="queue_identifier"/>
+        <result property="timeWait" column="time_out"/>
+        <result property="isPasswordProtect" column="password_protect" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+	</resultMap>
+	
+    <select id="get-incoming-files-for-process" 
+    		resultClass="java.lang.Integer"
+			resultMap="mapping-process-file-attributes-incoming">
+		SELECT 
+				  id
+				, file_id
+				, inst_id
+				, characterset
+				, line_separator
+				, file_purpose
+				, file_type
+				, file_name_mask
+				, upload_empty_file
+				, location
+				, xslt_source
+				, file_nature
+				, xsd_source
+				, saver_class
+				, converter_class
+				, is_tar
+				, is_zip
+				, load_priority
+				, sign_transfer_type
+				, encrypt_plugin
+				, rsa_key_present
+				, ignore_file_errors
+				, parallel_degree
+				, is_file_required
+				, queue_identifier
+				, time_out
+				, password_protect
+		FROM prc_ui_file_in_vw
+		WHERE container_id = #value#
+		ORDER BY load_priority
+    </select>
+    
+    <resultMap  id="mapping-process-file-attributes-outgoing"
+                class="ru.bpc.sv2.process.ProcessFileAttribute">
+        <result property="id" column="id"/>
+    	<result property="fileId" column="file_id"/>
+    	<result property="containerBindId" column="container_id"/>
+    	<result property="characterSet" column="characterset"/>
+    	<result property="lineSeparator" column="line_separator"/>    	
+        <result property="purpose" column="file_purpose"/>
+        <result property="fileNameMask" column="file_name_mask"/>
+        <result property="nameFormatId" column="name_format_id"/>
+        <result property="uploadEmptyFile" column="upload_empty_file" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="location" column="location"/>
+        <result property="xsltSource" column="xslt_source" jdbcType="CLOB"/>
+        <result property="converterClass" column="converter_class"/>
+    	<result property="instId" column="inst_id"/>
+    	<result property="processId" column="process_id"/>
+        <result property="purpose" column="file_purpose"/>
+        <result property="saverClass" column="saver_class"/>
+    	<result property="fileNature" column="file_nature" />
+        <result property="xsdSource" column="xsd_source" jdbcType="CLOB"/>
+		<result property="fileType" column="file_type"/>
+        <result property="recordCount" column="record_count"/>
+        <result property="name" column="file_name"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="isTar" column="is_tar" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="isZip" column="is_zip" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="processFileName" column="process_file_name"/>
+        <result property="loadPriority" column="load_priority"/>
+        <result property="signatureType" column="sign_transfer_type"/>
+        <result property="encryptionPlugin" column="encrypt_plugin"/>
+        <result property="fileEncryptionKeyExists" column="rsa_key_present"/>
+        <result property="ignoreFileErrors" column="ignore_file_errors" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="fileAttributeId" column="file_attribute_id"/>
+        <result property="status" column="status"/>
+        <result property="fileContentLength" column="file_content_length"/>
+        <result property="fileBContentLength" column="file_bcontent_length"/>
+		<result property="queueIdentifier" column="queue_identifier"/>
+		<result property="timeWait" column="time_out"/>
+		<result property="threadNumber" column="thread_number"/>
+		<result property="isPasswordProtect" column="password_protect" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+		<result property="reportId" column="report_id"/>
+		<result property="reportTemplateId" column="report_template_id"/>
+	</resultMap>
+	
+    <select id="get-outgoing-process-files" 
+			parameterClass="java.util.Map"
+			resultMap="mapping-process-file-attributes-outgoing">
+		SELECT
+			  fo.id
+			, fo.file_id
+			, fo.container_id
+			, fo.characterset
+			, fo.line_separator
+			, fo.file_purpose
+			, fo.file_name_mask
+			, fo.name_format_id
+			, fo.upload_empty_file
+			, fo.location
+			, fo.xslt_source
+			, fo.converter_class
+			, fo.inst_id
+			, fo.process_id
+			, fo.file_purpose
+			, fo.saver_class
+			, fo.file_nature
+			, fo.xsd_source
+			, fo.file_type
+			, fo.record_count
+			, fo.file_name
+			, fo.session_id
+			, fo.is_tar
+			, fo.is_zip
+			, fo.load_priority
+			, fo.sign_transfer_type
+			, fo.encrypt_plugin
+			, fo.rsa_key_present
+			, fo.ignore_file_errors
+			, f.short_desc AS process_file_name
+			, fo.file_attribute_id
+			, fo.status
+			, length(fo.file_contents) as file_content_length
+			, length(fo.file_bcontents) as file_bcontent_length
+			, fo.queue_identifier
+			, fo.time_out
+			, fo.thread_number
+			, fo.password_protect
+			, fa.report_id
+			, fa.report_template_id
+		FROM
+			  prc_ui_file_out_vw fo
+			, prc_ui_file_vw f
+			, prc_ui_file_attribute_vw fa
+		WHERE
+			  fo.file_id = f.file_id
+		AND
+			  fo.file_attribute_id = fa.id(+)
+		AND
+			  f.lang = #lang#
+			<isNotEmpty property="containerProcessId">AND fo.container_id = #containerProcessId#</isNotEmpty>
+			<isNotEmpty property="sessionId">AND fo.session_id = #sessionId#</isNotEmpty>
+			<isNotEmpty property="processId">AND fo.process_id = #processId#</isNotEmpty>
+			<isNotEmpty property="status">AND fo.status = #status#</isNotEmpty>
+		ORDER BY
+			  fo.load_priority
+			, fo.file_id
+    </select>
+
+	<select id="get-outgoing-process-files-no-data"
+			parameterClass="java.util.Map"
+			resultMap="mapping-process-file-attributes-outgoing">
+		SELECT
+		fo.id
+		, fo.file_id
+		, fo.container_id
+		, fo.characterset
+		, fo.file_purpose
+		, fo.file_name_mask
+		, fo.name_format_id
+		, fo.upload_empty_file
+		, fo.location
+		, fo.xslt_source
+		, fo.converter_class
+		, fo.inst_id
+		, fo.process_id
+		, fo.file_purpose
+		, fo.saver_class
+		, fo.file_nature
+		, fo.xsd_source
+		, fo.file_type
+		, fo.record_count
+		, null as file_contents
+		, null as file_bcontents
+		, fo.file_name
+		, fo.session_id
+		, fo.is_tar
+		, fo.is_zip
+		, fo.load_priority
+		, fo.sign_transfer_type
+		, fo.encrypt_plugin
+		, fo.rsa_key_present
+		, fo.ignore_file_errors
+		, f.short_desc AS process_file_name
+		, fo.file_attribute_id
+		, fo.status
+		, length(fo.file_contents) as file_content_length
+		, fo.queue_identifier
+		, fo.time_out
+		, fo.port
+		, fo.thread_number
+		FROM
+		prc_ui_file_out_vw fo
+		, prc_ui_file_vw f
+		WHERE fo.file_id = f.file_id
+		AND f.lang = #lang#
+		<isNotEmpty property="containerProcessId">AND fo.container_id = #containerProcessId#</isNotEmpty>
+		<isNotEmpty property="sessionId">AND fo.session_id = #sessionId#</isNotEmpty>
+		<isNotEmpty property="processId">AND fo.process_id = #processId#</isNotEmpty>
+		<isNotEmpty property="status">AND fo.status = #status#</isNotEmpty>
+		ORDER BY fo.load_priority, fo.file_id
+	</select>
+    
+    <select id="get-session-file-datas"
+			parameterClass="long"
+			resultClass="string">
+		SELECT a.raw_data
+		FROM PRC_FILE_RAW_DATA_VW a
+		WHERE a.session_file_id = #value#
+    </select>
+    
+     <resultMap  id="mapping-process-file-attributes"
+                class="ru.bpc.sv2.process.ProcessFileAttribute">
+        <result property="id" column="id"/>
+        <result property="fileNature" column="file_nature"/>
+    	<result property="instId" column="inst_id"/>
+    	<result property="fileId" column="file_id"/>
+    	<result property="fileType" column="file_type"/>
+    	<result property="purpose" column="file_purpose"/>
+    	<result property="containerBindId" column="container_id"/>
+    	<result property="processId" column="process_id"/>
+    	<result property="characterSet" column="characterset"/>
+    	<result property="lineSeparator" column="line_separator"/>    	
+        <result property="uploadEmptyFile" column="upload_empty_file" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="location" column="location"/>
+        <result property="locationId" column="location_id"/>
+        <result property="converterClass" column="converter_class"/>
+        <result property="isTar" column="is_tar" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="isZip" column="is_zip" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="xsltSource" column="xslt_source" jdbcType="CLOB"/>
+        <result property="fileNameMask" column="file_name_mask"/>
+        <result property="nameFormatId" column="file_name_algorithm"/>
+        <result property="nameFormatLabel" column="format_name"/>
+        <result property="fileName" column="file_name"/>
+        <result property="processName" column="process_name"/>
+        <result property="reportId" column="report_id"/>
+        <result property="reportTemplateId" column="report_template_id"/>
+        <result property="reportName" column="report_name"/>
+        <result property="reportTemplateName" column="report_template_name"/>
+        <result property="loadPriority" column="load_priority"/>
+        <result property="signatureType" column="sign_transfer_type"/>
+        <result property="encryptionPlugin" column="encrypt_plugin"/>
+        <result property="fileEncryptionKeyExists" column="rsa_key_present"/>
+        <result property="ignoreFileErrors" column="ignore_file_errors" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="parallelDegree" column="parallel_degree"/>
+        <result property="isFileNameUnique" column="is_file_name_unique" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="isFileRequired" column="is_file_required" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="queueIdentifier" column="queue_identifier"/>
+        <result property="timeWait" column="time_out"/>
+        <result property="isCleanupData" column="is_cleanup_data" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+        <result property="isPasswordProtect" column="password_protect" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+	</resultMap>
+	
+	<select id="get-file-attributes"
+			parameterClass="qparams"
+			resultMap="mapping-process-file-attributes">
+		<include refid="paginatedOpen"/>
+			SELECT
+				  x.process_name
+				, x.process_id process_id
+				, x.file_purpose
+				, x.file_type
+				, x.file_name
+				, x.file_id
+				, x.file_nature
+				, x.container_id
+				, x.inst_id
+				, fa.id
+				, fa.characterset
+				, fa.line_separator
+				, fa.file_name_mask
+				, fa.name_format_id file_name_algorithm
+				, fa.upload_empty_file
+				, fa.location
+				, fa.location_id
+				, fa.xslt_source
+				, fa.converter_class
+				, fa.is_tar
+				, fa.is_zip
+				, fa.report_id
+				, fa.report_template_id
+				, nf.label format_name
+				, r.label report_name
+				, rt.label report_template_name
+				, fa.load_priority
+				, fa.sign_transfer_type
+				, fa.encrypt_plugin
+				, fa.rsa_key_present
+				, fa.ignore_file_errors
+				, fa.parallel_degree
+				, fa.is_file_name_unique
+				, fa.is_file_required
+				, fa.queue_identifier
+				, fa.time_out
+				, fa.is_cleanup_data
+				, fa.password_protect
+			FROM
+				  prc_ui_launch_file_vw x
+				, prc_ui_file_attribute_vw fa
+				, rul_ui_name_format_vw nf
+				, rpt_ui_report_vw r
+				, rpt_ui_template_vw rt
+			WHERE x.container_id = fa.container_id(+)
+			AND   x.file_id = fa.file_id(+)
+			AND   fa.name_format_id = nf.id(+)
+			AND   fa.report_id = r.id(+)
+			AND   fa.report_template_id = rt.id(+)
+		<iterate prepend=" AND " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				    x.lang = #filters[].value#
+				AND nf.lang(+) = #filters[].value#
+				AND r.lang(+) = #filters[].value#
+				AND rt.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">x.inst_id IN (#filters[].value#, 9999)</isEqual>
+			<isEqual property="filters[].element" compareValue="fileId">x.file_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">x.process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="containerId">x.container_process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">fa.id = #filters[].value#</isEqual>
+		</iterate>
+			ORDER BY x.exec_order ASC,
+			         decode(x.file_purpose, 'FLPSINCM', 0,1) ASC,
+			         x.file_name ASC
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-file-attributes-count"
+			parameterClass="qparams" 
+			resultClass="int">	   
+		<include refid="limitationOpenCount"/>    
+		SELECT *
+		FROM prc_ui_launch_file_vw x                       
+			, prc_ui_file_attribute_vw fa
+			, rul_ui_name_format_vw nf                        
+		WHERE
+				x.container_id = fa.container_id(+)
+				AND x.file_id = fa.file_id(+)
+				AND fa.name_format_id = nf.id(+)                      					 					
+				<iterate prepend=" AND " conjunction=" AND " property="filters">
+					<isEqual property="filters[].element" compareValue="lang">
+                       	x.lang = #filters[].value#
+						AND nf.lang(+) = #filters[].value#
+					</isEqual>		                        					
+                       <isEqual property="filters[].element" compareValue="instId">x.inst_id IN (#filters[].value#, 9999)</isEqual>
+                       <isEqual property="filters[].element" compareValue="fileId">x.file_id = #filters[].value#</isEqual>
+                       <isEqual property="filters[].element" compareValue="processId">x.process_id = #filters[].value#</isEqual>
+                       <isEqual property="filters[].element" compareValue="containerId">x.container_process_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="id">fa.id = #filters[].value#</isEqual>
+				</iterate>	                
+		<include refid="limitationClose"/>
+	</select>
+	
+	 <procedure id="add-file-attribute"
+				parameterClass="ru.bpc.sv2.process.ProcessFileAttribute">
+		{ call prc_ui_file_pkg.add_file_attribute(
+			  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+			, i_file_id				=> #fileId#
+			, i_container_id		=> #containerBindId#
+			, i_characterset		=> #characterSet#
+			, i_file_name_mask		=> #fileNameMask#
+			, i_name_format_id		=> #nameFormatId#
+			, i_upload_empty_file	=> #uploadEmptyFile#
+			, i_location_id			=> #locationId#
+			, i_xslt_source			=> #xsltSource#
+			, i_converter_class		=> #converterClass#
+			, i_is_tar				=> #isTar#
+			, i_is_zip				=> #isZip#
+			, i_inst_id				=> #instId#
+			, i_report_id			=> #reportId#
+			, i_report_template_id	=> #reportTemplateId#
+			, i_load_priority		=> #loadPriority#
+			, i_sign_transfer_type	=> #signatureType#
+			, i_encrypt_plugin		=> #encryptionPlugin#
+			, i_ignore_file_errors	=> #ignoreFileErrors#
+			, i_parallel_degree		=> #parallelDegree#
+			, i_is_file_name_unique	=> #isFileNameUnique#
+			, i_is_file_required	=> #isFileRequired#
+			, i_queue_identifier	=> #queueIdentifier#
+			, i_time_out			=> #timeWait#
+			, i_line_separator		=> #lineSeparator#
+			, i_password_protect	=> #isPasswordProtect#
+            , i_is_cleanup_data     => #isCleanupData#
+		) }
+    </procedure>
+    
+	<procedure id="modify-file-attribute"
+			   parameterClass="ru.bpc.sv2.process.ProcessFileAttribute">
+		{ call prc_ui_file_pkg.modify_file_attribute(
+			  i_id					=> #id#
+			, i_characterset		=> #characterSet#
+			, i_file_name_mask		=> #fileNameMask#
+			, i_name_format_id		=> #nameFormatId#
+			, i_upload_empty_file	=> #uploadEmptyFile#
+			, i_location_id			=> #locationId#
+			, i_xslt_source			=> #xsltSource#
+			, i_is_tar				=> #isTar#
+			, i_is_zip				=> #isZip#
+			, i_converter_class		=> #converterClass#
+			, i_report_id			=> #reportId#
+			, i_report_template_id	=> #reportTemplateId#
+			, i_load_priority		=> #loadPriority#
+			, i_sign_transfer_type	=> #signatureType#
+			, i_encrypt_plugin		=> #encryptionPlugin#
+			, i_ignore_file_errors	=> #ignoreFileErrors#
+			, i_parallel_degree		=> #parallelDegree#
+			, i_is_file_name_unique	=> #isFileNameUnique#
+			, i_is_file_required	=> #isFileRequired#
+			, i_queue_identifier	=> #queueIdentifier#
+			, i_time_out			=> #timeWait#
+			, i_line_separator		=> #lineSeparator#
+			, i_password_protect	=> #isPasswordProtect#
+            , i_is_cleanup_data     => #isCleanupData#
+		) }
+    </procedure>
+    
+    <procedure id="remove-file-attribute"
+    		parameterClass="long">
+    	{call prc_ui_file_pkg.remove_file_attribute(
+    			  i_id                 => #value#
+    			)}
+    </procedure>
+    
+    <resultMap  id="mapping-process-file" class="ru.bpc.sv2.process.ProcessFile"  >
+        <result property="id" column="id" />        
+    	<result property="processId" column="process_id" />
+    	<result property="purpose" column="file_purpose" />
+    	<result property="type" column="file_type" />
+        <result property="lang" column="lang" />
+        <result property="shortDesc" column="short_desc" />
+        <result property="fullDesc" column="full_desc" />
+        <result property="saverName" column="saver_name" />
+        <result property="saverClass" column="saver_class" />
+        <result property="saverId" column="saver_id" />
+        <result property="xsdSource" column="xsd_source" jdbcType="CLOB"/>
+        <result property="fileNature" column="file_nature"/>
+    </resultMap>
+
+	<select id="get-process-files"
+			parameterClass="qparams"
+			resultMap="mapping-process-file" >
+		<include refid="paginatedOpen"/>
+		SELECT
+		pf.file_id id
+		, pf.process_id
+		, pf.file_purpose
+		, pf.short_desc
+		, pf.full_desc
+		, pf.lang
+		, pf.file_nature
+		, pf.xsd_source
+		, pf.saver_class
+		, pf.saver_id
+		, get_text (
+			i_table_name     => 'prc_file_saver'
+			, i_column_name  => 'name'
+			, i_object_id    => pf.saver_id
+			, i_lang         => pf.lang
+			) saver_name
+		, pf.file_type
+		FROM
+		prc_ui_process_file_vw pf
+		<iterate prepend=" WHERE " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="processId">pf.process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">pf.file_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="purpose">pf.file_purpose = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">pf.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="shortDesc">upper(pf.short_desc) like #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">pf.file_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="purpose">pf.file_purpose $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="shortDesc">pf.short_desc $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-process-files-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM prc_ui_process_file_vw						
+		<iterate prepend=" WHERE " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="processId">process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">file_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="purpose">file_purpose = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="shortDesc">upper(short_desc) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	 <procedure id="add-process-file" 
+	 		parameterClass="ru.bpc.sv2.process.ProcessFile">
+    	{call prc_ui_file_pkg.add_file(
+    			  o_id		 		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, i_process_id   	=> #processId#
+				, i_file_purpose 	=> #purpose#
+				, i_saver_id		=> #saverId#
+				, i_file_nature		=> #fileNature#
+				, i_xsd_source		=> #xsdSource#
+				, i_file_type		=> #type#
+				, i_name 			=> #shortDesc#
+				, i_description  	=> #fullDesc#
+				, i_lang      		=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="modify-process-file"
+    		parameterClass="ru.bpc.sv2.process.ProcessFile">
+    	{call prc_ui_file_pkg.modify_file(
+	    		  i_id		 		=> #id#
+				, i_file_purpose 	=> #purpose#
+				, i_saver_id		=> #saverId#
+				, i_file_nature		=> #fileNature#
+				, i_xsd_source		=> #xsdSource#
+				, i_file_type		=> #type#
+				, i_name 			=> #shortDesc#
+				, i_description  	=> #fullDesc#
+				, i_lang      		=> #lang#
+				)}
+    </procedure>
+    
+    <procedure id="remove-process-file"
+    		parameterClass="int">
+    	{call prc_ui_file_pkg.remove_file(
+    			  i_id				=> #value#
+    			)}
+    </procedure>
+
+	<resultMap id="mapping-sessions" class="ru.bpc.sv2.process.ProcessSession">
+		<result property="sessionId" column="session_id"/>
+		<result property="processId" column="process_id"/>
+		<result property="parentId" column="parent_id"/>
+		<result property="startDate" column="start_time"/>
+		<result property="endDate" column="end_time"/>
+		<result property="processed" column="processed"/>
+		<result property="rejected" column="rejected"/>
+		<result property="excepted" column="excepted"/>
+		<result property="estimated" column="estimated_count"/>
+		<result property="userName" column="user_name"/>
+		<result property="resultCode" column="result_code"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name" />
+		<result property="procedureName" column="procedure_name"/>
+		<result property="processName" column="process_name"/>
+		<result property="isContainer" column="is_container"/>
+		<result property="lang" column="lang"/>
+		<result property="threadCount" column="thread_count"/>
+		<result property="progress" column="progress_bar"/>
+		<result property="filesCount" column="files_count"/>
+	</resultMap>
+
+    <resultMap id="mapping-sessions-hier" class="ru.bpc.sv2.process.ProcessSession" extends="mapping-sessions">
+        <result property="level" column="level" />
+        <result property="isLeaf" javaType="boolean" column="is_leaf" />
+		<result property="location" column="location"/>
+		<result property="processDesc" column="description" />
+    </resultMap>
+
+	<select id="get-sessions-hier" parameterClass="qparams" resultMap="mapping-sessions-hier">
+		select level
+		     , to_char(a.id) xxsession_id
+		     , to_char(a.parent_id) xxparent_id
+		     , a.id session_id
+		     , a.process_id
+		     , a.parent_id
+		     , a.start_time
+		     , nvl(a.end_time,
+		          (select max(case when s.current_count * s.estimated_count > 0 then
+		                                s.start_time + (s.current_time - s.start_time) / s.current_count * s.estimated_count
+		                      else s.start_time end)
+		             from prc_stat s
+		            where session_id = a.id)
+		       ) as end_time
+		     , decode(b.is_container
+		            , 1
+		            , (select count(1)
+		                 from prc_ui_session_vw ss
+		                where a.parent_id is null
+		                  and ss.parent_id = a.id
+		                  and ss.result_code in ('PRSR0002', 'PRSR0004')
+			<iterate prepend=" and " conjunction=" and " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">ss.lang = #filters[].value#</isEqual>
+			</iterate>
+		              )
+		            , nvl((select p.current_count
+		                     from prc_ui_progress_prc_vw p
+		                    where p.session_id = a.id), 0
+		              )
+		       ) as processed
+		     , a.rejected
+		     , a.excepted
+		     , decode(b.is_container
+		            , 1
+		            , (select count(1)
+		                 from prc_ui_session_vw ss
+		                where a.parent_id is null
+		                  and ss.parent_id = a.id
+			<iterate prepend=" and " conjunction=" and " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">ss.lang = #filters[].value#</isEqual>
+			</iterate>
+		              )
+		            , nvl((select p.estimated_count
+		                     from prc_ui_progress_prc_vw p
+		                    where p.session_id = a.id), 0
+		              )
+		       ) as estimated_count
+		     , (select get_object_desc(i_entity_type => 'ENTTPERS', i_object_id => u.person_id)
+		          from acm_user u
+		         where u.id = a.user_id
+		       ) as user_name
+		     , a.result_code
+		     , a.inst_id
+		     , (case when a.inst_id = 9999 then com_api_label_pkg.get_label_text('ANY_INST_NAME')
+		             else com_api_i18n_pkg.get_text('ost_institution', 'name', a.inst_id) end
+		       ) as inst_name
+		     , b.procedure_name
+		     , get_text('prc_process', 'name', b.id,
+		<iterate conjunction=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="lang">#filters[].value#</isEqual>
+		</iterate>
+		       ) as process_name
+		     , b.is_container
+		     , get_user_lang as lang
+		     , a.thread_count
+		     , (select p.progress_bar from prc_ui_progress_prc_vw p where p.session_id = a.id) as progress_bar
+		     , (select count(1) from prc_ui_session_file_vw f where f.session_id = a.id) as files_count
+		     , (select f.location
+		          from prc_ui_session_file_vw f
+		         where f.session_id = a.id
+		           and f.location is not null
+		           and rownum = 1
+		       ) as location
+		     , (case when b.is_container = 1 then get_text ('prc_process', 'description', b.id, get_user_lang)
+		             else nvl(get_text ('prc_container', 'description', a.container_id, get_user_lang)
+		                    , get_text ('prc_process', 'description', b.id, get_user_lang)) end
+		       ) as description
+		     , connect_by_isleaf as is_leaf
+		  from prc_session_vw a
+		     , prc_process_vw b
+		 where a.process_id = b.id
+		 start with a.parent_id is null
+		<iterate prepend=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="startDate">a.start_time >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>
+		   and a.id in (select nvl(a.parent_id, a.id) parent_id from prc_session a
+		<iterate prepend=" start with " conjunction=" and " property="filters">
+			<isEqual property="filters[].element" compareValue="id">a.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">a.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">a.process_id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">
+				a.id >= com_api_id_pkg.get_from_id(to_date(#filters[].value#,'DD.MM.YYYY'))
+				and
+				a.start_time >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="endDate">a.end_time <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="startTime">
+				a.id >= com_api_id_pkg.get_from_id(to_date(#filters[].value#,'YYYY-MM-DD HH24:MI:SS'))
+				and
+				a.start_time >= TO_DATE(#filters[].value#, 'YYYY-MM-DD HH24:MI:SS')
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="endTime">a.end_time <![CDATA[<=]]> TO_DATE(#filters[].value#, 'YYYY-MM-DD HH24:MI:SS')</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">a.inst_id LIKE #filters[].value#</isEqual>
+		</iterate>
+		connect by prior a.id = a.parent_id)
+		connect by prior a.id = a.parent_id
+		<isEmpty property="sorting">order siblings by a.id ASC</isEmpty>
+		<iterate prepend=" order siblings by " conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="sessionId">a.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="processStartDate">a.start_time $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="processEndDate">a.end_time $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="processName">17 $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="resultCode">a.result_code $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="threadCount">a.thread_count $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-sessions-hier-with-params"
+			parameterClass="qparams"
+			resultMap="mapping-sessions-hier">
+		SELECT
+		level
+		, xx.*
+		, (select count(f.id) from prc_ui_session_file_vw f where f.session_id = xx.session_id) files_count
+		, (select f.location from prc_ui_session_file_vw f where f.session_id = xx.session_id and f.location is not null and rownum=1) location
+		, CONNECT_BY_ISLEAF AS is_leaf
+		FROM
+		(
+		SELECT DISTINCT
+		s.id AS session_id
+		, s.process_id
+		, s.parent_id
+		, s.start_time
+		, s.end_time
+		, decode(s.is_container, 1, (
+		select count(*)
+		from prc_ui_session_vw ss, prc_ui_progress_prc_vw pp
+		where ss.id = pp.session_id(+)
+		and s.parent_id is null
+		and ss.parent_id = s.id
+		and pp.progress_bar>=100
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">ss.lang = #filters[].value#</isEqual>
+		</iterate>
+		), nvl(p.current_count, 0)) as processed
+		, s.rejected
+		, s.excepted
+		, decode(s.is_container, 1, (
+		select count(*)
+		from prc_ui_session_vw ss
+		where s.parent_id is null
+		and ss.parent_id = s.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">ss.lang = #filters[].value#</isEqual>
+		</iterate>
+		), nvl(p.estimated_count, 0)) as estimated_count
+		, s.user_name
+		, s.result_code
+		, s.inst_id
+		, s.procedure_name
+		, s.process_name
+		, s.is_container
+		, s.thread_count
+		, s.lang
+		, p.progress_bar
+		FROM
+		prc_ui_session_vw s
+		, prc_ui_progress_prc_vw p
+		WHERE s.id = p.session_id(+)
+		<iterate prepend="START WITH" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">s.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">s.process_id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processName">upper(s.process_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">s.start_time >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="endDate">s.end_time <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>
+		CONNECT BY
+		<iterate property="filters">
+			<isEqual property="filters[].element" compareValue="process">s.id = prior s.parent_id
+			</isEqual>
+		</iterate>
+		<iterate property="filters">
+			<isEqual property="filters[].element" compareValue="container">prior s.id = s.parent_id
+			</isEqual>
+		</iterate>
+
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+		</iterate>
+		) xx
+		START WITH
+		<isNotNull property="startWith">xx.session_id = #startWith#</isNotNull>
+		<isNull property="startWith">xx.parent_id is NULL</isNull>
+		CONNECT BY PRIOR xx.session_id = xx.parent_id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">xx.lang = #filters[].value#</isEqual>
+		</iterate>
+		<isEmpty property="sorting">ORDER SIBLINGS BY xx.session_id ASC</isEmpty>
+		<iterate prepend="ORDER SIBLINGS BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="sessionId">s.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="processStartDate">s.start_time $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="processEndDate">s.end_time $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="processName">s.process_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="resultCode">s.result_code $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="threadCount">s.thread_count $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+	</select>
+
+	<select id="get-sessions"
+			parameterClass="qparams"
+			resultMap="mapping-sessions">
+		SELECT
+			 xx.*
+			 , (select count(f.id) from prc_ui_session_file_vw f where f.session_id = xx.session_id) files_count
+			FROM
+			(
+		<include refid="paginatedOpen"/>
+			SELECT
+			  s.id AS session_id
+			, s.process_id
+			, s.parent_id
+			, s.start_time
+			, s.end_time
+			, p.current_count processed
+			, s.rejected
+			, s.excepted
+			, p.estimated_count
+			, s.user_name
+			, s.result_code
+			, s.inst_id
+			, s.procedure_name
+			, s.process_name
+			, s.is_container
+			, s.thread_count
+			, s.lang
+			, p.progress_bar			
+			FROM
+			  prc_ui_session_vw s
+			  , prc_ui_progress_prc_vw p 
+			WHERE s.id = p.session_id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="sessionId">s.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="processId">s.process_id LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="processName">upper(s.process_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="startDate">s.start_time >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="endDate">s.end_time <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			</iterate>
+			<isEmpty property="sorting">ORDER BY id DESC</isEmpty>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="sessionId">s.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="processStartDate">s.start_time $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="processEndDate">s.end_time $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="processName">s.process_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="resultCode">s.result_code $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="threadCount">s.thread_count $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>			
+		<include refid="paginatedClose"/>
+		) xx
+	</select>
+
+	<select id="get-sessions-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT 
+			count(*) 
+		FROM 
+			prc_ui_session_vw s
+			, prc_ui_progress_prc_vw p 
+		WHERE s.id = p.session_id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">s.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">s.process_id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processName">upper(s.process_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">s.start_time >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="endDate">s.end_time <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap id="mapping-stat" class="ru.bpc.sv2.process.ProcessStat">
+		<result property="sessionId" column="session_id" />
+		<result property="threadNumber" column="thread_number" />
+		<result property="startTime" column="start_time" />
+		<result property="currentTime" column="current_time" />
+		<result property="endTime" column="end_time" />
+		<result property="estimatedCount" column="estimated_count" />
+		<result property="currentCount" column="current_count" />
+		<result property="processedTotal" column="processed_total" />
+		<result property="rejectedTotal" column="rejected_total" />
+		<result property="exceptedTotal" column="excepted_total" />
+		<result property="resultCode" column="result_code" />
+		<result property="progress" column="progress_bar" />
+	</resultMap>
+	
+	<select id="get-stat"
+			parameterClass="qparams"
+			resultMap="mapping-stat">
+		SELECT
+				  s.session_id
+				, s.thread_number
+				, pr.progress_bar
+				, start_time
+				, current_time
+				, end_time
+				, estimated_count
+				, current_count
+				, processed_total
+				, rejected_total
+				, excepted_total
+				, result_code
+		FROM 
+				prc_ui_stat_vw s, prc_ui_progress_thread_vw pr
+		WHERE
+            	s.session_id = pr.session_id
+            	AND s.thread_number = pr.thread_number 
+				<iterate prepend=" AND " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="sessionId">s.session_id = #filters[].value#</isEqual>
+				</iterate>
+		<isEmpty property="sorting">ORDER BY s.session_id DESC</isEmpty>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="sessionId">s.session_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="threadNumber">s.thread_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="startTime">start_time $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="currentTime">current_time $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="endTime">end_time $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="estimatedCount">estimated_count $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="currentCount">current_count $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="processedTotal">processed_total $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="rejectedTotal">rejected_total $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="exceptedTotal">excepted_total $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="resultCode">result_code $sorting[].direction$</isEqual>
+			</isNotEqual>					
+		</iterate>
+	</select>
+
+	<select id="get-stat-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT COUNT(*) 
+		FROM 
+				  prc_ui_stat_vw s
+				, prc_ui_progress_thread_vw pr
+		WHERE 
+				s.session_id = pr.session_id
+            	AND s.thread_number = pr.thread_number 
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">s.session_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	 <resultMap id="mapping-session-file"
+			class="ru.bpc.sv2.process.SessionFile">
+        <result property="id" column="id"/>
+    	<result property="sessionId" column="session_id"/>
+    	<result property="fileAttrId" column="file_attr_id"/>
+    	<result property="fileName" column="file_name"/>
+        <result property="recordCount" column="record_count"/>
+        <result property="status" column="status"/>
+        <result property="filePurpose" column="file_purpose"/>
+        <result property="location" column="location"/>
+        <result property="fileType" column="file_type"/>
+        <result property="instId" column="inst_id"/>
+    </resultMap>
+	
+	<select id="get-session-files"
+			parameterClass="qparams"
+			resultMap="mapping-session-file">
+		SELECT 
+				s.id
+				, s.session_id
+				, s.file_attr_id
+				, s.file_name
+				, s.record_count
+				, s.status
+				, s.location
+				, s.file_type
+				, s.file_purpose
+                , b.inst_id
+		FROM prc_ui_session_file_vw s
+           , prc_session b
+        WHERE
+            s.session_id = b.id(+)
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ids">
+					s.id in (
+					<iterate conjunction="," property="filters[].valueList">
+						#filters[].valueList[]#
+					</iterate>
+					)
+			</isEqual>	
+			<isEqual property="filters[].element" compareValue="sessionId">s.session_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<resultMap id="mapping-session-file-content"
+			class="ru.bpc.sv2.process.SessionFile">
+        <result property="id" column="id"/>
+    	<result property="sessionId" column="session_id"/>
+    	<result property="fileAttrId" column="file_attr_id"/>
+    	<result property="fileName" column="file_name"/>
+        <result property="recordCount" column="record_count"/>
+        <result property="status" column="status"/>
+        <result property="filePurpose" column="file_purpose"/>
+        <result property="location" column="location"/>
+        <result property="fileType" column="file_type"/>
+        <result property="fileContents" column="file_contents"/>
+    </resultMap>
+	
+	<select id="get-session-files-content"
+			parameterClass="qparams"
+			resultMap="mapping-session-file-content">
+		SELECT 
+				s.id
+				, s.session_id
+				, s.file_attr_id
+				, s.file_name
+				, s.record_count
+				, s.status
+				, s.location
+				, s.file_type
+				, s.file_purpose	
+				, s.file_contents		
+		FROM prc_ui_session_file_vw s
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ids">
+					s.id in (
+					<iterate conjunction="," property="filters[].valueList">
+						#filters[].valueList[]#
+					</iterate>
+					)
+			</isEqual>	
+			<isEqual property="filters[].element" compareValue="sessionId">s.session_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<select id="get-session-files-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT COUNT(*) 
+		FROM prc_ui_session_file_vw
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">session_id = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+	
+	<procedure id="set-container-id" parameterClass="int">
+		{call PRC_API_SESSION_PKG.set_container_id(i_container_id => #value#)}
+	</procedure>
+	
+	<procedure id="set-session-id" parameterClass="long">
+		{call PRC_API_SESSION_PKG.set_session_id(i_session_id => #value#)}
+	</procedure>
+	
+	<select
+		id="get-progress-bar"
+		parameterClass="java.util.Map"
+		resultClass="int">
+			SELECT DECODE(current_count, NULL, 0,DECODE (a.current_count,0, 1,a.current_count)/
+                                    DECODE (a.estimated_count, 0, 1,a.estimated_count) * 100) AS progress_bar
+			FROM prc_stat_vw a
+			WHERE 
+				session_id = #sessionId# 
+				AND thread_number = #threadNum#
+	</select>
+	
+	<resultMap  id="prc-bar-map"
+                class="ru.bpc.sv2.process.ProgressBarMap"  >
+        <result property="bar" column="progress_bar" /> <!-- this id paramId -->
+        <result property="current" column="current_count" />        
+	</resultMap>
+	
+		<select
+		id="get-progress-bar-value"
+		parameterClass="java.util.Map"
+		resultClass="int">
+			SELECT DECODE(current_count, NULL, 0,DECODE (a.current_count,0, 1,a.current_count)/
+                                    DECODE (a.estimated_count, 0, 1,a.estimated_count) * 100) AS progress_bar
+           FROM prc_stat_vw a
+			WHERE 
+				session_id = #sessionId# 
+				AND thread_number = #threadNum#
+	</select>
+	
+		<select
+		id="get-progress-bar-value1"
+		parameterClass="java.util.Map"
+		resultMap="prc-bar-map">
+			SELECT DECODE(current_count, NULL, 0,DECODE (a.current_count,0, 1,a.current_count)/
+                                    DECODE (a.estimated_count, 0, 1,a.estimated_count) * 100) AS progress_bar
+            ,current_count
+			FROM prc_stat_vw a
+			WHERE 
+				session_id = #sessionId# 
+				AND thread_number = #threadNum#
+	</select>
+	
+	<resultMap  id="mapping-user-session"
+                class="ru.bpc.sv2.process.ProcessUserSession">
+        <result property="id" column="id"/>
+        <result property="userName" column="user_name"/>
+        <result property="startDate" column="start_time" javaType="java.util.Date"/>
+        <result property="lastUsed" column="last_used" javaType="java.util.Date"/>
+        <result property="firstName" column="first_name"/>
+        <result property="secondName" column="second_name"/>
+        <result property="surname" column="surname"/>
+        <result property="lang" column="lang"/>
+        <result property="ipAddress" column="ip_address"/>
+        <result property="loginStatus" column="login_status"/>
+	</resultMap>
+
+	<select id="get-user-sessions"
+			parameterClass="qparams"
+			resultMap="mapping-user-session">
+		<include refid="paginatedOpen" />
+			SELECT	
+					  id
+					, user_name
+					, start_time
+					, last_used
+					, first_name
+					, second_name			
+					, surname
+					, lang
+					, ip_address
+					, login_status
+			FROM prc_ui_user_session_vw	
+			WHERE 1=1
+			<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>						
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="allSessionslang">(lang = #filters[].value# OR lang IS NULL)</isEqual>
+				<isEqual property="filters[].element" compareValue="userName">upper(user_name) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="userNameNot">user_name not like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="ipAddress">upper(ip_address) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="ipAddressNot">upper(ip_address) NOT LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="surname">upper(surname) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="startDate">
+					nvl(start_time, TO_DATE(#filters[].value#, 'DD.MM.YYYY')) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="lastUsed">
+					nvl(TRUNC(last_used), TO_DATE(#filters[].value#, 'DD.MM.YYYY')) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+					AND TRUNC(start_time) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="loginStatus">login_status = #filters[].value#</isEqual>
+			</iterate>
+			<isEmpty property="sorting">ORDER BY last_used DESC</isEmpty>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="userName">upper(user_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="ipAddress">upper(ip_address) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="startDate">start_time $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="lastUsed">last_used $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="personName">
+						upper(surname) $sorting[].direction$, upper(first_name) $sorting[].direction$, upper(second_name) $sorting[].direction$
+					</isEqual>
+					<isEqual property="sorting[].property" compareValue="loginStatus">login_status $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-user-sessions-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+		FROM prc_ui_user_session_vw	
+		WHERE 1=1
+		<isNotNull property="threshold">AND rownum <![CDATA[<]]> (#threshold#+1)</isNotNull>						
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="allSessionslang">(lang = #filters[].value# OR lang IS NULL)</isEqual>
+			<isEqual property="filters[].element" compareValue="userName">upper(user_name) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="userNameNot">user_name not like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ipAddress">upper(ip_address) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ipAddressNot">upper(ip_address) NOT LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="surname">upper(surname) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">
+				nvl(start_time, TO_DATE(#filters[].value#, 'DD.MM.YYYY')) >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="lastUsed">
+				nvl(TRUNC(last_used), TO_DATE(#filters[].value#, 'DD.MM.YYYY')) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+				AND TRUNC(start_time) <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="loginStatus">login_status = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-all-processes"
+		    parameterClass="qparams"
+		    resultMap="mapping-process">
+		<include refid="paginatedOpen"/>
+			SELECT
+				      p.id
+					, p.name
+					, p.description
+					, p.procedure_name
+					, p.inst_id
+					, p.is_parallel
+					, p.is_external
+					, p.is_container
+					, p.lang
+					, i.name inst_name
+					, p.interrupt_threads
+			FROM
+				  prc_ui_process_all_vw p
+				, ost_ui_institution_sys_vw i
+			WHERE 
+				p.inst_id = i.id(+)						
+				<iterate prepend=" AND " conjunction=" AND " property="filters">
+					<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="instIdIn">p.inst_id IN (9999, #filters[].value#)</isEqual>
+					<isEqual property="filters[].element" compareValue="lang">
+						p.lang = #filters[].value#
+						AND i.lang(+) = #filters[].value#
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="procedureName">upper(p.procedure_name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="containerId">
+						p.id in (SELECT b.process_id FROM prc_ui_container_process_vw b WHERE b.container_process_id = #filters[].value#)
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="isContainer">
+						p.is_container = #filters[].value#
+					</isEqual>
+				</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">upper(p.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="procedureName">p.procedure_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="parallel">p.is_parallel $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="external">p.is_external $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="isContainer">p.is_container $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-all-processes-count"
+	    	parameterClass="qparams" 
+	    	resultClass="int"	>	       
+		SELECT count(*)    
+		FROM prc_ui_process_all_vw p
+		<iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instIdIn">p.inst_id IN (9999, #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				p.lang = #filters[].value#                        	
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="procedureName">upper(p.procedure_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(p.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="containerId">
+				p.id in (SELECT b.process_id FROM prc_ui_container_process_vw b WHERE b.container_process_id = #filters[].value#)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="isContainer">
+				p.is_container = #filters[].value#
+			</isEqual>
+		</iterate>
+	</select>	
+	
+	<resultMap id="mapping-sessions-hierarchy" 
+		class="ru.bpc.sv2.process.ProcessSession" 
+		extends="mapping-sessions">
+		<result property="level" column="level"/>
+	</resultMap>
+	
+	<select id="get-process-session-hierarchy"
+			parameterClass="qparams"
+			resultMap="mapping-sessions-hierarchy">
+		SELECT 
+		    level
+		    , s.id AS session_id
+		    , s.parent_id
+		    , s.process_id
+		    , s.start_time
+		    , s.end_time
+		    , s.processed
+		    , s.rejected
+		    , s.excepted
+		    , s.estimated_count
+		    , s.user_name
+		    , s.result_code
+		    , s.inst_id
+		    , s.procedure_name
+		    , s.process_name
+		    , s.is_container
+		    , s.thread_count
+		    , s.lang
+		    , CONNECT_BY_ISLEAF AS ais_leaf
+		    , p.progress_bar
+		    , 0 files_count
+			, com_api_i18n_pkg.get_text('ost_institution', 'name', s.inst_id) as inst_name
+		FROM 
+			prc_ui_session_vw s
+ 			left join prc_ui_progress_prc_vw p on s.id = p.session_id
+ 			connect by parent_id = prior id
+			<iterate prepend="AND" conjunction="AND" property="filters">	    
+            	<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>        
+		    </iterate>  
+			start with id in 
+			(
+			select
+			    id
+			from
+			    (select
+			        id
+			      ,parent_id
+			    from
+			        prc_ui_session_vw a
+			        connect by a.id = prior a.parent_id
+			        <iterate prepend="START WITH" conjunction="AND" property="filters">
+			        	<isEqual property="filters[].element" compareValue="sessionId">a.id = #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="processId">a.process_id LIKE #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="processName">a.process_name LIKE #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="lang">a.lang = #filters[].value#</isEqual>
+						<isEqual property="filters[].element" compareValue="beginDate">a.start_time >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+						<isEqual property="filters[].element" compareValue="endDate">a.end_time <![CDATA[<]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+					</iterate>
+			    )
+			      
+			where
+			    parent_id is null)
+			<iterate prepend="AND" conjunction="AND" property="filters">	    
+            	<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>        
+		    </iterate>
+		    <iterate prepend="ORDER SIBLINGS BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="sessionId">session_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="processStartDate">start_time $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="processEndDate">end_time $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="processName">process_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="resultCode">result_code $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>		
+	</select>
+	
+	<resultMap id="process-launch-mapping" 
+		class="ru.bpc.sv2.process.ProcessLaunchParameter">
+		<result property="id" column="id"/>
+		<result property="sessionId" column="session_id"/>
+		<result property="paramId" column="param_id"/>
+		<result property="paramName" column="param_name"/>
+		<result property="dataType" column="data_type"/>
+		<result property="paramValue" column="param_value"/>
+		<result property="valueV" column="value_v"/>
+        <result property="valueN" column="value_n"/>
+        <result property="valueD" column="value_d"/>
+        <result property="lovValue" column="lov_value"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="lovName" column="lov_name"/>
+	</resultMap>
+	
+	<select id="get-process-launch-parameters"			
+			parameterClass="qparams"
+			resultMap="process-launch-mapping">
+		select 
+			ph.id
+            , ph.session_id
+            , ph.param_id
+           	, ph.param_name
+            , ph.data_type
+            , ph.lov_id
+            , ph.param_value
+            , l.name lov_name	            	
+            , ph.param_char_value value_v
+			, ph.param_number_value value_n
+			, ph.param_date_value value_d  
+			, ph.param_lov_value lov_value
+       	from 
+       		prc_ui_process_history_vw ph
+       		, com_ui_lov_vw l
+		where
+			ph.lov_id = l.id(+) AND ph.lang = l.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">ph.session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">ph.lang = #filters[].value#</isEqual>
+		</iterate>		     					
+	</select>
+	
+	<select id="get-process-launch-parameters-count"			
+			parameterClass="qparams"
+			resultClass="int">
+		select 
+			count(ph.id)	
+       	from 
+       		prc_ui_process_history_vw ph
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">ph.lang = #filters[].value#</isEqual>
+		</iterate>			
+	</select>
+	
+	<resultMap  id="mapping-stat-summary-by-session-id"
+	            class="ru.bpc.sv2.process.ProcessStatSummary"  >
+	    <result property="sessionId" column="session_id" />
+	    <result property="parentSessionId" column="parent_session_id" />
+	    <result property="threadCount" column="thread_count" />
+	    <result property="startTime" column="start_time" />
+	    <result property="endTime" column="end_time" />
+	    <result property="spendTime" column="spend_time" />
+	    <result property="wasteTime" column="waste_time" />
+	    <result property="estimatedCount" column="estimated_count" />
+	    <result property="processedTotal" column="processed_total" />
+	    <result property="rejectedTotal" column="rejected_total" />
+	    <result property="exceptedTotal" column="excepted_total" />
+	    <result property="resultCode" column="result_code" />
+	    <result property="processId" column="process_id" />
+	</resultMap>
+	
+	<select id="get-stat-summary-by-session-id"
+		parameterClass="qparams"
+		resultMap="mapping-stat-summary-by-session-id">
+		SELECT
+			ssv.session_id
+			,ssv.parent_session_id
+			,ssv.thread_count
+			,ssv.start_time
+			,ssv.end_time
+			,ssv.spend_time
+			,ssv.waste_time
+			,ssv.estimated_count
+			,ssv.processed_total
+			,ssv.rejected_total
+			,ssv.excepted_total
+			,ssv.result_code
+			,ssv.process_id
+		FROM
+			prc_ui_stat_summary_vw ssv
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">ssv.session_id = #filters[].value#</isEqual>			
+		</iterate>
+	</select>
+
+    <resultMap  id="mapping-container-heirarchy" class="ru.bpc.sv2.process.ProcessBO"  >
+        <result property="id" column="process_id"/>
+        <result property="executionOrder" column="exec_order"/>
+        <result property="hierExecutionOrder" column="hier_exec_order"/>
+        <result property="instId" column="inst_id"/>
+        <result property="containerBindId" column="container_id"/>
+        <result property="mainContainerId" column="main_container_id"/>
+        <result property="procedureName" column="procedure_name"/>
+        <result property="parallel" javaType="boolean" column="is_parallel"/>
+        <result property="external" javaType="boolean" column="is_external"/>
+        <result property="level" column="level"/>
+        <result property="containerId" column="container_process_id" />
+        <result property="parallelDegree" column="parallel_degree"/>
+        <result property="interruptThreads" javaType="boolean" column="interrupt_threads" nullValue="false"/>
+        <result property="stopOnFatal" javaType="boolean" column="stop_on_fatal" nullValue="false"/>
+        <result property="traceLevel" column="trace_level"/>
+        <result property="traceLimit" column="trace_limit"/>
+    </resultMap>
+
+    <select id="get-container-heirarchy" parameterClass="int" resultMap="mapping-container-heirarchy">
+        select #value# as main_container_id
+             , container_process_id
+             , container_id
+             , inst_id
+             , is_external
+             , procedure_name
+             , is_parallel
+             , substr(sys_connect_by_path(lpad(exec_order, 4, '0'), '.'), 2) as hier_exec_order
+             , exec_order
+             , process_id
+             , level
+             , parallel_degree
+             , interrupt_threads
+             , stop_on_fatal
+             , trace_level
+             , error_limit as trace_limit
+          from (select a.container_process_id
+                     , a.id as container_id
+                     , a.process_id
+                     , a.exec_order
+                     , c.inst_id
+                     , c.is_external
+                     , c.procedure_name
+                     , a.parallel_degree
+                     , decode (c.is_parallel
+                             , get_true
+                             , a.is_parallel
+                             , get_false
+                       ) as is_parallel
+                     , c.is_container
+                     , c.interrupt_threads
+                     , a.stop_on_fatal
+                     , a.trace_level
+                     , a.error_limit
+                  from prc_container_vw a
+                     , prc_process_vw c
+                 where c.id = a.process_id
+               )
+    connect by container_process_id = prior process_id
+    start with container_process_id = #value#
+         order siblings by exec_order
+    </select>
+
+	<resultMap  id="mapping-get-process-threads"
+	            class="ru.bpc.sv2.process.ProcessStatSummary"  >
+	    <result property="startTime" column="start_time" />
+	    <result property="endTime" column="end_time" />
+	    <result property="estimatedCount" column="estimated_count" />
+	    <result property="processedTotal" column="processed_total" />
+	    <result property="rejectedTotal" column="rejected_total" />
+	    <result property="exceptedTotal" column="excepted_total" />
+	    <result property="resultCode" column="result_code" />
+	    <result property="processName" column="process_name" />
+	    <result property="threadNumber" column="thread_number" />
+	</resultMap>
+	
+	<select	id="get-process-threads"
+	    	parameterClass="long"
+	    	resultMap="mapping-get-process-threads" >
+		SELECT
+			stat.start_time
+			,stat.end_time
+			,stat.estimated_count
+			,stat.current_count processed_total
+			,stat.rejected_total
+			,stat.excepted_total
+			,stat.result_code
+			,com_api_label_pkg.get_label_text('process.thread_number', com_ui_user_env_pkg.get_user_lang) ||' '|| stat.thread_number  process_name
+			,thread_number
+		FROM
+			prc_ui_stat_vw stat
+		WHERE
+			session_id = #value#
+	</select>
+	
+	<procedure id="prc-log-start">
+		{call PRC_API_STAT_PKG.log_start}
+	</procedure>
+
+	<procedure id="prc-log-estimation" parameterClass="int">
+		{call PRC_API_STAT_PKG.log_estimation(i_estimated_count => #value#)}
+	</procedure>
+
+	<parameterMap id="prc-log-map" class="java.util.Map">
+		<parameter property="currentCount" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="exceptedCount" javaType="int" jdbcType="NUMERIC" mode="IN"/>		
+	</parameterMap>
+
+	<procedure id="prc-log-current" parameterMap="prc-log-map">
+		{call PRC_API_STAT_PKG.log_current(
+				  i_current_count  => ?
+				, i_excepted_count => ?
+				)}
+	</procedure>
+
+	<parameterMap id="prc-log-end-map" class="java.util.Map">
+		<parameter property="processedTotal" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="exceptedTotal" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="rejectedTotal" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="resultCode" javaType="string" jdbcType="VARCHAR" mode="IN"/>		
+	</parameterMap>
+
+	<procedure id="prc-log-end" parameterMap="prc-log-end-map">
+		{call PRC_API_STAT_PKG.log_end(
+				  i_processed_total => ?
+				, i_excepted_total  => ?
+				, i_rejected_total  => ?
+				, i_result_code     => ?
+				)}
+	</procedure>
+	
+	
+    <resultMap  id="mapping-session-file-full"
+			class="ru.bpc.sv2.process.SessionFile">
+        <result property="id" column="id"/>
+    	<result property="sessionId" column="session_id"/>
+    	<result property="fileAttrId" column="file_attr_id"/>
+        <result property="fileName" column="file_name"/>
+        <result property="fileDate" column="file_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+        <result property="recordCount" column="record_count"/>
+        <result property="crcValue" column="crc_value"/>
+        <result property="status" column="status"/>
+        <result property="fileContents" column="file_contents" jdbcType="CLOB"/>
+        <result property="blobContent" column="file_bcontents" jdbcType="BLOB"/>
+        <result property="fileType" column="file_type"/>
+	</resultMap>
+	
+	<parameterMap class="java.util.Map" id="files-by-name-map">
+		<parameter property="processId"/>
+		<parameter property="sessionId"/>
+		<parameter property="fileName"/>
+	</parameterMap>
+	
+    <select id="get-session-files-by-name"
+			parameterMap="files-by-name-map"
+			resultMap="mapping-session-file-full">
+		SELECT
+				  id
+				, session_id
+				, file_attr_id
+				, file_name
+				, file_date
+				, record_count
+				, crcValue
+				, status
+				, file_bcontents
+				, file_type
+		FROM prc_ui_session_file_vw
+		WHERE file_attr_id IN (
+			SELECT ID FROM prc_ui_file_attribute_vw WHERE file_id IN (
+            	SELECT file_id FROM prc_ui_file_vw WHERE process_id = ? 
+        	)
+		) AND session_id = ? AND file_name = ?
+	</select>
+	
+	<select id="get-file-raw-data" parameterMap="files-by-name-map" resultClass="string">
+		SELECT raw_data
+		FROM prc_ui_file_raw_data_vw
+		WHERE session_file_id = (
+			SELECT id
+			FROM prc_ui_session_file_vw
+			WHERE file_attr_id IN (
+				SELECT ID FROM prc_ui_file_attribute_vw WHERE file_id IN (
+	            	SELECT file_id FROM prc_ui_file_vw WHERE process_id = ? 
+	        	)
+			) AND session_id = ? AND file_name = ?
+		) ORDER BY record_number ASC
+	</select>
+	
+	<parameterMap id="file-status-map" class="java.util.Map">
+		<parameter property="sessionFileId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="status" javaType="string" jdbcType="VARCHAR" mode="IN"/>		
+	</parameterMap>
+
+	<procedure id="set-file-status" parameterMap="file-status-map">
+		{call PRC_UI_FILE_PKG.set_file_status(
+				  i_sess_file_id => ?
+				, i_status       => ?
+				)}
+	</procedure>
+
+	<parameterMap id="get-default-file-name-map" class="java.util.Map">
+		<parameter property="result" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="fileType" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="filePurpose" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="params" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-default-file-name" parameterMap="get-default-file-name-map">
+		{? = call prc_ui_file_pkg.get_default_file_name(
+				  i_file_type 		=> ?
+				, i_file_purpose    => ?
+				, i_params			=> ?
+				)}
+	</procedure>
+	
+	 <resultMap  id="mapping-process-file-directory" class="ru.bpc.sv2.process.ProcessFileDirectory"  >
+        <result property="id" column="id" />
+    	<result property="lang" column="lang" />
+    	<result property="name" column="name" />
+    	<result property="directoryPath" column="directory_path" />
+        <result property="encryptionTypeDesc" column="encription_type_desc" />
+        <result property="encryptionType" column="encryption_type" />
+    </resultMap>
+    
+    <select id="get-process-files-directories"
+			parameterClass="qparams"
+			resultMap="mapping-process-file-directory" >
+		<include refid="paginatedOpen"/>
+			SELECT
+				      id
+					, lang
+					, name
+					, seqnum
+					, directory_path
+					, encription_type_desc
+					, encryption_type
+			FROM
+					prc_ui_directory_vw
+			<iterate prepend=" WHERE " conjunction="AND " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="encryptionType">encryption_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="directoryPath">directory_path = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend=" ORDER BY " conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="encryptionType">encryption_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="encryptionTypeDesc">encription_type_desc $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="directoryPath">directory_path $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-process-files-directories-count"
+			parameterClass="qparams"
+			resultClass="int" >
+		<include refid="limitationOpenCount"/>
+			SELECT
+				      id
+					
+			FROM
+					prc_ui_directory_vw
+			<iterate prepend=" WHERE " conjunction="AND " property="filters">
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="encryptionType">encryption_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="directoryPath">directory_path = #filters[].value#</isEqual>
+			</iterate>
+			
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-process-file-directory" 
+			parameterClass="ru.bpc.sv2.process.ProcessFileDirectory">
+    	{call PRC_UI_DIRECTORY_PKG.add_directory(
+    			  o_id		  		  => #id,jdbcType=NUMERIC,mode=OUT#
+    			, o_seqnum	  		  => #seqnum,jdbcType=NUMERIC,mode=OUT#      
+				, i_name			  => #name#
+				, i_encryption_type   => #encryptionType#
+				, i_directory_path    => #directoryPath#
+				, i_lang		   	  => #lang#												
+				)}
+    </procedure>
+    
+    <procedure id="modify-process-file-directory" 
+    		parameterClass="ru.bpc.sv2.process.ProcessFileDirectory">
+    	{call PRC_UI_DIRECTORY_PKG.modify_directory(
+    			  i_id		  		  => #id#
+				, io_seqnum	   		  => #seqnum,mode=INOUT,jdbcType=NUMERIC#
+				, i_name			  => #name#
+				, i_encryption_type   => #encryptionType#
+				, i_directory_path    => #directoryPath#
+				, i_lang		   	  => #lang#												
+				)}
+    </procedure>
+    
+    <procedure id="remove-process-file-directory"
+    		parameterClass="ru.bpc.sv2.process.ProcessFileDirectory">
+    	{call PRC_UI_DIRECTORY_PKG.remove_directory(
+    			   i_id			=> #id#
+    			 , i_seqnum		=> #seqnum#
+    			)}
+    </procedure>
+    
+    <parameterMap class="java.util.Map" id="check-directory-map">
+		<parameter property="id" jdbcType="NUMBER" javaType="java.lang.Long" mode="IN"/>
+	</parameterMap>
+	
+	<select id="check-directory" 
+		parameterMap="check-directory-map"
+        resultClass="java.lang.Boolean">
+			select prc_api_directory_pkg.get_directory_enc(i_id => ?
+		) from dual
+	</select>
+	
+	<resultMap  id="mapping-file-saver" class="ru.bpc.sv2.process.ProcessFileSaver"  >
+        <result property="id" column="id" javaType="java.lang.Integer"/>
+        <result property="seqnum" column="seqnum" javaType="java.lang.Integer"/>
+        <result property="source" column="source" javaType="java.lang.String"/>
+        <result property="parallel" column="is_parallel" javaType="java.lang.Boolean" nullValue="false"/>
+        <result property="name" column="name" javaType="java.lang.String"/>
+    	<result property="lang" column="lang" javaType="java.lang.String"/>
+	</resultMap>
+    
+	<select id="get-file-savers" parameterClass="qparams" resultMap="mapping-file-saver" >
+	    <include refid="paginatedOpen"/>
+			SELECT
+				  p.id
+				, p.seqnum
+				, p.source
+				, p.is_parallel
+				, p.lang
+				, p.name
+			FROM PRC_UI_FILE_SAVER_VW p
+		<iterate prepend=" WHERE " conjunction="AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="source">upper(p.source) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">                            
+				<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="source">p.source $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">p.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="parallel">p.is_parallel $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>       
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-file-savers-count" parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			p.*
+		FROM
+			PRC_UI_FILE_SAVER_VW p
+        <iterate prepend=" WHERE " conjunction=" AND " property="filters">
+			<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="source">upper(p.source) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>					
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+    </select>
+    
+    <procedure id="add-file-saver" parameterClass="ru.bpc.sv2.process.ProcessFileSaver">
+    	{call PRC_UI_FILE_PKG.add_file_saver(
+    			  o_id		  		  => #id,jdbcType=NUMERIC,mode=OUT#
+    			, o_seqnum	  		  => #seqnum,jdbcType=NUMERIC,mode=OUT#      
+				, i_source  		  => #source#
+				, i_is_parallel	      => #parallel#
+				, i_name			  => #name#
+				, i_lang		   	  => #lang#
+				)}
+    </procedure>
+    
+    <procedure id="modify-file-saver" parameterClass="ru.bpc.sv2.process.ProcessFileSaver">
+    	{call PRC_UI_FILE_PKG.modify_file_saver(
+    			  i_id		  		  => #id#
+				, io_seqnum	   		  => #seqnum,mode=INOUT,jdbcType=NUMERIC#
+				, i_source  		  => #source#
+				, i_is_parallel	      => #parallel#
+				, i_name			  => #name#
+				, i_lang		   	  => #lang#
+				)}
+    </procedure>
+    
+    <procedure id="remove-file-saver" parameterClass="ru.bpc.sv2.process.ProcessFileSaver">
+    	{call PRC_UI_FILE_PKG.remove_file_saver(
+    			  i_id				=> #id#
+    			, i_seqnum			=> #seqnum#
+    			)}
+    </procedure>
+    
+    <parameterMap  id="mapping-put-file-clob" class="java.util.Map"  >
+        <parameter property="sessionFileId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+        <parameter property="clob_content" jdbcType="CLOB" mode="IN"/>
+        <parameter property="add_to" javaType="boolean" jdbcType="NUMERIC" mode="IN"/>                
+	</parameterMap>
+	
+    <procedure id="put-file-clob"
+    		parameterMap="mapping-put-file-clob">
+    	{call PRC_API_FILE_PKG.put_file(
+    			  i_sess_file_id	=> ? 
+    			, i_clob_content	=> ?
+    			, i_add_to			=> ?
+    			)}
+    </procedure>
+    
+    <resultMap id="mapping-session-file-list"
+			class="ru.bpc.sv2.process.ProcessSession">
+        <result property="id" column="id"/>
+    	<result property="sessionId" column="session_id"/>
+    	<result property="processName" column="process_name"/>
+    	<result property="fileName" column="file_name"/>
+        <result property="fileDate" column="file_date"/>
+        <result property="purpose" column="file_purpose"/>
+        <result property="location" column="location"/>
+		<result property="fileType" column="file_type"/>
+		<result property="recordCount" column="record_count"/>
+    </resultMap>
+	
+	<select id="get-session-files-list"
+			parameterClass="qparams"
+			resultMap="mapping-session-file-list">
+	<include refid="paginatedOpen"/>
+			SELECT
+			  s.id
+			, s.session_id
+			, s.file_name
+			, s.file_date
+			, s.file_purpose
+			, s.file_type 
+			, s.location
+			, s.record_count
+			, p.lang
+			, p.process_name
+			, p.process_id 
+			FROM
+			  PRC_UI_SESSION_FILE_VW s
+			  , PRC_UI_SESSION_VW p 
+			WHERE s.session_id = p.id
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="processId">p.process_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="sessionId">s.session_id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="fileName">upper(s.file_name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="fileType">s.file_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="purpose">s.file_purpose = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="startDate">s.file_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="endDate">s.file_date <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			</iterate>
+			<isEmpty property="sorting">ORDER BY s.id DESC</isEmpty>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="sessionId">s.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="processStartDate">s.file_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="fileName">s.file_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="fileType">s.file_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="purpose">s.file_purpose $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="recordCount">s.record_count $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-session-files-list-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT 
+			count(*) 
+		FROM 
+			  PRC_UI_SESSION_FILE_VW s
+			  , PRC_UI_SESSION_VW p 
+		WHERE s.session_id = p.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="processId">p.process_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sessionId">s.session_id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fileName">upper(s.file_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="fileType">s.file_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="purpose">s.file_purpose = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="startDate">s.file_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="endDate">s.file_date <![CDATA[<=]]> TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			</iterate>
+	</select>
+	
+	<procedure id="run-sheduler">
+    	{call qrz_ui_scheduler_running_pkg.run_scheduler()}
+    </procedure>
+    
+    <procedure id="stop-sheduler">
+    	{call qrz_ui_scheduler_running_pkg.stop_scheduler()}
+    </procedure>
+    
+    <parameterMap class="java.util.Map" id="map-is-running">
+		<parameter property="isRunning" javaType="boolean" jdbcType="NUMERIC" mode="OUT"/>
+	</parameterMap>
+    <procedure id="is-running" parameterMap="map-is-running">
+    	{? = call qrz_ui_scheduler_running_pkg.is_running()}
+    </procedure>
+	
+	<procedure id="remove-file-configuration"
+    		parameterClass="java.lang.Long">
+    	{call prc_ui_file_pkg.remove_session_file(
+    			  i_session_id  => #value#
+    			)}
+    </procedure>
+
+	<parameterMap id="mapping-generate-response-file" class="java.util.Map">
+		<parameter property="fileType" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="fileId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="fileName" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="errorCode" javaType="string" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="generate-response-file" parameterMap="mapping-generate-response-file">
+		{call prc_api_file_pkg.generate_response_file(
+		  i_file_type			=> ?
+		, i_original_file_id    => ?
+		, i_original_file_name  => ?
+		, i_error_code          => ?
+		)}
+	</procedure>
+
+	<parameterMap  id="mapping-change-session-file" class="java.util.Map"  >
+		<parameter property="sessionFileId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="status" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="recordCount" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="change-session-file"
+			   parameterMap="mapping-change-session-file">
+		{call PRC_API_FILE_PKG.change_session_file(
+		i_sess_file_id          => ?
+		, i_status              => ?
+		, i_record_count        => ?
+		)}
+	</procedure>
+
+	<procedure id="set-session-context" parameterClass="java.lang.Long">
+		{call prc_api_session_pkg.set_session_context(
+			i_session_id => #value#
+		)}
+	</procedure>
+
+	<procedure id="save-rejected-count" parameterClass="java.util.Map">
+		{call itf_prc_reject_file_pkg.save_rejected_count(
+			i_file_type => #fileType#
+		)}
+	</procedure>
+
+	<parameterMap id="mapping-enable-oracle-trace" class="java.util.Map">
+		<parameter property="traceLevel" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="traceCurrentSession" javaType="boolean" jdbcType="NUMERIC" mode="IN" nullValue="false"/>
+		<parameter property="sessionId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="threadNumber" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="enable-oracle-trace"
+			   parameterMap="mapping-enable-oracle-trace">
+		{call trc_ora_trace_pkg.enable_trace(
+			  i_trace_level				=> ?
+			, i_trace_current_session	=> ?
+			, i_session_id				=> ?
+			, i_thread_number			=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="mapping-disable-oracle-trace" class="java.util.Map">
+		<parameter property="traceCurrentSession" javaType="boolean" jdbcType="NUMERIC" mode="IN" nullValue="false"/>
+		<parameter property="sessionId" javaType="long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="threadNumber" javaType="int" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="disable-oracle-trace"
+			   parameterMap="mapping-disable-oracle-trace">
+		{call trc_ora_trace_pkg.disable_trace(
+			  i_trace_current_session	=> ?
+			, i_session_id				=> ?
+			, i_thread_number			=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="mapping-get-trace-message" class="java.util.Map">
+		<parameter property="fullDesc" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+		<parameter property="sessionId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="threadNumber" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-trace-message"
+			   parameterMap="mapping-get-trace-message">
+		{? = call trc_ora_trace_pkg.get_trace_message(
+			  i_session_id		=> ?
+			, i_thread_number	=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="mapping-get-session-trace-level" class="java.util.Map">
+		<parameter property="traceLevel" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="sessionId" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="threadNumber" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-session-trace-level"
+			   parameterMap="mapping-get-session-trace-level">
+		{? = call trc_ora_trace_pkg.get_session_trace_level(
+			  i_session_id		=> ?
+			, i_thread_number	=> ?
+		)}
+	</procedure>
+
+	<procedure id="add-process-history-param" parameterClass="map">
+		{call PRC_API_PROCESS_HISTORY_PKG.add(i_session_id => #i_session_id#, i_param_id => #i_param_id#, i_param_value => #i_param_value#)}
+	</procedure>
+
+	<parameterMap id="map-generate-file-password" class="java.util.Map">
+		<parameter property="i_sess_file_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="o_file_password" javaType="java.lang.String" jdbcType="VARCHAR" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="generate-file-password" parameterMap="map-generate-file-password">
+		{ call prc_api_file_pkg.generate_file_password(
+			  i_sess_file_id	=> ?
+			, o_file_password	=> ?
+		) }
+	</procedure>
+
+	<parameterMap id="map-is-holiday" class="java.util.Map">
+		<parameter property="isHoliday" jdbcType="NUMERIC" javaType="java.lang.Boolean" mode="OUT"/>
+		<parameter property="currentDay" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+		<parameter property="instId" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="is-holiday" parameterMap="map-is-holiday">
+		{? = call com_api_holiday_pkg.is_holiday(
+			  i_day		=> ?
+			, i_inst_id	=> ?
+		)}
+	</procedure>
+
+	<resultMap id="map-get-process-schedules-info" class="ru.bpc.sv2.process.ProcessSchedule">
+		<result column="container_id"        property="id"             javaType="java.lang.Long"    jdbcType="NUMERIC"/>
+		<result column="container_name"      property="name"           javaType="java.lang.String"  jdbcType="VARCHAR"/>
+		<result column="inst_id"             property="instId"         javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<result column="session_id"          property="sessionId"      javaType="java.lang.Long"    jdbcType="NUMERIC"/>
+		<result column="inst_name"           property="instName"       javaType="java.lang.String"  jdbcType="VARCHAR"/>
+		<result column="is_holiday_skipped"  property="holidaySkipped" javaType="java.lang.Boolean" jdbcType="NUMERIC"  nullValue="false"/>
+		<result column="is_active"           property="active"         javaType="java.lang.Boolean" jdbcType="NUMERIC"  nullValue="false"/>
+		<result column="planned_launch_date" property="plannedTime"    javaType="java.util.Date"    jdbcType="DATE"/>
+		<result column="start_time"          property="startTime"      javaType="java.util.Date"    jdbcType="DATE"/>
+		<result column="end_time"            property="endTime"        javaType="java.util.Date"    jdbcType="DATE"/>
+		<result column="status"              property="status"         javaType="java.lang.String"  jdbcType="VARCHAR"/>
+		<result column="status_desc"         property="statusDesc"     javaType="java.lang.String"  jdbcType="VARCHAR"/>
+		<result column="description"         property="description"    javaType="java.lang.String"  jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<parameterMap id="map-get-process-schedules" class="java.util.Map">
+		<parameter property="info" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT"
+				   resultMap="map-get-process-schedules-info"/>
+		<parameter property="date" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+		<parameter property="firstRow" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="lastRow" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="params" typeName="COM_PARAM_MAP_TPT" jdbcType="COM_PARAM_MAP_TPT" mode="IN"
+				   typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler"/>
+		<parameter property="sorting" typeName="COM_PARAM_MAP_TPT" jdbcType="COM_PARAM_MAP_TPT" mode="IN"
+				   typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler"/>
+	</parameterMap>
+
+	<procedure id="get-process-schedules" parameterMap="map-get-process-schedules">
+		{call prc_ui_task_pkg.get_schedule_info(
+			  o_ref_cur		=> ?
+			, i_date		=> ?
+			, i_first_row	=> ?
+			, i_last_row	=> ?
+			, i_param_tab	=> ?
+			, i_sorting_tab	=> ?
+		)}
+	</procedure>
+
+	<parameterMap id="map-get-process-schedules-count" class="java.util.Map">
+		<parameter property="count" javaType="java.lang.Long" jdbcType="NUMERIC" mode="OUT" nullValue="0"/>
+		<parameter property="date" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+		<parameter property="params" typeName="COM_PARAM_MAP_TPT" jdbcType="COM_PARAM_MAP_TPT" mode="IN"
+				   typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler"/>
+	</parameterMap>
+
+	<procedure id="get-process-schedules-count" parameterMap="map-get-process-schedules-count">
+		{call prc_ui_task_pkg.get_schedule_info_count(
+			  o_row_count	=> ?
+			, i_date		=> ?
+			, i_param_tab	=> ?
+		)}
+	</procedure>
+</sqlMap>

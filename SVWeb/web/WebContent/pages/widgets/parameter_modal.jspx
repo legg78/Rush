@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm"/>
+
+	<rich:modalPanel id="widgetParameterPanel#{dashboardWidget.id}" autosized="true" minWidth="200" minHeight="50" styleClass="filter_panel" onshow="hideNew()" >
+		<f:facet name="header">
+			<h:outputText value="#{lblCommon.parameters}"/>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="widgetParameterEditForm#{dashboardWidget.id}">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<rich:dataTable id="widgetParamsTable#{dashboardWidget.id}"
+								value="#{MbReportWidgetBean.widgetParams}"
+								var="widgetParam" rowKeyVar="index"
+								styleClass="cardholderdata noBorder" width="100%"
+								columnClasses="firstCol alignLeft noBorder, width250 noBorder">
+					<rich:columnGroup rendered="#{index == 0}" columnClasses="firstCol alignLeft noBorder, width250 noBorder">
+						<rich:column>
+							<h:outputLabel value="#{lblAcm.refresh}: " title="#{lblAcm.refresh}"/>
+						</rich:column>
+						<rich:column>
+							<h:selectBooleanCheckbox value="#{MbReportWidgetBean.newDashboardWidget.refresh}"/>
+						</rich:column>
+
+						<rich:column breakBefore="true">
+							<h:outputLabel value="#{lblAcm.refresh_interval}: " title="#{lblAcm.refresh_interval}"/>
+						</rich:column>
+						<rich:column>
+							<h:inputText maxlength="4"
+										 value="#{MbReportWidgetBean.newDashboardWidget.refreshInterval}"
+										 onkeypress="if (!numbersOnly(this, event)) return false; "/>
+						</rich:column>
+					</rich:columnGroup>
+
+					<rich:column>
+						<h:outputLabel value="#{widgetParam.name}: " title="#{widgetParam.name} [#{widgetParam.systemName}]" rendered="#{widgetParam.name != null}"/>
+						<h:outputLabel value="#{widgetParam.systemName}: " title="#{widgetParam.systemName}" rendered="#{widgetParam.name == null and widgetParam.systemName != null}"/>
+						<h:outputLabel value=" " rendered="#{widgetParam.name == null and widgetParam.systemName == null}" title="" />
+					</rich:column>
+
+					<rich:column>
+						<h:outputLabel value=" " rendered="#{widgetParam.systemName == null}" title="" />
+
+						<h:inputText rendered="#{widgetParam.char and widgetParam.lovId == null}"
+									 id="charField#{widgetParam.valueId}" value="#{widgetParam.valueV}"/>
+
+						<h:inputText rendered="#{widgetParam.number and widgetParam.lovId == null}"
+									 id="numField#{widgetParam.valueId}" value="#{widgetParam.valueN}"/>
+
+						<rich:calendar buttonIcon="/images/calendar.gif" rendered="#{widgetParam.date and widgetParam.lovId == null}"
+									   id="dateField#{widgetParam.valueId}" value="#{widgetParam.valueD}"
+									   timeZone="#{CommonUtils.timeZone}" zindex="1000"
+									   datePattern="#{usession.datePattern}">
+						</rich:calendar>
+
+						<h:selectOneMenu rendered="#{widgetParam.number and widgetParam.lovId != null}"
+										 id="lovNumField#{widgetParam.valueId}" value="#{widgetParam.valueN}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbHsmStatusWidget.lovValues}"/>
+						</h:selectOneMenu>
+
+						<h:selectOneMenu rendered="#{widgetParam.char and widgetParam.lovId != null}"
+										 id="lovCharField#{widgetParam.valueId}" value="#{widgetParam.valueV}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbHsmStatusWidget.lovValues}"/>
+						</h:selectOneMenu>
+					</rich:column>
+
+					<rich:column>
+						<a4j:commandLink action="#{MbReportWidgetBean.removeWidgetParamValue}" reRender="widgetParamsTable#{dashboardWidget.id}" rendered="#{widgetParam.paramId != null || widgetParam.valueId != null}">
+							<f:setPropertyActionListener target="#{MbReportWidgetBean.activeWidgetParamValue}" value="#{widgetParam}"/>
+							<h:graphicImage url="/images/delete.gif"/>
+						</a4j:commandLink>
+					</rich:column>
+				</rich:dataTable>
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton
+								value="#{lblForm.save}" type="submit"
+								reRender="#{pollForm}, #{MbDashboard.activeDashboardWidgetForm}"
+								onclick="disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this);
+                        				if (#{usession.noErrorResponse}) {
+                        					Richfaces.hideModalPanel('widgetParameterPanel#{dashboardWidget.id}');
+                        					#{MbDashboard.refreshWidgetFunction}();
+                        				}"
+								action="#{MbReportWidgetBean.saveDashboardWidget}"
+								eventsQueue="queue">
+						</bre:taggedCommandButton>
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}"
+								immediate="true" limitToList="true"
+								oncomplete="Richfaces.hideModalPanel('widgetParameterPanel#{dashboardWidget.id}'); return false"
+								action="#{MbReportWidgetBean.cancel}"
+								reRender="widgetParameterPanel#{dashboardWidget.id}">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+</ui:composition>
+</html>

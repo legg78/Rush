@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblPrs" basename="ru.bpc.sv2.ui.bundles.Prs" />
+
+	<h:form id="templatesBtmForm">
+		<h:panelGroup id="mainTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable headerClass="res-table-header table-header-ext"
+				selectedClass="res-table-selected" styleClass="res-table"
+				rowClasses=",odd" id="mainTable" var="item"
+				value="#{MbPersoTemplatesSearch.templates}"
+				selection="#{MbPersoTemplatesSearch.itemSelection}" rows="0"
+				height="220px" selectionMode="single" enableContextMenu="true"
+				tableState="#{MbPersoTemplatesSearch.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="templatesBtmForm:btnPanelTemplates" />
+
+				<rich:column id="id" label="#{lblCommon.id}" title="Id" sortBy="#{'id'}" width="10%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{item.id}" />
+				</rich:column>
+
+				<rich:column id="entity_type" label="#{lblCommon.entity_type}"  title="Entity type" sortBy="#{'entityType'}"
+					width="40%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.entity_type}"
+							title="#{lblCommon.entity_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.entityType]}"
+						title="#{DictUtils.articles[item.entityType]}" />
+				</rich:column>
+
+				<rich:column id="format" label="#{lblPrs.format}"  title="Format" sortBy="#{'formatName'}" width="40%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrs.format}" title="#{lblPrs.format}" />
+					</f:facet>
+					<h:outputText value="#{item.formatName}" title="#{item.formatName}" />
+				</rich:column>
+				
+				<rich:column id="modId" label="#{lblPrs.modId}"  title="modId" sortBy="#{'modId'}" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrs.modId}" title="#{lblPrs.modId}" />
+					</f:facet>
+					<h:outputText value="#{item.modId}" title="#{item.modId}" />
+				</rich:column>
+
+				<f:facet name="footer">
+				</f:facet>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid id="btnPanelTemplates" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+					<bre:taggedCommandButton id="addBtn"
+						reRender="prs_template_modal_div,prs_template_modal_header"
+						value="#{lblForm.add}"
+						oncomplete="#{rich:component('prs_template_modal_panel')}.show()"
+						action="#{MbPersoTemplatesSearch.add}"
+						disabled="#{MbPersoTemplatesSearch.filter.methodId == null}"
+						rendered="#{usession.inRole['ADD_PERSO_TEMPLATE']}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="prs_template_modal_div,prs_template_modal_header"
+						value="#{lblForm.edit}" action="#{MbPersoTemplatesSearch.edit}"
+						oncomplete="#{rich:component('prs_template_modal_panel')}.show()"
+						disabled="#{MbPersoTemplatesSearch.activeTemplate == null}"
+						rendered="#{usession.inRole['MODIFY_PERSO_TEMPLATE']}"
+						image="/images/edit.gif" />
+					<bre:taggedCommandButton id="deleteBtn" 
+						value="#{lblForm.delete}"
+						disabled="#{MbPersoTemplatesSearch.activeTemplate == null}"
+						rendered="#{usession.inRole['REMOVE_PERSO_TEMPLATE']}"
+						image="/images/delete.gif" 
+						oncomplete="#{rich:component('deletePersoTemplateView:confirmPanel')}.show()"/>
+					</h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveTemplateTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteTemplateTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveTemplateTableState" action="#{MbPersoTemplatesSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteTemplateTableState" action="#{MbPersoTemplatesSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="prs_template_modal_panel" autosized="true"
+		minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup id="prs_template_modal_header">
+				<h:outputText value="#{lblPrs.new_template}"
+					rendered="#{MbPersoTemplatesSearch.newMode}" />
+				<h:outputText value="#{lblPrs.edit_template}"
+					rendered="#{MbPersoTemplatesSearch.editMode}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="prs_template_modal_div">
+			<ui:include src="/pages/issuing/personalization/template_edit.jspx"></ui:include>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							action="#{MbPersoTemplatesSearch.save}"
+							onclick="if (!checkTemplateFields()) return false; disableModalPanelBtns(this)"
+							oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('prs_template_modal_panel')}.hide()"
+							reRender="mainTable, btnPanelTemplates" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbPersoTemplatesSearch.close}" immediate="true"
+							oncomplete="#{rich:component('prs_template_modal_panel')}.hide()"
+							reRender="prs_template_modal_div">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbPersoTemplatesSearch}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="templatesBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deletePersoTemplateView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+	
+</ui:composition>
+</html>

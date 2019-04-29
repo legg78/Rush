@@ -1,0 +1,591 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	>
+<ui:composition>
+	<script type="text/javascript">
+    	//<![CDATA[
+		
+    	var colorOk = "#FFFFFF";
+    	var colorMandatory = "#FF5555";
+    	var colorGroup1 = "#FFAAAA";
+    	var colorGroup2 = "#FF7777";
+    	var colorFormat = "#FF9999";
+    	
+    	function Component(el, needFocus, needMark, minLength, wildcardType, alfaChar) {
+	    	this.el = el;// el object
+	    	this.needFocus = needFocus;//boolean
+	    	this.needMark = needMark;//boolean
+	    	this.minLength = minLength;//int
+	    	this.wildcardType = wildcardType;//0:no wildcard allow; 1:no wildcard end.
+	    	this.alfaChar = alfaChar; // true: start with alfa char
+    	}
+
+    	function checkMandatory(el, needFocus, needMark, minLength, wildcardType, alfaChar) {
+    		var result = true;
+    		if (el.value == null || el.value == "") {
+				result = false;
+			} else if (minLength != null && el.value.replace(/%|\*|\?/g,"").length < minLength) {
+				result = false;
+			} else if (wildcardType != null) {
+				if (wildcardType == 0) {
+					if (/%|\*|\?/g.test(el.value)) {
+						result = false;	
+					} 
+				} else {
+					if (/.*(%|\*|\?)$/g.test(el.value)) {
+						result = false;	
+					} 
+				}
+			} else if (alfaChar) {
+				if (!/^[a-zA-Z].*$/g.test(el.value)) {
+					result = false;
+				}
+			}
+    		if (result) {
+    			el.style.backgroundColor = colorOk;
+    		} else {
+    			if (needMark) {
+					el.style.backgroundColor = colorMandatory;
+        		}
+				if (needFocus) {
+					el.focus();
+				}
+    		}
+			return result;
+    	}
+
+    	function checkGroup(group, color) {
+        	var validGroup = true;
+        	for (var i = 0; i < group.length; i++) {
+        		validGroup = validGroup && checkMandatory(
+        				group[i].el, group[i].needFocus, group[i].needMark, group[i].minLength, group[i].wildcardType, group[i].alfaChar);
+    		}
+    		if (!validGroup) {
+    			if (color != null) {
+	    			for (var i = 0; i < group.length; i++) {
+	    				group[i].el.style.backgroundColor = color;
+	        		}    			
+    			}
+    		} else {
+    			for (var i = 0; i < group.length; i++) {
+    				group[i].el.style.backgroundColor = colorOk;
+        		}
+    		}
+    		return validGroup;
+    	}
+    	
+    	function checkGroups(groups) {
+        	var valid = false;
+    		for (var i = 0; i < groups.length; i++) {
+        		if (groups.length > 2) {
+        			if (i == 0) { 
+        				valid = valid || checkGroup(groups[i], colorGroup1);
+        			} else {
+        				valid = valid || checkGroup(groups[i], null);
+        			}
+    			} else {
+    				if (i == 0) {
+    					valid = valid || checkGroup(groups[i], colorGroup1);
+    				} else {
+    					valid = valid || checkGroup(groups[i], colorGroup2);
+    				} 
+    			}
+    		}
+    		
+    		return valid;
+    	}
+    	
+    	function clearColor(groups) {
+    		for (var i = 0; i < groups.length; i++) {
+    			for (var j = 0; j < groups[i].length; j++) {
+    				groups[i][j].el.style.backgroundColor = colorOk;
+    			}
+    		}
+    	}
+    	
+    	function checkFieldsCustomer(viewId) {
+        	var valid = true;
+        	if (!viewId) viewId = "";
+        	var form = viewId + "customerForm_";
+        	
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = valid && checkMandatory(instIdEl, true, true, null, null);
+			}
+			
+			var customerNumberEl = document.getElementById(form + "numberFilter");
+			var contractNumberEl = document.getElementById(form + "contractNumberFilter");
+			var extEntityTypeEl = document.getElementById(form + "extEntityType");
+			
+			var customerValid = true;
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+				customerValid = checkMandatory(customerNumberEl, false, true, 0, null, null);
+			} else {
+				customerValid = checkMandatory(customerNumberEl, false, true, 4, 1);
+			}
+			
+			var contractValid = checkMandatory(contractNumberEl, false, true, 4, null);
+			if (contractValid){
+				//contractValid = contractValid && 
+					//(contractNumberEl.value.charAt(0) != '%' ||
+						//	contractNumberEl.value.charAt(contractNumberEl.value.length-1) != '%' );
+				if (/^[%\?\*].*[%\?\*]$/g.test(contractNumberEl.value)) {
+					contractValid = false;
+				} 
+			}
+
+			var extEntityTypeValid = true;
+			if (extEntityTypeEl) {
+				extEntityTypeValid = checkMandatory(extEntityTypeEl, false, true, 0);
+			}
+			
+    		if (!customerValid && !contractValid && (extEntityTypeEl == null || !extEntityTypeValid)) {
+        		if (!extEntityTypeValid) {
+        			alert("#{lblCommon.customer_search_error1}");
+        		} else {
+        			alert("#{lblCommon.customer_search_error2}");
+        		}
+				valid = false; 
+    		} else {
+    			customerNumberEl.style.backgroundColor = colorOk;
+    			contractNumberEl.style.backgroundColor = colorOk;
+    			if (extEntityTypeEl) {
+    				extEntityTypeEl.style.backgroundColor = colorOk;
+    			}
+    		}
+			return valid;
+		}    	    
+    	           
+		function checkFieldsPerson(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+			var form = viewId + "personForm_";
+			
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = valid && checkMandatory(instIdEl, true, true, null, null);
+			}
+			
+			var nameEl = document.getElementById(form + "nameFilter");
+			var surNameEl = document.getElementById(form + "surnameFilter");
+			var birthdayEl = document.getElementById(form + "birthday");
+			
+			var group1 = new Array(); 
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+				group1[0] = new Component(surNameEl, false, false, 0, null, null);
+				group1[1] = new Component(nameEl, false, false, 0, null, null);
+			} else {
+				group1[0] = new Component(surNameEl, false, false, null, 0);
+				group1[1] = new Component(nameEl, false, false, null, 0);
+			}
+			
+			var group2 = new Array(); 
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+				group2[0] = new Component(surNameEl, false, false, 0, null, null);
+				group2[1] = new Component(birthdayEl, false, false, 0, null, null);
+			} else {
+				group2[0] = new Component(surNameEl, false, false, null, 0);
+				group2[1] = new Component(birthdayEl, false, false, null, 0);
+			}
+			
+			var groups = new Array();
+			groups[0] = group1;
+			groups[1] = group2;
+
+			var groupCheck = checkGroups(groups);
+			if (!groupCheck) {
+				valid = valid && groupCheck;
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					alert("#{lblCommon.person_search_error1}");
+				} else {
+					alert("#{lblCommon.person_search_error2}");
+				}
+			}
+			//clear color if everything is OK!
+			if (valid) {
+				clearColor(groups);
+			}
+			
+			return valid;
+		}
+
+		function checkFieldsCompany(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+			var form = viewId + "companyForm_";
+			
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = valid && checkMandatory(instIdEl, true, true, null, null);
+			}
+			
+			var companyEl = document.getElementById(form + "companyFilter");
+			if (companyEl != null) {
+				var pass;
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					pass = checkMandatory(companyEl, true, true, 0, null, null);
+				} else {
+					pass = checkMandatory(companyEl, true, true, 3, null);
+				}
+				if (!pass) {
+					if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+						alert("#{lblCommon.company_search_error1}");
+					} else {
+						alert("#{lblCommon.company_search_error2}");
+					}
+					valid = false;
+				}
+			}
+			
+			return valid;
+		}
+
+		function checkFieldsContract(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+			var form = viewId + "contractForm_";
+			
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = valid && checkMandatory(instIdEl, true, true, null, null);
+			}
+			
+			var contractNumberEl = document.getElementById(form + "contractNumberFilter");
+			if (contractNumberEl != null) {
+				var pass;
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					pass = checkMandatory(contractNumberEl, true, true, 0, null, null);
+				} else {
+					pass = checkMandatory(contractNumberEl, true, true, 4, 1);
+				}
+				if (!pass) {
+					if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+						alert("#{lblCommon.contract_search_error1}");
+					} else {
+						alert("#{lblCommon.contract_search_error2}");
+					}
+					valid = false;
+				}
+			}
+			
+			return valid;
+		}
+
+		function checkFieldsCard(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+        	var form = viewId + "cardForm_";
+			
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = valid && checkMandatory(instIdEl, true, true, null, null);
+			}
+			
+			var cardNumberEl = document.getElementById(form + "numberFilter");
+			if (cardNumberEl != null) {
+				var pass;
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					pass = checkMandatory(cardNumberEl, true, true, 0, null, null);
+				} else {
+					pass = checkMandatory(cardNumberEl, true, true, 4, 1);
+				}
+				if (!pass) {
+					if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+						alert("#{lblCommon.card_search_error1}");
+					} else {
+						alert("#{lblCommon.card_search_error2}");
+					}
+					valid = false;
+				}
+			}
+			
+			return valid;
+		}
+
+		function checkFieldsAccount(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+        	var form = viewId + "accountForm_";
+			
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = valid && checkMandatory(instIdEl, true, true, null, null);
+			}
+			
+			var accounNumberEl = document.getElementById(form + "numberFilter");
+			if (accounNumberEl != null) {
+				var pass;
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					pass = checkMandatory(accounNumberEl, true, true, 0, null, null);
+				} else {
+					pass = checkMandatory(accounNumberEl, true, true, 4, 1);
+				}
+				if (!pass) {
+					if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+						alert("#{lblCommon.account_search_error1}");
+					} else {
+						alert("#{lblCommon.account_search_error2}");
+					}
+					valid = false;
+				}
+			}
+			
+			return valid;
+		}
+
+		function checkFieldsMerchant(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+        	var form = viewId + "merchantForm_";
+			
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = valid && checkMandatory(instIdEl, true, true, null, null);
+			}
+			var checkNumber;
+			var checkName;
+			var numberEl = document.getElementById(form + "numberFilter");
+			if (numberEl != null) {
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					checkNumber = checkMandatory(numberEl, false, true, 0, null, null);
+				} else {
+					checkNumber = checkMandatory(numberEl, false, true, 4, 1);
+				}
+			}
+			var nameEl = document.getElementById(form + "merchantNameFilter");
+			if (nameEl != null) {
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					checkName = checkMandatory(nameEl, false, true, 0, null, null);
+				} else {
+					checkName = checkMandatory(nameEl, false, true, 8, null);
+				}
+			}
+			
+			if (!checkNumber && !checkName) {
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					alert("#{lblCommon.merchant_search_error1}");
+				} else {
+					alert("#{lblCommon.merchant_search_error1}");
+				}
+				valid = false;
+			} else {
+				numberEl.style.backgroundColor = colorOk;
+				nameEl.style.backgroundColor = colorOk;
+			}
+			
+			return valid;
+		}
+
+		function checkFieldsTerminal(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+        	var form = viewId + "terminalForm_";
+        	
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = checkMandatory(instIdEl, true, true, null, null);
+			}
+		   
+			var terminalNumberEl = document.getElementById(form + "numberFilter");
+			var checkNumber;
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']} && terminalNumberEl != null) {
+				checkNumber = checkMandatory(terminalNumberEl, true, true, 0, null, null);
+			} else {
+				checkNumber = checkMandatory(terminalNumberEl, true, true, 4, 1);
+			}
+			if (!checkNumber) {
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					alert("#{lblCommon.terminal_search_error1}");
+				} else {
+			 		alert("#{lblCommon.terminal_search_error2}");
+				}
+			 	valid = false;
+			}
+		   
+			return valid;
+	  	}
+		
+		function checkFieldsDocument(viewId) {				
+			var valid = true;
+			if (!viewId) viewId = "";
+        	var form = viewId + "documentForm_";
+        	
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = checkMandatory(instIdEl, true, true, null, null);
+			}
+			
+			var numberEl = document.getElementById(form + "idNumberFilter");
+			var checkNumber;
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+				checkNumber = checkMandatory(numberEl, true, true, 0, null, null);
+			} else {
+				checkNumber = checkMandatory(numberEl, true, true, null, 0);
+			}
+			if (!checkNumber) {
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					alert("#{lblCommon.document_search_error1}");
+				} else {
+			 		alert("#{lblCommon.document_search_error2}");
+				}
+			 	valid = false;
+			}
+			
+			return valid;
+		}
+		
+		function checkFieldsContact(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+        	var form = viewId + "contactForm_";
+        	
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = checkMandatory(instIdEl, true, true, null, null);
+			}
+			var emailEl = document.getElementById(form + "emailFilter");
+			var phoneEl = document.getElementById(form + "phoneFilter");
+			var imNumberEl = document.getElementById(form + "imNumberFilter");
+
+			var checkEmail;
+			var checkPhone;
+			var checkIM;
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+				checkEmail = checkMandatory(emailEl, false, true, 0, null, null);
+				checkPhone = checkMandatory(phoneEl, false, true, 0, null, null);
+				checkIM = checkMandatory(imNumberEl, false, true, 0, null, null);
+			} else {
+				checkEmail = checkMandatory(emailEl, false, true, null, 0);
+				checkPhone = checkMandatory(phoneEl, false, true, null, 0);
+				checkIM = checkMandatory(imNumberEl, false, true, null, 0);
+			}
+			 
+			if (!checkEmail && !checkPhone && !checkIM) {
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+				 	alert("#{lblCommon.contact_search_error1}");
+				} else {
+				 	alert("#{lblCommon.contact_search_error2}");
+				}
+			 	valid = false;
+			} else {
+				emailEl.style.backgroundColor = colorOk;
+				phoneEl.style.backgroundColor = colorOk;
+				imNumberEl.style.backgroundColor = colorOk;
+			}
+			    
+			return valid;
+		}
+		
+		function checkFieldsAddress(viewId) {
+			var valid = true;
+			if (!viewId) viewId = "";
+        	var form = viewId + "addressForm_";
+        	
+			var instIdEl = document.getElementById(form + "instId");
+			if (instIdEl != null) {
+				valid = checkMandatory(instIdEl, true, true, null, null);
+			}
+			
+			var cityEl = document.getElementById(form + "cityFilter");
+			var streetEl = document.getElementById(form + "streetFilter");
+			var houseEl = document.getElementById(form + "houseFilter");
+			var postalCodeEl = document.getElementById(form + "postalCodeFilter");
+					   
+			var group1 = new Array();
+			if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+				group1[0] = new Component(cityEl, false, false, 0, null, null);
+				group1[1] = new Component(streetEl, false, false, 0, null, null);
+				group1[2] = new Component(houseEl, false, false, 0, null, null);
+			} else {
+				group1[0] = new Component(cityEl, false, false, null, 0);
+				group1[1] = new Component(streetEl, false, false, null, null, true);
+				group1[2] = new Component(houseEl, false, false, null, null);
+			}				
+			
+			var group2 = new Array();
+			group2[0] = new Component(postalCodeEl, false, false, null, 0);
+			group2[1] = new Component(houseEl, false, false, null, null);
+			
+			var group3 = new Array();
+			group3[0] = new Component(postalCodeEl, false, false, null, null);
+			group3[1] = new Component(streetEl, false, false, null, null);
+			group3[2] = new Component(houseEl, false, false, null, null);
+			
+			var groups = new Array();
+			groups[0] = group1;
+			groups[1] = group2;
+			groups[2] = group3;
+			
+			var checkGroup = checkGroups(groups);
+			   
+			if (!checkGroup) {
+				if (#{usession.inRole['VIEW_ALL_CUSTOMERS']}) {
+					alert('#{lblCommon.address_search_error1}');
+				} else {
+					alert('#{lblCommon.address_search_error2}');
+				}
+				valid = false;
+			}
+			   
+			if (valid) clearColor(groups);
+			    
+			return valid;
+		}
+
+		function setCustomerNumber() {
+			var value = document.getElementById('${customerHiddenField}').value;
+			document.getElementById('${customerField}').value = value;
+		}
+		
+		// clear text when alrady loaded customer infos
+		function clearText(formName) {
+			var custInfo = document.getElementById(formName + ":customerInfo").value;
+			var custNumHidden = document.getElementById(formName + ":customerNumberHidden").value;
+			var custIdHidden = document.getElementById(formName + ":customerIdHidden");
+			if (custInfo != custNumHidden) {
+				document.getElementById(formName + ":customerInfo").value = "";
+				document.getElementById(formName + ":customerNumberHidden").value = "";
+				if (custIdHidden != null) {
+					custIdHidden.value = "";
+				}
+			}
+		}
+			
+		// check customer number before searching in case onblur function have not worked yet!
+		function checkCustNumber(formName) {
+			var custInfo = document.getElementById(formName + ":customerInfo").value;
+			var custNumHidden = document.getElementById(formName + ":customerNumberHidden").value;
+			var custNumId = document.getElementById(formName + ":customerIdHidden").value;
+			if (custInfo != "" && custNumHidden == "") {
+				document.getElementById(formName + ":customerNumberHidden").value = custInfo;
+				document.getElementById(formName + ":customerIdHidden").value = "";
+			}
+		}
+
+		function selectTab(tabName) {
+			submittingTab = tabName;
+			if (checkTabLoaded(tabName)) {
+				//set only tab name to managed bean (in order to use it in the future)
+				setTabName(tabName);
+				return false;
+			}
+			refreshTab(tabName);
+			return true;
+		 }
+		
+		function selectTab1(tabName) {
+			if (!submitTab(tabName)) {
+				//set only tab name to managed bean (in order to use it in the future)
+				setTabName(tabName);
+				return false;
+			}
+			//set tab name and refresh tab
+			refreshTab(tabName);
+		}
+		//]]>
+	</script>
+</ui:composition>
+</html>

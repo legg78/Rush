@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+		function checkEntityFields() {
+			var checked = true;
+			
+			if (document.getElementById('accountTypeEntityModalDiv:newEntityType').value == "") {
+				document.getElementById('accountTypeEntityModalDiv:newEntityTypeError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//-->
+	</script>
+	
+	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+	
+   	<h:form id="accountTypeEntities">
+   		<a4j:region>
+			<h:panelGroup id="accountTypeEntitiesTableWrapper" layout="block"
+				style="padding:0px;margin:0px;">
+				<rich:extendedDataTable id="accountTypeEntitiesTable"
+					styleClass="res-table" headerClass="res-table-header table-header-ext"
+					rowClasses=",odd" selectedClass="res-table-selected" var="item"
+					value="#{MbAccountTypeEntities.accountTypeEntities}"
+					selection="#{MbAccountTypeEntities.itemSelection}" rows="20"
+					selectionMode="multi" enableContextMenu="true"
+					tableState="#{MbAccountTypeEntities.tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+
+					<a4j:support event="onselectionchange" reRender="btnsPanelEntities" />
+
+					<rich:column id="account_type" label="#{lblAcc.account_type}" title="Account type" width="40%"
+						sortBy="#{'accountType'}">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblAcc.account_type}"
+									title="#{lblAcc.account_type}" />								
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText
+							value="#{DictUtils.articles[item.accountType]}"
+							title="#{DictUtils.articles[item.accountType]}"/>
+					</rich:column>
+
+					<rich:column id="entity_type" label="#{lblAcc.entity_type}" title="Entity type" width="60%"
+						sortBy="#{'entityType'}" sortOrder="ASCENDING">
+						<f:facet name="header">
+							<h:outputText value="#{lblAcc.entity_type}"
+								title="#{lblAcc.entity_type}" />
+						</f:facet>
+						<h:outputText
+							value="#{DictUtils.articles[item.entityType]}"
+							title="#{DictUtils.articles[item.entityType]}"/>
+					</rich:column>
+				</rich:extendedDataTable>
+			</h:panelGroup>
+		</a4j:region>
+		
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+
+	            <h:panelGrid id="btnsPanelEntities" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+	            	<h:panelGroup>
+		        	<bre:taggedCommandButton id="addSchemeBtn"
+                      		reRender="accountTypeEntityModalDiv, accountTypeEntityModalHeader"
+			           		value="#{lblForm.add}"
+                   			oncomplete="#{rich:component('accountTypeEntityModalPanel')}.show()"
+			           		action="#{MbAccountTypeEntities.add}"
+			           		disabled="#{MbAccountTypeEntities.filter.accountType == null}"
+			        		image="/images/create_doc.gif"
+			        		/>
+	              	<bre:taggedCommandButton id="editSchemeBtn" rendered="false"
+                      		reRender="accountTypeEntityModalDiv, accountTypeEntityModalHeader"
+			           		value="#{lblForm.edit}"
+                   			oncomplete="#{rich:component('accountTypeEntityModalPanel')}.show()"
+			           		action="#{MbAccountTypeEntities.edit}"
+			           		disabled="#{MbAccountTypeEntities.activeAccountTypeEntity.id == null}"
+		            		image="/images/edit.gif"
+		            		/>
+	               <bre:taggedCommandButton id="deleteSchemeBtn"
+			           		value="#{lblForm.delete}"
+							oncomplete="#{rich:component('deleteEntityViewId:confirmPanel')}.show()"
+			           		disabled="#{MbAccountTypeEntities.activeAccountTypeEntity.id == null}"
+							image="/images/delete.gif"
+							/>
+					</h:panelGroup>
+					
+					<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveEntityTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteEntityTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveEntityTableState" action="#{MbAccountTypeEntities.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteEntityTableState" action="#{MbAccountTypeEntities.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+    </h:form>
+
+	<rich:modalPanel id="accountTypeEntityModalPanel" autosized="true" minWidth="300" minHeight="100">
+		<f:facet name="header">
+	    	<h:panelGroup id="accountTypeEntityModalHeader">
+			    <h:outputText value="#{lblAcc.new_account_type_entity}" rendered="#{MbAccountTypeEntities.newMode}"/>
+			    <h:outputText value="#{lblAcc.edit_account_type_entity}" rendered="#{MbAccountTypeEntities.editMode}"/>
+		    </h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="accountTypeEntityModalDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal nowrap, width250">
+					<h:outputLabel value="#{lblAcc.account_type}: " title="#{lblAcc.account_type}"/>
+					<h:inputText id="accountType" 
+							value="#{DictUtils.articles[MbAccountTypeEntities.newAccountTypeEntity.accountType]}"
+							disabled="true"/>
+					
+					<h:outputLabel value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+					<h:inputText id="instName" 
+							value="#{MbAccountTypeEntities.instName}"
+							disabled="true"/>
+
+					<h:outputLabel value="* #{lblAcc.entity_type}: " title="#{lblAcc.entity_type}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="newEntityType" 
+								value="#{MbAccountTypeEntities.newAccountTypeEntity.entityType}"
+								label="#{lblAcc.entity_type}"
+								disabled="#{MbAccountTypeEntities.editMode}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue = ""/>
+							<f:selectItems value="#{MbAccountTypeEntities.entTypes}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newEntityTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblAcc.entity_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbAccountTypeEntities.save}"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('accountTypeEntityModalPanel')}.hide()"
+                       			onclick="if (!checkEntityFields()) return false; disableModalPanelBtns(this)"
+                       			reRender="accountTypeEntitiesTable, btnsPanelEntities"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbAccountTypeEntities.close}" immediate="true"
+                        		oncomplete="#{rich:component('accountTypeEntityModalPanel')}.hide()"
+                        		reRender="accountTypeEntityModalDiv">
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                        </bre:taggedCommandButton>	
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>			
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbAccountTypeEntities}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="accountTypeEntitiesTable, btnsPanelEntities"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteEntityViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

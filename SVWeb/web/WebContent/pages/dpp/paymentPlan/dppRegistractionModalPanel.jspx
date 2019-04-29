@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:bpc="http://www.bpc.ru/jsf/misc">
+<ui:composition>
+    <script type="text/javascript">//<![CDATA[
+    function checkDppRegistrationFields() {
+        var checked = true;
+        if (document.getElementById('dppRegistrationModalPanelForm:dppAmount').value == "") {
+            document.getElementById('dppRegistrationModalPanelForm:dppAmountError').style.display = "inline";
+            checked = false;
+        }
+        if (document.getElementById('dppRegistrationModalPanelForm:instalmentCount').value == "") {
+            document.getElementById('dppRegistrationModalPanelForm:instalmentCountError').style.display = "inline";
+            checked = false;
+        }
+        return checked;
+    }
+    //]]>
+    </script>
+
+    <rich:modalPanel id="dppRegistrationModalPanel" minHeight="100" autosized="true">
+        <f:facet name="header">
+            <h:panelGroup>
+                <h:outputText value="#{lblDpp.dpp_registration}"/>
+            </h:panelGroup>
+        </f:facet>
+        <f:facet name="controls"/>
+
+        <h:form id="dppRegistrationModalPanelForm">
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <h:panelGrid columns="2" columnClasses="firstColModal, width250" styleClass="cardholderdata">
+                    <h:outputLabel for="operDescription"
+                                   value="* #{lblDpp.oper_desc}:"
+                                   title="#{lblDpp.oper_desc}"/>
+                    <h:inputText id="operDescription"
+                                 value="#{MbRegisterDppPaymentPlan.dpp.operDesc}"
+                                 title="#{MbRegisterDppPaymentPlan.dpp.operDesc}"
+                                 readonly="true"/>
+
+                    <h:outputLabel for="fee" value="* #{lblDpp.fee}:" title="#{lblDpp.fee}"/>
+                    <h:panelGrid columns="1">
+                        <h:selectOneMenu id="fee"
+                                         value="#{MbRegisterDppPaymentPlan.dpp.feeId}"
+                                         label="#{lblDpp.fee}"
+                                         onblur="hideErrorField(this)">
+                            <f:selectItem itemValue="" itemLabel="#{lblCommon.default}"/>
+                            <f:selectItems value="#{MbRegisterDppPaymentPlan.fees}"/>
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+
+                    <h:outputLabel value="* #{lblDpp.dpp_amount}:" title="#{lblDpp.dpp_amount}"/>
+                    <h:panelGrid columns="1">
+                        <h:inputText id="dppAmount"
+                                     required="true"
+                                     value="#{MbRegisterDppPaymentPlan.dpp.dppAmount}"
+                                     title="#{MbRegisterDppPaymentPlan.dpp.dppAmount}"
+                                     label="#{lblDpp.dpp_amount}"
+                                     onblur="hideErrorField(this)">
+                            <bpc:numericMaskConverter numericType="bigdecimal"/>
+                            <f:attribute name="decDigits"
+                                         value="#{CurrencyUtils.currencyObjectsMap[MbRegisterDppPaymentPlan.dpp.currency].exponent}"/>
+                        </h:inputText>
+
+                        <bpc:jsMask for="dppAmount"
+                                    decDigits="#{CurrencyUtils.currencyObjectsMap[MbRegisterDppPaymentPlan.dpp.currency].exponent}"/>
+                        <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                        id="dppAmountError" style="display:none;">
+                            <f:param name="fieldName" value="#{lblDpp.dpp_amount}"/>
+                        </h:outputFormat>
+                    </h:panelGrid>
+
+                    <h:outputLabel for="instalmentCount"
+                                   value="*#{lblDpp.installment_count}:"
+                                   title="#{lblDpp.installment_count}"/>
+                    <h:panelGrid columns="1">
+                        <h:inputText id="instalmentCount"
+                                     label="#{lblDpp.installment_count}"
+                                     value="#{MbRegisterDppPaymentPlan.dpp.instalmentTotal}"
+                                     title="#{MbRegisterDppPaymentPlan.dpp.instalmentTotal}"
+                                     onblur="hideErrorField(this)">
+                            <f:validateLongRange maximum="100" minimum="1"/>
+                            <a4j:support event="onchange" reRender="instalmentCountErr"
+                                         limitToList="true" ajaxSingle="true"/>
+                        </h:inputText>
+
+                        <rich:message for="instalmentCount" id="instalmentCountErr"
+                                      styleClass="errorMarker"/>
+                        <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                        id="instalmentCountError" style="display:none;">
+                            <f:param name="fieldName" value="#{lblDpp.installment_count}"/>
+                        </h:outputFormat>
+                    </h:panelGrid>
+                </h:panelGrid>
+            </h:panelGroup>
+
+            <h:panelGroup layout="block"
+                          styleClass="bottom_search_result_block_buttons">
+                <h:panelGroup layout="block"
+                              styleClass="bottom_search_result_left_buttons">
+                    <h:panelGrid columns="4" columnClasses=",,width99P,">
+                        <h:outputText/>
+                        <bre:taggedCommandButton value="#{lblDpp.register_operational_request}"
+                                                 id="registerAppBtn"
+                                                 action="#{MbRegisterDppPaymentPlan.registerApplication()}"
+                                                 rendered="#{MbRegisterDppPaymentPlan.bothMode or MbRegisterDppPaymentPlan.makerMode}"
+                                                 reRender="paymentPlanTable, #{MbDppPaymentPlan.tabName}"
+                                                 onclick="if (!checkDppRegistrationFields()) return false;
+                                                          disableModalPanelBtns(this)"
+                                                 oncomplete="enableModalPanelBtns(this);
+                                                             if (#{usession.noErrorResponse})
+                                                             #{rich:component('dppRegistrationModalPanel')}.hide()"/>
+
+                        <bre:taggedCommandButton value="#{lblDpp.register_dpp}"
+                                                 id="registerDppBtn"
+                                                 action="#{MbRegisterDppPaymentPlan.registerDpp()}"
+                                                 rendered="#{MbRegisterDppPaymentPlan.bothMode or MbRegisterDppPaymentPlan.noneMode}"
+                                                 reRender="paymentPlanTable, #{MbDppPaymentPlan.tabName}"
+                                                 onclick="if (!checkDppRegistrationFields()) return false;
+                                                          disableModalPanelBtns(this)"
+                                                 oncomplete="enableModalPanelBtns(this);
+                                                             if (#{usession.noErrorResponse})
+                                                             #{rich:component('dppRegistrationModalPanel')}.hide()"/>
+
+                        <bre:taggedCommandButton value="#{lblForm.cancel}"
+                                                 action="#{MbRegisterDppPaymentPlan.reset()}"
+                                                 immediate="true"
+                                                 reRender="dppRegistrationModalPanelForm"
+                                                 oncomplete="#{rich:component('dppRegistrationModalPanel')}.hide()">
+                            <f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                        </bre:taggedCommandButton>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </rich:modalPanel>
+</ui:composition>
+</html>

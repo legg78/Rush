@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+
+<script type="text/javascript">
+//<!-- 
+	function hideErrorFieldNew(elem) {
+		document.getElementById('parameterValueEditForm:' + elem + "Error").style.display = "none";
+		return true;
+	}
+
+	function checkParamFields() {
+		var checked = true;
+		if (document.getElementById('parameterValueEditForm:newObjectId').value == "") {
+			document.getElementById('parameterValueEditForm:newObjectIdError').style.display = "inline";
+			checked = false;
+		}
+		checked = checkParamValue(checked);
+		return checked;
+	}
+	function checkParamValue(checked) {
+		var inplace1 = document.getElementById('parameterValueEditForm:inplace1');
+		var inplace2 = document.getElementById('parameterValueEditForm:inplace2'); 
+		var inplace3 = document.getElementById('parameterValueEditForm:inplace3'); 
+		var defaultLovValueChar = document.getElementById('parameterValueEditForm:defaultLovValueChar'); 
+		var defaultLovValueNum = document.getElementById('parameterValueEditForm:defaultLovValueNum'); 
+		if (inplace1) {
+			if (inplace1.value == "") {
+				document.getElementById('parameterValueEditForm:paramValueError').style.display = "inline";
+				checked = false;
+			}
+		}
+		if (inplace2) {
+			if (inplace2.value == "") {
+				document.getElementById('parameterValueEditForm:paramValueError').style.display = "inline";
+				checked = false;
+			}
+		}
+		if (inplace3) {
+			if (inplace3.value == "") {
+				document.getElementById('parameterValueEditForm:paramValueError').style.display = "inline";
+				checked = false;
+			}
+		}
+		if (defaultLovValueChar) {
+			if (defaultLovValueChar.value == "") {
+				document.getElementById('parameterValueEditForm:paramValueError').style.display = "inline";
+				checked = false;
+			}
+		}
+		if (defaultLovValueNum) {
+			if (defaultLovValueNum.value == "") {
+				document.getElementById('parameterValueEditForm:paramValueError').style.display = "inline";
+				checked = false;
+			}
+		}
+		return checked;
+	}
+//-->
+</script>
+
+<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+	
+<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"
+	buttonClass="hidden" inputClass="hidden"
+	onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"/>
+	
+<script>
+	#{rich:component('calendar')}.customExpand=customExpand;
+</script>
+
+                          
+	<h:panelGrid width="100%" columns="2" cellpadding="0" cellspacing="0" columnClasses="width40, width60">
+
+		<h:form id="mainPurposeParametersForm">
+			<h:panelGroup layout="block" style="margin:0px;padding:0px;"
+				id="purposeParametersTableWrapper">
+				<rich:extendedDataTable headerClass="res-table-header table-header-ext"
+					selectedClass="res-table-selected" styleClass="res-table"
+					rowClasses=",odd" id="purposeParametersTable" var="item"
+					value="#{MbPurposesHasParameter.purposeParameters}"
+					selection="#{MbPurposesHasParameter.purposeParameterSelection}"
+					rows="0" selectionMode="single"
+					enableContextMenu="true"
+					tableState="#{MbPurposesHasParameter.tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+					<a4j:support event="onselectionchange"
+						reRender="purposeParameterBtns, mainParameterValuesForm" />
+
+					<rich:column id="purpose" label="#{lblPmo.purpose}" sortBy="#{'label'}" width="50%">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+															<h:outputText value="#{lblPmo.purpose}"
+								title="#{item.purposeName}" />
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{item.purposeName}" title="#{item.purposeName}"/>
+					</rich:column>
+
+					<rich:column id="default_value" label="#{lblPmo.default_value}" title="#{lblPmo.default_value}" width="40%">
+						<f:facet name="header">
+							<h:outputText value="#{lblPmo.default_value}"
+								title="#{lblPmo.default_value}" />
+						</f:facet>
+						<h:panelGroup rendered="#{item.lovValue == null}">
+							<h:outputText rendered="#{item.char}" value="#{item.valueV}" />
+
+							<h:outputText rendered="#{item.number}" value="#{item.valueN}">
+								<bm:convertNumberNew groupingUsed="false" type="number"
+									maxIntegerDigits="20" minFractionDigits="0" />
+							</h:outputText>
+
+							<h:outputText rendered="#{item.date}" value="#{item.valueD}">
+								<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+									timeZone="#{CommonUtils.timeZone}" />
+							</h:outputText>
+						</h:panelGroup>
+						<h:outputText rendered="#{item.lovValue != null}"
+							value="#{item.lovValue}">
+						</h:outputText>
+					</rich:column>
+				</rich:extendedDataTable>
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid id="purposeBtns" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+			           	<h:panelGroup></h:panelGroup>
+			           	
+			           	<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveParamTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteParamTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveParamTableState" action="#{MbPurposesHasParameter.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteParamTableState" action="#{MbPurposesHasParameter.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+			        </h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>			
+		</h:form>
+
+		<h:form id="mainParameterValuesForm">
+			<h:panelGroup layout="block" style="margin:0px;padding:0px;"
+				id="parameterValuesTableWrapper">
+				<rich:extendedDataTable id="parameterValuesTable"
+					styleClass="res-table" headerClass="res-table-header table-header-ext"
+					rowClasses=",odd" selectedClass="res-table-selected" var="item"
+					value="#{MbPMOParameterValues.parameterValues}"
+					selection="#{MbPMOParameterValues.parameterValueSelection}"
+					rows="0" selectionMode="single"
+					enableContextMenu="true"
+					tableState="#{MbPMOParameterValues.tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+					<a4j:support event="onselectionchange"
+						reRender="parameterValueBtns" />
+					<rich:column id="entity_type" label="#{lblPmo.entity_type}" sortBy="#{'entityType'}" width="20%">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblPmo.entity_type}"
+									title="#{lblPmo.entity_type}" />
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[item.entityType]}"
+							title="#{DictUtils.articles[item.entityType]}" />
+					</rich:column>
+
+					<rich:column id="object" label="#{lblPmo.object}" sortBy="#{'object'}" width="45%">
+						<f:facet name="header">
+							<h:outputText value="#{lblPmo.object}" title="#{lblPmo.object}" />
+						</f:facet>
+						<h:outputText value="#{item.object}" title="#{item.object}" />
+					</rich:column>
+
+					<rich:column id="param_value" label="#{lblPmo.param_value}" title="#{lblPmo.param_value}" width="35%">
+						<f:facet name="header">
+							<h:outputText value="#{lblPmo.param_value}"
+								title="#{lblPmo.param_value}" />
+						</f:facet>
+						<h:panelGroup rendered="#{item.lovValue == null}">
+							<h:outputText rendered="#{item.char}" value="#{item.valueV}" />
+
+							<h:outputText rendered="#{item.number}" value="#{item.valueN}">
+								<bm:convertNumberNew groupingUsed="false" type="number"
+									maxIntegerDigits="20" minFractionDigits="0" />
+							</h:outputText>
+
+							<h:outputText rendered="#{item.date}" value="#{item.valueD}">
+								<f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+									timeZone="#{CommonUtils.timeZone}" />
+							</h:outputText>
+						</h:panelGroup>
+						<h:outputText rendered="#{item.lovValue != null}"
+							value="#{item.lovValue}">
+						</h:outputText>
+					</rich:column>
+
+				</rich:extendedDataTable>
+			</h:panelGroup>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid id="parameterValueBtns" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+						<h:panelGroup>
+						<bre:taggedCommandButton id="addParameterValueBtn"
+							reRender="parameterValueModalPanel" value="#{lblForm.add}"
+							oncomplete="#{rich:component('parameterValueModalPanel')}.show()"
+							action="#{MbPMOParameterValues.add}"
+							disabled="#{MbPurposesHasParameter.activePurposeParameter == null}"
+							image="/images/create_doc.gif" />
+						<bre:taggedCommandButton id="editParameterValueBtn"
+							reRender="parameterValueModalPanel" value="#{lblForm.edit}"
+							oncomplete="#{rich:component('parameterValueModalPanel')}.show()"
+							action="#{MbPMOParameterValues.edit}"
+							disabled="#{MbPMOParameterValues.activeParameterValue == null}"
+							image="/images/edit.gif" />
+						<bre:taggedCommandButton id="deleteParameterValueBtn"
+							value="#{lblForm.delete}"
+							oncomplete="#{rich:component('deleteValueViewId:confirmPanel')}.show()"
+							disabled="#{MbPMOParameterValues.activeParameterValue == null}"
+							image="/images/delete.gif" />
+						</h:panelGroup>
+						
+						<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveValueTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteValueTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveValueTableState" action="#{MbPMOParameterValues.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteValueTableState" action="#{MbPMOParameterValues.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+	</h:panelGrid>
+
+
+	<rich:modalPanel id="parameterValueModalPanel" autosized="true" minWidth="300" minHeight="100">
+	   	<f:facet name="header">
+	   		<h:panelGroup>
+	       	    <h:outputText value="#{lblCommon.edit_parameter_value}" rendered="#{MbPMOParameterValues.editMode}"/>
+	       	    <h:outputText value="#{lblCommon.new_parameter_value}" rendered="#{MbPMOParameterValues.newMode}"/>
+	   	    </h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+	    </f:facet>
+	   	<h:form id="parameterValueEditForm">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstCol firstColModal, width250">
+					<h:outputLabel for="newParam" value="#{lblPmo.param}: " title="#{lblPmo.param}"/>
+           			<h:inputText id="newParam" disabled="true" 
+							value="#{MbPMOParameterValues.newParameterValue.systemName} - #{MbPMOParameterValues.newParameterValue.name}"
+							title="#{MbPMOParameterValues.newParameterValue.systemName} - #{MbPMOParameterValues.newParameterValue.name}"
+							/>
+					
+	       			<h:outputLabel for="newDataType" value="#{lblPmo.data_type}: " title="#{lblPmo.data_type}"/>
+					<h:inputText id="newDataType" disabled="true" 
+							value="#{DictUtils.articles[MbPMOParameterValues.newParameterValue.dataType]}"
+							title="#{DictUtils.articles[MbPMOParameterValues.newParameterValue.dataType]}"
+							/>
+	       			
+	       			<h:outputLabel for="newLov" value="#{lblPmo.lov}: " title="#{lblPmo.lov}"/>
+					<h:inputText id="newLov" disabled="true"
+							value="#{MbPMOParameterValues.newParameterValue.lovId} - #{MbPMOParameterValues.newParameterValue.lovName}"
+							title="#{MbPMOParameterValues.newParameterValue.lovId} - #{MbPMOParameterValues.newParameterValue.lovName}"
+							/>
+					
+					<h:outputLabel for="newEntityType" value="* #{lblCommon.entity_type}: " title="#{lblCommon.entity_type}"/>
+	      			<h:selectOneMenu id="newEntityType" disabled="#{MbPMOParameterValues.editMode}"
+	      					value="#{MbPMOParameterValues.newParameterValue.entityType}">
+	      				<f:selectItems value="#{MbPMOParameterValues.entityTypes}"/>
+	      			</h:selectOneMenu>
+					
+	      			<h:outputLabel for="newObjectId" value="* #{lblPmo.object}: " title="#{lblPmo.object}"/>
+	      			<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="width:100%">
+		      			<h:inputText id="newObjectId" disabled="#{MbPMOParameterValues.editMode}"
+		      					value="#{MbPMOParameterValues.newParameterValue.objectId}"
+		      					maxlength="16"
+		      					onkeypress="if (!numbersOnly(this, event)) return false; hideErrorField(this)"
+		      					onblur="hideErrorField(this)">
+		      			</h:inputText>
+		      			<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newObjectIdError" style="display:none;">
+							<f:param name="fieldName" value="#{lblPmo.object}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+	            			
+	            	<h:outputLabel for="newParamValue" value="* #{lblPmo.param_value}: " title="#{lblPmo.param_value}"/>
+	       			<h:panelGrid id="newParamValue" columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="inplace1"
+							rendered="#{MbPMOParameterValues.newParameterValue.char 
+										and MbPMOParameterValues.newParameterValue.lovId == null}"
+							value="#{MbPMOParameterValues.newParameterValue.valueV}"
+							label="#{lblPmo.param_value}"
+							onblur="hideErrorFieldNew('paramValue')"  />
+	
+						<h:inputText id="inplace2"
+							rendered="#{MbPMOParameterValues.newParameterValue.number 
+										and MbPMOParameterValues.newParameterValue.lovId == null}"
+							value="#{MbPMOParameterValues.newParameterValue.valueN}"
+							label="#{lblPmo.param_value}"
+							onblur="hideErrorFieldNew('paramValue')">
+							<bm:convertNumberNew groupingUsed="false" type="number"
+								maxIntegerDigits="20" minFractionDigits="0" />
+						</h:inputText>
+	
+						<h:inputText id="inplace3" style="width:150px;vertical-align:top;"
+							rendered="#{MbPMOParameterValues.newParameterValue.date}"
+							value="#{MbPMOParameterValues.newParameterValue.valueD}"
+							onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('inplace3')}, #{rich:element('button3')});"
+							label="#{lblPmo.param_value}"
+							onblur="hideErrorFieldNew('paramValue')">
+							<f:convertDateTime pattern="#{usession.datePattern}"
+								timeZone="#{CommonUtils.timeZone}" />
+						</h:inputText>
+						<h:graphicImage
+							rendered="#{MbPMOParameterValues.newParameterValue.date}"
+							value="/images/calendar.gif"
+							onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('inplace3')}, #{rich:element('button3')});"
+							id="button3" />
+	
+						<h:selectOneMenu id="defaultLovValueChar"
+							value="#{MbPMOParameterValues.newParameterValue.valueV}"
+							rendered="#{MbPMOParameterValues.newParameterValue.char 
+										and MbPMOParameterValues.newParameterValue.lovId != null}"
+							label="#{lblPmo.param_value}"
+							onblur="hideErrorFieldNew('paramValue')">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbPMOParameterValues.lovValues}" />
+						</h:selectOneMenu>
+	
+						<h:selectOneMenu id="defaultLovValueNum"
+							value="#{MbPMOParameterValues.newParameterValue.valueN}"
+							rendered="#{MbPMOParameterValues.newParameterValue.number 
+										and MbPMOParameterValues.newParameterValue.lovId != null}"
+							label="#{lblPmo.param_value}"
+							onblur="hideErrorFieldNew('paramValue')">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbPMOParameterValues.lovValues}" />
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="paramValueError" style="display:none;">
+							<f:param name="fieldName" value="#{lblPmo.param_value}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+	
+	   	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbPMOParameterValues.save}"
+                   				onclick="if (!checkParamFields()) return false; disableModalPanelBtns(this)"
+			                   	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('parameterValueModalPanel')}.hide()"
+                       			reRender="mainParameterValuesForm"
+                        		eventsQueue="queue"/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" 
+                        		action="#{MbPMOParameterValues.cancel}" 
+                        		immediate="true" limitToList="true"
+                        		oncomplete="#{rich:component('parameterValueModalPanel')}.hide()"
+                        		reRender="parameterValueModalPanel">
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                        </bre:taggedCommandButton>	
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>			
+	</rich:modalPanel>
+    
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbPMOParameterValues}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="mainParameterValuesForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteValueViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

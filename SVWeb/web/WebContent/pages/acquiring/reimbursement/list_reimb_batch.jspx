@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+<ui:define name="navigatableContent" >
+	<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+	<script type="text/javascript" src="#{request.contextPath}/js/stretch.js" />
+
+	<script type="text/javascript">
+//<!--
+		function checkReimbBatchFields() {
+			var checked = true;
+			if (document.getElementById('entryEditForm:date').value == "") {
+				document.getElementById('entryEditForm:dateError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//-->
+	</script>
+	
+	<f:loadBundle var="lblAcquiring" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+	
+	<!-- navigation bar -->
+	<bpct:navBar pageName="Reimbursement batches"/>
+	
+	<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+		
+		<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"  timeZone="#{CommonUtils.timeZone}"
+		onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"
+		inputClass="hidden" buttonClass="hidden"/>
+		
+		<script>
+			#{rich:component('calendar')}.customExpand=customExpand;
+		</script>
+	
+	<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+	
+	<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+							 if (event.keyCode == 13) {
+								 document.getElementById('reimbBatchSearchForm:searchBtn').click(); 
+								 return false; 
+							} 
+							return true;
+						 }	
+			//]]>
+			</script>
+		
+	<h:form id="reimbBatchSearchForm" onkeypress="handleEnter(event)">
+			
+		<!-- search panel -->
+		<h:panelGroup styleClass="search_block" layout="block">
+			<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGroup styleClass="search_block_inner search_block_inner-hidden" layout="block">
+		                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+			                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+									
+									<h:outputLabel value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+						   			<h:selectOneMenu id="instSelector"
+						      						value="#{MbReimbBatchSearch.filter.instId}">
+						      			<f:selectItem itemValue=""/>
+						   				<f:selectItems value="#{MbReimbBatchSearch.institutions}"/>
+						   			</h:selectOneMenu>
+									
+									<h:outputLabel for="reimbDateFrom" value="#{lblAcquiring.reimbursement_date_from}: " 
+											title="#{lblAcquiring.reimbursement_date_from}" />
+			            			<rich:calendar buttonIcon="/images/calendar.gif" id="reimbDateFrom" datePattern="#{usession.datePattern}" inputClass="inputDate"
+			            							value="#{MbReimbBatchSearch.filter.reimbDateFrom}"/>
+			            							
+			            			
+			                		<h:outputLabel value="#{lblAcquiring.reimb_channel}: " title="#{lblAcquiring.reimb_channel}" />
+						   			<h:selectOneMenu id="channel" 
+						      						value="#{MbReimbBatchSearch.filter.channelId}">
+						      			<f:selectItem itemValue=""/>
+						   				<f:selectItems value="#{MbReimbBatchSearch.reimbursementChannels}"/>
+						   			</h:selectOneMenu>
+						   			
+						   			<h:outputLabel for="reimbDateTo" value="#{lblAcquiring.reimbursement_date_to}: " 
+						   					title="#{lblAcquiring.reimbursement_date_to}" />
+			            			<rich:calendar buttonIcon="/images/calendar.gif" id="reimbDateTo" datePattern="#{usession.datePattern}" inputClass="inputDate"
+			            							value="#{MbReimbBatchSearch.filter.reimbDateTo}"/>
+			            			
+		                			<h:outputLabel value="#{lblCommon.status}: " title="#{lblCommon.status}" />
+						   			<h:selectOneMenu id="status"
+						      						value="#{MbReimbBatchSearch.filter.status}">
+						      			<f:selectItem itemValue=""/>
+						   				<f:selectItems value="#{MbReimbBatchSearch.reimbursementStatuses}"/>
+						   			</h:selectOneMenu>
+		                			
+									<h:outputLabel for="operDateFrom" value="#{lblAcquiring.operation_date_from}: "  
+											title="#{lblAcquiring.operation_date_from}" />
+			            			<rich:calendar buttonIcon="/images/calendar.gif" id="operDateFrom" datePattern="#{usession.datePattern}" inputClass="inputDate"
+			            							value="#{MbReimbBatchSearch.filter.operDateFrom}"/>
+			            	
+			            			<h:outputLabel for="operDateTo" value="#{lblAcquiring.operation_date_to}: " 
+			            					title="#{lblAcquiring.operation_date_to}" />
+			            			<rich:calendar buttonIcon="/images/calendar.gif" id="operDateTo" datePattern="#{usession.datePattern}" inputClass="inputDate"
+			            							value="#{MbReimbBatchSearch.filter.operDateTo}"/>
+			                	</h:panelGrid>
+		                		<h:panelGrid columns="1" >
+			                		<bre:taggedCommandButton value="#{lblForm.search}" style="width:85px;"
+			                				reRender="mainTable, ds, reimbBatchBtnForm, detailsTab, operTab"
+			                				id="searchBtn"
+			                				action="#{MbReimbBatchSearch.search}"
+			                				onclick="disableModalPanelBtns(this);"
+			                				oncomplete="updateHeight(); enableModalPanelBtns(this);"
+			                				image="/_img/icon_search.png" type="submit" 
+			                				eventsQueue="queue"/>
+			                		<h:panelGroup styleClass="link-clear" layout="block"  >
+			                			<h:graphicImage url="/_img/icon_clear.png"/>
+			                			<a4j:commandLink value="#{lblForm.clear_all}"
+			                					action="#{MbReimbBatchSearch.clearFilter}"
+			                					reRender="reimbBatchSearchForm, reimbBatchForm, reimbBatchBtnForm,details"
+			                					/>
+			                		</h:panelGroup>
+			                	</h:panelGrid>
+		                	</h:panelGrid>
+		                </h:panelGroup>
+	                	
+	                	<a4j:outputPanel ajaxRendered="true">
+	                		<h:panelGroup styleClass="show-more-vert" layout="block"/>
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>	                	
+	                </h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+	
+	<h:form id="reimbBatchForm">
+        <h:panelGroup styleClass="search_result_block" layout="block">
+        	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+        		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+			     <rich:extendedDataTable enableContextMenu="true"
+				           id="mainTable"
+				           tableState="#{MbReimbBatchSearch.tableState}"
+				           styleClass="res-table"
+				           headerClass="res-table-header"
+				           rowClasses=",odd"
+				           selectedClass="res-table-selected"
+				           var="item"
+				           value="#{MbReimbBatchSearch.batchEntries}"
+				           selection="#{MbReimbBatchSearch.itemSelection}"
+				           rows="#{MbReimbBatchSearch.rowsNum}"
+				           height="255px"
+				           selectionMode="single"
+				           noDataLabel="#{MbReimbBatchSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+				           reRender="reimbBatchBtnForm, detailsTab, operTab">
+
+						<a4j:support event="onselectionchange" eventsQueue="queue"
+	                    		reRender="reimbBatchBtnForm, detailsTab, operTab"/>
+
+						<rich:column id="operDate" label="#{lblAcquiring.oper_date}" title="#{lblAcquiring.oper_date}" sortBy="#{'operDate'}">
+				           <f:facet name="header">
+			                     <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblAcquiring.oper_date}" title="#{lblAcquiring.oper_date}"/>
+								</a4j:outputPanel>	
+			                </f:facet>
+			                <h:outputText value="#{item.operDate}">
+			                	<f:convertDateTime pattern="#{usession.datePattern}"/>
+			                </h:outputText>
+				        </rich:column>
+				        
+				        <rich:column id="reimbursementDate" label="#{lblAcquiring.reimbursement_date}" title="#{lblAcquiring.reimbursement_date}" sortBy="#{'reimbDate'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcquiring.reimbursement_date}" title="#{lblAcquiring.reimbursement_date}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.reimbDate}">
+			                	<f:convertDateTime pattern="#{usession.datePattern}"/>
+			                </h:outputText>
+				        </rich:column>
+				        
+				        <rich:column id="postingDate" label="#{lblAcquiring.posting_date}" title="#{lblAcquiring.posting_date}" sortBy="#{'postingDate'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcquiring.posting_date}" title="#{lblAcquiring.posting_date}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.postingDate}">
+			            	    <f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+			                </h:outputText>
+				        </rich:column>
+				        
+				        <rich:column id="grossAmount" label="#{lblAcquiring.gross_amount}" title="#{lblAcquiring.gross_amount}" sortBy="#{'grossAmount'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcquiring.gross_amount}" title="#{lblAcquiring.gross_amount}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.grossAmount}" converter="bpc.CurrencyConverter">
+								<f:attribute name="exponent"
+									value="#{CurrencyUtils.currencyObjectsMap[item.currency].exponent}" />
+			                </h:outputText>
+				        </rich:column>
+				        
+				        <rich:column id="serviceCharge" label="#{lblAcquiring.service_charge}" title="#{lblAcquiring.service_charge}" sortBy="#{'serviceCharge'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcquiring.service_charge}" title="#{lblAcquiring.service_charge}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.serviceCharge}" converter="bpc.CurrencyConverter">
+								<f:attribute name="exponent"
+									value="#{CurrencyUtils.currencyObjectsMap[item.currency].exponent}" />
+			                </h:outputText>
+				        </rich:column>
+				        
+				        <rich:column id="taxAmount" label="#{lblAcquiring.tax_amount}" title="#{lblAcquiring.tax_amount}" sortBy="#{'taxAmount'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcquiring.tax_amount}" title="#{lblAcquiring.tax_amount}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.taxAmount}" converter="bpc.CurrencyConverter">
+								<f:attribute name="exponent"
+									value="#{CurrencyUtils.currencyObjectsMap[item.currency].exponent}" />
+			                </h:outputText>
+				        </rich:column>
+				        
+				        <rich:column id="netAmount" label="#{lblAcquiring.net_amount}" title="#{lblAcquiring.net_amount}" sortBy="#{'netAmount'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcquiring.net_amount}" title="#{lblAcquiring.net_amount}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.netAmount}" converter="bpc.CurrencyConverter">
+								<f:attribute name="exponent"
+									value="#{CurrencyUtils.currencyObjectsMap[item.currency].exponent}" />
+			                </h:outputText>
+				        </rich:column>
+				        
+				        <rich:column id="operCount" label="#{lblAcquiring.oper_count}" title="#{lblAcquiring.oper_count}" sortBy="#{'operCount'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcquiring.oper_count}" title="#{lblAcquiring.oper_count}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.operCount}">
+			                </h:outputText>
+				        </rich:column>
+				        
+						<rich:column id="sessionFileId" label="#{lblAcquiring.session_file_id}" title="#{lblAcquiring.session_file_id}" sortBy="#{'sessionFileId'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcquiring.session_file_id}" title="#{lblAcquiring.session_file_id}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.sessionFileId}" title="#{item.sessionFileId}"/>
+				        </rich:column>
+				        
+		                <rich:column id="institution" label="#{lblCommon.institution}" title="#{lblCommon.institution}" sortBy="#{'instId'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}"/>
+			                </f:facet>
+			                <bm:entityDisplay  entityId="#{item.instId}"
+									value="#{item.instName}"/>
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="reimbBatchBtnForm">
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+	                        <h:selectOneMenu id="rows_num" value="#{MbReimbBatchSearch.rowsNum}" styleClass="row_per_page">
+	                        	<a4j:support event="onclick" reRender="mainTable, ds, reimbBatchBtnForm, detailsTab, operTab"/>
+                        		<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+				                    pagesVar="pages" styleClass="res-datascroller"
+				                    reRender="reimbBatchBtnForm, detailsTab, operTab"
+				                    id="ds" for="reimbBatchForm:mainTable">
+			                    <f:facet name="first">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="first_disabled">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="last">
+			                        <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="last_disabled">
+			                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="previous">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="previous_disabled">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="next">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="next_disabled">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="pages">
+			                    </f:facet>
+			                </rich:datascroller>
+
+                        	<h:panelGroup id="pagesNum">
+	                        	<h:outputText styleClass="strongClass" value="#{pages} "/>
+	                        	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbReimbBatchSearch.batchEntries.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                        	</h:panelGroup>
+                        	
+                        	<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbReimbBatchSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbReimbBatchSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+                        </h:panelGrid>
+					</h:panelGroup>
+					<h:panelGrid styleClass="buttons_block" columns="3" id="btns">
+						<bre:taggedCommandButton
+							action="#{MbReimbBatchSearch.edit}" id="btn_edit_batch"
+							value="#{lblForm.edit}" disabled="#{MbReimbBatchSearch.activeBatchEntry == null }"
+							oncomplete="#{rich:component('batchPanel')}.show()"
+							reRender="acq_reimb_batch_modal_header, acq_reimb_batch_modal_div"
+							image="/images/edit.gif"
+							/>
+		            </h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbReimbBatch.tabName}" oncomplete="updateHeight();">
+                <a4j:actionparam name="tabName" assignTo="#{MbReimbBatch.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+			<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+			    		activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+			    		contentClass="tab-content" selectedTab="#{MbReimbBatch.tabName}">
+
+            	<rich:tab ontabenter="storeTab('detailsTab')" label="#{lblCommon.details}" name="detailsTab">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+                	<h:panelGroup id="detailsTab" layout="block">
+						<ui:include src="/pages/acquiring/reimbursement/reimb_batch_details.jspx"></ui:include>
+						<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+       				</h:panelGroup>
+           		</rich:tab>
+           		
+           		<rich:tab ontabenter="storeTab('operTab')" label="#{lblAcquiring.operations}" name="operTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblAcquiring.operations}" title="#{lblAcquiring.operations}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+               		<h:panelGroup id="operTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/acquiring/reimbursement/list_reimb_oper_bottom.jspx"></ui:include>
+					</h:panelGroup>
+           		</rich:tab>
+   			</rich:tabPanel>
+		</h:panelGroup>
+
+		<rich:modalPanel id="batchPanel" autosized="true" minWidth="200" minHeight="100" showWhenRendered="#{MbReimbBatchSearch.showModal}">
+	    	<f:facet name="header">
+	        	<h:panelGroup id="acq_reimb_batch_modal_header">
+        			<h:outputText rendered="#{!MbReimbBatchSearch.managingNew}" value="#{lblAcquiring.edit_batch}"/>
+        			<h:outputText rendered="#{MbReimbBatchSearch.managingNew}" value="#{lblAcquiring.new_batch}"/>
+        		</h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+			</f:facet>
+
+			<h:form id="entryEditForm">
+			    <h:panelGrid id="acq_reimb_batch_modal_div">
+			    	<ui:include src="/pages/acquiring/reimbursement/reimb_batch_edit.jspx"/>
+				</h:panelGrid>
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		     	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+							<h:outputText/>
+							<bre:taggedCommandButton
+				            		value="#{lblForm.save}" type="submit"
+				                	reRender="reimbBatchForm:mainTable, reimbBatchForm:detailsTab,
+				                			reimbBatchForm:operTab"
+				                	action="#{MbReimbBatchSearch.save}" 
+				                	onclick="if (!checkReimbBatchFields()) return false; disableModalPanelBtns(this)"
+				                	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse})#{rich:component('batchPanel')}.hide()"
+				                	/>
+							<bre:taggedCommandButton
+									value="#{lblForm.cancel}"
+									action="#{MbReimbBatchSearch.cancel}" immediate="true"
+									oncomplete="#{rich:component('batchPanel')}.hide()"
+									>
+								<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+							</bre:taggedCommandButton>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+	
+	<script>
+		//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.css" style and "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel" и layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+			
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'reimbBatchSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'reimbBatchForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'reimbBatchBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'reimbBatchDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'reimbBatchDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'reimbOperBtmForm',
+	                                    TAB_FORM_WRAPPER_ID:    'mainTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>
+</ui:define>
+</ui:composition>
+</html>

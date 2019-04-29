@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:o="http://openfaces.org/"
+	  xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+	
+		<a4j:outputPanel ajaxRendered="true" id="q_bundle_session">
+			<o:loadBundle var="lblProcess" basename="ru.bpc.sv2.ui.bundles.Process"/>
+			<o:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+		</a4j:outputPanel>
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblProcess.process_logs}"/>
+		<bpct:filterBarModalPanels id="filterPanels"
+			rerenderList="filtersTable, processTreeTable, ds, pagesNum, save_filter_panel_div"
+			selectedFilter="#{MbProcessSessions.selectedSectionFilter}"
+			sectionFilter="#{MbProcessSessions.sectionFilter}"
+			sectionFilterModeEdit="#{MbProcessSessions.sectionFilterModeEdit}"
+			searchAutomatically="#{MbProcessSessions.searchAutomatically}"
+			sectionId="#{MbProcessSessions.sectionId}"
+			beanName="MbProcessSessions"/>
+			
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNext"/>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+		function handleEnter(event) {
+						 if (event.keyCode == 13) {
+							 document.getElementById('prcSessionsSearchForm:searchBtn').click(); 
+							 return false; 
+						} 
+						return true;
+					 }	
+		//]]>
+		</script>
+							
+		<h:form id="prcSessionsSearchForm" onkeypress="handleEnter(event)">
+			<a4j:poll action="#{MbProcessStat.search}" id="poll" enabled="#{MbProcessSessions.pollingEnabled}" reRender="statTab" interval="5000" eventsQueue="queue"> </a4j:poll>
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+						<h:panelGroup styleClass="search_block_left" layout="block">
+							<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+								<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+										columnClasses="firstCol,secondCol,firstCol,secondCol" id="filtersTable">
+									<h:outputLabel for="processName" title="#{lblProcess.process_name}" 
+											value="#{lblProcess.process_name}: "/>
+									<h:selectOneMenu id="processName"
+										value="#{MbProcessSessions.filter.processId}">
+										<f:selectItem itemValue="" itemLabel="" />
+										<f:selectItems value="#{MbProcessSessions.processes}" />
+									</h:selectOneMenu>
+										
+									<h:outputLabel for="startDate" value="#{lblProcess.start_date}: " title="#{lblProcess.start_date}" />
+									<rich:calendar buttonIcon="/images/calendar.gif" id="startDate"
+											datePattern="#{usession.datePattern}" enableManualInput="true"
+											value="#{MbProcessSessions.filter.startDate}"
+											timeZone="#{CommonUtils.timeZone}" inputStyle="max-width:225px"/>
+									
+									<h:outputLabel for="sessionId" title="#{lblProcess.session_id}" value="#{lblProcess.session_id}: "/>
+									<h:inputText id="sessionId"	value="#{MbProcessSessions.filter.sessionIdFilter}"/>
+									
+									<h:outputLabel for="endDate" value="#{lblProcess.end_date}: " title="#{lblProcess.end_date}" />
+									<rich:calendar buttonIcon="/images/calendar.gif" id="endDate"
+											datePattern="#{usession.datePattern}" enableManualInput="true"
+											value="#{MbProcessSessions.filter.endDate}"
+											timeZone="#{CommonUtils.timeZone}" inputStyle="max-width:225px"/>
+
+									<h:outputLabel for="instFilter" value="#{lblCommon.institution}: " title="#{lblCommon.institution}" />
+									<h:selectOneMenu id="instFilter" value="#{MbProcessSessions.filter.instId}">
+										<f:selectItem itemValue=""/>
+										<f:selectItems value="#{MbProcessSessions.institutions}"/>
+									</h:selectOneMenu>
+								</h:panelGrid>
+								<h:panelGrid columns="1">
+									<bre:taggedCommandButton action="#{MbProcessSessions.search}"
+											reRender="processTreeTable, prcSessionsBtnForm, #{MbProcessSessions.tabName}"
+											id="searchBtn"
+											image="/_img/icon_search.png" type="submit" value="#{lblForm.search}"
+											style="width:85px;"
+											eventsQueue="queue"
+											onclick="disableModalPanelBtns(this);"
+											oncomplete="enableModalPanelBtns(this);"/>
+									<h:panelGrid columns="1" >
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+													action="#{MbProcessSessions.clearFilter}"
+													reRender="prcSessionsSearchForm, prcSessionsForm, prcSessionsBtnForm, #{MbProcessSessions.tabName}">
+											</a4j:commandLink>
+										</h:panelGroup>
+										
+										<h:panelGroup>
+											<bpct:filterBar sectionId="#{MbProcessSessions.sectionId}" />
+										</h:panelGroup>
+									</h:panelGrid>
+								</h:panelGrid>
+							</h:panelGrid>
+							<a4j:outputPanel ajaxRendered="true">
+								<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</a4j:outputPanel>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="prcSessionsForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+				<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+                    <h:panelGroup id="mainTableWrapper" layout="block"
+                                  styleClass="search_result_block_tree_inner">
+                        <o:treeTable id="processTreeTable" var="prcss"
+                                     expansionState="allExpanded" sortColumnId="sessionId"
+                                     sortAscending="false"
+                                     headerHorizSeparator="1px solid #D7DAC2"
+                                     headerVertSeparator="1px solid #D7DAC2"
+                                     headerSectionClass="res-tree-table-header"
+                                     commonHeaderRowClass="res-tree-table-header"
+                                     sortableHeaderClass="res-tree-table-header"
+                                     sortedColumnHeaderClass="res-tree-table-header"
+                                     sortableHeaderRolloverClass="res-tree-table-header"
+                                     styleClass="res-tree-table"
+                                     bodyOddRowClass="res-tree-table-row odd-tree-table"
+                                     bodyRowClass="res-tree-table-row"
+                                     headerRowClass="res-tree-table-header"
+                                     verticalGridLines="1px solid #D7DAC2" cellpadding="0"
+                                     cellspacing="0" preloadedNodes="all" style="height:100%"
+                                     onmousedown="handleMouseClick(event)"
+                                     useAjax="false">
+                            <o:scrolling />
+                            <o:columnResizing minColWidth="70px" />
+                            <f:facet name="noDataMessage">
+                                <h:panelGroup>
+                                    <h:outputText value="#{lblCommon['no_records_found']}"
+                                                  rendered="#{MbProcessSessions.searching}" />
+                                    <h:outputText
+                                            value="#{lblCommon['enter_search_criteria_above']}"
+                                            rendered="#{!MbProcessSessions.searching}" />
+                                </h:panelGroup>
+                            </f:facet>
+
+                            <o:dynamicTreeStructure nodeChildren="#{MbProcessSessions.nodeChildren}"
+                                                    nodeHasChildren="#{MbProcessSessions.nodeHasChildren}"
+                                                    nodeKey="#{prcss.sessionId}" />
+
+                            <o:singleNodeSelection nodePath="#{MbProcessSessions.nodePath}"
+                                                   nodeData="#{MbProcessSessions.node}" keyboardSupport="false"
+                                                   styleClass="treetable_selection">
+                                <a4j:support event="onchange" eventsQueue="queue"
+                                             reRender="prcSessionsBtnForm:btnPanel,poll,#{MbProcessSessions.tabName}" />
+                            </o:singleNodeSelection>
+
+                            <o:treeColumn id="processName" sortingExpression="#{prcss.processName}"
+                                      width="25%" sortingComparator="#{MbProcessSessions.nameComparator}">
+                                <f:facet name="header">
+                                    <a4j:outputPanel layout="none">
+                                        <script>updateHeight();</script>
+                                        <h:outputText value="#{lblProcess.process_name}" />
+                                    </a4j:outputPanel>
+                                </f:facet>
+                                <h:panelGroup id="process">
+                                    <h:graphicImage url="/images/process.png" title="Process" rendered="#{!prcss.isContainer}" style="float:left; margin-left: 8px; margin-right: 8px;">
+                                    </h:graphicImage>
+                                    <h:graphicImage url="/images/container.png" title="Container" rendered="#{prcss.isContainer}" style="float:left; margin-left: 8px; margin-right: 8px;">
+                                    </h:graphicImage>
+                                    <bm:entityDisplay contextType="ENTTSESS" bean="MbProcessSessions" value="#{prcss.processName}" styleClass="res-tree-table-cell"/>
+                                </h:panelGroup>
+                            </o:treeColumn>
+
+                            <o:column id="sessionId" sortingExpression="#{prcss.sessionId}" width="12%"
+                                      sortingComparator="#{MbProcessSessions.nameComparator}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblProcess.session_id}" />
+                                </f:facet>
+								<h:panelGroup layout="block" class="#{prcss.filesCount>0?'default_icon file':''}" title="Process has incoming or outgoing files" style="float:right; margin-right: 10px;" rendered="#{prcss.location!=null}"/>
+								<h:panelGroup layout="block" class="#{prcss.filesCount>0?'default_icon file':''}" title="Process has incoming or outgoing files" style="float:right; margin-right: 10px; opacity:0.5" rendered="#{prcss.location==null}"/>
+                                <bm:entityDisplay contextType="ENTTSESS" bean="MbProcessSessions" value="#{prcss.sessionId}" styleClass="res-tree-table-cell"/>
+                            </o:column>
+
+                            <o:column id="processStartDate" sortingExpression="#{prcss.startDate}" width="12%"
+                                      sortingComparator="#{MbProcessSessions.nameComparator}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblProcess.process_start_date}" />
+                                </f:facet>
+                                <h:outputText value="#{prcss.startDate}" styleClass="treeTableText">
+                                    <f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+                                                       timeZone="#{CommonUtils.timeZone}" />
+                                </h:outputText>
+                            </o:column>
+
+                            <o:column id="processEndDate" sortingExpression="#{prcss.endDate}" width="12%"
+                                      sortingComparator="#{MbProcessSessions.nameComparator}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblProcess.process_end_date}" />
+                                </f:facet>
+                                <h:outputText value="#{prcss.endDate}" styleClass="treeTableText">
+                                    <f:convertDateTime pattern="#{usession.datePattern} HH:mm:ss"
+                                                       timeZone="#{CommonUtils.timeZone}" />
+                                </h:outputText>
+                            </o:column>
+
+                            <o:column id="processState" styleClass="res-tree-table-cell" width="5%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.status}" />
+                                </f:facet>
+                                <h:panelGroup id="state">
+                                    <div class="default_icon #{EntityIcons.objectsMap['ENTT0047'][prcss.resultCode]}"
+                                         title="#{DictUtils.articles[prcss.resultCode]}"/>
+                                    <bm:entityDisplay contextType="ENTTSESS" bean="MbProcessSessions" rendered="false"
+                                                      value="#{DictUtils.articles[prcss.resultCode]}"/>
+                                </h:panelGroup>
+                            </o:column>
+
+                            <o:column id="userName" sortingExpression="#{prcss.userName}" width="10%"
+                                      sortingComparator="#{MbProcessSessions.nameComparator}">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblCommon.user}" />
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTSESS" bean="MbProcessSessions"
+                                                  value="#{prcss.userName}" styleClass="treeTableText"/>
+                            </o:column>
+
+                            <o:column id="threadCount" width="15%" rendered="false">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblProcess.thread_count}" />
+                                </f:facet>
+                                <bm:entityDisplay contextType="ENTTSESS" bean="MbProcessSessions" value="#{prcss.threadCount}" styleClass="treeTableText"/>
+                            </o:column>
+
+                            <o:column id="progress" styleClass="res-tree-table-cell" width="15%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblProcess.progress}" />
+                                </f:facet>
+                                <rich:progressBar id="progressBar" rendered="#{prcss.progress != null}" enabled="false" value="#{prcss.progress}" maxValue="100" minValue="0" style="height:15px;width:69px">
+                                    <h:outputText value="{value}%"/>
+                                </rich:progressBar>
+                            </o:column>
+
+                            <o:column id="estimatedCount" width="10%">
+                                <f:facet name="header">
+                                    <h:outputText value="#{lblProcess.estimated_count}" />
+                                </f:facet>
+                                <h:outputText value="#{prcss.processed}/#{prcss.estimated}" title="#{prcss.processed}/#{prcss.estimated}" styleClass="treeTableText"/>
+                            </o:column>
+
+							<o:column id="measure" width="10%">
+								<f:facet name="header">
+									<h:outputText value="#{lblProcess.measure}"/>
+								</f:facet>
+								<h:outputText value="#{DictUtils.articles[prcss.measure]}" title="#{DictUtils.articles[prcss.measure]}" styleClass="treeTableText"/>
+							</o:column>
+
+                        </o:treeTable>
+                        <a4j:outputPanel ajaxRendered="true">
+                            <h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tree-tab" layout="block"/>
+                            <h:graphicImage url="/_img/hd_searchblock.gif"
+                                            styleClass="hd-searchblock" />
+                            <h:panelGroup styleClass="collapse-vert" layout="block" />
+                        </a4j:outputPanel>
+                    </h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="prcSessionsBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="4">
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}"
+								title="#{lblCommon.rows_per_page}" />
+							<h:selectOneMenu id="rows_num"
+								value="#{MbProcessSessions.rowsNum}" styleClass="row_per_page">								
+								<a4j:support event="onchange"
+									reRender="prcSessionsForm, prcSessionsBtnForm" />
+								<f:selectItems value="#{MbProcessSessions.rowNumsList}" />
+							</h:selectOneMenu>
+
+							<h:panelGroup id="navigation">
+								<h:commandLink value="&lt;&lt;" style="padding-left:10px; padding-right:10px"
+									styleClass="prev-next" action="#{MbProcessSessions.firstPage}"
+									disabled="#{!MbProcessSessions.hasPrevPage}">
+								</h:commandLink>
+
+								<h:commandLink value="#{lblCommon.prev}"
+									style="#padding-left:10px; padding-right:10px" styleClass="prev-next"
+									action="#{MbProcessSessions.prevPage}"
+									disabled="#{!MbProcessSessions.hasPrevPage}">
+								</h:commandLink>
+
+								<a4j:repeat var="page" value="#{MbProcessSessions.pagesList}">
+									<h:commandLink value="#{page}"
+										style="#{MbProcessSessions.currentPage==page?
+								           'padding-left:5px; padding-right:5px; background-color: lightblue; color: white; '
+								                  : 'padding-left:5px; padding-right:5px;'}"
+										action="#{MbProcessSessions.setCurrentPage(page)}"
+										disabled="#{MbProcessSessions.currentPage==page}">
+									</h:commandLink>
+								</a4j:repeat>
+
+								<h:commandLink value="#{lblCommon.next}"
+									style="padding-left:10px" styleClass="prev-next"
+									action="#{MbProcessSessions.nextPage}"
+									disabled="#{!MbProcessSessions.hasNextPage}">
+								</h:commandLink>
+
+								<h:commandLink value="&gt;&gt;" style="padding-left:10px"
+									styleClass="prev-next" action="#{MbProcessSessions.lastPage}"
+									disabled="#{!MbProcessSessions.hasNextPage}">
+								</h:commandLink>
+							</h:panelGroup>
+
+							<h:panelGroup id="pagesNum">
+								<h:outputText styleClass="strongClass"
+									value="#{MbProcessSessions.pageCount} " />
+								<h:outputText value=" #{lblCommon.pages}" />
+								<h:outputText value=""
+									style="padding-left: 20px; padding-right: 20px;" />
+								<h:outputText styleClass="strongClass"
+									value="#{MbProcessSessions.rowCount}" />
+								<h:outputText value=" #{lblCommon.records}" />
+								<h:outputText value=""
+									style="padding-left: 20px; padding-right: 20px;" />
+							</h:panelGroup>
+
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_block-tree">
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_left-tree">
+							<h:panelGrid id="btnPanel" columns="4" styleClass="buttons_block">
+								<bre:taggedCommandButton id="operBtn"
+									value="#{lblCommon.actions}"
+									disabled="#{MbProcessSessions.node == null}"
+									action="#{MbProcessSessions.setupOperTypeSelection}"
+									reRender="sessionswizardWindow"
+									oncomplete="if (#{usession.noErrorResponse}){Richfaces.showModalPanel('sessionswizardWindow');}" />
+							</h:panelGrid>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+
+
+		<h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true"
+                            ignoreDupResponses="true" eventsQueue="queue" requestDelay="500" reRender="#{MbProcessSessions.rerenderList}">
+                <a4j:actionparam name="tabName" assignTo="#{MbProcessSessions.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block"
+			id="workplacePanel">
+			<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+				activeTabClass="active-tab-cell" headerClass="tabs"
+				headerSpacing="0px" contentClass="tab-content">
+				<rich:tab ontabenter="storeTab('detailsTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.details}"
+								title="#{lblCommon.details}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="detailsTab" layout="block">
+						<ui:include
+							src="/pages/processes/monitoring/process_session_details.jspx"></ui:include>
+						<h:panelGroup layout="block"
+							styleClass="bottom_search_result_block_buttons"/>
+					</h:panelGroup>
+				</rich:tab>
+				<rich:tab ontabenter="storeTab('statTab')" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblProcess.stat}"
+								title="#{lblProcess.stat}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="statTab" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/processes/monitoring/list_process_stat.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('traceTab')" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblProcess.trace}"
+								title="#{lblProcess.trace}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="traceTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/processes/monitoring/list_process_trace.jspx">
+							<ui:param name="show_user_id" value="true"></ui:param>
+						</ui:include>
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab style="height:100%;" ontabenter="storeTab('hierarchyTab')">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblProcess.hierarchy}"
+								title="#{lblProcess.hierarchy}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="hierarchyTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/processes/monitoring/listProcessHierarchy.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('paramTab')" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblProcess.launch_parameters}"
+								title="#{lblProcess.launch_parameters}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="paramTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/processes/monitoring/processLaunchParameters.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+
+				<rich:tab ontabenter="storeTab('fileTab')" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCommon.files }"
+								title="#{lblCommon.files }" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="fileTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/processes/monitoring/sessionFiles.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+				
+				<rich:tab ontabenter="storeTab('operStatsTab')" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblOpr.operations}"
+								title="#{lblOpr.operations}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup layout="block" styleClass="carddata-wrapper"
+						id="operStatsTab" style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include
+							src="/pages/processes/monitoring/operationsStat.jspx" />
+					</h:panelGroup>
+				</rich:tab>
+			</rich:tabPanel>
+		</h:panelGroup>
+		
+		<ui:include src="/pages/common/wizard/commonWizard.jspx">
+			<ui:param name="bean" value="MbProcessSessions" />
+			<ui:param name="action" value="updateSessions" />
+			<ui:param name="reRender" value="processTreeTable, detailsTab" />
+			<ui:param name="viewId" value="sessions" />
+		</ui:include>
+		
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.css" style and "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel"¸ layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+			
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'prcSessionsSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'prcSessionsForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'prcSessionsBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'prcSessionDetailsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'prcSessionDetailsWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                    }, {
+	                                    TAB_FORM_ID:            'statForm',
+	                                    TAB_FORM_WRAPPER_ID:    'statTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'traceForm',
+	                                    TAB_FORM_WRAPPER_ID:    'statTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.PAGINATED_AND_BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'processForm',
+	                                    TAB_FORM_WRAPPER_ID:    'processTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'procLaunchParamsForm',
+	                                    TAB_FORM_WRAPPER_ID:    'procLaunchParamsTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'filesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'filesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'operStatForm',
+	                                    TAB_FORM_WRAPPER_ID:    'operStatTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'entryStatForm',
+	                                    TAB_FORM_WRAPPER_ID:    'entryStatTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.BUTTONS
+	                                    }]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>
+	</ui:define>
+</ui:composition>
+</html>

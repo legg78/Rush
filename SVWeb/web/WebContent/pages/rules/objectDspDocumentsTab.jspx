@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:fmt="http://www.bpc.ru/el/formatter"
+      xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition>
+    <f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt" />
+
+    <h:form id="documentsForm" style="overflow:hidden; height: 250px;">
+
+        <h:panelGroup id="documentsTableWrapper" layout="block"
+                      style="padding:0px;margin:0px;">
+            <rich:extendedDataTable id="documentsTable" styleClass="res-table"
+                                    headerClass="res-table-header table-header-ext" rowClasses=",odd"
+                                    selectedClass="res-table-selected" var="item"
+                                    value="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).dataModel}" selectionMode="single"
+                                    selection="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).itemSelection}" width="100%"
+                                    rows="0" height="220px"
+                                    enableContextMenu="true" border="0"
+                                    tableState="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).tableState}"
+                                    noDataLabel="#{lblCommon.no_records_found}"
+                                    onRowMouseDown="handleMouseClick(event)">
+
+                <rich:column id="id" label="Id" title="Id"
+                             sortBy="#{'id'}" width="10%" sortOrder="DESCENDING">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblCommon.id}"
+                                      title="#{lblCommon.id}" />
+                    </f:facet>
+                    <h:outputText
+                            value="#{item.id}"
+                            title="#{item.id}"/>
+                </rich:column>
+
+                <rich:column id="document_type" label="Document Type" title="Document Type"
+                             sortBy="#{'documentType'}" width="20%">
+                    <f:facet name="header">
+                        <h:panelGroup>
+                            <script>
+                                updateHeight();
+                            </script>
+                            <h:outputText value="#{lblRpt.document_type}"
+                                          title="#{lblRpt.document_type}" />
+                        </h:panelGroup>
+                    </f:facet>
+                    <f:facet name="filter">
+                        <h:selectOneMenu value="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).filter.documentType}"  style="width: 100%;">
+                            <f:selectItem itemValue=""/>
+                            <f:selectItems value="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).documentTypes}" />
+                            <a4j:support event="onchange" reRender="documentsTableWrapper"
+                                         ajaxSingle="true" limitToList="true"
+                                         action="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).search}"
+                                         oncomplete="if (#{objectDocumentsBean!=null}) { updateContextHeight('#{detailsModalPanel}');}"/>
+                        </h:selectOneMenu>
+                    </f:facet>
+
+                    <h:outputText value="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).documentTypeNames[item.documentType]}"
+                                  title="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).documentTypeNames[item.documentType]}"/>
+                </rich:column>
+
+                <rich:column id="file_name" label="File name" title="File name"
+                             sortBy="#{'fileName'}" width="25%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblRpt.file}"
+                                      title="#{lblRpt.file}" />
+                    </f:facet>
+                    <h:outputText
+                            value="#{item.fileName}"
+                            title="#{item.fileName}"/>
+                </rich:column>
+
+                <rich:column id="document_date" label="Document Date" title="Document Date"
+                             sortBy="#{'documentDate'}" width="25%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblRpt.document_date}"
+                                      title="#{lblRpt.document_date}" />
+                    </f:facet>
+                    <h:outputText
+                            value="#{fmt:formatDate(item.documentDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"
+                            title="#{fmt:formatDate(item.documentDate, usession.fullDatePatternSeconds, CommonUtils.timeZoneId)}"/>
+                </rich:column>
+
+
+            </rich:extendedDataTable>
+
+        </h:panelGroup>
+
+        <h:panelGroup layout="block"
+                      styleClass="bottom_search_result_block_buttons" style="padding-right:9px">
+            <h:panelGrid styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+                <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                    <h:panelGrid id="fileBtnPanel" columns="5" style="vertical-align: top;" cellpadding="0" cellspacing="0">
+                        <h:panelGroup styleClass="stdButton">
+                            <bre:taggedCommandButton
+                                    id="addBtn" value="#{lblMsg.ATTACH}"
+                                    reRender="dsp_application_attach_modal_header,dsp_application_attach_modal_div, dspApplAttachEditForm"
+                                    action="#{MbAppWizDspNew.addFile}"
+                                    oncomplete="#{rich:component('dsp_application_attach_modal')}.show();"
+                                    rendered="#{usession.inRole['ADD_DISPUTE_ATTACHMENT']}"
+                                    disabled="#{activeObject == null or MbObjectDspDocuments.isAttachDisabled() or disabledButtons}"
+                                    image="/images/create_doc.gif"/>
+                        </h:panelGroup>
+
+                        <h:panelGroup styleClass="stdButton">
+                            <bre:taggedCommandButton
+                                    action="#{MbObjectDspDocuments.checkFile}"
+                                    value="#{lblProcess.download}"
+                                    disabled="#{MbObjectDspDocuments.activeItem == null or disabledButtons}"
+                                    reRender="choiceAction, downloadFileLink"
+                                    oncomplete="choiceAction()"
+                                    />
+                        </h:panelGroup>
+                    </h:panelGrid>
+                </h:panelGroup>
+                <h:panelGroup>
+                    <h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+                                    onclick="saveDocumentTableState();"/>
+                    <h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+                                    onclick="deleteDocumentTableState();"/>
+                    <a4j:queue name="tablestatequeue"/>
+                    <a4j:jsFunction name="saveDocumentTableState" action="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+                    <a4j:jsFunction name="deleteDocumentTableState" action="#{(objectDocumentsBean==null ? MbObjectDspDocuments : objectDocumentsBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+                </h:panelGroup>
+            </h:panelGrid>
+        </h:panelGroup>
+        <h:panelGroup id="choiceAction">
+            <script>
+                choiceAction = function(){
+                    if (#{MbObjectDspDocuments.fileExists}){
+                        document.getElementById('documentsForm:downloadFileLink').click();
+                    }
+                    else{
+                        #{rich:component('warningModalPanel')}.show();
+                    }
+                }
+            </script>
+        </h:panelGroup>
+        <h:commandLink id="downloadFileLink" action="#{MbObjectDspDocuments.download}" value="downloadFileLink" style="display:none"/>
+    </h:form>
+    <ui:include src="/pages/processes/monitoring/sessionFileWarning.jspx"/>
+
+</ui:composition>
+</html>

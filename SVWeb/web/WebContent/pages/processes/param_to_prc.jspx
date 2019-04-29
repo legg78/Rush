@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bm="http://www.bpc.ru/jsf/misc">
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+	function checkPrcParamForm() {
+		var checked = true;
+
+		if (document.getElementById("processParamModalForm:parameter").value == "") {
+			document.getElementById("processParamModalForm:parameterError").style.display = "inline";
+			checked = false;
+		}
+		if (document.getElementById("processParamModalForm:paramName").value == "") {
+			document.getElementById("processParamModalForm:paramNameError").style.display = "inline";
+			checked = false;
+		}
+		if (document.getElementById("processParamModalForm:displayOrder").value == "") {
+			document.getElementById("processParamModalForm:displayOrderError").style.display = "inline";
+			checked = false;
+		}
+
+		return checked;
+	}
+
+	//-->
+	</script>
+
+	<rich:modalPanel id="processParamModalPanel" autosized="true" minWidth="200" minHeight="100" showWhenRendered="#{MbProcessParamsSearch.showModal}">
+    	<f:facet name="header">
+    		<h:panelGroup id="processParamModalHeader">
+        		<h:outputText value="#{lblPrc.add_param_to_process}" rendered="#{MbProcessParamsSearch.newMode}"/>
+        		<h:outputText value="#{lblPrc.edit_process_parameter}" rendered="#{MbProcessParamsSearch.editMode}"/>
+        	</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+
+		<h:form id="processParamModalForm">
+    		<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+        		<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+					<h:outputLabel value="* #{lblCommon.parameter}: " title="#{lblCommon.parameter}"/>
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0" columnClasses="width99p, ieCol20">
+                        <rich:comboBox id="parameter" value="#{MbProcessParamsSearch.selectedParamIndex}" disabled="#{!MbProcessParamsSearch.newMode}">
+                            <f:selectItem itemValue="" itemLabel="" />
+                            <f:selectItems value="#{MbProcessParamsSearch.parametersSi}" />
+                            <a4j:support event="onchange" action="#{MbProcessParamsSearch.selectedParamChanged}" reRender="processParamModalForm" />
+                        </rich:comboBox>
+                        <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                        id="parameterError" style="display:none;">
+                            <f:param name="fieldName" value="#{lblCommon.parameter}"/>
+                        </h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+						<h:inputText id="paramName" readonly="true"
+								value="#{MbProcessParamsSearch.newProcessParam.name}"
+								onblur="hideErrorField(this)"
+								/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="paramNameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+						<rich:message for="paramName" styleClass="errorMarker"/>
+					</h:panelGrid>
+
+					<h:outputLabel for="lang" value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+					<rich:comboBox id="lang" value="#{MbProcessParamsSearch.newProcessParam.lang}" rendered="#{MbProcessParamsSearch.newMode}">
+						<f:selectItems value="#{MbProcessParamsSearch.languages}"/>
+					</rich:comboBox>
+					<rich:comboBox id="editLang" value="#{MbProcessParamsSearch.newProcessParam.lang}"
+								   rendered="#{MbProcessParamsSearch.editMode}"
+								   onchange="document.getElementById('paramToPrc:confirmPanelForm:newValue').value = document.getElementById('processParamModalForm:editLangcomboboxValue').value;
+									#{rich:component('paramToPrc:confirmPanel')}.show()">
+						<f:selectItems value="#{MbProcessParamsSearch.languages}"/>
+					</rich:comboBox>
+
+					<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+					<h:panelGroup>
+						<h:inputTextarea id="paramFullDesc" value="#{MbProcessParamsSearch.newProcessParam.description}"
+										 rows="5" cols="150" onkeypress="if (!limitText(event,this,2000)) return false;" label="#{lblCommon.description}">
+							<f:validateLength maximum="2000" />
+						</h:inputTextarea>
+						<rich:message for="paramFullDesc" styleClass="errorMarker"/>
+					</h:panelGroup>
+					
+					<h:outputLabel value="* #{lblCommon.display_order}: " title="#{lblCommon.display_order}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0" columns="1">
+						<h:inputText id="displayOrder"
+								disabled="#{!MbProcessParamsSearch.allowProcessParameterModify}"
+								value="#{MbProcessParamsSearch.newProcessParam.displayOrder}"
+								maxlength="4" label="#{lblCommon.display_order}"
+								onkeypress="if (!numbersOnly(this, event)) return false;"
+								onblur="hideErrorField(this)"
+								/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="displayOrderError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.display_order}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel  value="#{lblPrc.default_value}: " title="#{lblPrc.default_value}"/>
+					<h:inputText id="inplaceEmpty" 
+							rendered="#{MbProcessParamsSearch.newProcessParam.id == null}" 
+				   			value="" readonly="true" 
+				   			/>
+
+					<h:inputText id="inplace1"
+							disabled="#{!MbProcessParamsSearch.allowProcessParameterModify}"
+							rendered="#{MbProcessParamsSearch.newProcessParam.char 
+									and MbProcessParamsSearch.newProcessParam.lovId == null}" 
+				   			value="#{MbProcessParamsSearch.newProcessParam.valueV }"
+				   			/>
+					                           
+				    <h:inputText id="inplace2"
+							disabled="#{MbProcessParamsSearch.allowProcessParameterModify}"
+				    		rendered="#{MbProcessParamsSearch.newProcessParam.number 
+				    				and MbProcessParamsSearch.newProcessParam.lovId == null}" 
+				    		value="#{MbProcessParamsSearch.newProcessParam.valueN }"
+				    		>
+				    	<bm:convertNumberNew minFractionDigits="0"/>
+				    </h:inputText>
+				                
+				    <rich:comboBox id="inplace3"
+							disabled="#{!MbProcessParamsSearch.allowProcessParameterModify}"
+				    		rendered="#{MbProcessParamsSearch.newProcessParam.number 
+				    				and MbProcessParamsSearch.newProcessParam.lovId != null}" 
+				    		value="#{MbProcessParamsSearch.newProcessParam.valueN }"
+				    		>
+				    	<f:selectItem itemValue=""/>
+				    	<f:selectItems value="#{MbProcessParamsSearch.listValues}"/>			                
+				    </rich:comboBox>
+								
+					<rich:comboBox id="inplace4"
+							disabled="#{!MbProcessParamsSearch.allowProcessParameterModify}"
+							rendered="#{MbProcessParamsSearch.newProcessParam.char 
+									and MbProcessParamsSearch.newProcessParam.lovId != null}" 
+				    		value="#{MbProcessParamsSearch.newProcessParam.valueV }"
+				    		>
+				    	<f:selectItem itemValue=""/>
+				    	<f:selectItems value="#{MbProcessParamsSearch.listValues}"/>			                
+				    </rich:comboBox>
+					    
+				    <rich:calendar zindex="1000" buttonIcon="/images/calendar.gif" id="val3" style="width:200px"
+							disabled="#{!MbProcessParamsSearch.allowProcessParameterModify}"
+				    		rendered="#{MbProcessParamsSearch.newProcessParam.date}"
+							value="#{MbProcessParamsSearch.newProcessParam.valueD}" 
+							datePattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"
+							showApplyButton="true"/>					
+				                
+					<h:outputLabel  value="#{lblPrc.need_format}: " title="#{lblPrc.need_format}"/>
+					<h:selectBooleanCheckbox value="#{MbProcessParamsSearch.newProcessParam.format}"
+							disabled="#{!MbProcessParamsSearch.newProcessParam.char or !MbProcessParamsSearch.allowProcessParameterModify}"/>
+					
+					<h:outputLabel value="#{lblCommon.mandatory}:" title="#{lblCommon.mandatory}"/>
+					<h:selectBooleanCheckbox id="isMandatory"
+							disabled="#{!MbProcessParamsSearch.allowProcessParameterModify}"
+							value="#{MbProcessParamsSearch.newProcessParam.mandatory}"/>
+				</h:panelGrid>
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	     	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton onclick="if (!checkPrcParamForm()) return false; disableModalPanelBtns(this)"
+			            		value="#{lblForm.save}" type="submit"
+			                	reRender="#{rerenderList}"
+			                	action="#{MbProcessParamsSearch.save}" 
+			                	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('processParamModalPanel')}.hide()"
+			                	/>
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}"
+								action="#{MbProcessParamsSearch.close}" immediate="true"
+								oncomplete="#{rich:component('processParamModalPanel')}.hide()"
+								reRender="processParamModalForm">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="restoreBeanPanel">
+			<a4j:jsFunction action="#{MbProcessParamsSearch.restoreBean}"
+				name="restoreBean" limitToList="true" reRender="processParamModalForm">
+			</a4j:jsFunction>
+		</h:form>
+		<script>
+			//<![CDATA[
+			restoreBean();	
+			//]]>
+		</script>
+		
+	</rich:modalPanel>
+
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbProcessParamsSearch}"/>
+		<ui:param name="rerenderList" value="processParamModalForm:paramName, processParamModalForm:paramFullDesc, processParamModalForm:parameter"/>
+		<ui:param name="editElem" value="processParamModalForm:editLang"/>
+		<ui:param name="newValue" value="#{MbProcessParamsSearch.newProcessParam.lang}"/>
+		<ui:param name="subviewId" value="paramToPrc"/>
+		<ui:param name="formName" value="processParamModalForm" />
+	</ui:include>
+	
+</ui:composition>
+</html>

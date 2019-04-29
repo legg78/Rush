@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+
+	<!-- Absolutely the same as list_documents.jspx. Needed for using  
+		in modal panels when list_documents.jspx is used on the same page. -->
+	<h:form id="documentsInlineForm">
+	    <rich:extendedDataTable
+				id="idsInlineTable"
+				styleClass="res-table" 
+				headerClass="res-table-header"
+				rowClasses=",odd"
+				selectedClass="res-table-selected"  
+				var="item"
+				value="#{MbPersonId.personIds}"
+				selection="#{MbPersonId.itemSelection}"
+				rows="20" 
+				height="220px" 
+				selectionMode="single"
+				width="100%"
+				enableContextMenu="false"
+				noDataLabel="#{lblCommon['no_records_found']}">
+	           
+			<a4j:support event="onselectionchange"  
+					reRender="btnsInlineIds" />
+           
+			<rich:column title="Type" width="15%">
+                   <f:facet name="header">
+                   	<h:outputText value="#{lblCommon.type}" title="#{lblCommon.type}" />
+                   </f:facet>
+               	<h:outputText value="#{DictUtils.articles[item.idType]}"/>
+			</rich:column>
+               
+	        <rich:column title="Series" width="15%">
+	           <f:facet name="header">
+                    <h:outputText value="#{lblCommon.series}" title="#{lblCommon.series}" />
+                </f:facet>
+                <h:outputText value="#{item.idSeries}" />
+	        </rich:column>
+	        
+	        <rich:column title="Number" width="15%">
+	           <f:facet name="header">
+                    <h:outputText value="#{lblCommon.number}" title="#{lblCommon.number}"/>
+                </f:facet>
+                <h:outputText value="#{item.idNumber}" />
+	        </rich:column>
+
+			<rich:column title="Issuer" width="25%">
+                   <f:facet name="header">
+                   	<h:outputText value="#{lblCommon.issuer}" title="#{lblCommon.issuer}" />
+                   </f:facet>
+               	<h:outputText value="#{item.idIssuer}" />
+			</rich:column>
+               
+	        <rich:column title="Issue date" width="15%">
+	           <f:facet name="header">
+                    <h:outputText value="#{lblCommon.issue_date}" title="#{lblCommon.issue_date}" />
+                </f:facet>
+                <h:outputText value="#{item.issueDate}">
+                	<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZoneId}"/>
+                </h:outputText>
+	        </rich:column>
+	        
+	        <rich:column title="Expiration date" width="15%">
+	           <f:facet name="header">
+                    <h:outputText value="#{lblCommon.exp_date}" title="#{lblCommon.exp_date}"/>
+                </f:facet>
+                <h:outputText value="#{item.expireDate}">
+                	<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZoneId}"/>
+                </h:outputText>
+	        </rich:column>
+
+    	   	<f:facet name="footer">
+	        	
+	        </f:facet>
+	    </rich:extendedDataTable>
+	
+	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"  rendered="#{!MbPersonId.hideButtons}">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+				<h:panelGrid id="btnsInlineIds" columns="3" style="vertical-align: top;" cellpadding="0" cellspacing="0">
+	            	<bre:taggedCommandButton id="addIdBtn"
+                      		value="#{lblForm.add}" reRender="idInlineModalDiv, idInlineModalHeader"
+                      		oncomplete="#{rich:component('idInlineModalPanel')}.show()" 
+                      		action="#{MbPersonId.addDocument}"
+                      		disabled="#{MbPersonId.idOfPerson == null}"
+                      		rendered="#{usession.inRole['ADD_PERSON_ID']}"
+                      		image="/images/create_doc.gif"
+                      		/>
+	            	<bre:taggedCommandButton id="editIdBtn"
+                      		value="#{lblForm.edit}" reRender="idInlineModalDiv, idInlineModalHeader"
+                      		oncomplete="#{rich:component('idInlineModalPanel')}.show()"
+                      		action="#{MbPersonId.editDocument}" 
+                      		disabled="#{MbPersonId.activeDocument == null}"
+                      		image="/images/edit.gif"
+                      		rendered="#{usession.inRole['MODIFY_PERSON_ID']}"
+                      		/>
+					<bre:taggedCommandButton id="deleteIdBtn" 
+                      		reRender="idsInlineTable, btnsInlineIds"
+                      		value="#{lblForm.delete}" 
+                      		action="#{MbPersonId.deleteDocument}" 
+                      		disabled="#{MbPersonId.activeDocument == null}"
+                      		onclick="if (!confirm('#{lblMsg.confirm_delete}')) return false"
+                      		image="/images/delete.gif"
+                      		rendered="#{usession.inRole['REMOVE_PERSON_ID']}"
+                      		/>
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+    </h:form>
+    
+	<rich:modalPanel id="idInlineModalPanel" autosized="true" minWidth="200" minHeight="100"
+			rendered="#{usession.inRole['ADD_PERSON_ID'] or usession.inRole['MODIFY_PERSON_ID']}">
+      	<f:facet name="header">
+      		<h:panelGroup id="idInlineModalHeader">
+        		<h:outputText value="#{lblCommon.new_id}" rendered="#{MbPersonId.newMode}"/>
+        		<h:outputText value="#{lblCommon.edit_id}" rendered="#{MbPersonId.editMode}"/>
+        	</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:panelGroup id="idInlineModalDiv">
+      		<h:form id="idInlineEditForm">
+	      	    <ui:include src="/pages/common/persons/editDocument.jspx"/>
+       	    	<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    	<h:outputText/>
+							<bre:taggedCommandButton value="#{lblForm.save}" type="submit" 
+									reRender="documentsInlineForm:idsInlineTable, documentsInlineForm:btnsInlineIds"
+									action="#{MbPersonId.saveDocument}"
+									onclick="if (!checkDocumentFields('idInlineEditForm')) return false; disableModalPanelBtns(this)"
+									oncomplete="enableModalPanelBtns(this);if(#{usession.noErrorResponse})#{rich:component('idInlineModalPanel')}.hide()"
+									/>
+							<bre:taggedCommandButton value="#{lblForm.cancel}" immediate="true"
+									action="#{MbPersonId.close}"
+									oncomplete="#{rich:component('idInlineModalPanel')}.hide()"
+									reRender="idInlineEditForm">
+								<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+							</bre:taggedCommandButton>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+      	    </h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

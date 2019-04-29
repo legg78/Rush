@@ -1,0 +1,1500 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+		PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+		"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="prs">
+
+	<!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+	<sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+
+	<sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+
+	<sql id="limitationClose">
+		) q
+		<isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+	</sql>
+
+	<sql id="paginatedOpen">
+		SELECT *
+		FROM(
+		SELECT a.*, rownum r
+		FROM(
+		<include refid="limitationOpen"/>
+	</sql>
+
+	<sql id="paginatedClose">
+		<include refid="limitationClose"/>
+		) a
+		WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+		)
+		WHERE r >= (#range.start# + 1)
+	</sql>
+
+	<resultMap  id="mapping-key-schema"
+				class="ru.bpc.sv2.issuing.personalization.KeySchema">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="name"/>
+		<result property="description" column="description"/>
+		<result property="lang" column="lang"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+	</resultMap>
+
+
+	<select id="get-key-schemas"
+			parameterClass="qparams"
+			resultMap="mapping-key-schema">
+		<include refid="paginatedOpen"/>
+		SELECT 	  ks.id
+		, ks.seqnum
+		, ks.inst_id
+		, ks.name
+		, ks.description
+		, ks.lang
+		, i.name inst_name
+		FROM
+		prs_ui_key_schema_vw ks, ost_ui_institution_sys_vw i
+		WHERE
+		ks.inst_id = i.id(+)
+		AND ks.lang = i.lang(+)
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">ks.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(ks.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(ks.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">ks.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">ks.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyType">
+				ks.id IN (
+				SELECT key_schema_id FROM prs_ui_key_schema_entity_vw
+				WHERE key_type = #filters[].value#
+				)
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">ks.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">ks.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="description">ks.description $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">ks.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-key-schemas-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		ks.*
+		FROM
+		prs_ui_key_schema_vw ks
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">ks.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(ks.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(ks.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">ks.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">ks.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyType">
+				ks.id IN (
+				SELECT key_schema_id FROM prs_ui_key_schema_entity_vw
+				WHERE key_type #filters[].value#
+				)
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-key-schema"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.KeySchema">
+		{call PRS_UI_KEY_SCHEMA_PKG.add(
+		o_id             	=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_inst_id	    	=> #instId#
+		, i_lang			=> #lang#
+		, i_name			=> #name#
+		, i_description		=> #description#
+		)}
+	</procedure>
+
+	<procedure id="modify-key-schema"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.KeySchema">
+		{call PRS_UI_KEY_SCHEMA_PKG.modify(
+		i_id             	=> #id#
+		, io_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_lang			=> #lang#
+		, i_name			=> #name#
+		, i_description		=> #description#
+		)}
+	</procedure>
+
+	<procedure id="remove-key-schema"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.KeySchema">
+		{call PRS_UI_KEY_SCHEMA_PKG.remove(
+		i_id				=> #id#
+		, i_seqnum  		=> #seqNum#
+		)}
+	</procedure>
+
+
+	<resultMap  id="mapping-key-schema-entity"
+				class="ru.bpc.sv2.issuing.personalization.KeySchemaEntity">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="keyType" column="key_type"/>
+		<result property="entityType" column="entity_type"/>
+		<result property="keySchemaId" column="key_schema_id"/>
+	</resultMap>
+
+
+	<select id="get-key-schema-entities"
+			parameterClass="qparams"
+			resultMap="mapping-key-schema-entity">
+		<include refid="paginatedOpen"/>
+		SELECT 	  kse.id
+		, kse.seqnum
+		, kse.key_schema_id
+		, kse.key_type
+		, kse.entity_type
+		FROM
+		prs_ui_key_schema_entity_vw kse
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">kse.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyType">kse.key_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">kse.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keySchemaId">kse.key_schema_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">kse.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="keyType">kse.key_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">kse.entity_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">kse.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-key-schema-entities-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		kse.*
+		FROM
+		prs_ui_key_schema_entity_vw kse
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">kse.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keyType">kse.key_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">kse.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keySchemaId">kse.key_schema_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-key-schema-entity"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.KeySchemaEntity">
+		{call PRS_UI_KEY_SCHEMA_ENTITY_PKG.add(
+		o_id             	=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_key_schema_id	=> #keySchemaId#
+		, i_key_type		=> #keyType#
+		, i_entity_type		=> #entityType#
+		)}
+	</procedure>
+
+	<procedure id="modify-key-schema-entity"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.KeySchemaEntity">
+		{call PRS_UI_KEY_SCHEMA_ENTITY_PKG.modify(
+		i_id             	=> #id#
+		, io_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_key_schema_id	=> #keySchemaId#
+		, i_key_type		=> #keyType#
+		, i_entity_type		=> #entityType#
+		)}
+	</procedure>
+
+	<procedure id="remove-key-schema-entity"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.KeySchemaEntity">
+		{call PRS_UI_KEY_SCHEMA_ENTITY_PKG.remove(
+		i_id				=> #id#
+		, i_seqnum			=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-template"
+				class="ru.bpc.sv2.issuing.personalization.PrsTemplate">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="formatId" column="format_id"/>
+		<result property="formatName" column="format_name"/>
+		<result property="methodId" column="method_id"/>
+		<result property="methodName" column="method_name"/>
+		<result property="entityType" column="entity_type"/>
+		<result property="modId" column="mod_id"/>
+	</resultMap>
+
+	<select id="get-templates"
+			parameterClass="qparams"
+			resultMap="mapping-template">
+		<include refid="paginatedOpen"/>
+		SELECT 	  t.id
+		, t.seqnum
+		, t.format_id
+		, f.label format_name
+		, t.method_id
+		, m.description method_name
+		, t.entity_type
+		, t.mod_id
+		FROM
+		prs_ui_template_vw t
+		, rul_ui_name_format_vw f
+		, prs_ui_method_vw m
+		WHERE
+		t.format_id = f.id(+)
+		AND t.method_id = m.id(+)
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">f.lang(+) = #filters[].value# AND m.lang(+) = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="formatId">t.format_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="methodId">t.method_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">t.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">t.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="methodName">m.description $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="formatName">f.label $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="entityType">t.entity_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">t.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-templates-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		t.*
+		FROM
+		prs_ui_template_vw t
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="formatId">t.format_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="methodId">t.method_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">t.entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">t.id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-template"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsTemplate">
+		{call PRS_UI_TEMPLATE_PKG.add(
+		o_id             	=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_method_id		=> #methodId#
+		, i_entity_type		=> #entityType#
+		, i_format_id		=> #formatId#
+		, i_mod_id       => #modId,jdbcType=NUMERIC#
+		)}
+	</procedure>
+
+	<procedure id="modify-template"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsTemplate">
+		{call PRS_UI_TEMPLATE_PKG.modify(
+		i_id             	=> #id#
+		, io_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_method_id		=> #methodId#
+		, i_entity_type		=> #entityType#
+		, i_format_id		=> #formatId#
+		, i_mod_id       => #modId,jdbcType=NUMERIC#
+		)}
+	</procedure>
+
+	<procedure id="remove-template"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsTemplate">
+		{call PRS_UI_TEMPLATE_PKG.remove(
+		i_id				=> #id#
+		, i_seqnum  		=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-method"
+				class="ru.bpc.sv2.issuing.personalization.PrsMethod">
+		<result property="id" column="id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="description"/>
+		<result property="lang" column="lang"/>
+		<result property="pinStoreMethod" column="pin_store_method"/>
+		<result property="pinVerifyMethod" column="pin_verify_method"/>
+		<result property="pvvStoreMethod" column="pvv_store_method"/>
+		<result property="pinLength" column="pin_length"/>
+		<result property="cvvRequired" column="cvv_required" javaType="boolean" nullValue="false"/>
+		<result property="cvv2Required" column="cvv2_required" javaType="boolean" jdbcType="NUMBER" nullValue="false"/>
+		<result property="icvvRequired" column="icvv_required" javaType="boolean" nullValue="false"/>
+		<result property="pvkIndex" column="pvk_index"/>
+		<result property="keySchemaId" column="key_schema_id"/>
+		<result property="keySchemaName" column="key_schema_name"/>
+		<result property="serviceCode" column="service_code"/>
+		<result property="ddaRequired" column="dda_required" javaType="boolean"/>
+		<result property="imkIndex" column="imk_index"/>
+		<result property="decimalisationTable" column="decimalisation_table"/>
+		<result property="maxScript" column="max_script"/>
+		<result property="pvkComponent" column="private_key_component"/>
+		<result property="pvkFormat" column="private_key_format"/>
+		<result property="moduleLength" column="module_length"/>
+		<result property="expDateFormat" column="exp_date_format"/>
+	</resultMap>
+
+	<select id="get-methods"
+			parameterClass="qparams"
+			resultMap="mapping-method">
+		<include refid="paginatedOpen"/>
+		SELECT 	  m.id
+		, m.seqnum
+		, m.description
+		, m.lang
+		, m.key_schema_id
+		, ks.name AS key_schema_name
+		, m.service_code
+		, m.pvk_index
+		, m.cvv_required
+		, m.cvv2_required
+		, m.icvv_required
+		, m.pin_store_method
+		, m.pin_verify_method
+		, m.pin_length
+		, m.pvv_store_method
+		, m.inst_id
+		, m.dda_required
+		, m.imk_index
+		, m.decimalisation_table
+		, m.max_script
+		, i.name AS inst_name
+		, m.private_key_component
+		, m.private_key_format
+		, m.module_length
+		, m.exp_date_format
+		FROM
+		prs_ui_method_vw m
+		, prs_ui_key_schema_vw ks
+		, ost_ui_institution_sys_vw i
+		WHERE
+		m.key_schema_id = ks.id(+)
+		AND m.inst_id = i.id(+)
+		AND m.lang = ks.lang(+)
+		AND m.lang = i.lang(+)
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(m.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keySchemaId">m.key_schema_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="serviceCode">m.service_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">m.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pvkIndex">m.pvk_index = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cvvRequired">m.cvv_required = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="icvvRequired">m.icvv_required = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinStoreMethod">m.pin_store_method = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinVerifyMethod">m.pin_verify_method = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pvvStoreMethod">m.pvv_store_method = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">m.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">m.description $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="keySchemaName">ks.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="pinStoreMethod">m.pin_store_method $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="pinVerifyMethod">m.pin_verify_method $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="pvvStoreMethod">m.pvv_store_method $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="serviceCode">m.service_code $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cvvRequired">m.cvv_required $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="icvvRequired">m.icvv_required $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">m.description ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-methods-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		m.*
+		FROM
+		prs_ui_method_vw m
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">m.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(m.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="keySchemaId">m.key_schema_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="serviceCode">m.service_code = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">m.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">m.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pvkIndex">m.pvk_index = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cvvRequired">m.cvv_required = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="icvvRequired">m.icvv_required = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinStoreMethod">m.pin_store_method = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinVerifyMethod">m.pin_verify_method = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pvvStoreMethod">m.pvv_store_method = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-method"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsMethod">
+		{call PRS_UI_METHOD_PKG.add(
+		o_id                    => #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum                => #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_inst_id               => #instId#
+		, i_pvv_store_method      => #pvvStoreMethod#
+		, i_pin_store_method      => #pinStoreMethod#
+		, i_pin_verify_method     => #pinVerifyMethod#
+		, i_cvv_required          => #cvvRequired#
+		, i_cvv2_required          => #cvv2Required#
+		, i_icvv_required         => #icvvRequired#
+		, i_pvk_index             => #pvkIndex#
+		, i_key_schema_id         => #keySchemaId#
+		, i_service_code          => #serviceCode#
+		, i_dda_required          => #ddaRequired#
+		, i_imk_index             => #imkIndex#
+		, i_private_key_component => #pvkComponent#
+		, i_private_key_format    => #pvkFormat#
+		, i_module_length         => #moduleLength#
+		, i_max_script            => #maxScript#
+		, i_decimalisation_table  => #decimalisationTable#
+		, i_exp_date_format 	  => #expDateFormat#
+		, i_pin_length			  => #pinLength#
+		, i_lang                  => #lang#
+		, i_description           => #name#
+		)}
+	</procedure>
+
+	<procedure id="modify-method"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsMethod">
+		{call PRS_UI_METHOD_PKG.modify(
+		i_id                    => #id#
+		, io_seqnum        	      => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_pvv_store_method      => #pvvStoreMethod#
+		, i_pin_store_method      => #pinStoreMethod#
+		, i_pin_verify_method     => #pinVerifyMethod#
+		, i_cvv_required          => #cvvRequired#
+		, i_cvv2_required          => #cvv2Required#
+		, i_icvv_required         => #icvvRequired#
+		, i_pvk_index             => #pvkIndex#
+		, i_key_schema_id         => #keySchemaId#
+		, i_service_code          => #serviceCode#
+		, i_dda_required          => #ddaRequired#
+		, i_imk_index             => #imkIndex#
+		, i_private_key_component => #pvkComponent#
+		, i_private_key_format    => #pvkFormat#
+		, i_module_length         => #moduleLength#
+		, i_max_script            => #maxScript#
+		, i_decimalisation_table  => #decimalisationTable#
+		, i_exp_date_format 	  => #expDateFormat#
+		, i_pin_length			  => #pinLength#
+		, i_lang                  => #lang#
+		, i_description           => #name#
+		)}
+	</procedure>
+
+	<procedure id="remove-method"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsMethod">
+		{call PRS_UI_METHOD_PKG.remove(
+		i_id					=> #id#
+		, i_seqnum  			=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-perso-card"
+				class="ru.bpc.sv2.issuing.personalization.PersoCard">
+		<result property="id" column="card_instance_id"/>
+		<result property="mask" column="card_mask"/>
+		<result property="cardUid" column="card_uid"/>
+		<result property="seqNumber" column="seq_number"/>
+		<result property="cardholderName" column="cardholder_name"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="productId" column="product_id"/>
+		<result property="productName" column="product_name"/>
+		<result property="persoPriority" column="perso_priority"/>
+		<result property="pinRequest" column="pin_request"/>
+		<result property="pinMailerRequest" column="pin_mailer_request"/>
+		<result property="embossingRequest" column="embossing_request"/>
+		<result property="batchId" column="batch_id"/>
+		<result property="included" column="included" javaType="boolean"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="agentName" column="agent_name"/>
+		<result property="cardTypeId" column="card_type_id"/>
+		<result property="cardTypeName" column="card_type_name"/>
+		<result property="blankTypeId" column="blank_type_id"/>
+		<result property="blankTypeName" column="blank_type_name"/>
+		<result property="productNumber" column="product_number"/>
+		<result property="agentNumber" column="agent_number"/>
+	</resultMap>
+
+	<select id="get-perso-cards"
+			parameterClass="qparams"
+			resultMap="mapping-perso-card">
+		<include refid="paginatedOpen"/>
+		SELECT
+		c.card_instance_id
+		, c.card_mask
+		, c.card_uid
+		, c.seq_number
+		, c.cardholder_name
+		, c.product_id
+		, c.inst_id
+		, c.agent_id
+		, c.card_type_id
+		, c.blank_type_id
+		, c.perso_priority
+		, c.pin_request
+		, c.pin_mailer_request
+		, c.embossing_request
+		, c.batch_id
+		, c.included
+		, i.name inst_name
+		, p.label product_name
+		, ct.name card_type_name
+		, a.name agent_name
+		, b.description blank_type_name
+		, p.product_number
+		, a.agent_number
+		FROM
+		prs_ui_card_vw c
+		, prd_ui_product_vw p
+		, ost_ui_institution_sys_vw i
+		, ost_ui_agent_vw a
+		, net_ui_card_type_vw ct
+		, prs_ui_blank_type_vw b
+		WHERE
+		c.product_id = p.id(+)
+		AND c.inst_id = i.id(+)
+		AND c.agent_id = a.id(+)
+		AND c.card_type_id = ct.id(+)
+		AND c.blank_type_id = b.id(+)
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				i.lang(+) = #filters[].value#
+				AND p.lang(+) = #filters[].value#
+				AND a.lang(+) = #filters[].value#
+				AND ct.lang(+) = #filters[].value#
+				AND b.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">c.card_instance_id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="productId">c.product_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="agentId">c.agent_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">c.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="blankTypeId">c.blank_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinRequest">c.pin_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinMailerRequest">c.pin_mailer_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="embossingRequest">c.embossing_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardholderName">c.cardholder_name like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="batchId">(c.batch_id = #filters[].value# OR c.batch_id is NULL)</isEqual>
+			<isEqual property="filters[].element" compareValue="persoPriority">c.perso_priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqNumber">c.seq_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">c.card_mask like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardUid">c.card_uid like #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">c.card_instance_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="included">c.included $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="mask">c.card_mask $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardUid">c.card_uid $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="productName">p.label $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="agentName">a.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardTypeName">ct.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="blankTypeName">b.description $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="seqNumber">c.seq_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardMask">c.card_mask $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardUid">c.card_uid $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="persoPriority">c.perso_priority $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardholderName">c.cardholder_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="pinRequest">c.pin_request $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="pinMailerRequest">c.pin_mailer_request $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="embossingRequest">c.embossing_request $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">c.card_mask ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-perso-cards-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+		count(c.card_instance_id)
+		FROM
+		prs_ui_card_vw c
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.card_instance_id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="productId">c.product_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="agentId">c.agent_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">c.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="blankTypeId">c.blank_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinRequest">c.pin_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinMailerRequest">c.pin_mailer_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="embossingRequest">c.embossing_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardholderName">c.cardholder_name like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="batchId">(c.batch_id = #filters[].value# OR c.batch_id is NULL)</isEqual>
+			<isEqual property="filters[].element" compareValue="persoPriority">c.perso_priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqNumber">c.seq_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">c.card_mask like #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<procedure id="add-perso-batch-card"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PersoCard">
+		{call PRS_UI_BATCH_CARD_PKG.add_batch_card(
+		i_batch_id           	=> #batchId#
+		, i_card_instance_id  	=> #id#
+		, o_warning_msg			=> #warningMsg,jdbcType=VARCHAR,mode=OUT#
+		)}
+	</procedure>
+
+	<procedure id="remove-perso-batch-card"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PersoCard">
+		{call PRS_UI_BATCH_CARD_PKG.remove_batch_card(
+		i_batch_id           	=> #batchId#
+		, i_card_instance_id  	=> #id#
+		)}
+	</procedure>
+
+	<procedure id="mark-perso-batch-card"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PersoCard">
+		{call PRS_UI_BATCH_CARD_PKG.mark_batch_card(
+		i_batch_id			=> #batchId#
+		, i_agent_id			=> #agentId#
+		, i_card_type_id		=> #cardTypeId#
+		, i_blank_type_id		=> #blankTypeId#
+		, i_product_id			=> #productId#
+		, i_perso_priority		=> #persoPriority#
+		, i_pin_request			=> #pinRequest#
+		, i_pin_mailer_request	=> #pinMailerRequest#
+		, i_embossing_request	=> #embossingRequest#
+		, o_warning_msg			=> #warningMsg,jdbcType=VARCHAR,mode=OUT#
+		)}
+	</procedure>
+
+	<procedure id="unmark-perso-batch-card"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PersoCard">
+		{call PRS_UI_BATCH_CARD_PKG.unmark_batch_card(
+		i_batch_id          	=> #batchId#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-perso-batch-card" extends="mapping-perso-card"
+				class="ru.bpc.sv2.issuing.personalization.PersoBatchCard">
+		<result property="pinGenerated" column="pin_generated" javaType="boolean"/>
+		<result property="pinMailerPrinted" column="pin_mailer_printed" javaType="boolean"/>
+		<result property="embossingDone" column="embossing_done" javaType="boolean"/>
+	</resultMap>
+
+	<select id="get-perso-batch-cards"
+			parameterClass="qparams"
+			resultMap="mapping-perso-batch-card">
+		<include refid="paginatedOpen"/>
+		SELECT 	c.card_instance_id
+		, c.card_mask
+		, c.card_uid
+		, c.seq_number
+		, c.cardholder_name
+		, c.product_id
+		, c.inst_id
+		, c.agent_id
+		, c.card_type_id
+		, c.blank_type_id
+		, c.perso_priority
+		, c.pin_request
+		, c.pin_generated
+		, c.pin_mailer_request
+		, c.pin_mailer_printed
+		, c.embossing_request
+		, c.embossing_done
+		, c.batch_id
+		, i.name inst_name
+		, p.label product_name
+		, ct.name card_type_name
+		, a.name agent_name
+		, b.description blank_type_name
+		, 1 included
+		, a.agent_number
+		, p.product_number
+		FROM
+		prs_ui_batch_card_vw c
+		, prd_ui_product_vw p
+		, ost_ui_institution_sys_vw i
+		, ost_ui_agent_vw a
+		, net_ui_card_type_vw ct
+		, prs_ui_blank_type_vw b
+		WHERE
+		c.product_id = p.id(+)
+		AND c.inst_id = i.id(+)
+		AND c.agent_id = a.id(+)
+		AND c.card_type_id = ct.id(+)
+		AND c.blank_type_id = b.id(+)
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				i.lang(+) = #filters[].value#
+				AND p.lang(+) = #filters[].value#
+				AND a.lang(+) = #filters[].value#
+				AND ct.lang(+) = #filters[].value#
+				AND b.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">c.card_instance_id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="productId">c.product_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="agentId">c.agent_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">c.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="blankTypeId">c.blank_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinRequest">c.pin_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinGenerated">c.pin_generated = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinMailerRequest">c.pin_mailer_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinMailerPrinted">c.pin_mailer_printed = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="embossingRequest">c.embossing_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="embossingDone">c.embossing_done = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardholderName">c.cardholder_name like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="batchId">(c.batch_id = #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="persoPriority">c.perso_priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqNumber">c.seq_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">c.card_mask like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardUid">c.card_uid like #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isEqual property="sorting[].property" compareValue="sorting">$sorting[].condition$</isEqual>
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">c.card_instance_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="included">c.included $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="mask">c.card_mask $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardUid">c.card_uid $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="productName">p.label $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="agentName">a.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardTypeName">ct.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="blankTypeName">b.description $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="seqNumber">c.seq_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardMask">c.card_mask $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="persoPriority">c.perso_priority $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardholderName">c.cardholder_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="pinRequest">c.pin_request $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="pinMailerRequest">c.pin_mailer_request $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="embossingRequest">c.embossing_request $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">c.card_mask ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-perso-batch-cards-count"
+			parameterClass="qparams"
+			resultClass="int">
+		SELECT
+		count(c.card_instance_id)
+		FROM
+		prs_ui_batch_card_vw c
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.card_instance_id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="productId">c.product_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">c.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="agentId">c.agent_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">c.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="blankTypeId">c.blank_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinRequest">c.pin_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinGenerated">c.pin_generated = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinMailerRequest">c.pin_mailer_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="pinMailerPrinted">c.pin_mailer_printed = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="embossingRequest">c.embossing_request = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="embossingDone">c.embossing_done = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardholderName">c.cardholder_name like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="batchId">(c.batch_id = #filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="persoPriority">c.perso_priority = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="seqNumber">c.seq_number = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">c.card_mask like #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap  id="mapping-batch"
+				class="ru.bpc.sv2.issuing.personalization.PrsBatch">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="batch_name"/>
+		<result property="lang" column="lang"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="status" column="status"/>
+		<result property="statusDate" column="status_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="hsmId" column="hsm_id"/>
+		<result property="hsmDescription" column="hsm_description"/>
+		<result property="productId" column="product_id"/>
+		<result property="productName" column="product_name"/>
+		<result property="cardTypeId" column="card_type_id"/>
+		<result property="cardTypeName" column="card_type_name"/>
+		<result property="blankTypeId" column="blank_type_id"/>
+		<result property="blankTypeName" column="blank_type_name"/>
+		<result property="cardCount" column="card_count"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="agentName" column="agent_name"/>
+		<result property="sortId" column="sort_id"/>
+		<result property="sortCondition" column="sort_condition"/>
+		<result property="persoPriority" column="perso_priority"/>
+		<result property="sortLabel" column="sort_label"/>
+		<result property="agentNumber" column="agent_number"/>
+		<result property="productNumber" column="product_number"/>
+
+		<result property="cardCountActual" column="card_count_actual"/>
+		<result property="pinRequestCount" column="pin_request_cnt"/>
+		<result property="pinMailerRequestCount" column="pin_mailer_request_cnt"/>
+		<result property="embossingRequestCount" column="embossing_request_cnt"/>
+	</resultMap>
+
+	<resultMap  id="mapping-batch-cur"
+				class="ru.bpc.sv2.issuing.personalization.PrsBatch">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="instId" column="inst_id"/>
+		<result property="name" column="batch_name"/>
+		<result property="lang" column="lang"/>
+		<result property="instName" column="inst_name"/>
+		<result property="status" column="status"/>
+		<result property="statusDate" column="status_date" javaType="java.util.Date" jdbcType="TIMESTAMP"/>
+		<result property="hsmId" column="hsm_id"/>
+		<result property="hsmDescription" column="hsm_description"/>
+		<result property="productId" column="product_id"/>
+		<result property="productName" column="product_name"/>
+		<result property="cardCount" column="card_count"/>
+		<result property="cardTypeId" column="card_type_id"/>
+		<result property="cardTypeName" column="card_type_name"/>
+		<result property="blankTypeId" column="blank_type_id"/>
+		<result property="blankTypeName" column="blank_type_name"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="agentName" column="agent_name"/>
+		<result property="sortId" column="sort_id"/>
+		<result property="sortCondition" column="sort_condition"/>
+		<result property="persoPriority" column="perso_priority"/>
+		<result property="sortLabel" column="sort_label"/>
+		<result property="agentNumber" column="agent_number"/>
+		<result property="productNumber" column="product_number"/>
+		<result property="reissueReason" column="reissue_reason"/>
+	</resultMap>
+
+
+	<select id="get-batches"
+			parameterClass="qparams"
+			resultMap="mapping-batch">
+		<include refid="paginatedOpen"/>
+		SELECT 	  b.id
+		, b.seqnum
+		, b.inst_id
+		, b.batch_name
+		, b.status
+		, b.lang
+		, b.hsm_device_id hsm_id
+		, b.product_id
+		, b.card_type_id
+		, b.blank_type_id
+		, b.card_count
+		, b.status_date
+		, b.perso_priority
+		, i.name inst_name
+		, h.description hsm_description
+		, p.label product_name
+		, c.name card_type_name
+		, bl.description blank_type_name
+		, b.agent_id
+		, a.name agent_name
+		, b.sort_id
+		, b.sort_condition
+		, b.sort_label
+		, p.product_number
+		, a.agent_number
+		, b.card_count_actual
+		, b.pin_request_cnt
+		, b.pin_mailer_request_cnt
+		, b.embossing_request_cnt
+		FROM
+		prs_ui_batch_vw b
+		, hsm_ui_device_vw h
+		, ost_ui_institution_sys_vw i
+		, net_ui_card_type_vw c
+		, prs_ui_blank_type_vw bl
+		, prd_ui_product_vw p
+		, ost_ui_agent_vw a
+		WHERE
+		b.inst_id = i.id(+)
+		AND b.hsm_device_id = h.id(+)
+		AND b.product_id = p.id(+)
+		AND b.card_type_id = c.id(+)
+		AND b.blank_type_id = bl.id(+)
+		AND b.agent_id = a.id(+)
+
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				b.lang = #filters[].value#
+				AND i.lang(+) = #filters[].value#
+				AND h.lang(+) = #filters[].value#
+				AND p.lang(+) = #filters[].value#
+				AND c.lang(+) = #filters[].value#
+				AND bl.lang(+) = #filters[].value#
+				AND a.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(b.batch_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">b.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="statusDateFrom">b.status_date >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="statusDateTo">b.status_date <![CDATA[<]]>= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">b.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">b.id = #filters[].value#</isEqual>
+		</iterate>
+
+		<iterate open="AND b.id IN (SELECT batch_id FROM PRS_UI_BATCH_CARD_VW WHERE "
+				 close=")" conjunction="AND" property="filters" >
+			<isEqual property="filters[].element" compareValue="cardholderName">cardholder_name $filters[].condition$ #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">card_number $filters[].condition$ #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">card_mask $filters[].condition$ #filters[].value#</isEqual>
+		</iterate>
+
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">b.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">b.batch_name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">b.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="statusDate">b.status_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">b.batch_name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-batches-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		b.*
+		FROM
+		prs_ui_batch_vw b
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">b.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(b.batch_name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">b.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="statusDateFrom">b.status_date >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="statusDateTo">b.status_date <![CDATA[<]]>= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">b.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">b.id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate open="AND b.id IN (SELECT batch_id FROM PRS_UI_BATCH_CARD_VW WHERE "
+				 close=")" conjunction="AND" property="filters" >
+			<isEqual property="filters[].element" compareValue="cardholderName">cardholder_name $filters[].condition$ #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">card_number $filters[].condition$ #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardMask">card_mask $filters[].condition$ #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<parameterMap class="java.util.Map" id="get-prs-cur-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-batch-cur"/>
+		<parameter property="first_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-prs-cur"
+			   parameterMap="get-prs-cur-map">
+		{ call prs_ui_batch_search_pkg.get_ref_cur(
+		o_ref_cur		=> ?
+		, i_first_row 	=> ?
+		, i_last_row	=> ?
+		, i_tab_name	=> ?
+		, i_param_tab	=> ?
+		, i_sorting_tab	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-prs-cur-count-map">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-prs-cur-count"
+			   parameterMap="get-prs-cur-count-map">
+		{ call prs_ui_batch_search_pkg.get_row_count(
+		o_row_count		=> ?
+		, i_tab_name	=> ?
+		, i_param_tab	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="get-btc-details-map">
+		<parameter property="batch_id" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="card_count" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="pin_count" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="pin_mailer_count" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="embossing_count" jdbcType="NUMERIC" mode="OUT"/>
+	</parameterMap>
+
+	<procedure id="get-btc-details"
+			   parameterMap="get-btc-details-map">
+		{call prs_ui_batch_search_pkg.get_batch_counts(
+		i_batch_id	       => ?
+		, o_card_count   	   => ?
+		, o_pin_count          => ?
+		, o_pin_mailer_count   => ?
+		, o_embossing_count    => ?
+
+		)}
+	</procedure>
+
+	<procedure id="add-batch"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsBatch">
+		{call PRS_UI_BATCH_PKG.add_batch(
+		o_id             	=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_inst_id	    	=> #instId#
+		, i_agent_id     	=> #agentId#
+		, i_product_id   	=> #productId#
+		, i_card_type_id 	=> #cardTypeId#
+		, i_blank_type_id	=> #blankTypeId#
+		, i_card_count  	=> #cardCount#
+		, i_hsm_device_id	=> #hsmId#
+		, i_status			=> #status#
+		, i_sort_id			=> #sortId#
+		, i_perso_priority	=> #persoPriority#
+		, i_lang			=> #lang#
+		, i_batch_name		=> #name#
+
+		)}
+	</procedure>
+
+	<procedure id="modify-batch"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsBatch">
+		{call PRS_UI_BATCH_PKG.modify_batch(
+		i_id              => #id#
+		, io_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_product_id   	=> #productId#
+		, i_card_type_id 	=> #cardTypeId#
+		, i_blank_type_id	=> #blankTypeId#
+		, i_card_count  	=> #cardCount#
+		, i_hsm_device_id	=> #hsmId#
+		, i_sort_id			=> #sortId#
+		, i_perso_priority	=> #persoPriority#
+		, i_lang			=> #lang#
+		, i_batch_name		=> #name#
+		)}
+	</procedure>
+
+	<procedure id="remove-batch"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsBatch">
+		{call PRS_UI_BATCH_PKG.remove_batch(
+		i_id				=> #id#
+		, i_seqnum  		=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-blank-type"
+				class="ru.bpc.sv2.issuing.personalization.BlankType">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="name" column="description"/>
+		<result property="lang" column="lang"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="cardTypeId" column="card_type_id"/>
+		<result property="cardTypeName" column="card_type_name"/>
+	</resultMap>
+
+	<select id="get-blank-types"
+			parameterClass="qparams"
+			resultMap="mapping-blank-type">
+		<include refid="paginatedOpen"/>
+		SELECT 	  b.id
+		, b.seqnum
+		, b.inst_id
+		, b.description
+		, b.lang
+		, b.card_type_id
+		, i.name inst_name
+		, c.name card_type_name
+		FROM
+		prs_ui_blank_type_vw b
+		, net_ui_card_type_vw c
+		, ost_ui_institution_vw i
+		WHERE
+		b.inst_id = i.id
+		AND b.card_type_id = c.id(+)
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				b.lang = #filters[].value#
+				AND i.lang(+) = #filters[].value#
+				AND c.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(b.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">b.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">b.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">b.id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">b.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="name">b.description $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardTypeName">c.name $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">b.description ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-blank-types-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		*
+		FROM
+		prs_ui_blank_type_vw b
+		, ost_ui_institution_vw i
+		WHERE
+		b.inst_id = i.id
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				b.lang = #filters[].value#
+				AND i.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(b.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">b.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">b.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">b.id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-blank-type"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.BlankType">
+		{call PRS_UI_BLANK_TYPE_PKG.add_blank_type(
+		o_id             	=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_inst_id	    	=> #instId#
+		, i_card_type_id	=> #cardTypeId#
+		, i_lang			=> #lang#
+		, i_name			=> #name#
+		)}
+	</procedure>
+
+	<procedure id="modify-blank-type"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.BlankType">
+		{call PRS_UI_BLANK_TYPE_PKG.modify_blank_type(
+		i_id              => #id#
+		, io_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_inst_id	    	=> #instId#
+		, i_card_type_id	=> #cardTypeId#
+		, i_lang			=> #lang#
+		, i_name			=> #name#
+		)}
+	</procedure>
+
+	<procedure id="remove-blank-type"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.BlankType">
+		{call PRS_UI_BLANK_TYPE_PKG.remove_blank_type(
+		i_id				=> #id#
+		, i_seqnum  		=> #seqNum#
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-sort"
+				class="ru.bpc.sv2.issuing.personalization.PrsSort">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+		<result property="condition" column="condition"/>
+		<result property="lang" column="lang"/>
+		<result property="description" column="description"/>
+		<result property="label" column="label"/>
+	</resultMap>
+
+	<select id="get-sorts" parameterClass="qparams"
+			resultMap="mapping-sort">
+		<include refid="paginatedOpen"/>
+		SELECT 	  s.id
+		, s.seqnum
+		, s.inst_id
+		, i.name inst_name
+		, s.condition
+		, s.lang
+		, s.description
+		, s.label
+		FROM
+		PRS_UI_SORT_VW s
+		, OST_UI_INSTITUTION_SYS_VW i
+		WHERE
+		s.inst_id = i.id
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				s.lang = #filters[].value#
+				AND i.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(s.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="condition">upper(s.condition) like #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="label">upper(s.label) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="condition">upper(s.condition) $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend=" ORDER BY ">s.label ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-sorts-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+		*
+		FROM
+		PRS_UI_SORT_VW s
+		, OST_UI_INSTITUTION_SYS_VW i
+		WHERE
+		s.inst_id = i.id
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				s.lang = #filters[].value#
+				AND i.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">s.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">s.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="label">upper(s.label) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="condition">upper(s.condition) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-sort"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsSort">
+		{call PRS_UI_SORT_PKG.add_sort(
+		o_id             	=> #id,jdbcType=NUMERIC,mode=OUT#
+		, o_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+		, i_inst_id	    	=> #instId#
+		, i_condition		=> #condition#
+		, i_lang			=> #lang#
+		, i_label			=> #label#
+		, i_description     => #description#
+		)}
+	</procedure>
+
+	<procedure id="modify-sort"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsSort">
+		{call PRS_UI_SORT_PKG.modify_sort(
+		i_id              => #id#
+		, io_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+		, i_condition	    => #condition#
+		, i_lang			=> #lang#
+		, i_label			=> #label#
+		, i_description     => #description#
+		)}
+	</procedure>
+
+	<procedure id="remove-sort"
+			   parameterClass="ru.bpc.sv2.issuing.personalization.PrsSort">
+		{call PRS_UI_SORT_PKG.remove_sort(
+		i_id				=> #id#
+		, i_seqnum  		=> #seqNum#
+		)}
+	</procedure>
+
+
+	<parameterMap class="java.util.Map" id="set-batch-status-delivered-map">
+		<parameter property="batch_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="agent_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="set-batch-status-delivered"
+			   parameterMap="set-batch-status-delivered-map">
+		{ call prs_api_batch_pkg.set_batch_status_delivered(
+		i_batch_id		=> ?
+		, i_agent_id	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="change-batch-card-instances-status-map">
+		<parameter property="batch_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="agent_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="eventType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="change-batch-card-instances-status"
+			   parameterMap="change-batch-card-instances-status-map">
+		{ call prs_api_batch_pkg.change_card_instances_status(
+		i_batch_id		=> ?
+		, i_agent_id	=> ?
+		, i_event_type  => ?
+		)}
+	</procedure>
+
+	<resultMap  id="mapping-clone-candidate-cards-cur"
+				class="ru.bpc.sv2.issuing.personalization.CloneCandidateCard">
+		<result property="batchId" column="batch_id"/>
+		<result property="cardInstanceId" column="card_instance_id"/>
+		<result property="cardMask" column="card_mask"/>
+		<result property="cardId" column="card_id"/>
+		<result property="renewal" column="is_renewal"/>
+		<result property="cardNumber" column="card_number"/>
+		<result property="cardholderName" column="cardholder_name"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="productId" column="product_id"/>
+		<result property="cardTypeId" column="card_type_id"/>
+		<result property="blankTypeId" column="blank_type_id"/>
+		<result property="persoPriority" column="perso_priority"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="get-clone-candidate-cards-map">
+		<parameter property="ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-clone-candidate-cards-cur"/>
+		<parameter property="batch_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-clone-candidate-cards"
+			   parameterMap="get-clone-candidate-cards-map">
+		{ call prs_ui_batch_card_pkg.get_batch_cards(
+		o_ref_cursor	=> ?
+		, i_batch_id 	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="clone-batch-with-all-option-map">
+		<parameter property="id" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="seqnum" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="batch_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="batch_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="pin_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="pin_mailer_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="embossing_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="clone-batch-with-all-option"
+			   parameterMap="clone-batch-with-all-option-map">
+		{call prs_ui_batch_pkg.clone_batch(
+		o_id                => ?
+		, o_seqnum          => ?
+		, i_batch_id        => ?
+		, i_batch_name      => ?
+		, i_pin_request         => ?
+		, i_pin_mailer_request  => ?
+		, i_embossing_request   => ?
+
+		)}
+	</procedure>
+
+
+	<parameterMap class="java.util.Map" id="clone-batch-with-select-option-map">
+		<parameter property="id" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="seqnum" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="batch_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="batch_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="instance_list" jdbcType="NUM_TAB_TPT" typeName="PRC_SESSION_FILE_RECNUM_TAB" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="IN" />
+		<parameter property="pin_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="pin_mailer_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="embossing_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="clone-batch-with-select-option"
+			   parameterMap="clone-batch-with-select-option-map">
+		{call prs_ui_batch_pkg.clone_batch(
+		o_id                => ?
+		, o_seqnum          => ?
+		, i_batch_id        => ?
+		, i_batch_name      => ?
+		, i_instance_list   => ?
+		, i_pin_request         => ?
+		, i_pin_mailer_request  => ?
+		, i_embossing_request   => ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="clone-batch-with-range-option-map">
+		<parameter property="id" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="seqnum" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="batch_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="batch_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="first_row" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="pin_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="pin_mailer_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="embossing_request" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="clone-batch-with-range-option"
+			   parameterMap="clone-batch-with-range-option-map">
+		{call prs_ui_batch_pkg.clone_batch(
+		o_id                => ?
+		, o_seqnum          => ?
+		, i_batch_id        => ?
+		, i_batch_name      => ?
+		, i_first_row       => ?
+		, i_last_row        => ?
+		, i_pin_request         => ?
+		, i_pin_mailer_request  => ?
+		, i_embossing_request   => ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="change-batch-card-instances-state-by-new-state-map">
+		<parameter property="batch_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="agent_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="state" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="eventType" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="change-batch-card-instances-state-by-new-state"
+			   parameterMap="change-batch-card-instances-state-by-new-state-map">
+		{ call prs_api_batch_pkg.set_batch_instance_state(
+		i_batch_id		=> ?
+		, i_agent_id	=> ?
+		, i_state       => ?
+		, i_event_type  => ?
+		)}
+	</procedure>
+
+	<procedure id="change-card-security-data" parameterClass="ru.bpc.sv2.issuing.CardSecurityData">
+		{call iss_ui_card_instance_pkg.change_card_security_data(
+		i_card_id                  => #cardId#
+		, i_card_number            => #cardNumber#
+		, i_expiration_date        => #expirationDate#
+		, i_card_sequental_number  => #cardSequentalNumber#
+		, i_card_instance_id       => #cardInstanceId#
+		, i_state                  => #state#
+		, i_pvv                    => #pvv#
+		, i_pin_offset             => #pinOffset#
+		, i_pin_block              => #pinBlock#
+		, i_key_index              => #keyIndex#
+		, i_pin_block_format       => #pinBlockFormat#
+		, i_issue_date             => #issueDate#
+		)}
+	</procedure>
+</sqlMap>

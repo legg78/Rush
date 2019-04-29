@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<![CDATA[			
+		function checkCaseEventFields() {
+			var checked = true;
+			
+			if (document.getElementById('caseEventModalDiv:newEventType').value == "") {
+				document.getElementById('caseEventModalDiv:newEventTypeError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('caseEventModalDiv:newResponseCode').value == "") {
+				document.getElementById('caseEventModalDiv:newResponseCodeError').style.display = "inline";
+				checked = false;
+			}								
+			if (document.getElementById('caseEventModalDiv:newRiskThreshold').value == "") {
+				document.getElementById('caseEventModalDiv:newRiskThresholdError').style.display = "inline";
+				checked = false;
+			}
+			return checked;
+		}
+		//]]>
+	</script>
+
+	<f:loadBundle var="lblFrp" basename="ru.bpc.sv2.ui.bundles.Frp"/>
+	
+   	<h:form id="caseEventsBtmForm">
+		<h:panelGroup layout="block" style="margin:0px;padding:0px;"
+			id="caseEventsTableWrpapper">
+			<rich:extendedDataTable id="caseEventsTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbCaseEvents.caseEvents}"
+				selection="#{MbCaseEvents.itemSelection}" rows="0"
+				enableContextMenu="true"
+				tableState="#{MbAccountsSearch.tableState}"
+				noDataLabel="#{lblCommon['no_records_found']}">
+
+				<a4j:support event="onselectionchange"
+					reRender="caseEventsBtmForm:btnPanel" />
+
+				<rich:column id="event_type" label="#{lblCommon.event_type}" sortBy="#{'eventType'}" width="40%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.event_type}"
+								title="#{lblCommon.event_type}" />
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.eventType]}"
+						title="#{DictUtils.articles[item.eventType]}"
+						rendered="#{item.eventType != null}" />
+					<h:outputText value="" title=""
+						rendered="#{item.eventType == null}" />
+				</rich:column>
+
+				<rich:column id="response_code" label="#{lblFrp.response_code}" sortBy="#{'respCode'}" width="40%">
+					<f:facet name="header">
+						<h:outputText value="#{lblFrp.response_code}"
+							title="#{lblFrp.response_code}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.respCode]}"
+						title="#{DictUtils.articles[item.respCode]}"
+						rendered="#{item.respCode != null}" />
+					<h:outputText value="" title="" rendered="#{item.respCode == null}" />
+				</rich:column>
+
+				<rich:column id="risk_threshold" label="#{lblFrp.risk_threshold}" title="Risk threshold" sortBy="#{'riskThreshold'}"
+					width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblFrp.risk_threshold}"
+							title="#{lblFrp.risk_threshold}" />
+					</f:facet>
+					<h:outputText value="#{item.riskThreshold}"
+						title="#{item.riskThreshold}" />
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+
+            	<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+            		<h:panelGroup>
+	            	<bre:taggedCommandButton id="addBtn"
+                      		reRender="caseEventModalHeader, caseEventModalDiv"
+                      		value="#{lblForm.add}"
+                   			oncomplete="#{rich:component('caseEventModalPanel')}.show()"
+                      		action="#{MbCaseEvents.add}"
+                      		disabled="#{MbCaseEvents.filter.caseId == null}"
+                      		image="/images/create_doc.gif"
+                      		/>
+	            	<bre:taggedCommandButton id="editBtn"
+                      		reRender="caseEventModalHeader, caseEventModalDiv"
+                      		value="#{lblForm.edit}"
+                   			oncomplete="#{rich:component('caseEventModalPanel')}.show()"
+                      		action="#{MbCaseEvents.edit}"
+                      		disabled="#{MbCaseEvents.activeCaseEvent == null}"
+                      		image="/images/edit.gif"
+                      		/>
+					<bre:taggedCommandButton id="deleteBtn"
+                      		value="#{lblForm.delete}"
+                      		oncomplete="#{rich:component('deleteEventViewId:confirmPanel')}.show()"
+                      		disabled="#{MbCaseEvents.activeCaseEvent == null}"
+                      		image="/images/delete.gif"
+                      		/>
+                      </h:panelGroup>
+                      
+                      <h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveEventTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteEventTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveEventTableState" action="#{MbCaseEvents.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteEventTableState" action="#{MbCaseEvents.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+    </h:form>
+
+	<rich:modalPanel id="caseEventModalPanel" autosized="true" minWidth="300" minHeight="50">
+ 	    <f:facet name="header">
+ 	    	<h:panelGroup id="caseEventModalHeader">
+ 	    		<h:outputText value="#{lblFrp.edit_case_event}" rendered="#{MbCaseEvents.editMode}"/>
+ 	    		<h:outputText value="#{lblFrp.new_case_event}" rendered="#{MbCaseEvents.newMode}"/>
+ 	    	</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:form id="caseEventModalDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					
+					<h:outputLabel value="* #{lblCommon.event_type}" title="#{lblCommon.event_type}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="newEventType"
+								value="#{MbCaseEvents.newCaseEvent.eventType}"
+								label="#{lblCommon.event_type}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+						    <f:selectItems value="#{MbCaseEvents.eventTypes}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newEventTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.event_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblFrp.response_code}" title="#{lblFrp.response_code}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="newResponseCode"
+								value="#{MbCaseEvents.newCaseEvent.respCode}"
+								label="#{lblFrp.response_code}"
+								onblur="hideErrorField(this)">
+						    <f:selectItems value="#{MbCaseEvents.responseCodes}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newResponseCodeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblFrp.response_code}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblFrp.risk_threshold}" title="#{lblFrp.risk_threshold}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:inputText id="newRiskThreshold"
+								value="#{MbCaseEvents.newCaseEvent.riskThreshold}"
+								label="#{lblFrp.risk_threshold}"
+								onkeypress="if (!numbersOnly(this, event)) return false;"
+								maxlength="4"
+								onblur="hideErrorField(this)">
+							<f:validateLongRange minimum="1"/>
+							<a4j:support event="onchange" reRender="newRiskThresholdErr" limitToList="true" ajaxSingle="true"/>
+						</h:inputText>
+						<rich:message id="newRiskThresholdErr" for="newRiskThreshold" styleClass="errorMarker"
+								showDetail="false" showSummary="true"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newRiskThresholdError" style="display:none;">
+							<f:param name="fieldName" value="#{lblFrp.risk_threshold}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbCaseEvents.save}"
+                       			onclick="if (!checkCaseEventFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('caseEventModalPanel')}.hide()"
+                       			reRender="caseEventsBtmForm"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" 
+                        		action="#{MbCaseEvents.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('caseEventModalPanel')}.hide()"
+                        		>
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                        </bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbCaseEvents}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="caseEventsBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteEventViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

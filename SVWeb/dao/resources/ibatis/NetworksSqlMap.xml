@@ -1,0 +1,1801 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="net">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>                       
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-bin-range" class="ru.bpc.sv2.net.BinRange">
+        <result property="rowId" column="row_id"/>
+        <result property="panLow" column="pan_low"/>
+        <result property="panHigh" column="pan_high"/>
+        <result property="priority" column="priority"/>
+        <result property="cardTypeId" column="card_type_id"/>
+        <result property="country" column="country"/>
+        <result property="panLength" column="pan_length"/>
+        <result property="cardNetworkId" column="card_network_id"/>
+        <result property="cardInstId" column="card_inst_id"/>
+        <result property="issNetworkId" column="iss_network_id"/>
+        <result property="issInstId" column="iss_inst_id"/>
+        <result property="rowId" column="row_id"/>
+        <result property="cardNetworkName" column="card_network_name"/>
+        <result property="cardInstName" column="card_inst_name"/>
+        <result property="issNetworkName" column="iss_network_name"/>
+        <result property="issInstName" column="iss_inst_name"/>
+        <result property="issHostName" column="iss_host_name"/>
+        <result property="cardTypeName" column="card_type_name"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+	
+	<select id="get-bin-ranges"
+		    parameterClass="qparams"
+		    resultMap="mapping-bin-range">
+		<include refid="paginatedOpen"/>
+            SELECT    b.pan_low
+                    , b.pan_high
+                    , b.priority
+                    , b.card_type_id
+                    , b.country
+                    , b.pan_length
+                    , b.card_network_id
+                    , b.card_inst_id
+                    , b.iss_network_id
+                    , b.iss_inst_id
+                    , rowidtochar(b.rowid) as row_id
+                    , card_inst.name as card_inst_name
+                    , iss_inst.name as iss_inst_name
+                    , card_net.name as card_network_name
+                    , iss_net.name as iss_network_name
+                    , com_ui_user_env_pkg.get_user_lang() lang
+                    , memb.description iss_host_name
+                    , card.name card_type_name
+            FROM net_ui_bin_range_vw b, 
+                ost_ui_institution_sys_vw card_inst, ost_ui_institution_sys_vw iss_inst
+                , net_ui_network_vw card_net, net_ui_network_vw iss_net
+                , net_ui_member_vw memb
+                , net_ui_card_type_vw card
+            WHERE card_inst.id(+) = card_inst_id AND card_inst.lang(+) = com_ui_user_env_pkg.get_user_lang()
+                AND iss_inst.id(+) = iss_inst_id AND iss_inst.lang(+) = com_ui_user_env_pkg.get_user_lang()
+                AND card_net.id(+) = card_network_id AND card_net.lang(+) = com_ui_user_env_pkg.get_user_lang()
+                AND iss_net.id(+) = iss_network_id AND iss_net.lang(+) = com_ui_user_env_pkg.get_user_lang()
+                AND card.id(+) = card_type_id AND card.lang(+) = com_ui_user_env_pkg.get_user_lang()
+                AND (memb.inst_id(+) = iss_inst_id AND MEMB.NETWORK_ID(+) = iss_network_id
+                AND memb.lang(+) = com_ui_user_env_pkg.get_user_lang) 
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="bin">
+					#filters[].value# between substr(b.pan_low, 1, length(#filters[].value#)) and substr(b.pan_high, 1, length(#filters[].value#))
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="panLow">pan_low $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="panHigh">pan_high $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardType">card_type_id = $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-bin-ranges-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT * FROM net_ui_bin_range_vw b
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="bin">
+				#filters[].value# between substr(b.pan_low, 1, length(#filters[].value#)) and substr(b.pan_high, 1, length(#filters[].value#))
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-bin-range"
+			   parameterClass="ru.bpc.sv2.net.BinRange">
+		{call NET_API_BIN_PKG.add_bin_range(
+		  i_pan_low         => #panLow#
+		, i_pan_high        	=> #panHigh#
+		, i_country        	=> #country#
+		, i_network_id        	=> #issNetworkId#
+		, i_inst_id        	=> #issInstId#
+		, i_pan_length     	=> #panLength#
+		, i_network_card_type     	=> #cardTypeId#
+		, i_card_network_id     	=> #cardNetworkId#
+		, i_card_inst_id     	=> #cardInstId#
+		, i_priority     	=> #priority#
+		, i_card_type_id     	=> #cardTypeId#
+		, i_module_code     	=> #moduleCode#
+		)}
+	</procedure>
+
+	<procedure id="rebuild-bin-index">
+		{call NET_API_BIN_PKG.rebuild_bin_index}
+	</procedure>
+
+	<procedure id="cleanup-network-bins" parameterClass="int">
+		{call NET_API_BIN_PKG.cleanup_network_bins(i_network_id	=> #value#)}
+	</procedure>
+
+	<resultMap  id="mapping-network"
+                class="ru.bpc.sv2.net.Network">
+        <result property="id" column="id"/>
+        <result property="binTableScanPriority" column="bin_table_scan_priority"/>
+        <result property="seqNum" column="seqnum"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+        <result property="name" column="name"/>
+        <result property="lang" column="lang"/>
+        <result property="description" column="full_desc"/>
+	</resultMap>
+	
+	<select id="get-networks"
+		    parameterClass="qparams"
+		    resultMap="mapping-network">
+		<include refid="paginatedOpen"/>
+			SELECT	  n.id
+					, n.bin_table_scan_priority
+					, n.inst_id
+					, n.seqnum
+					, n.name
+					, n.lang
+					, n.full_desc
+       				, i.name inst_name
+			FROM net_ui_network_vw n, ost_ui_institution_sys_vw i
+			WHERE n.inst_id = i.id(+) AND n.lang = i.lang(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">n.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">n.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="excInstId">
+					n.id NOT IN (
+						SELECT network_id FROM net_ui_member_vw
+						WHERE inst_id = #filters[].value#
+					)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(n.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">n.lang = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">n.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">n.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="scanPriority">n.bin_table_scan_priority $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend=" ORDER BY ">n.name ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-networks-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT * FROM net_ui_network_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="excInstId">
+				id NOT IN (
+					SELECT network_id FROM net_ui_member_vw
+					WHERE inst_id = #filters[].value#
+				)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<select id="get-networks-for-dropdown"
+		    parameterClass="qparams"
+		    resultClass="ru.bpc.sv2.net.Network">
+		SELECT	  n.id
+				, n.inst_id AS instId
+				, n.name
+				, n.lang
+				, n.full_desc AS description
+				, i.name AS instName
+		FROM net_ui_network_sys_vw n, ost_ui_institution_sys_vw i
+		WHERE n.inst_id = i.id(+) AND n.lang = i.lang(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">n.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">n.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">upper(n.name) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">n.lang = #filters[].value#</isEqual>
+		</iterate>
+        ORDER BY n.name ASC
+	</select>
+	
+	<procedure id="add-network" 
+			parameterClass="ru.bpc.sv2.net.Network">
+		{call NET_UI_NETWORK_PKG.add(
+				  o_id						=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id                 => #instId#
+				, i_bin_table_scan_priority => #binTableScanPriority#
+				, i_lang					=> #lang#
+				, i_name					=> #name#
+				, i_full_desc               => #description#
+				)}
+	</procedure>
+
+	<procedure id="edit-network" 
+			parameterClass="ru.bpc.sv2.net.Network">
+		{call NET_UI_NETWORK_PKG.modify(
+				  i_id						=> #id#
+				, io_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_inst_id                 => #instId#
+				, i_bin_table_scan_priority => #binTableScanPriority#
+				, i_lang					=> #lang#
+				, i_name					=> #name#
+				, i_full_desc               => #description#
+				)}
+	</procedure>
+	
+	<procedure id="delete-network" 
+			parameterClass="ru.bpc.sv2.net.Network">
+		{call NET_UI_NETWORK_PKG.remove(
+				  i_id						=> #id#
+				, i_seqnum					=> #seqNum#
+				)}
+	</procedure>	
+
+
+	<resultMap  id="mapping-net-member"
+                class="ru.bpc.sv2.net.NetworkMember">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="networkId" column="network_id"/>
+		<result property="instId" column="inst_id"/>
+        <result property="onlineStdId" column="online_standard_id"/>
+        <result property="offlineStdId" column="offline_standard_id"/>
+        <result property="onlineStdName" column="online_standard_name"/>
+        <result property="offlineStdName" column="offline_standard_name"/>
+        <result property="hostName" column="host_name"/>
+        <result property="lang" column="lang"/>
+		<result property="instName" column="inst_name"/>
+		<result property="default" column="is_default" javaType="boolean"/>
+		<result property="networkName" column="network_name"/>
+		<result property="participantType" column="participant_type"/>
+	</resultMap>
+
+	<select id="get-network-members"
+		    parameterClass="qparams"
+		    resultMap="mapping-net-member">
+		<include refid="paginatedOpen"/>
+			SELECT 
+					  nm.id
+					, nm.seqnum
+					, nm.network_id
+					, nm.inst_id
+					, nm.online_standard_id
+					, nm.offline_standard_id
+                    , nm.online_standard_name
+                    , nm.offline_standard_name
+					, decode(nm.offline_standard_id || nm.online_standard_id, null, '', nm.description) host_name
+					, nm.lang
+					, nm.participant_type
+					, i.name inst_name
+					, decode(net.inst_id, nm.inst_id, 1, 0) is_default
+					, net.name as network_name
+			FROM net_ui_member_vw nm, ost_ui_institution_sys_vw i, net_ui_network_vw net
+			WHERE i.id = nm.inst_id AND i.lang = nm.lang
+					AND nm.network_id = net.id AND nm.lang = net.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">nm.id LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="networkId">nm.network_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">nm.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">nm.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="participantType">nm.participant_type = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="networkName">upper(net.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">upper(i.name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="hostName">upper(nm.description) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="onlineStdName">upper(nm.online_standard_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="offlineStdName">upper(nm.offline_standard_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="participantType">upper(nm.participant_type) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend=" ORDER BY ">nm.description ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-network-members-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+				* 
+		FROM 
+				  net_ui_member_vw nm
+				, ost_ui_institution_sys_vw i
+				, net_ui_network_vw net
+		WHERE 
+				i.id = nm.inst_id AND i.lang = nm.lang
+				AND nm.network_id = net.id AND nm.lang = net.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">nm.id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="networkId">nm.network_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">nm.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">nm.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">nm.participant_type = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap  id="mapping-host" extends="net.mapping-net-member"
+                class="ru.bpc.sv2.net.NetworkMember">
+		<result property="networkInstId" column="network_inst_id"/>
+		<result property="onlineAppPlugin" column="online_app_plugin"/>
+		<result property="status" column="status"/>
+		<result property="inactiveTill" column="inactive_till" javaType="java.util.Date" jdbcType="DATE"/>
+	</resultMap>
+	
+	<select id="get-hosts"
+		    parameterClass="qparams"
+		    resultMap="mapping-host">
+		<include refid="paginatedOpen"/>
+			SELECT 
+					  h.id
+					, h.seqnum
+					, h.network_id
+					, h.inst_id
+					, h.online_standard_id
+					, h.offline_standard_id
+                    , h.online_standard_name
+                    , h.offline_standard_name
+					, h.description host_name
+					, h.lang
+					, h.participant_type
+					, h.status
+					, h.inactive_till
+					, i.name inst_name
+					, n.name network_name
+					, n.inst_id network_inst_id
+					, decode(n.inst_id, h.inst_id, 1, 0) is_default
+					, os.application_plugin AS online_app_plugin
+			FROM net_ui_host_vw h, ost_ui_institution_sys_vw i, net_ui_network_vw n, cmn_ui_standard_vw os
+			WHERE 
+				i.id(+) = h.inst_id
+				AND i.lang(+) = h.lang
+				AND n.id = h.network_id 
+				AND n.lang = h.lang
+				AND os.id(+) = h.online_standard_id
+				AND os.lang(+) = h.lang
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">h.id LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="hostName">upper(h.description) LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="networkId">h.network_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">h.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">h.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="participantType">h.participant_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">h.status = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">h.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">inst_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="networkName">network_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="hostName">h.description $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="participantType">h.participant_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="onlineStdName">h.online_standard_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="offlineStdName">h.offline_standard_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">h.status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="inactiveTill">h.inactive_till $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend=" ORDER BY ">h.description ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-hosts-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT * 
+		FROM net_ui_host_vw h, net_ui_network_vw n
+		WHERE n.id = h.network_id AND n.lang = h.lang
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">h.id LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostName">upper(h.description) LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="networkId">h.network_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">h.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">h.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="participantType">h.participant_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">h.status = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-network-member" 
+			parameterClass="ru.bpc.sv2.net.NetworkMember">
+		{call NET_UI_MEMBER_PKG.add(
+				  o_id                  => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum              => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id             => #instId#
+				, i_network_id          => #networkId#
+				)}
+	</procedure>
+	
+	<procedure id="add-host" 
+			parameterClass="ru.bpc.sv2.net.NetworkMember">
+		{call NET_UI_MEMBER_PKG.add_host(
+				  o_id						=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id					=> #instId#
+				, i_network_id 				=> #networkId#
+				, i_participant_type		=> #participantType#
+				, i_online_standard_id		=> #onlineStdId#
+				, i_offline_standard_id		=> #offlineStdId#
+				, i_lang					=> #lang#
+				, i_description				=> #hostName#
+				, i_status					=> #status#
+				)}
+	</procedure>
+ 
+	<procedure id="edit-host" 
+			parameterClass="ru.bpc.sv2.net.NetworkMember">
+		{call NET_UI_MEMBER_PKG.modify_host(
+				  i_id						=> #id#
+				, io_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_participant_type		=> #participantType#
+				, i_online_standard_id		=> #onlineStdId#
+				, i_offline_standard_id		=> #offlineStdId#
+				, i_lang					=> #lang#
+				, i_description				=> #hostName#
+				, i_status					=> #status#
+				)}
+	</procedure>
+
+	<procedure id="delete-host" 
+			parameterClass="ru.bpc.sv2.net.NetworkMember">
+		{call NET_UI_MEMBER_PKG.remove_host(
+				  i_id						=> #id#
+				, io_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				)}
+	</procedure>
+	
+	<procedure id="delete-network-member" 
+			parameterClass="ru.bpc.sv2.net.NetworkMember">
+		{call NET_UI_MEMBER_PKG.remove(
+				  i_id						=> #id#
+				, i_seqnum					=> #seqNum#
+				)}
+	</procedure>	
+
+	<resultMap  id="mapping-host-owner"
+                class="ru.bpc.sv2.net.NetworkMember">
+		<result property="instId" column="inst_id"/>
+		<result property="id" column="id"/>
+        <result property="lang" column="lang"/>
+		<result property="instName" column="inst_name"/>
+		<result property="seqNum" column="seqnum"/>
+	</resultMap>
+	
+	<select id="get-host-owners"
+		    parameterClass="qparams"
+		    resultMap="mapping-host-owner">
+		<include refid="limitationOpen"/>
+		SELECT DISTINCT
+		         nm.inst_id
+		       , nm.id
+		       , nm.lang
+		       , nm.seqnum
+		       , i.name inst_name
+		FROM net_ui_member_vw nm, ost_ui_institution_sys_vw i
+		WHERE nm.lang = com_ui_user_env_pkg.get_user_lang()
+		        AND i.id(+) = nm.inst_id AND i.lang(+) = nm.lang
+				<iterate prepend="AND" conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="networkId">nm.network_id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="freeOnly">
+						nm.online_standard_id IS NULL AND nm.offline_standard_id IS NULL
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="exclusiveHostId">
+						nm.id NOT IN (
+											SELECT 
+												consumer_member_id 
+											FROM 
+												net_ui_interface_vw 
+											WHERE
+												host_member_id = #filters[].value# 
+										)
+						and nm.id != #filters[].value#
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="inclusiveHostId">
+						nm.online_standard_id IS NULL AND nm.offline_standard_id IS NULL
+						AND nm.id IN (
+											SELECT 
+												consumer_member_id 
+											FROM 
+												net_ui_interface_vw 
+											WHERE
+												host_member_id = #filters[].value# 
+												AND msp_member_id is NULL
+										)
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="usedOnly">
+						(nm.online_standard_id IS NOT NULL OR nm.offline_standard_id IS NOT NULL)
+					</isEqual>
+				</iterate>
+		ORDER BY inst_name
+		<include refid="limitationClose"/>
+	</select>
+
+
+	<resultMap  id="mapping-consumer"
+                class="ru.bpc.sv2.net.Consumer">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+		<result property="hostMemberId" column="host_member_id"/>
+		<result property="consumerMemberId" column="consumer_member_id"/>
+		<result property="consumerInstId" column="consumer_inst_id"/>
+		<result property="consumerInstName" column="consumer_inst_name"/>
+		<result property="mspMemberId" column="msp_member_id"/>
+		<result property="mspInstName" column="msp_inst_name"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+	
+	<select id="get-consumers"
+		    parameterClass="qparams"
+		    resultMap="mapping-consumer">
+		<include refid="limitationOpen"/>
+		SELECT DISTINCT
+				  c.id
+				, c.seqnum
+				, c.host_member_id
+				, c.consumer_member_id
+				, c.msp_member_id
+				, m1.inst_id consumer_inst_id
+				, i1.lang
+				, i1.name consumer_inst_name
+				, i2.name msp_inst_name
+		FROM 
+			net_ui_interface_vw c
+			, net_ui_member_vw m1
+			, net_ui_member_vw m2  
+			, ost_ui_institution_sys_vw i1
+			, ost_ui_institution_sys_vw i2
+		WHERE 
+			c.consumer_member_id = m1.id
+			AND c.msp_member_id = m2.id(+)
+			AND m1.inst_id = i1.id(+) 
+			AND m2.inst_id = i2.id(+)			
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">i1.lang(+) = #filters[].value# AND i2.lang(+) = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostMemberId">c.host_member_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="consumerMemberId">c.consumer_member_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mspMemberId">c.msp_member_id = #filters[].value#</isEqual>
+		</iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="instId">m1.inst_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instName">i1.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="mspInstName">i2.name $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" ORDER BY ">i1.name ASC</isEmpty>
+        <include refid="limitationClose"/>
+	</select>
+
+	<select id="get-consumers-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+            *
+        FROM 
+   			net_ui_interface_vw c
+   			, net_ui_member_vw m1
+ 	 	WHERE 
+   			c.consumer_member_id = m1.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">c.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">m1.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostMemberId">c.host_member_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="consumerMemberId">c.consumer_member_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="mspMemberId">c.msp_member_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-consumer" 
+			parameterClass="ru.bpc.sv2.net.Consumer">
+		{call NET_UI_INTERFACE_PKG.add(
+				  o_id						=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_host_member_id			=> #hostMemberId#
+				, i_consumer_member_id		=> #consumerMemberId#
+				, i_msp_member_id			=> #mspMemberId#
+				)}
+	</procedure>
+
+	<procedure id="edit-consumer" 
+			parameterClass="ru.bpc.sv2.net.Consumer">
+		{call NET_UI_INTERFACE_PKG.modify(
+				  i_id						=> #id#
+				, io_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_host_member_id			=> #hostMemberId#
+				, i_consumer_member_id		=> #consumerMemberId#
+				, i_msp_member_id			=> #mspMemberId#
+				)}
+	</procedure>
+	
+	<procedure id="delete-consumer" 
+			parameterClass="ru.bpc.sv2.net.Consumer">
+		{call NET_UI_INTERFACE_PKG.remove(
+				  i_id						=> #id#
+				, i_seqnum					=> #seqNum#
+				)}
+	</procedure>	
+
+	<resultMap  id="mapping-local-bin-range" class="ru.bpc.sv2.net.LocalBinRange">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="panLow" column="pan_low"/>
+        <result property="panHigh" column="pan_high"/>
+        <result property="priority" column="priority"/>
+        <result property="cardTypeId" column="card_type_id"/>
+        <result property="country" column="country"/>
+        <result property="panLength" column="pan_length"/>
+        <result property="cardNetworkId" column="card_network_id"/>
+        <result property="cardInstId" column="card_inst_id"/>
+        <result property="issNetworkId" column="iss_network_id"/>
+        <result property="issInstId" column="iss_inst_id"/>
+        <result property="cardNetworkName" column="card_network_name"/>
+        <result property="cardInstName" column="card_inst_name"/>
+        <result property="issNetworkName" column="iss_network_name"/>
+        <result property="issInstName" column="iss_inst_name"/>
+        <result property="issHostName" column="iss_host_name"/>
+        <result property="cardTypeName" column="card_type_name"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-local-bin-ranges"
+		    parameterClass="qparams"
+		    resultMap="mapping-local-bin-range">
+		<include refid="paginatedOpen"/>
+            SELECT	  b.id
+            		, b.seqnum
+            		, b.pan_low
+                    , b.pan_high
+                    , b.priority
+                    , b.card_type_id
+                    , b.country
+                    , b.pan_length
+                    , b.card_network_id
+                    , b.card_inst_id
+                    , b.iss_network_id
+                    , b.iss_inst_id
+                    , card_inst.name as card_inst_name
+                    , iss_inst.name as iss_inst_name
+                    , card_net.name as card_network_name
+                    , iss_net.name as iss_network_name
+                    , com_ui_user_env_pkg.get_user_lang() lang
+                    , memb.description iss_host_name
+                    , card.name card_type_name
+                    , c.country_name country_name
+            FROM net_ui_local_bin_range_vw b
+            	, ost_ui_institution_sys_vw card_inst
+                , ost_ui_institution_sys_vw iss_inst
+                , net_ui_network_vw card_net
+                , net_ui_network_vw iss_net
+                , net_ui_member_vw memb
+                , net_ui_card_type_vw card
+                , com_ui_country_vw c
+            WHERE card_inst.id = b.card_inst_id 
+                AND iss_inst.id = b.iss_inst_id
+                AND card_net.id = b.card_network_id
+                AND iss_net.id = b.iss_network_id
+                AND card.id(+) = b.card_type_id
+                AND memb.inst_id(+) = b.iss_inst_id 
+                AND memb.network_id(+) = b.iss_network_id
+                AND c.code(+) = b.country 
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="bin">rpad( #filters[].value# , b.pan_length, 0) BETWEEN rpad(b.pan_low, b.pan_length, 0) AND rpad(b.pan_high, b.pan_length, 0)</isEqual>
+				<isEqual property="filters[].element" compareValue="id">b.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardTypeId">b.card_type_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="country">b.country = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardNetworkId">b.card_network_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardInstId">b.card_inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					card_inst.lang = #filters[].value#
+					AND iss_inst.lang = #filters[].value#
+					AND card_net.lang = #filters[].value#
+					AND iss_net.lang = #filters[].value#
+					AND card.lang(+) = #filters[].value#
+					AND memb.lang(+) = #filters[].value# 
+					AND c.lang(+) = #filters[].value#
+				</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="panLow">pan_low $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="panHigh">pan_high $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardType">upper(card_type_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="country">upper(country_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardNetwork">upper(card_network_name) $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardInst">upper(card_inst_name) $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-local-bin-ranges-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT * 
+		FROM net_ui_local_bin_range_vw b
+            	, ost_ui_institution_sys_vw card_inst
+                , ost_ui_institution_sys_vw iss_inst
+                , net_ui_network_vw card_net
+                , net_ui_network_vw iss_net
+        WHERE card_inst.id = b.card_inst_id 
+            AND iss_inst.id = b.iss_inst_id
+            AND card_net.id = b.card_network_id
+            AND iss_net.id = b.iss_network_id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="bin">rpad( #filters[].value# , b.pan_length, 0) BETWEEN rpad(b.pan_low, b.pan_length, 0) AND rpad(b.pan_high, b.pan_length, 0)</isEqual>
+			<isEqual property="filters[].element" compareValue="id">b.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">b.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="country">b.country = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNetworkId">b.card_network_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardInstId">b.card_inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+				card_inst.lang = #filters[].value#
+				AND iss_inst.lang = #filters[].value#
+				AND card_net.lang = #filters[].value#
+				AND iss_net.lang = #filters[].value#
+			</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-local-bin-range" 
+			parameterClass="ru.bpc.sv2.net.LocalBinRange">
+		{call NET_UI_LOCAL_BIN_RANGE_PKG.add(
+				  o_id						=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_pan_low					=> #panLow#
+				, i_pan_high				=> #panHigh#
+				, i_pan_length				=> #panLength#
+				, i_priority				=> #priority#
+				, i_card_type_id			=> #cardTypeId#
+				, i_country					=> #country#
+				, i_iss_network_id			=> #issNetworkId#
+				, i_iss_inst_id				=> #issInstId#
+				, i_card_network_id			=> #cardNetworkId#
+				, i_card_inst_id			=> #cardInstId#
+				)}
+	</procedure>
+
+	<procedure id="edit-local-bin-range" 
+			parameterClass="ru.bpc.sv2.net.LocalBinRange">
+		{call NET_UI_LOCAL_BIN_RANGE_PKG.modify(
+				  i_id						=> #id#
+				, io_seqnum					=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_pan_low					=> #panLow#
+				, i_pan_high				=> #panHigh#
+				, i_pan_length				=> #panLength#
+				, i_priority				=> #priority#
+				, i_card_type_id			=> #cardTypeId#
+				, i_country					=> #country#
+				, i_iss_network_id			=> #issNetworkId#
+				, i_iss_inst_id				=> #issInstId#
+				, i_card_network_id			=> #cardNetworkId#
+				, i_card_inst_id			=> #cardInstId#
+				)}
+	</procedure>
+	
+	<procedure id="delete-local-bin-range" 
+			parameterClass="ru.bpc.sv2.net.LocalBinRange">
+		{call NET_UI_LOCAL_BIN_RANGE_PKG.remove(
+				  i_id						=> #id#
+				, i_seqnum					=> #seqNum#
+				)}
+	</procedure>
+	
+	<resultMap  id="mapping-card-type"
+                class="ru.bpc.sv2.net.CardType">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+        <result property="parentId" column="parent_type_id"/>
+		<result property="networkId" column="network_id"/>
+        <result property="name" column="name"/>
+        <result property="networkName" column="network_name"/>
+        <result property="lang" column="lang"/>       
+	</resultMap>
+	
+	<resultMap  id="mapping-card-type-hier"
+                class="ru.bpc.sv2.net.CardType"  extends="mapping-card-type">
+    	<result property="level" column="level" />
+        <result property="isLeaf" javaType="boolean" column="is_leaf" />
+		<result property="virtual" javaType="boolean" column="is_virtual" />
+	</resultMap>
+	
+	<select	id="get-card-types-hier"
+	    	parameterClass="qparams"
+	    	resultMap="mapping-card-type-hier" >
+		SELECT	  level
+                , id
+				, seqnum
+				, parent_type_id
+				, network_id
+				, name
+				, lang				
+				, network_name
+				, is_virtual
+				, CONNECT_BY_ISLEAF AS is_leaf
+	    FROM (
+		    SELECT DISTINCT
+		    	ct.*
+		    	, n.name network_name 
+		   FROM 
+				net_ui_card_type_vw ct
+				, net_ui_network_vw n
+			WHERE
+				ct.network_id = n.id(+)
+				AND ct.lang = n.lang(+)
+				<iterate prepend=" START WITH " conjunction="AND" property="filters">
+					<isEqual property="filters[].element" compareValue="lang">ct.lang = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="name">upper(ct.name) like #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="networkId">
+                        (ct.network_id = #filters[].value# or (ct.network_id in (#filters[].value#, 9998) and ct.parent_type_id is null))
+                    </isEqual>
+					<isEqual property="filters[].element" compareValue="id">ct.id = #filters[].value#</isEqual>
+					<isEqual property="filters[].element" compareValue="productId">
+						ct.id IN (select p.card_type_id from iss_ui_product_card_type_vw p where p.product_id = #filters[].value#)
+					</isEqual>
+					<isEqual property="filters[].element" compareValue="parentId">ct.parent_type_id = #filters[].value#</isEqual>					
+				</iterate>
+			CONNECT BY prior ct.parent_type_id = ct.id
+				<iterate prepend="AND" conjunction="AND" property="filters">
+		        	<isEqual property="filters[].element" compareValue="lang">ct.lang = #filters[].value#</isEqual>
+		        </iterate>
+		     ) 
+		 START WITH 
+		 	parent_type_id is NULL
+		 CONNECT BY 
+		 	PRIOR id = parent_type_id  
+		ORDER SIBLINGS BY id ASC, name ASC
+	</select>
+	
+	<select id="get-card-types"
+			parameterClass="qparams"
+			resultMap="mapping-card-type">
+		<include refid="paginatedOpen"/>
+			SELECT 	  ct.id
+					, ct.seqnum
+					, ct.parent_type_id
+					, ct.network_id
+					, ct.name
+					, ct.lang
+					, n.name network_name
+			FROM 
+				net_ui_card_type_vw ct, net_ui_network_vw n
+			WHERE
+				ct.network_id = n.id(+)
+				AND ct.lang = n.lang(+)
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">ct.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(ct.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="networkId">ct.network_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">ct.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="productId">
+					ct.id IN (select p.card_type_id from iss_ui_product_card_type_vw p where p.product_id = #filters[].value#)
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="parentTypeId">ct.parent_type_id = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">ct.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">ct.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="networkName">n.name $sorting[].direction$</isEqual>					
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">ct.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<procedure id="add-card-type"
+    		parameterClass="ru.bpc.sv2.net.CardType">
+    	{call NET_UI_CARD_TYPE_PKG.add(
+    			  o_id             	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_parent_type_id	=> #parentId#
+				, i_network_id    	=> #networkId#
+    			, i_lang			=> #lang#
+    			, i_name			=> #name#
+				, i_is_virtual		=> #virtual#
+    			)}
+    </procedure>
+
+    <procedure id="modify-card-type"
+    		parameterClass="ru.bpc.sv2.net.CardType">
+    	{call NET_UI_CARD_TYPE_PKG.modify(
+	   			  i_id             	=> #id#
+				, io_seqnum        	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_parent_type_id	=> #parentId#
+				, i_network_id    	=> #networkId#
+	   			, i_lang			=> #lang#
+	   			, i_name			=> #name#
+				, i_is_virtual		=> #virtual#
+	   			)}
+    </procedure>
+    
+    <procedure id="remove-card-type"
+    		parameterClass="ru.bpc.sv2.net.CardType">
+    	{call NET_UI_CARD_TYPE_PKG.remove(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqNum#
+				)}
+    </procedure>
+    
+    
+    <resultMap  id="mapping-card-type-map"
+                class="ru.bpc.sv2.net.CardTypeMap">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+        <result property="standardId" column="standard_id"/>
+		<result property="networkCardType" column="network_card_type"/>
+        <result property="priority" column="priority"/>
+        <result property="cardTypeId" column="card_type_id"/>
+        <result property="country" column="country"/>        
+        <result property="cardTypeName" column="card_type_name"/>
+        <result property="standardName" column="standard_name"/>
+	</resultMap>
+	
+	<select id="get-card-types-map"
+			parameterClass="qparams"
+			resultMap="mapping-card-type-map">
+		<include refid="paginatedOpen"/>
+			SELECT 	  ctm.id
+					, ctm.seqnum
+					, ctm.standard_id
+					, ctm.network_card_type
+					, ctm.priority
+					, ctm.card_type_id
+					, ctm.country
+					, ct.name card_type_name
+					, s.label standard_name					
+			FROM 
+				net_ui_card_type_map_vw ctm
+				, net_ui_card_type_vw ct
+				, cmn_ui_standard_vw s
+			WHERE
+				ctm.card_type_id = ct.id(+)
+				AND ctm.standard_id = s.id(+)
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">s.lang(+) = #filters[].value# AND ct.lang(+) = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="networkCardType">upper(ctm.network_card_type) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="standardId">ctm.standard_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardTypeId">ctm.card_type_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">ctm.id = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">ctm.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="standardName">s.label $sorting[].direction$</isEqual>					
+					<isEqual property="sorting[].property" compareValue="cardTypeName">ct.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="networkCardType">ctm.network_card_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="priority">ctm.priority $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">s.label ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-card-types-map-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	  
+			ctm.id					
+		FROM 
+			net_ui_card_type_map_vw ctm				
+		<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="networkCardType">upper(ctm.network_card_type) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="standardId">ctm.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardTypeId">ctm.card_type_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="id">ctm.id = #filters[].value#</isEqual>
+		</iterate>	
+		<include refid="limitationClose"/>        
+	</select>
+	
+	<procedure id="add-card-type-map"
+    		parameterClass="ru.bpc.sv2.net.CardTypeMap">
+    	{call NET_UI_CARD_TYPE_MAP_PKG.add(
+    			  o_id             		=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum        		=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_standard_id    		=> #standardId#
+				, i_network_card_type	=> #networkCardType#
+				, i_country  			=> #country#
+				, i_priority    		=> #priority#
+				, i_card_type_id		=> #cardTypeId#
+    			)}
+    </procedure>
+
+    <procedure id="modify-card-type-map"
+    		parameterClass="ru.bpc.sv2.net.CardTypeMap">
+    	{call NET_UI_CARD_TYPE_MAP_PKG.modify(
+    			  i_id             		=> #id#
+				, io_seqnum        		=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_standard_id    		=> #standardId#
+				, i_network_card_type	=> #networkCardType#
+				, i_country  			=> #country#
+				, i_priority    		=> #priority#
+				, i_card_type_id		=> #cardTypeId#
+    			)}
+    </procedure>
+    
+    <procedure id="remove-card-type-map"
+    		parameterClass="ru.bpc.sv2.net.CardTypeMap">
+    	{call NET_UI_CARD_TYPE_MAP_PKG.remove(
+				  i_id					=> #id#
+				, i_seqnum				=> #seqNum#
+				)}
+    </procedure>
+    
+	
+	<resultMap id="mapping-device" class="ru.bpc.sv2.net.NetDevice">
+        <result property="id" column="device_id"/>
+        <result property="hostMemberId" column="host_member_id"/>
+		<result property="signedOn" column="is_signed_on" javaType="boolean"/>
+		<result property="connected" column="is_connected" javaType="boolean"/>
+        <result property="commPlugin" column="communication_plugin"/>
+        <result property="standardId" column="standard_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="caption" column="caption"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="remoteAddress" column="remote_address"/>
+        <result property="remotePort" column="remote_port"/>
+	</resultMap>
+	
+	<select id="get-network-devices"
+		    parameterClass="qparams"
+		    resultMap="mapping-device">
+		<include refid="limitationOpen"/>
+		SELECT	  
+				  n.device_id
+				, n.host_member_id
+				, nvl(n.is_signed_on, 0) is_signed_on
+		        , nvl(n.is_connected, 0) is_connected
+				, n.communication_plugin
+				, n.standard_id
+				, n.inst_id
+				, n.caption
+				, n.description
+				, n.lang
+				, n.seqnum
+				, tcp.remote_address
+				, decode(tcp.remote_port,'ANY','',tcp.remote_port) remote_port					
+		FROM net_ui_device_vw n, cmn_ui_tcp_ip_vw tcp
+		WHERE n.device_id = tcp.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="deviceId">n.device_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="lang">n.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostMemberId">n.host_member_id = #filters[].value#</isEqual>			
+		</iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">n.device_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="caption">upper(n.caption) $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="signedOn">n.is_signed_on $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" ORDER BY ">n.caption ASC</isEmpty>
+        <include refid="limitationClose"/>
+	</select>
+
+	<select id="get-network-devices-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *				
+		FROM net_ui_device_vw n, cmn_ui_tcp_ip_vw tcp
+		WHERE n.device_id = tcp.id(+)
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="deviceId">n.device_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="lang">n.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostMemberId">n.host_member_id = #filters[].value#</isEqual>			
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-device" 
+			parameterClass="ru.bpc.sv2.net.NetDevice">
+		{call NET_UI_DEVICE_PKG.add(
+				  i_host_member_id	=> #hostMemberId#
+				, i_device_id     	=> #id#
+				)}
+	</procedure>
+
+	<procedure id="edit-device" 
+			parameterClass="ru.bpc.sv2.net.NetDevice">
+		{call NET_UI_DEVICE_PKG.modify(
+				  i_host_member_id	=> #hostMemberId#
+				, i_device_id     	=> #id#
+				)}
+	</procedure>
+	
+	<procedure id="delete-device" 
+			parameterClass="ru.bpc.sv2.net.NetDevice">
+		{call NET_UI_DEVICE_PKG.remove(
+				  i_device_id		=> #id#
+				)}
+	</procedure>
+	
+	<resultMap id="mapping-sttl-map" class="ru.bpc.sv2.net.SttlMap">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="issInstId" column="iss_inst_id"/>
+		<result property="issNetworkId" column="iss_network_id"/>
+        <result property="acqInstId" column="acq_inst_id"/>
+        <result property="acqNetworkId" column="acq_network_id"/>
+        <result property="cardInstId" column="card_inst_id"/>
+        <result property="cardNetworkId" column="card_network_id"/>
+        <result property="modId" column="mod_id"/>
+        <result property="priority" column="priority"/>
+        <result property="sttlType" column="sttl_type"/>
+        <result property="matchStatus" column="match_status"/>
+        <result property="issInstName" column="iss_inst_name"/>
+		<result property="issNetworkName" column="iss_network_name"/>
+        <result property="acqInstName" column="acq_inst_name"/>
+        <result property="acqNetworkName" column="acq_network_name"/>
+        <result property="cardInstName" column="card_inst_name"/>
+        <result property="cardNetworkName" column="card_network_name"/>
+        <result property="modName" column="mod_name"/>
+		<result property="operType" column="oper_type"/>
+	</resultMap>
+	
+	<select id="get-sttl-maps"
+		    parameterClass="qparams"
+		    resultMap="mapping-sttl-map">
+		<include refid="paginatedOpen"/>
+			SELECT	  
+					  s.id
+					, s.seqnum
+					, s.iss_inst_id
+					, s.iss_network_id
+					, s.acq_inst_id
+					, s.acq_network_id
+					, s.card_inst_id
+					, s.card_network_id
+					, s.mod_id
+					, s.priority
+					, s.sttl_type
+					, s.match_status
+					, iss_inst.name as iss_inst_name
+					, acq_inst.name as acq_inst_name
+					, card_inst.name as card_inst_name
+					, iss_net.name as iss_network_name
+					, acq_net.name as acq_network_name
+					, card_net.name as card_network_name
+					, mod.name as mod_name
+					, s.oper_type
+			FROM
+					  net_ui_sttl_map_vw s
+					, ost_ui_institution_sys_vw iss_inst
+					, ost_ui_institution_sys_vw acq_inst
+					, ost_ui_institution_sys_vw card_inst
+					, net_ui_network_sys_vw iss_net
+					, net_ui_network_sys_vw acq_net
+					, net_ui_network_sys_vw card_net
+					, rul_ui_mod_vw mod
+			WHERE
+	                decode(s.iss_inst_id, '%' , -1, s.iss_inst_id) = iss_inst.id(+)
+	                AND decode(s.acq_inst_id, '%' , -1, s.acq_inst_id) = acq_inst.id(+)
+	                AND decode(s.card_inst_id, '%' , -1, s.card_inst_id) = card_inst.id(+)
+	                AND decode(s.iss_network_id, '%' , -1, s.iss_network_id) = iss_net.id(+)
+	                AND decode(s.acq_network_id, '%' , -1, s.acq_network_id) = acq_net.id(+)
+	                AND decode(s.card_network_id, '%' , -1, s.card_network_id) = card_net.id(+)
+	                AND s.mod_id = mod.id(+)
+	                AND iss_inst.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang()
+	                AND acq_inst.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang()
+	                AND card_inst.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang()
+	                AND iss_net.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang()
+	                AND acq_net.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang()
+	                AND card_net.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang()
+	                AND mod.lang(+) = COM_UI_USER_ENV_PKG.get_user_lang()
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">s.id LIKE #filters[].value#</isEqual>			
+				<isEqual property="filters[].element" compareValue="issInstId">s.iss_inst_id = #filters[].value#</isEqual>			
+				<isEqual property="filters[].element" compareValue="acqInstId">s.acq_inst_id = #filters[].value#</isEqual>			
+				<isEqual property="filters[].element" compareValue="cardInstId">s.card_inst_id = #filters[].value#</isEqual>			
+				<isEqual property="filters[].element" compareValue="issNetworkId">s.iss_network_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="acqNetworkId">s.acq_network_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardNetworkId">s.card_network_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="sttlType">s.sttl_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="modId">s.mod_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="priority">s.priority = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">s.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="priority">s.priority $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="sttlType">s.sttl_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="issInstName">iss_inst_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="acqInstName">acq_inst_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardInstName">card_inst_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="issNetworkName">iss_network_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="acqNetworkName">acq_network_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardNetworkName">card_network_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="modName">mod_name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operType">s.oper_type $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend=" ORDER BY ">s.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-sttl-maps-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT s.id				
+		FROM net_ui_sttl_map_vw s
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">s.id LIKE #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="issInstId">s.iss_inst_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="acqInstId">s.acq_inst_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="cardInstId">s.card_inst_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="issNetworkId">s.iss_network_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="acqNetworkId">s.acq_network_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNetworkId">s.card_network_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="sttlType">s.sttl_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modId">s.mod_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="priority">s.priority = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-sttl-map" 
+			parameterClass="ru.bpc.sv2.net.SttlMap">
+		{call NET_UI_STTL_MAP_PKG.add(
+				  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_iss_inst_id			=> #issInstId#
+				, i_iss_network_id		=> #issNetworkId#
+				, i_acq_inst_id			=> #acqInstId#
+				, i_acq_network_id		=> #acqNetworkId#
+				, i_card_inst_id		=> #cardInstId#
+				, i_card_network_id		=> #cardNetworkId#
+				, i_mod_id				=> #modId#
+				, i_priority			=> #priority#
+				, i_sttl_type			=> #sttlType#
+				, i_match_status		=> #matchStatus#
+				, i_oper_type 			=> #operType#
+				)}
+	</procedure>
+
+	<procedure id="edit-sttl-map" 
+			parameterClass="ru.bpc.sv2.net.SttlMap">
+		{call NET_UI_STTL_MAP_PKG.modify(
+				  i_id					=> #id#
+				, io_seqnum				=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_iss_inst_id			=> #issInstId#
+				, i_iss_network_id		=> #issNetworkId#
+				, i_acq_inst_id			=> #acqInstId#
+				, i_acq_network_id		=> #acqNetworkId#
+				, i_card_inst_id		=> #cardInstId#
+				, i_card_network_id		=> #cardNetworkId#
+				, i_mod_id				=> #modId#
+				, i_priority			=> #priority#
+				, i_sttl_type			=> #sttlType#
+				, i_match_status		=> #matchStatus#
+				, i_oper_type 			=> #operType#
+				)}
+	</procedure>
+	
+	<procedure id="delete-sttl-map" 
+			parameterClass="ru.bpc.sv2.net.SttlMap">
+		{call NET_UI_STTL_MAP_PKG.remove(
+				  i_id					=> #id#
+				, i_seqnum				=> #seqNum#
+				)}
+	</procedure>	
+	
+	<procedure id="sync-local-bins">
+		{call NET_API_BIN_PKG.sync_local_bins()}
+	</procedure>
+	
+	<select id="get-interface-parameter"
+		    parameterClass="qparams"
+		    resultClass="java.lang.String">
+		    SELECT
+		    	p.param_value
+		    from 
+		    	NET_API_INTERFACE_PARAM_VAL_VW p, net_member_vw m
+                where p.CONSUMER_MEMBER_ID = m.ID   	
+		 <iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="standardId">p.standard_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hostMemberId">p.host_member_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="consumerMemberId">p.consumer_member_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="consumerInstId">m.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="interfaceId">p.interface_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="paramName">p.param_name = #filters[].value#</isEqual>
+		</iterate>   
+	</select>
+	
+	
+	
+	<resultMap  id="mapping-card-type-feature"
+	            class="ru.bpc.sv2.net.CardTypeFeature"  >
+	    <result property="id" column="id" />
+	    <result property="seqNum" column="seqnum" />
+	    <result property="cardTypeId" column="card_type_id" />
+	    <result property="cardFeature" column="card_feature" />	    	    
+	</resultMap>
+	
+	<select id="get-card-type-feature"
+			parameterClass="qparams" resultMap="mapping-card-type-feature">
+		<include refid="paginatedOpen" />
+			SELECT
+				id
+				,seqnum
+				,card_type_id
+				,card_feature								
+			FROM
+				net_card_type_feature
+			<iterate prepend="WHERE" conjunction="AND" property="filters">				
+				<isEqual property="filters[].element" compareValue="cardTypeId">card_type_id =  #filters[].value#</isEqual>				
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="seqnum">seqnum $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-card-type-feature-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			id				
+		FROM
+				net_card_type_feature
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="cardTypeId">card_type_id =  #filters[].value#</isEqual>
+		</iterate>	
+		<include refid="limitationClose"/>		
+	</select>	
+	
+	<procedure id="add-card-type-feature" 
+			parameterClass="ru.bpc.sv2.net.CardTypeFeature">
+		{call NET_UI_CARD_TYPE_FEATURE_PKG.add_card_type_feature(
+				  o_id			 => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum		 => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_card_type_id => #cardTypeId#
+				, i_card_feature => #cardFeature#				
+				)}
+	</procedure>
+	
+	<procedure id="modify-card-type-feature"
+			parameterClass="ru.bpc.sv2.net.CardTypeFeature">
+		{call NET_UI_CARD_TYPE_FEATURE_PKG.modify_card_type_feature(
+				  i_id			 => #id#
+				, io_seqnum		 => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_card_type_id => #cardTypeId#
+				, i_card_feature => #cardFeature#
+				)}			
+	</procedure>
+	
+	<procedure id="remove-card-type-feature"
+			parameterClass="ru.bpc.sv2.net.CardTypeFeature">
+		{call NET_UI_CARD_TYPE_FEATURE_PKG.remove_card_type_feature(
+				  i_id	   => #id#
+				, i_seqnum => #seqNum#
+		)}	
+	</procedure>
+
+	<resultMap  id="mapping-host-substitution"
+	            class="ru.bpc.sv2.net.HostSubstitution">
+	    <result property="id" column="id"/>
+	    <result property="seqNum" column="seqnum"/>
+	    <result property="operType" column="oper_type"/>
+	    <result property="operationReason" column="oper_reason"/>
+	    <result property="operationCurrency" column="oper_currency"/>
+	    <result property="messageType" column="msg_type"/>
+	    <result property="terminalType" column="terminal_type"/>
+	    <result property="terminalArrayId" column="terminal_array_id"/>
+	    <result property="merchantArrayId" column="merchant_array_id"/>	    	    
+	    <result property="panLow" column="pan_low"/>
+	    <result property="panHigh" column="pan_high"/>
+	    <result property="acqInstId" column="acq_inst_id"/>
+	    <result property="acqNetworkId" column="acq_network_id"/>
+	    <result property="cardInstId" column="card_inst_id"/>
+	    <result property="cardNetworkId" column="card_network_id"/>
+	    <result property="issInstId" column="iss_inst_id"/>
+	    <result property="issNetworkId" column="iss_network_id"/>
+	    <result property="priority" column="priority"/>
+	    <result property="substitutionInstId" column="substitution_inst_id"/>
+	    <result property="substitutionNetworkId" column="substitution_network_id"/>
+	    <result property="acqInstName" column="acq_inst_name"/>
+	    <result property="acqNetworkName" column="acq_network_name"/>
+	    <result property="cardInstName" column="card_inst_name"/>
+	    <result property="cardNetworkName" column="card_network_name"/>
+	    <result property="issInstName" column="iss_inst_name"/>
+	    <result property="issNetworkName" column="iss_network_name"/>
+	    <result property="substitutionInstName" column="sub_inst_name"/>
+	    <result property="substitutionNetworkName" column="sub_network_name"/>
+	    <result property="lang" column="lang"/>
+        <result property="cardCountry" column="card_country"/>
+
+	</resultMap>
+	
+	<select id="get-host-substitutions"
+			parameterClass="qparams" resultMap="mapping-host-substitution">
+		<include refid="paginatedOpen"/>
+		SELECT 
+				  id
+				, seqnum
+				, oper_type
+				, oper_reason
+				, oper_currency
+				, msg_type
+				, terminal_type
+				, terminal_array_id
+				, merchant_array_id
+				, pan_low
+				, pan_high
+				, acq_inst_id
+				, acq_network_id
+				, card_inst_id
+				, card_network_id
+				, iss_inst_id
+				, iss_network_id
+				, priority
+				, substitution_inst_id
+				, substitution_network_id
+				, acq_inst_name
+				, acq_network_name
+				, card_inst_name
+				, card_network_name
+				, iss_inst_name
+				, iss_network_name
+				, sub_inst_name
+				, sub_network_name
+				, lang
+                , card_country
+		FROM net_ui_host_substitution_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">				
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="operType">oper_type = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="terminalType">terminal_type = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="bin">#filters[].value# BETWEEN pan_low AND pan_high</isEqual>
+			<isEqual property="filters[].element" compareValue="acqInstId">acq_inst_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="acqNetworkId">acq_network_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="cardInstId">card_inst_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="cardNetworkId">card_network_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="issInstId">iss_inst_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="issNetworkId">iss_network_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="priority">priority = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="substitutionInstId">substitution_inst_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="substitutionNetworkId">substitution_network_id = #filters[].value#</isEqual>				
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="terminalType">terminal_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="acqInstName">acq_inst_name $sorting[].direction$</isEqual>				
+				<isEqual property="sorting[].property" compareValue="acqNetworkName">acq_network_name $sorting[].direction$</isEqual>				
+				<isEqual property="sorting[].property" compareValue="cardInstName">card_inst_name $sorting[].direction$</isEqual>				
+				<isEqual property="sorting[].property" compareValue="cardNetworkName">card_network_name $sorting[].direction$</isEqual>				
+				<isEqual property="sorting[].property" compareValue="issInstName">iss_inst_name $sorting[].direction$</isEqual>				
+				<isEqual property="sorting[].property" compareValue="issNetworkName">iss_network_name $sorting[].direction$</isEqual>				
+				<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>				
+				<isEqual property="sorting[].property" compareValue="substitutionInstName">sub_inst_name $sorting[].direction$</isEqual>				
+				<isEqual property="sorting[].property" compareValue="substitutionNetworkName">sub_network_name $sorting[].direction$</isEqual>				
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose" />
+	</select>
+	
+	<select id="get-host-substitutions-count"
+			parameterClass="qparams" resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT id				
+		FROM net_ui_host_substitution_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">				
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="operType">oper_type = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="terminalType">terminal_type = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="bin">#filters[].value# BETWEEN pan_low AND pan_high</isEqual>
+			<isEqual property="filters[].element" compareValue="acqInstId">acq_inst_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="acqNetworkId">acq_network_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="cardInstId">card_inst_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="cardNetworkId">card_network_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="issInstId">iss_inst_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="issNetworkId">iss_network_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="priority">priority = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="substitutionInstId">substitution_inst_id = #filters[].value#</isEqual>				
+			<isEqual property="filters[].element" compareValue="substitutionNetworkId">substitution_network_id = #filters[].value#</isEqual>				
+		</iterate>
+		<include refid="limitationClose"/>		
+	</select>	
+	
+	<procedure id="add-host-substitution" 
+			parameterClass="ru.bpc.sv2.net.HostSubstitution">
+		{call NET_UI_HOST_SUBSTITUTION_PKG.add(
+				  o_id                      => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum                  => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_oper_type               => #operType#
+				, i_terminal_type           => #terminalType#
+				, i_pan_low                 => #panLow#
+				, i_pan_high                => #panHigh#
+				, i_acq_inst_id             => #acqInstId#
+				, i_acq_network_id          => #acqNetworkId#
+				, i_card_inst_id            => #cardInstId#
+				, i_card_network_id         => #cardNetworkId#
+				, i_iss_inst_id             => #issInstId#
+				, i_iss_network_id          => #issNetworkId#
+				, i_priority                => #priority#
+				, i_substitution_inst_id    => #substitutionInstId#
+				, i_substitution_network_id	=> #substitutionNetworkId#
+				, i_msg_type				=> #messageType#
+				, i_oper_reason				=> #operationReason#
+				, i_oper_currency			=> #operationCurrency#
+				, i_merchant_array_id		=> #merchantArrayId#
+				, i_terminal_array_id		=> #terminalArrayId#
+                , i_card_country            => #cardCountry#
+				)}
+	</procedure>
+	
+	<procedure id="modify-host-substitution"
+			parameterClass="ru.bpc.sv2.net.HostSubstitution">
+		{call NET_UI_HOST_SUBSTITUTION_PKG.modify(
+				  i_id                      => #id#
+				, io_seqnum                 => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_oper_type               => #operType#
+				, i_terminal_type           => #terminalType#
+				, i_pan_low                 => #panLow#
+				, i_pan_high                => #panHigh#
+				, i_acq_inst_id             => #acqInstId#
+				, i_acq_network_id          => #acqNetworkId#
+				, i_card_inst_id            => #cardInstId#
+				, i_card_network_id         => #cardNetworkId#
+				, i_iss_inst_id             => #issInstId#
+				, i_iss_network_id          => #issNetworkId#
+				, i_priority                => #priority#
+				, i_substitution_inst_id    => #substitutionInstId#
+				, i_substitution_network_id	=> #substitutionNetworkId#
+				, i_msg_type				=> #messageType#
+				, i_oper_reason				=> #operationReason#
+				, i_oper_currency			=> #operationCurrency#
+				, i_merchant_array_id		=> #merchantArrayId#
+				, i_terminal_array_id		=> #terminalArrayId#
+                , i_card_country            => #cardCountry#
+				)}			
+	</procedure>
+	
+	<procedure id="remove-host-substitution"
+			parameterClass="ru.bpc.sv2.net.HostSubstitution">
+		{call NET_UI_HOST_SUBSTITUTION_PKG.remove(
+				  i_id	   => #id#
+				, i_seqnum => #seqNum#
+				)}	
+	</procedure>
+
+	<resultMap id="mapping-oper-type-map" class="ru.bpc.sv2.net.OperTypeMap">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+		<result property="standardId" column="standard_id"/>
+        <result property="networkOperType" column="network_oper_type"/>
+        <result property="priority" column="priority"/>
+        <result property="operType" column="oper_type"/>
+	</resultMap>
+	
+	<select id="get-oper-type-maps"
+		    parameterClass="qparams"
+		    resultMap="mapping-oper-type-map">
+		<include refid="limitationOpen"/>
+		SELECT	  
+				  id
+				, seqnum
+				, standard_id
+				, network_oper_type
+				, priority
+				, oper_type
+		FROM net_ui_oper_type_map_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="networkOperType">network_oper_type = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="priority">priority = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="operType">oper_type = #filters[].value#</isEqual>			
+		</iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="standardId">standard_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="networkOperType">network_oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">oper_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" ORDER BY ">priority ASC</isEmpty>
+        <include refid="limitationClose"/>
+	</select>
+
+	<select id="get-oper-type-maps-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT id				
+		FROM net_ui_oper_type_map_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="networkOperType">network_oper_type = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="priority">priority = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="operType">oper_type = #filters[].value#</isEqual>			
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-oper-type-map" 
+			parameterClass="ru.bpc.sv2.net.OperTypeMap">
+		{call NET_UI_OPER_TYPE_MAP_PKG.add(
+				  o_id                => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum            => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_standard_id       => #standardId#
+				, i_network_oper_type => #networkOperType#
+				, i_priority          => #priority#
+				, i_oper_type         => #operType#
+				)}
+	</procedure>
+
+	<procedure id="modify-oper-type-map" 
+			parameterClass="ru.bpc.sv2.net.OperTypeMap">
+		{call NET_UI_OPER_TYPE_MAP_PKG.modify(
+				  i_id                => #id#
+				, io_seqnum           => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_standard_id       => #standardId#
+				, i_network_oper_type => #networkOperType#
+				, i_priority          => #priority#
+				, i_oper_type         => #operType#
+				)}
+	</procedure>
+	
+	<procedure id="remove-oper-type-map" 
+			parameterClass="ru.bpc.sv2.net.OperTypeMap">
+		{call NET_UI_OPER_TYPE_MAP_PKG.remove(
+				  i_id                => #id#
+				, i_seqnum            => #seqNum#
+				)}
+	</procedure>
+
+	<resultMap id="mapping-msg-type-map" class="ru.bpc.sv2.net.MsgTypeMap">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+		<result property="standardId" column="standard_id"/>
+        <result property="networkMsgType" column="network_msg_type"/>
+        <result property="priority" column="priority"/>
+        <result property="msgType" column="msg_type"/>
+	</resultMap>
+	
+	<select id="get-msg-type-maps"
+		    parameterClass="qparams"
+		    resultMap="mapping-msg-type-map">
+		<include refid="limitationOpen"/>
+		SELECT	  
+				  id
+				, seqnum
+				, standard_id
+				, network_msg_type
+				, priority
+				, msg_type
+		FROM net_ui_msg_type_map_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="networkMsgType">network_msg_type = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="priority">priority = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="msgType">msg_type = #filters[].value#</isEqual>			
+		</iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="standardId">standard_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="networkMsgType">network_msg_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="priority">priority $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="msgType">msg_type $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+        <isEmpty property="sorting" prepend=" ORDER BY ">priority ASC</isEmpty>
+        <include refid="limitationClose"/>
+	</select>
+
+	<select id="get-msg-type-maps-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT id				
+		FROM net_ui_msg_type_map_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="standardId">standard_id = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="networkMsgType">network_msg_type = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="priority">priority = #filters[].value#</isEqual>			
+			<isEqual property="filters[].element" compareValue="msgType">msg_type = #filters[].value#</isEqual>			
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<procedure id="add-msg-type-map" 
+			parameterClass="ru.bpc.sv2.net.MsgTypeMap">
+		{call NET_UI_MSG_TYPE_MAP_PKG.add(
+				  o_id               => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum           => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_standard_id      => #standardId#
+				, i_network_msg_type => #networkMsgType#
+				, i_priority         => #priority#
+				, i_msg_type         => #msgType#
+				)}
+	</procedure>
+
+	<procedure id="modify-msg-type-map" 
+			parameterClass="ru.bpc.sv2.net.MsgTypeMap">
+		{call NET_UI_MSG_TYPE_MAP_PKG.modify(
+				  i_id               => #id#
+				, io_seqnum          => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_standard_id      => #standardId#
+				, i_network_msg_type => #networkMsgType#
+				, i_priority         => #priority#
+				, i_msg_type         => #msgType#
+				)}
+	</procedure>
+	
+	<procedure id="remove-msg-type-map" 
+			parameterClass="ru.bpc.sv2.net.MsgTypeMap">
+		{call NET_UI_MSG_TYPE_MAP_PKG.remove(
+				  i_id               => #id#
+				, i_seqnum           => #seqNum#
+				)}
+	</procedure>
+</sqlMap>

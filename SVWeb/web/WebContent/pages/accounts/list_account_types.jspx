@@ -1,0 +1,653 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent">
+    	<script type="text/javascript">
+//<!--
+		function checkAccountTypeFields() {
+			var checked = true;
+			
+			if (document.getElementById('acc_account_type_modal_div:newInstId').value == "") {
+				document.getElementById('acc_account_type_modal_div:newInstIdError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('acc_account_type_modal_div:possibleAccountType').value == "") {
+				document.getElementById('acc_account_type_modal_div:possibleAccountTypeError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('acc_account_type_modal_div:newProductType').value == "") {
+				document.getElementById('acc_account_type_modal_div:newProductTypeError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('acc_account_type_modal_div:possibleBalanceType')
+					&& document.getElementById('acc_account_type_modal_div:possibleBalanceType').value == "") {
+				document.getElementById('acc_account_type_modal_div:possibleBalanceTypeError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('acc_account_type_modal_div:newStatus')
+					&& document.getElementById('acc_account_type_modal_div:newStatus').value == "") {
+				document.getElementById('acc_account_type_modal_div:newStatusError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('acc_account_type_modal_div:newRateType')
+					&& document.getElementById('acc_account_type_modal_div:newRateTypeLabel').innerHTML.indexOf("*") != -1
+					&& document.getElementById('acc_account_type_modal_div:newRateType').value == "") {
+				document.getElementById('acc_account_type_modal_div:newRateTypeError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//-->
+	</script>
+    	<a4j:loadScript src="/js/stretch.js" />
+    	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc"/>
+    	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+		<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+		
+		<ui:remove>
+			<!-- removed because conception didn't prove to be working. May be later it will be fixed -->
+			<!-- menu, bread crumbs, and pageName (see below) initializing -->        
+			<!--<h:inputHidden value="#{MbAccountTypes.menuNode}"/>-->
+		</ui:remove>
+		
+		<!-- navigation bar -->
+		<ui:remove>
+			<!-- if page is not accessible from menu then local name will be used -->
+			<!-- <bpct:navBar pageName="#{MbAccountTypes.pageName == null ? lblAcc.account_types : MbAccountTypes.pageName}"/>-->
+		</ui:remove>
+			
+		<bpct:navBar pageName="#{lblAcc.account_types}"/>
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+		
+		<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('accTypesSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+				
+        <h:form id="accTypesSearchForm" onkeypress="handleEnter(event)">
+			
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+					<h:panelGroup layout="block" styleClass="search_block_inner2">
+		                <h:panelGroup styleClass="search_block_left" layout="block">
+		                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+			                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+		                			
+					      			<h:outputLabel value="#{lblCommon.institution}:" title="#{lblCommon.institution}" />
+					      			<h:selectOneMenu id="inst"
+					      					value="#{MbAccountTypes.filter.instId}">
+					      				<f:selectItem itemValue = ""/>
+					      				<f:selectItems value="#{MbAccountTypes.institutions}"/>
+					      			</h:selectOneMenu>
+					      				
+					      			<h:outputLabel value="#{lblCommon.entity_type}:" title="#{lblCommon.entity_type}" />
+					      			<h:selectOneMenu id="entType"
+					      					value="#{MbAccountTypes.entityType}">
+					      				<f:selectItem itemValue = ""/>
+					      				<f:selectItems value="#{MbAccountTypes.entTypes}"/>
+					      			</h:selectOneMenu>
+					      			
+					      			<h:outputLabel value="#{lblPrd.product_type}:" title="#{lblPrd.product_type}" />
+					      			<h:selectOneMenu id="prdType"
+					      					value="#{MbAccountTypes.filter.productType}">
+					      				<f:selectItem itemValue = ""/>
+					      				<f:selectItems value="#{MbAccountTypes.productTypes}"/>
+					      			</h:selectOneMenu>
+			                	</h:panelGrid>
+			                	<h:panelGrid columns="1" >
+			                		<bre:taggedCommandButton image="/_img/icon_search.png" type="submit"
+			                				reRender="accountTypesTable, accTypesBtnForm, #{MbAccountTypes.tabName}"
+			                				action="#{MbAccountTypes.search}"
+			                				value="#{lblForm.search}" style="width:85px;"
+			                				id="searchBtn"
+			                				onclick="disableModalPanelBtns(this);"
+			                				oncomplete="enableModalPanelBtns(this);"
+			                				eventsQueue="queue"/>
+				                	<h:panelGroup styleClass="link-clear" layout="block"  >
+				                		<h:graphicImage url="/_img/icon_clear.png"/>
+				                		<a4j:commandLink value="#{lblForm.clear_all}"
+				                				action="#{MbAccountTypes.clearFilter}"
+				                				reRender="accTypesSearchForm, accTypesForm, accTypesBtnForm, #{MbAccountTypes.tabName}">
+				                		</a4j:commandLink>
+				                	</h:panelGroup>
+				                </h:panelGrid>
+			                </h:panelGrid>
+			                <a4j:outputPanel ajaxRendered="true">
+				                <h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+				                <h:panelGroup styleClass="collapse-vert" layout="block"/>
+			                </a4j:outputPanel>
+			            </h:panelGroup>
+		            </h:panelGroup>
+	            </h:panelGroup>
+            </h:panelGroup>
+		</h:form>
+		
+		<h:form id="accTypesForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		   		<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		   			<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="accountTypesTable"
+							var="item"
+							tableState="#{MbAccountTypes.tableState}"
+							styleClass="res-table"
+							headerClass="res-table-header"
+							rowClasses=",odd"
+							selectedClass="res-table-selected"
+							value="#{MbAccountTypes.accountTypes}"
+							selection="#{MbAccountTypes.itemSelection}"
+							rows="#{MbAccountTypes.rowsNum}" 
+							enableContextMenu="true"
+							height="255px"
+							selectionMode="single"
+							noDataLabel="#{MbAccountTypes.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							width="100%" reRender="accTypesBtnForm:accTypeBtnBlock, #{MbAccountTypes.tabName}">
+
+						<a4j:support event="onselectionchange"
+								reRender="accTypesBtnForm:accTypeBtnBlock, #{MbAccountTypes.tabName}"
+								eventsQueue="queue"/>
+
+				        <rich:column id="institution" label="#{lblCommon.institution}" title="Institution" width="20%" sortBy="#{'instName'}">
+				           <f:facet name="header">
+			                    <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.institution}" title="#{lblCommon.institution}" />
+								</a4j:outputPanel>
+			                </f:facet>
+			                <h:outputText value="#{item.instId} - #{item.instName}" 
+			                	title="#{item.instId} - #{item.instName}" />
+				        </rich:column>
+
+				        <rich:column id="account_type" label="#{lblAcc.account_type}" title="Account type" width="20%" sortBy="#{'accountType'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcc.account_type}" title="#{lblAcc.account_type}" />
+			                </f:facet>
+			                <h:outputText value="#{DictUtils.articles[item.accountType]}" 
+			                		title="#{DictUtils.articles[item.accountType]}"
+			                		rendered="#{item.accountType != null}"/>
+			                <h:outputText value="" title="" rendered="#{item.accountType == null}"/>
+				        </rich:column>
+
+						<rich:column id="number_format" label="#{lblAcc.number_format}" title="Name format" width="25%" >
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcc.number_format}" title="#{lblAcc.number_format}" />
+			                </f:facet>
+			                <h:outputText value="#{item.numberFormatName}" title="#{item.numberFormatId} - #{item.numberFormatName}" />
+				        </rich:column>
+	        
+						<rich:column id="number_prefix" label="#{lblAcc.number_prefix}" title="Number prefix" width="15%" >
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblAcc.number_prefix}" title="#{lblAcc.number_prefix}" />
+			                </f:facet>
+			                <h:outputText value="#{item.numberPrefix}" 
+			                		title="#{item.numberPrefix}" />
+				        </rich:column>
+				        
+				        <rich:column id="product_type" label="#{lblPrd.product_type}" title="Product type" width="20%" >
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblPrd.product_type}" title="#{lblPrd.product_type}" />
+			                </f:facet>
+			                <h:outputText value="#{DictUtils.articles[item.productType]}"
+			                 title="#{DictUtils.articles[item.productType]}"
+			                rendered="#{item.productType != null}" converter="bpc.ShortStringConverter"/>
+			                <h:outputText value="" title="" rendered="#{item.productType == null}" />
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		<h:form id="accTypesBtnForm">
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+					        	columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num_dict" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+	                        <h:selectOneMenu id="rows_num_dict" value="#{MbAccountTypes.rowsNum}" styleClass="row_per_page">
+	                        	<a4j:support event="onchange" reRender="accountTypesTable, accTypesBtnForm,
+	                        				 #{MbAccountTypes.tabName}"/>
+                        		<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+	                    	<rich:datascroller maxPages="10" fastControls="hide" 
+	                    			reRender="accTypesBtnForm:accTypeBtnBlock, #{MbAccountTypes.tabName}"
+		                    		page="#{MbAccountTypes.accTypesPage}"
+				                    pagesVar="pagesAccType" styleClass="res-datascroller"
+				                    id="dsAccTypes" for="accountTypesTable">
+			                    <f:facet name="first">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="first_disabled">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="last">
+			                        <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="last_disabled">
+			                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="previous">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="previous_disabled">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="next">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="next_disabled">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="pages">
+			                    </f:facet>
+			                </rich:datascroller>
+
+                        	<h:panelGroup id="pagesNum">
+	                        	<h:outputText styleClass="strongClass" value="#{pagesAccType}"/>
+	                        	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbAccountTypes.accountTypes.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                        	</h:panelGroup>
+                        	
+                        	<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbAccountTypes.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbAccountTypes.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGrid id="accTypeBtnBlock" styleClass="buttons_block" columns="4">
+                       	<bre:taggedCommandButton id="createAccTypeBtn"
+                       			value="#{lblForm.add}"
+                       			reRender="acc_account_type_modal_panel"
+                       			image="/images/create_doc.gif"
+                       			action="#{MbAccountTypes.add}"
+                       			oncomplete="#{rich:component('acc_account_type_modal_panel')}.show()"
+                       			rendered="#{usession.inRole['ADD_ACCOUNT_TYPE']}"
+                       			/>
+                    	<bre:taggedCommandButton id="editAccTypeBtn"
+                    			value="#{lblForm.edit}"
+                    			reRender="acc_account_type_modal_panel"
+                    			action="#{MbAccountTypes.edit}"
+                    			oncomplete="#{rich:component('acc_account_type_modal_panel')}.show()"
+                    			disabled="#{MbAccountTypes.activeAccountType == null}"
+                    			rendered="#{usession.inRole['MODIFY_ACCOUNT_TYPE']}"
+                    			image="/images/edit.gif"
+                    			/>
+                    	<bre:taggedCommandButton id="deleteAccTypeBtn"
+                    			value="#{lblForm.delete}"
+                    			image="/images/delete.gif"
+                    			oncomplete="#{rich:component('deleteViewId:confirmPanel')}.show()"
+                    			disabled="#{MbAccountTypes.activeAccountType == null}"
+                    			rendered="#{usession.inRole['REMOVE_ACCOUNT_TYPE']}"
+                    			/>
+                	</h:panelGrid>
+            	</h:panelGroup>
+           	</h:panelGroup>
+	    </h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbAccountTypes.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbAccountTypes.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content" style="height:100%;">
+
+				<rich:tab ontabenter="storeTab('entitiesTab')" label="Entities" name="entitiesTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblAcc.entities}" title="#{lblAcc.entities}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+       				<h:panelGroup id="entitiesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+        				<ui:include src="/pages/accounts/list_account_type_entities_bottom.jspx" />						        				
+       				</h:panelGroup>
+			    </rich:tab>
+			     
+				<rich:tab ontabenter="storeTab('balanceTypesTab')" label="Balance Types" name="balanceTypesTab" rendered="#{usession.inRole['VIEW_ACCOUNT_AVAILABLE_BALANCE']}" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblAcc.balances}" title="#{lblAcc.balances}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+       				<h:panelGroup id="balanceTypesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+        				<ui:include src="/pages/accounts/list_balance_types.jspx" />
+       				</h:panelGroup>
+			    </rich:tab>
+
+				<rich:tab ontabenter="storeTab('isoTypesTab')" label="Iso Types" name="isoTypesTab" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblAcc.iso_correspondence}" title="#{lblAcc.iso_correspondence}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+       				<h:panelGroup id="isoTypesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+        				<ui:include src="/pages/accounts/list_iso_account_types.jspx" />
+       				</h:panelGroup>
+			    </rich:tab>
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<rich:modalPanel id="acc_account_type_modal_panel" autosized="true" 
+				minWidth="300" minHeight="100" 
+				onshow="document.getElementById('acc_account_type_modal_div:newInstId').focus()">
+       	    <f:facet name="header">
+		    	<h:panelGroup id="acc_account_type_modal_header">
+				    <h:outputText value="#{lblAcc.new_account_type}" rendered="#{MbAccountTypes.newMode}"/>
+				    <h:outputText value="#{lblAcc.edit_account_type}" rendered="#{MbAccountTypes.editMode}"/>
+			    </h:panelGroup>
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+	    	<h:form id="acc_account_type_modal_div">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal nowrap, width250">
+						<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="newInstId" 
+									value="#{MbAccountTypes.newAccountType.instId}"
+									label="#{lblCommon.institution}"
+									disabled="#{MbAccountTypes.editMode}" valueChangeListener="#{MbAccountTypes.changeInstitution}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue = ""/>
+								<f:selectItems value="#{MbAccountTypes.institutions}"/>
+								<a4j:support event="onchange" 
+									reRender="possibleAccountType, possibleBalanceType, numberFormatId, newFormat,newRateType" limitToList="true" ajaxSingle="true"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newInstIdError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.institution}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						
+						<h:outputLabel value="* #{lblAcc.account_type}: " title="#{lblAcc.account_type}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="possibleAccountType" 
+									value="#{MbAccountTypes.newAccountType.accountType}"
+									label="#{lblAcc.account_type}"
+									disabled="#{!MbAccountTypes.newMode}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbAccountTypes.allAccountTypes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="possibleAccountTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblAcc.account_type}"/>
+							</h:outputFormat>
+						
+							<a4j:commandLink value="#{lblAcc.add_account_type}" immediate="true"
+									oncomplete="#{rich:component('articlesView:articleModalPanel')}.show()"
+									reRender="articlesView:articleModalHeader, articlesView:articleModalDiv"
+									action="#{MbAccountTypes.createAccountType}"
+									rendered="#{MbAccountTypes.newMode and usession.inRole['ADD_DICTIONARY_ARTICLE']}"
+									>
+								<f:setPropertyActionListener
+										value="#{MbAccountTypes.accountTypeType}"
+										target="#{MbDictionary.newArticleExt}"/>
+								<f:setPropertyActionListener
+										value="true"
+										target="#{MbDictionary.managingNewArticle}"/>
+								<f:setPropertyActionListener
+										value="#{lblAcc.new_account_type}"
+										target="#{MbDictionary.headerName}"/>
+						    </a4j:commandLink>
+						</h:panelGrid>
+						
+						<h:outputLabel value="#{lblAcc.number_format}: " title="#{lblAcc.number_format}"/>
+						<h:selectOneMenu id="numberFormatId" 
+								value="#{MbAccountTypes.newAccountType.numberFormatId}"
+								label="#{lblAcc.number_format}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbAccountTypes.nameFormats}"/>
+						</h:selectOneMenu>
+					
+						<h:outputLabel value="#{lblAcc.number_prefix}: " title="#{lblAcc.number_prefix}"/>
+						<h:inputText id="newAccNumPrefix"
+								value="#{MbAccountTypes.newAccountType.numberPrefix}"
+								maxlength="200"
+								label="#{lblAcc.number_prefix}"/>
+						
+						<h:outputLabel value="* #{lblPrd.product_type}: " title="#{lblPrd.product_type}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="newProductType" 
+									value="#{MbAccountTypes.newAccountType.productType}"
+									label="#{lblPrd.product_type}"
+									disabled="#{!MbAccountTypes.newMode}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbAccountTypes.productTypes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newProductTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblPrd.product_type}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+	
+						<h:outputLabel value="#{lblAcc.balance_type}" rendered="#{MbAccountTypes.newMode}"/>
+						<rich:separator height="2" lineType="dotted" styleClass="separator" rendered="#{MbAccountTypes.newMode}"/>
+						
+						<h:outputLabel value="* #{lblAcc.balance_type}: " title="#{lblAcc.balance_type}" rendered="#{MbAccountTypes.newMode}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0" rendered="#{MbAccountTypes.newMode}">
+							<h:selectOneMenu value="#{MbBalanceTypes.newBalanceType.balanceType}"
+									id="possibleBalanceType"
+									label="#{lblAcc.balance_type}"
+									onblur="hideErrorField(this)">
+								<f:selectItems value="#{MbBalanceTypes.allBalanceTypes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="possibleBalanceTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblAcc.balance_type}"/>
+							</h:outputFormat>
+	            			<a4j:commandLink value="#{lblAcc.add_balance_type}" immediate="true"
+									oncomplete="#{rich:component('articlesView:articleModalPanel')}.show()"
+									action="#{MbAccountTypes.createBalanceType}"
+									reRender="articlesView:articleModalHeader, articlesView:articleModalDiv"
+									rendered="#{usession.inRole['ADD_DICTIONARY_ARTICLE']}">
+								<f:setPropertyActionListener
+										value="#{MbBalanceTypes.balanceTypeType}"
+										target="#{MbDictionary.newArticleExt}"/>
+								<f:setPropertyActionListener
+										value="true"
+										target="#{MbDictionary.managingNewArticle}"/>
+								<f:setPropertyActionListener
+										value="#{lblAcc.new_balance_type}"
+										target="#{MbDictionary.headerName}"/>
+							</a4j:commandLink>
+						</h:panelGrid>
+
+						<h:outputLabel value="#{lblAcc.currency}: " title="#{lblAcc.currency}" rendered="#{MbAccountTypes.newMode}"/>
+						<h:selectOneMenu id="newCurrency" value="#{MbBalanceTypes.newBalanceType.currency}" 
+								label="#{lblAcc.currency}" rendered="#{MbAccountTypes.newMode}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+							<a4j:support event="onchange" reRender="newRateType,newRateTypeLabel" limitToList="true"  ajaxSingle="true"/>
+						</h:selectOneMenu>
+					
+						<h:outputLabel value="#{lblAcc.aval_impact}: " title="#{lblAcc.aval_impact}" rendered="#{MbAccountTypes.newMode}"/>
+						<h:selectOneMenu value="#{MbBalanceTypes.newBalanceType.avalImpact}" rendered="#{MbAccountTypes.newMode}">
+							<f:selectItems value="#{MbBalanceTypes.impacts}"/>
+						</h:selectOneMenu>
+					
+						<h:outputLabel value="* #{lblCommon.status}: " title="#{lblCommon.status}" rendered="#{MbAccountTypes.newMode}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0" rendered="#{MbAccountTypes.newMode}">
+							<h:selectOneMenu value="#{MbBalanceTypes.newBalanceType.status}"
+									id="newStatus"
+									label="#{lblCommon.status}"
+									onblur="hideErrorField(this)">
+								<f:selectItems value="#{MbBalanceTypes.statuses}"/>
+							</h:selectOneMenu>							
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newStatusError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.status}"/>
+							</h:outputFormat>
+            			</h:panelGrid>
+            			
+            			<h:outputLabel id="newRateTypeLabel" value="#{MbBalanceTypes.newBalanceType.currency != null?'*':''} #{lblCommon.rate_type}: " 
+            					rendered="#{MbAccountTypes.newMode}"/>
+            			<h:panelGrid columns="1" cellspacing="0" cellpadding="0" rendered="#{MbAccountTypes.newMode}">
+							<h:selectOneMenu value="#{MbBalanceTypes.newBalanceType.rateType}"
+									id="newRateType"
+									label="#{lblCommon.rate_type}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbBalanceTypes.rateTypes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="newRateTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.rate_type}"/>
+							</h:outputFormat>
+            			</h:panelGrid>
+						
+						<h:outputLabel value="#{lblAcc.number_format}: " title="#{lblAcc.number_format}" rendered="#{MbAccountTypes.newMode}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0" rendered="#{MbAccountTypes.newMode}">
+							<h:selectOneMenu value="#{MbBalanceTypes.newBalanceType.numberFormatId}"
+									id="newFormat"
+									label="#{lblAcc.number_format}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbBalanceTypes.formats}"/>
+								<a4j:support event="onblur" reRender="newFormatError" limitToList="true" ajaxSingle="true"/>
+							</h:selectOneMenu>
+							<rich:message for="newFormat" styleClass="errorMarker" id="newFormatError"/>
+            			</h:panelGrid>
+						
+						<h:outputLabel value="#{lblAcc.number_prefix}: " title="#{lblAcc.number_prefix}" rendered="#{MbAccountTypes.newMode}"/>
+						<h:inputText id="newBalNumPrefix"
+								value="#{MbBalanceTypes.newBalanceType.numberPrefix}"
+								maxlength="200"
+								rendered="#{MbAccountTypes.newMode}"
+								label="#{lblAcc.number_prefix}"/>
+					</h:panelGrid>	
+				</h:panelGroup>
+
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+                        	<bre:taggedCommandButton
+                        			value="#{lblForm.save}" type="submit" action="#{MbAccountTypes.save}"
+                        			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('acc_account_type_modal_panel')}.hide()"
+                        			onclick="if (!checkAccountTypeFields()) return false; disableModalPanelBtns(this)"
+                        			reRender="accTypesForm:accountTypesTable, 
+                        					accTypesBtnForm:accTypeBtnBlock, 
+                        					#{MbAccountTypes.tabName}"
+	                        		/>
+                        	<bre:taggedCommandButton
+	                        		value="#{lblForm.cancel}" action="#{MbAccountTypes.close}" immediate="true"
+	                        		oncomplete="#{rich:component('acc_account_type_modal_panel')}.hide()"
+	                        		reRender="acc_account_type_modal_div">
+	                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                        </bre:taggedCommandButton>	
+			    		</h:panelGrid>
+			    	</h:panelGroup>
+			    </h:panelGroup>
+			</h:form>			
+		</rich:modalPanel>
+
+		<ui:include src="/pages/common/dictionaries/editArticle.jspx">
+			<ui:param name="rerenderList" value="possibleAccountType, possibleBalanceType"/>
+		</ui:include>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbAccountTypes}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="accountTypesTable, accTypesBtnForm, #{MbAccountTypes.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteViewId"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script>
+			//<![CDATA[
+			/*
+				Short manual for the tabs stretching
+				
+				* Put in head of the page a link to "streach.js" script.
+				* Copy "updateHeight()" from here to end of the page.
+				* Chage the function as you need. Change the forms names
+				* Set id="workplacePanel"¸ layout="block" for workplace panel					
+				* Set style="height:100%" for rich:tabPanel, rich:tab. Set style="height: 100%;overflow:hidden;position:relative;" 
+				for h:panelGroup surrounding ui:include. Below lying elements must not have a har-coded height in theirs styles.
+				* Surround the tables with h:panelGroup layout="block" style="padding:0px;margin:0px;"
+				* Correct updateHeight() in correspondence with wrappers you wrote.
+				* Add to header of one of the columns of the tables updateHeight() call. Every time the table is rendered, udpateHeight() will be called.
+				* If the result table is rich:extendedDataTable you need surround it with a wrapper panel too, but also you need to set style with hard-coded
+				height to this wrapper. For this wrapper you need call Stretch.updateTreeHeightByFixedHeight(). 
+			*/
+			
+			function updateHeight(){
+	            updateGridHeight();
+	        }
+
+	        layout =
+	                {
+	                    SEARCH_FORM_ID:                 'accTypesSearchForm',
+	                    SEARCH_RESULT_FORM_ID:          'accTypesForm',
+	                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                    SEARCH_RESULT_FOOTER_FORM_ID:   'accTypesBtnForm',
+	                    TAB_PANEL_ID:                   'workplacePanel',
+
+	                    TAB_DATA:      [{
+	                                    TAB_FORM_ID:            'accountTypeEntities',
+	                                    TAB_FORM_WRAPPER_ID:    'accountTypeEntitiesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'balanceTypesBottomForm',
+	                                    TAB_FORM_WRAPPER_ID:    'balanceTypesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }, {
+	                                    TAB_FORM_ID:            'isoTypesForm',
+	                                    TAB_FORM_WRAPPER_ID:    'isoTypesTableWrapper',
+	                                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                    }]
+
+	                };
+	        jQuery(window).resize(updateHeight);
+			
+			updateHeight();
+			//]]>
+		</script>		
+    </ui:define>
+</ui:composition>
+</html>

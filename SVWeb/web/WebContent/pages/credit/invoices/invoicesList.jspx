@@ -1,0 +1,576 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:c="http://java.sun.com/jstl/core"
+		>
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<link rel="stylesheet" type="text/css" href="#{request.contextPath}/css/stretch.css" />
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<f:loadBundle var="lblCrd" basename="ru.bpc.sv2.ui.bundles.Crd"/>
+		<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+		<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+		 <style type="text/css">
+
+          </style>
+		<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+
+		<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"
+		onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" zindex="1000"
+		inputClass="hidden"
+		buttonClass="hidden"/>
+
+		<script>
+			#{rich:component('calendar')}.customExpand=customExpand;
+		</script>
+		<script type="text/javascript">
+			//<![CDATA[
+			var colorOk = "#FFFFFF";
+			var colorMandatory = "#FF5555";           
+			function checkFields() {
+                var accountNumberId = 'invoicesSearchForm:accNumberFilter';
+                var accountNumber = document.getElementById(accountNumberId).value;
+                if (accountNumber) accountNumber = accountNumber.replace(/[ \s\t]/g, '');
+
+                var arr = [], value = null;
+
+                if (accountNumber == '') {
+                    document.getElementById(accountNumberId).style.backgroundColor = colorMandatory;
+                    return true;
+                }
+
+                document.getElementById(accountNumberId).style.backgroundColor = colorOk;
+
+                value = app.checkMaskValue(accountNumber, {errorMessage: '#{lblCrd.account_number}: #{lblMsg.number_mask_invalid}'});
+                if (value) {
+                    arr.push(value);
+                    document.getElementById(accountNumberId).style.backgroundColor = colorMandatory;
+                }
+
+                if (arr.length == 0) {
+                    return false;
+                }
+
+                app.showWarning(arr.join('<br>'));
+
+                return true;
+			}
+			//]]>
+		</script>
+
+        <!-- navigation bar -->
+		<bpct:navBar pageName="#{lblCrd.invoices}"/>
+
+    	<h:form id="invoicesSearchForm">
+
+			<script type="text/javascript">
+			 	load("invoicesSearchForm:tabNameInput");
+			</script>
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+		                		<h:outputLabel for="accNumberFilter" value="#{lblCrd.account_number}: " title="#{lblCrd.account_number}" />
+		            			<h:inputText id="accNumberFilter" value="#{MbCreditInvoicesSearch.filter.accountNumber}"/>
+
+		            			<h:outputText value="#{lblCommon.date_from}:" title="#{lblCommon.date_from}" />
+	                			<h:panelGroup>
+	                				<h:inputText id="dateFrom" style="max-width:225px"
+	                						value="#{MbCreditInvoicesSearch.filter.invoiceDateFrom}"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateFrom')}, #{rich:element('dateFromBtn')});">
+										<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+									</h:inputText>
+									<h:graphicImage
+											value="/images/calendar.gif"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateFrom')}, #{rich:element('dateFromBtn')});"
+											id="dateFromBtn" />
+	                			</h:panelGroup>
+
+	                			<h:outputText/><h:outputText/>
+
+	                			<h:outputText value="#{lblCommon.date_to}:" title="#{lblCommon.date_to}" />
+	                			<h:panelGroup>
+	                				<h:inputText id="dateTo" style="max-width:225px"
+	                						value="#{MbCreditInvoicesSearch.filter.invoiceDateTo}"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateTo')}, #{rich:element('dateToBtn')});">
+										<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+									</h:inputText>
+									<h:graphicImage
+											value="/images/calendar.gif"
+											onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('dateTo')}, #{rich:element('dateToBtn')});"
+											id="dateToBtn" />
+	                			</h:panelGroup>
+
+                			</h:panelGrid>
+	                		<h:panelGrid columns="1">
+		                		<bre:taggedCommandButton
+			                			onclick="if (checkFields()){return false;}disableModalPanelBtns(this); flushTabs();"
+			                			reRender="#{MbCreditInvoicesSearch.rerenderList}"
+			                			action="#{MbCreditInvoicesSearch.search}"
+	        							image="/_img/icon_search.png" type="submit"
+	        							oncomplete="if(#{MbCreditInvoicesSearch.needOpenSelectObjectDialog}) {Richfaces.showModalPanel('#{MbIssSelectObject.modalId}');} updateHeight();enableModalPanelBtns(this);"
+	        							eventsQueue="queue"
+	                					value="#{lblForm.search}" style="width:85px;"/>
+	                			<h:panelGroup styleClass="link-clear" layout="block">
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+							        		action="#{MbCreditInvoicesSearch.clearFilter}"
+							        		onclick="flushTabs();"
+							        		reRender="invoicesSearchForm, invoicesForm, details">
+							        </a4j:commandLink>
+	            	    		</h:panelGroup>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+		               		<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		               		<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	               		</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="invoicesForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		    		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="invoicesTable"
+							tableState="#{MbCreditInvoicesSearch.tableState}"
+							styleClass="res-table"
+							headerClass="res-table-header"
+							rowClasses=",odd"
+							selectedClass="res-table-selected"
+							var="item" 
+							value="#{MbCreditInvoicesSearch.invoices}"
+							selection="#{MbCreditInvoicesSearch.itemSelection}"
+							rows="#{MbCreditInvoicesSearch.rowsNum}"
+							selectionMode="single"
+							width="100%"
+							height="255px" 
+							enableContextMenu="true"
+							noDataLabel="#{MbCreditInvoicesSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							onRowMouseDown="handleMouseClick(event)"
+							reRender="invoicesBtnForm:btnPanel,#{MbCreditInvoicesSearch.tabName}">
+
+						<a4j:support event="onselectionchange" limitToList="true" eventsQueue="queue"
+								onsubmit="flushTabs()"
+								reRender="invoicesBtnForm:btnPanel,#{MbCreditInvoicesSearch.tabName}"/>
+						<a4j:support event="onRowMouseUp" onsubmit="if (!showMenu(this, true)) return false;"
+								action="#{MbCreditInvoicesSearch.initCtxMenu}" 
+								reRender="invoicesCtxForm:invoicesCtxMenu" limitToList="true"
+								oncomplete="Richfaces.showModalPanel('invoicesCtxForm:invoicesCtxMenu', {}, event);"
+								/>
+
+						<rich:column id="account_number" label="#{lblCrd.account_number}" title="Account Number" sortBy="#{'accountNumber'}" width="15%">
+		                    <f:facet name="header">
+								<a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCrd.account_number}" title="#{lblCrd.account_number}" />
+								</a4j:outputPanel>	
+		                    </f:facet>
+		                	<h:outputText value="#{item.accountNumber}" />
+						</rich:column>
+						
+						<rich:column id="invoice_id" label="#{lblCommon.id}" title="ID" width="10%">
+		                    <f:facet name="header">
+								<a4j:outputPanel layout="none">	
+									<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+								</a4j:outputPanel>	
+		                    </f:facet>
+		                	<h:outputText value="#{item.id}" />
+						</rich:column>
+
+						<rich:column id="sn" label="S/N" title="S/N" width="5%">
+		                    <f:facet name="header">
+		                    	<h:outputText value="S/N" title="S/N" />
+		                    </f:facet>
+		                	<h:outputText value="#{item.serialNumber}"/>
+
+			                <a4j:region rendered="false">
+				                <span class="ctxSummoner" onmousedown="handleMouseClick(event)" 
+					                	onclick="doDefaultAction#{item.id}('ENTTINVC')"
+				                		onmouseup="if (showMenu(this)) #{rich:component('invoicesCtxForm:invoicesCtxMenu')}.doShow(event, {})">
+				                	<h:outputText value="#{item.serialNumber}" title="#{item.serialNumber}"/>
+				                </span>
+			                </a4j:region>
+			                
+			                <a4j:jsFunction action="#{MbCreditInvoicesSearch.doDefaultAction}" 
+			                		name="doDefaultAction#{item.id}">
+			                	<a4j:actionparam name="entityType" assignTo="#{MbContextMenu.entityType}"/>
+			                	<f:setPropertyActionListener value="#{item}" target="#{MbCreditInvoicesSearch.activeCreditInvoice}"/>
+			                </a4j:jsFunction>
+						</rich:column>
+
+						<rich:column id="invoice_date" label="#{lblCrd.invoice_date}" title="Invoice date" sortBy="#{'invoiceDate'}" width="10%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCrd.invoice_date}" title="#{lblCrd.invoice_date}" />
+			                </f:facet>
+			                <h:outputText value="#{item.invoiceDate}">
+								<f:convertDateTime pattern="#{usession.datePattern}"  timeZone="#{CommonUtils.timeZone}"/>
+							</h:outputText>
+				        </rich:column>
+
+						<rich:column id="type" label="#{lblCommon.type}" title="Type" sortBy="#{'type'}" width="15%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.type}" title="#{lblCommon.type}" />
+			                </f:facet>
+			                <h:outputText value="#{DictUtils.articles[item.type]}"
+			                	title="#{DictUtils.articles[item.type]}"
+			                	rendered="#{item.type != null}" />
+			                <h:outputText value="" title="" rendered="#{item.type == null}" />
+				        </rich:column>
+
+						<rich:column id="min_amount_due" label="#{lblCrd.min_amount_due}" width="12%" style="text-align: right">
+				           <f:facet name="header">
+				           		<h:outputText value="#{lblCrd.min_amount_due}" title="#{lblCrd.min_amount_due}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.minAmountDue}"
+			                		title="#{item.minAmountDue}"
+			                		converter="bpc.CurrencyConverter">
+			                	<f:attribute name="exponent" value="#{CurrencyUtils.currencyObjectsMap[item.currency].exponent}"/>
+			                </h:outputText>
+			                <h:outputText value="#{CurrencyUtils.currencyShortNamesMap[item.currency]}"
+			                	title="#{CurrencyUtils.currencyMap[item.currency]}" style="padding-left:5px;"/>
+				        </rich:column>
+
+				        <rich:column id="total_amount_due" label="#{lblCrd.total_amount_due}" width="15%" style="text-align: right">
+				           <f:facet name="header">
+				           		<h:outputText value="#{lblCrd.total_amount_due}" title="#{lblCrd.total_amount_due}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.totalAmountDue}"
+			                		title="#{item.totalAmountDue}"
+			                		converter="bpc.CurrencyConverter">
+			                	<f:attribute name="exponent" value="#{CurrencyUtils.currencyObjectsMap[item.currency].exponent}"/>
+			                </h:outputText>
+			                <h:outputText value="#{CurrencyUtils.currencyShortNamesMap[item.currency]}"
+			                	title="#{CurrencyUtils.currencyMap[item.currency]}" style="padding-left:5px;"/>
+				        </rich:column>
+
+				        <rich:column id="own_funds" label="#{lblCrd.own_funds}" width="12%" style="text-align: right">
+				           <f:facet name="header">
+				           		<h:outputText value="#{lblCrd.own_funds}" title="#{lblCrd.own_funds}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.ownFunds}"
+			                		title="#{item.ownFunds}"
+			                		converter="bpc.CurrencyConverter">
+			                	<f:attribute name="exponent" value="#{CurrencyUtils.currencyObjectsMap[item.currency].exponent}"/>
+			                </h:outputText>
+			                <h:outputText value="#{CurrencyUtils.currencyShortNamesMap[item.currency]}"
+			                	title="#{CurrencyUtils.currencyMap[item.currency]}" style="padding-left:5px;"/>
+				        </rich:column>
+
+				        <rich:column id="aging" label="#{lblCrd.aging}" width="5%" style="text-align: right">
+				           <f:facet name="header">
+				           		<h:outputText value="#{lblCrd.aging}" title="#{lblCrd.aging}"/>
+			                </f:facet>
+			                <h:outputText value="#{item.aging}"
+			                		title="#{item.aging}"/>
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+        </h:form>
+
+        <h:form id="invoicesBtnForm">
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+							<h:selectOneMenu id="rows_num" value="#{MbCreditInvoicesSearch.rowsNum}" styleClass="row_per_page">
+								<a4j:support event="onchange" reRender="invoicesTable, dsinvoices, pagesNum, invoicesBtnForm,#{MbCreditInvoicesSearch.tabName}"/>
+		                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+		                    		pagesVar="pages" styleClass="res-datascroller"
+				                    id="dsinvoices" for="invoicesTable"
+				                    reRender="invoicesBtnForm:btnPanel,#{MbCreditInvoicesSearch.tabName}">
+				            	<f:facet name="first">
+				                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+				                <f:facet name="first_disabled">
+				                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="last">
+				                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="last_disabled">
+				                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="previous_disabled">
+				                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="next">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="next_disabled">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="pages">
+				                </f:facet>
+							</rich:datascroller>
+
+		                    <h:panelGroup id="pagesNum">
+		                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+		                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbCreditInvoicesSearch.invoices.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+		                    </h:panelGroup>
+		                    
+		                    <h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbCreditInvoicesSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbCreditInvoicesSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+		            <h:panelGrid id="btnPanel" columns="4" styleClass="buttons_block">
+
+					</h:panelGrid>
+				</h:panelGroup>
+		    </h:panelGroup>
+	    </h:form>
+
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNext" requestDelay="500" />
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                            requestDelay="500" reRender="#{MbCreditInvoicesSearch.storeTabRerenderList}">
+                <a4j:actionparam name="tabName" assignTo="#{MbCreditInvoicesSearch.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+        <h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+	    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content" selectedTab="#{MbCreditInvoicesSearch.tabName}">
+
+				<rich:tab ontabenter="storeTab('detailsTab')" label="Details" name="detailsTab">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="detailsTab" >
+      					<h:panelGroup layout="block">
+	      					<ui:include src="/pages/credit/invoices/invoiceDetails.jspx"></ui:include>
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons"/>	      					
+	       				</h:panelGroup>
+					</h:panelGroup>
+			    </rich:tab>
+
+			    <rich:tab ontabenter="storeTab('flexibleFieldsTab')" label="Additional" name="flexibleFieldsTab" style="height:100%;">
+                    <f:facet name="label">
+                        <h:panelGroup styleClass="first tab-label" layout="block">
+                            <h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}" />
+                        </h:panelGroup>
+                    </f:facet>
+                    <h:panelGroup id="flexibleFieldsTab" layout="block"
+                        styleClass="carddata-wrapper"
+                        style="height: 100%;overflow:hidden;position:relative;">
+                        <ui:include src="/pages/common/flexible/flexFieldsTableBottom.jspx"></ui:include>
+                    </h:panelGroup>
+                </rich:tab>
+
+			    <rich:tab ontabenter="storeTab('debtsTab')"  label="Debts" name="debtsTab" style="height:100%;">
+					<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCrd.debts}" title="#{lblCrd.debts}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="debtsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/credit/invoices/debtsListBottom.jspx"></ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+
+			    <rich:tab ontabenter="storeTab('paymentsTab')" label="Payments" name="paymentsTab" style="height:100%;">
+					<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCrd.payments}" title="#{lblCrd.payments}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="paymentsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/credit/invoices/paymentsListBottom.jspx"></ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    
+				<rich:tab ontabenter="storeTab('interestsTab')" label="Interest" name="interestsTab" rendered="#{usession.inRole['VIEW_CREDIT_DEBT_INTEREST']}" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCrd.interests}" title="#{lblCrd.interests}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="interestsTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/credit/debts/debtsInterests.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+		    
+			    <rich:tab ontabenter="storeTab('madTab')" label="Interest" name="madTab" style="height:100%;">
+					<f:facet name="label">
+						<h:panelGroup styleClass="first tab-label" layout="block">
+							<h:outputText value="#{lblCrd.mad}" title="#{lblCrd.mad}" />
+						</h:panelGroup>
+					</f:facet>
+					<h:panelGroup id="madTab" layout="block"
+						styleClass="carddata-wrapper"
+						style="height: 100%;overflow:hidden;position:relative;">
+						<ui:include src="/pages/credit/debts/madDebtsBalances.jspx"></ui:include>
+					</h:panelGroup>
+				</rich:tab>
+		    </rich:tabPanel>
+        </h:panelGroup>
+        
+		<h:form id="invoicesCtxForm">
+			<a4j:jsFunction name="invoicesCtxForm_openModal"
+					action="#{MbCreditInvoicesSearch.initCtxParams}" reRender="invoicesSubview"
+					oncomplete="Richfaces.showModalPanel('invoicesSubview:' + savedPanelName);">
+				<a4j:actionparam name="ctxItemId" assignTo="#{MbContextMenu.selectedItemId}"/>
+			</a4j:jsFunction>
+			
+			<a4j:jsFunction name="invoicesCtxForm_runImmed"
+					action="#{MbCreditInvoicesSearch.initCtxParams}" reRender="invoicesSubview"
+					oncomplete="invoicesSubview_callAction();">
+				<a4j:actionparam name="ctxItemId" assignTo="#{MbContextMenu.selectedItemId}"/>
+			</a4j:jsFunction>
+			
+			<rich:contextMenu id="invoicesCtxMenu" attached="false" 
+					submitMode="ajax" disableDefaultMenu="true"
+					selectItemClass="selected-menu-item">
+				<c:forEach items="#{MbContextMenu.currentMenuItems}" var="ctxItem">
+					<rich:menuItem
+							value="#{ctxItem.label}"
+							action="#{MbCreditInvoicesSearch.ctxPageForward}"
+							rendered="#{ctxItem.actionItem}"
+							>
+						<f:setPropertyActionListener value="#{ctxItem}" target="#{MbContextMenu.selectedCtxItem}"/>
+					</rich:menuItem>
+					<rich:menuItem
+							value="#{ctxItem.label}"
+							onclick="savedEvent = event; savedPanelName = '#{MbContextMenu.actionParams[ctxItem.action]['panelName']}'; invoicesCtxForm_openModal(#{ctxItem.id})"
+							rendered="#{ctxItem.modalItem}"
+							>
+					</rich:menuItem>
+					<rich:menuItem
+							value="#{ctxItem.label}"
+							onclick="invoicesCtxForm_runImmed(#{ctxItem.id})"
+							rendered="#{ctxItem.runnableItem}"
+							>
+					</rich:menuItem>
+					<rich:menuGroup value="#{ctxItem.label}" rendered="#{ctxItem.group}">
+						<c:forEach items="#{ctxItem.children}" var="innerItem">
+							<rich:menuItem
+									value="#{innerItem.label}"
+									action="#{MbCreditInvoicesSearch.ctxPageForward}"
+									rendered="#{innerItem.actionItem}"
+									>
+								<f:setPropertyActionListener value="#{innerItem}" target="#{MbContextMenu.selectedCtxItem}"/>
+							</rich:menuItem>
+							<rich:menuItem
+									value="#{innerItem.label}"
+									onclick="savedEvent = event; savedPanelName = '#{MbContextMenu.actionParams[innerItem.action]['panelName']}'; invoicesCtxForm_openModal(#{innerItem.id})"
+									rendered="#{innerItem.modalItem}"
+									>
+							</rich:menuItem>
+							<rich:menuItem
+									value="#{innerItem.label}"
+									onclick="invoicesCtxForm_runImmed(#{innerItem.id})"
+									rendered="#{innerItem.runnableItem}"
+									>
+							</rich:menuItem>
+						</c:forEach>
+					</rich:menuGroup>
+				</c:forEach>
+			</rich:contextMenu>
+		</h:form>
+		
+		<a4j:include id="invoicesSubview" viewId="#{MbContextMenu.panelViewId}">
+			<ui:param name="viewId" value="invoicesSubview"/>
+			<ui:param name="viewIdColon" value="invoicesSubview:"/>
+			<ui:param name="fromCtx" value="true"/>
+		</a4j:include>
+		
+		<script type="text/javascript">
+		
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'invoicesSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'invoicesForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'invoicesBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'invoiceDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'invoiceDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID: 'flexDataForm',
+                            TAB_FORM_WRAPPER_ID: 'flexDataWrapper',
+                            CORRECTING_HEIGHT: Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'debtsListBottomForm',
+                            TAB_FORM_WRAPPER_ID:    'debtsListBottomTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'paymentsListBottomForm',
+                            TAB_FORM_WRAPPER_ID:    'paymentsListBottomTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'debtsInterestsBottomForm',
+                            TAB_FORM_WRAPPER_ID:    'debtsInterestsBottomTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'debtsBalancesBottomForm',
+                            TAB_FORM_WRAPPER_ID:    'debtsBalancesBottomTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>
+        <ui:include src="/pages/issuing/iss_com_select_object.jspx"/>
+    </ui:define>
+</ui:composition>
+</html>

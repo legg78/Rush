@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="wgt">
+
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+    
+    <resultMap  id="mapping-widget"
+                class="ru.bpc.sv2.widget.WidgetItem">
+        <result property="id" column="id"/>
+        <result property="seqnum" column="seqnum"/>
+        <result property="path" column="path"/>
+        <result property="cssName" column="css_name"/>
+        <result property="external" column="is_external"/>
+        <result property="width" column="width"/>
+        <result property="height" column="height"/>
+        <result property="name" column="label"/>
+        <result property="description" column="description"/>
+        <result property="privId" column="priv_id"/>
+        <result property="privName" column="priv_name"/>
+        <result property="paramsPath" column="params_path"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+    
+    <select id="get-widgets"
+		    parameterClass="qparams"
+		    resultMap="mapping-widget">
+		<include refid="paginatedOpen"/>
+			SELECT 	  w.id
+					, w.seqnum
+					, w.path
+					, w.css_name
+					, w.is_external
+					, priv.id priv_id
+					, priv.name priv_name
+					, w.width
+					, w.height
+					, w.label
+					, w.description
+					, w.params_path
+					, w.lang
+		    FROM acm_ui_widget_vw w, acm_ui_privilege_vw priv
+		    WHERE w.priv_id = priv.id(+) AND
+		    	  w.lang = priv.lang(+)
+		    <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">w.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">w.label LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">w.lang = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">w.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">w.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="width">w.width $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="height">w.height $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="privName">priv.name $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-widget-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+	    FROM acm_ui_widget_vw
+	    <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="name">label LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-widget"
+			parameterClass="ru.bpc.sv2.widget.WidgetItem">
+    	{call ACM_UI_WIDGET_PKG.add_widget(
+    			  o_id 				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=OUT#
+				, i_path		 	=> #path#
+    			, i_css_name	 	=> #cssName#
+				, i_is_external		=> #external#
+				, i_width			=> #width#
+				, i_height			=> #height#
+				, i_priv_id			=> #privId#
+				, i_params_path  	=> #paramsPath#
+				, i_lang			=> #lang#
+				, i_label			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="edit-widget"
+			parameterClass="ru.bpc.sv2.widget.WidgetItem">
+    	{call ACM_UI_WIDGET_PKG.modify_widget(
+    				  i_id				=> #id#
+    				, io_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+    				, i_path		 	=> #path#
+    			  	, i_css_name	 	=> #cssName#
+					, i_is_external		=> #external#
+					, i_width			=> #width#
+					, i_height			=> #height#
+					, i_priv_id			=> #privId#
+					, i_params_path  	=> #paramsPath#
+					, i_lang			=> #lang#
+					, i_label			=> #name#
+					, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="delete-widget"
+			parameterClass="ru.bpc.sv2.widget.WidgetItem">
+    	{call ACM_UI_WIDGET_PKG.remove_widget(
+    			  i_id 		=> #id#
+    			  ,i_seqnum 	=> #seqnum#
+				)}
+	</procedure>
+	
+	<resultMap  id="mapping-dashboard"
+                class="ru.bpc.sv2.widget.Dashboard">
+        <result property="id" column="id"/>
+        <result property="seqnum" column="seqnum"/>
+        <result property="userId" column="user_id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+        <result property="shared" column="is_shared"/>
+        <result property="name" column="label"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="defaultDashboard" column="is_default" javaType="boolean" nullValue="false"/>
+	</resultMap>
+    
+    <select id="get-dashboards"
+		    parameterClass="qparams"
+		    resultMap="mapping-dashboard">
+		<include refid="paginatedOpen"/>
+			SELECT 	  d.id
+					, d.seqnum
+					, d.user_id
+					, d.inst_id
+					, i.name as inst_name
+					, d.is_shared
+					, d.label
+					, d.description
+					, d.lang
+					, u.is_default
+		    FROM acm_ui_dashboard_vw d, acm_ui_dashboard_user_vw u, ost_ui_institution_vw i
+		    WHERE d.inst_id = i.id(+) AND
+		    	  d.lang = i.lang(+) AND
+		    	  d.id = u.dashboard_id AND 
+		    	  d.user_id = u.user_id		    	  
+		    <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">d.label LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="userId">(d.user_id = #filters[].value# or d.is_shared = 1)</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">d.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">d.label $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-dashboard-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 
+			d.*
+	    FROM 
+	    	acm_ui_dashboard_vw d, acm_ui_dashboard_user_vw u
+		WHERE
+			d.id = u.dashboard_id AND 
+		    d.user_id = u.user_id		 
+	     <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">d.label LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="userId">d.user_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">d.lang = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-dashboard"
+			parameterClass="ru.bpc.sv2.widget.Dashboard">
+    	{call ACM_UI_DASHBOARD_PKG.add_dashboard(
+    			  o_id 				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=OUT#
+				, i_user_id		 	=> #userId#
+    			, i_inst_id		 	=> #instId#
+				, i_is_shared		=> #shared#
+				, i_lang			=> #lang#
+				, i_label			=> #name#
+				, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="edit-dashboard"
+			parameterClass="ru.bpc.sv2.widget.Dashboard">
+    	{call ACM_UI_DASHBOARD_PKG.modify_dashboard(
+    				  i_id				=> #id#
+    				, io_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+    				, i_user_id		 	=> #userId#
+	    			, i_inst_id		 	=> #instId#
+					, i_is_shared		=> #shared#
+					, i_lang			=> #lang#
+					, i_label			=> #name#
+					, i_description		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="delete-dashboard"
+			parameterClass="ru.bpc.sv2.widget.Dashboard">
+		{call ACM_UI_DASHBOARD_PKG.remove_dashboard(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqnum#
+				)}
+	</procedure>
+	
+	<resultMap  id="mapping-dashboard-widget"
+                class="ru.bpc.sv2.widget.Dashboard2WidgetItem">
+        <result property="id" column="id"/>
+        <result property="seqnum" column="seqnum"/>
+        <result property="dashboardId" column="dashboard_id"/>
+        <result property="widgetId" column="widget_id"/>
+        <result property="rowPos" column="row_number"/>
+        <result property="columnPos" column="column_number"/>
+        <result property="refresh" column="is_refresh"/>
+        <result property="refreshInterval" column="refresh_interval"/>
+	</resultMap>
+	
+	<select id="get-dashboard-widgets"
+		    parameterClass="qparams"
+		    resultMap="mapping-dashboard-widget">
+		<include refid="paginatedOpen"/>
+			SELECT 	  id
+					, seqnum
+					, dashboard_id
+					, widget_id
+					, row_number
+					, column_number
+					, is_refresh
+					, refresh_interval
+		    FROM acm_ui_dashboard_widget_vw
+		    <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dashboardId">dashboard_id = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+	
+	<procedure id="add-dashboard-widget"
+			parameterClass="ru.bpc.sv2.widget.Dashboard2WidgetItem">
+    	{call ACM_UI_DASHBOARD_PKG.add_dashboard_widget(
+    			  o_id 					=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum				=> #seqnum,jdbcType=NUMERIC,mode=OUT#
+				, i_dashboard_id 		=> #dashboardId#
+    			, i_widget_id	 		=> #widgetId#
+				, i_row_number			=> #rowPos#
+				, i_column_number		=> #columnPos#
+				, i_is_refresh			=> #refresh#
+				, i_refresh_interval	=> #refreshInterval#
+				)}
+	</procedure>
+	
+	<procedure id="edit-dashboard-widget"
+			parameterClass="ru.bpc.sv2.widget.Dashboard2WidgetItem">
+    	{call ACM_UI_DASHBOARD_PKG.modify_dashboard_widget(
+    				  i_id				=> #id#
+    				, io_seqnum			=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+    				, i_is_refresh			=> #refresh#
+					, i_refresh_interval	=> #refreshInterval#
+				)}
+	</procedure>
+	
+	<procedure id="delete-dashboard-widget"
+			parameterClass="ru.bpc.sv2.widget.Dashboard2WidgetItem">
+    	{call ACM_UI_DASHBOARD_PKG.remove_dashboard_widget(
+    			  i_id 		=> #id#
+    			 ,i_seqnum 	=> #seqnum#
+				)}
+	</procedure>
+
+
+	<procedure id="add-widget-parameter"
+			parameterClass="ru.bpc.sv2.widget.WidgetParameter">
+    	{call ACM_UI_WIDGET_PARAM_PKG.add_widget_param(
+    			  o_id         => #paramId,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum     => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_param_name => #systemName#
+				, i_label      => #name#
+				, i_data_type  => #dataType#
+				, i_lov_id     => #lovId#
+				, i_widget_id  => #widgetId#
+				, i_lang       => #lang#
+				)}
+	</procedure>
+	
+	<procedure id="modify-widget-parameter"
+			parameterClass="ru.bpc.sv2.widget.WidgetParameter">
+    	{call ACM_UI_WIDGET_PARAM_PKG.modify_widget_param(
+   				  i_id         => #paramId#
+   				, io_seqnum    => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_param_name => #systemName#
+				, i_label      => #name#
+				, i_data_type  => #dataType#
+				, i_lov_id     => #lovId#
+				, i_widget_id  => #widgetId#
+				, i_lang       => #lang#
+				)}
+	</procedure>
+	
+	<procedure id="remove-widget-parameter"
+			parameterClass="ru.bpc.sv2.widget.WidgetParameter">
+    	{call ACM_UI_WIDGET_PARAM_PKG.remove_widget_param(
+    			  i_id         => #paramId#
+				, i_seqnum     => #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-widget-parameter-value"
+                class="ru.bpc.sv2.widget.WidgetParameter">
+        <result property="valueId" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="valueN" column="param_number_value"/>
+        <result property="valueV" column="param_char_value"/>
+        <result property="valueD" column="param_date_value"/>
+        <result property="lovValue" column="param_lov_value"/>
+        <result property="dashboardWidgetId" column="dashboard_widget_id"/>
+        <result property="paramId" column="widget_param_id"/>
+        <result property="dataType" column="data_type"/>
+        <result property="widgetId" column="widget_id"/>
+        <result property="systemName" column="param_name"/>
+        <result property="lovId" column="lov_id"/>
+        <result property="name" column="label"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+
+	<select id="get-widget-params-with-values"
+		    parameterClass="qparams"
+		    resultMap="mapping-widget-parameter-value">
+		<include refid="paginatedOpen"/>
+			SELECT 	  p.id AS widget_param_id
+					, p.data_type
+					, p.widget_id
+					, p.param_name
+					, p.lov_id
+					, p.label
+					, p.lang
+					, v.id
+					, v.seqnum
+					, v.param_number_value
+					, v.param_char_value
+					, v.param_date_value
+					, v.param_lov_value
+					, v.dashboard_widget_id
+		    FROM acm_ui_widget_param_value_vw v
+		    		, acm_ui_widget_param_vw p
+			WHERE p.id = v.widget_param_id(+)
+		    <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="paramId">p.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="valueId">v.id(+) = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dashboardWidgetId">v.dashboard_widget_id(+) = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="widgetId">p.widget_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="paramName">p.param_name = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="paramId">p.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="valueId">v.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="dashboardWidgetId">v.dashboard_widget_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="widgetId">p.widget_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="paramName">p.param_name $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-widget-params-with-values-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+			SELECT *
+		    FROM acm_ui_widget_param_value_vw v
+		    		, acm_ui_widget_param_vw p
+			WHERE v.widget_param_id = p.id(+)
+		    <iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="paramId">p.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="valueId">v.id(+) = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="dashboardWidgetId">v.dashboard_widget_id(+) = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="widgetId">p.widget_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="paramName">p.param_name = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="set-widget-param-value-char"
+			parameterClass="ru.bpc.sv2.widget.WidgetParameter">
+    	{call ACM_UI_WIDGET_PARAM_PKG.set_widget_param_value_char(
+    			  io_id                 => #valueId,jdbcType=NUMERIC,mode=INOUT#
+				, io_seqnum             => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_widget_param_id     => #paramId#
+				, i_dashboard_widget_id => #dashboardWidgetId#
+				, i_param_value         => #valueV#
+				)}
+	</procedure>
+	
+	<procedure id="set-widget-param-value-num"
+			parameterClass="ru.bpc.sv2.widget.WidgetParameter">
+    	{call ACM_UI_WIDGET_PARAM_PKG.set_widget_param_value_num(
+    			  io_id                 => #valueId,jdbcType=NUMERIC,mode=INOUT#
+				, io_seqnum             => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_widget_param_id     => #paramId#
+				, i_dashboard_widget_id => #dashboardWidgetId#
+				, i_param_value         => #valueN#
+				)}
+	</procedure>
+
+	<procedure id="set-widget-param-value-date"
+			parameterClass="ru.bpc.sv2.widget.WidgetParameter">
+    	{call ACM_UI_WIDGET_PARAM_PKG.set_widget_param_value_date(
+    			  io_id                 => #valueId,jdbcType=NUMERIC,mode=INOUT#
+				, io_seqnum             => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_widget_param_id     => #paramId#
+				, i_dashboard_widget_id => #dashboardWidgetId#
+				, i_param_value         => #valueD#
+				)}
+	</procedure>
+
+	<procedure id="remove-widget-param-value"
+			parameterClass="ru.bpc.sv2.widget.WidgetParameter">
+    	{call ACM_UI_WIDGET_PARAM_PKG.remove_widget_param_value(
+    			  i_id                  => #valueId#
+				, i_seqnum              => #seqNum#
+				)}
+	</procedure>
+</sqlMap>

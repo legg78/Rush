@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:fmt="http://www.bpc.ru/el/formatter"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition>
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+
+	<bpct:customerSearchModalPanels id="custSearchPanels"/>
+
+
+	<h:form id="bottomCustomerForm" style="overflow:hidden;">
+
+		<h:panelGroup id="customerTableWrapper" layout="block"
+				style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="customerTable" styleClass="res-table"
+					headerClass="res-table-header table-header-ext" rowClasses=",odd"
+					selectedClass="res-table-selected" var="item"
+					value="#{MbCustomersBottom.dataModel}" selectionMode="single"
+					selection="#{MbCustomersBottom.itemSelection}" width="100%"
+					enableContextMenu="true" border="0" height="220px"
+					tableState="#{MbCustomersBottom.tableState}"
+					noDataLabel="#{lblCommon.no_records_found}"
+					onRowMouseDown="handleMouseClick(event)">
+
+				<a4j:support event="onselectionchange" limitToList="true"/>
+
+				<rich:column id="customer_number" label="#{lblPrd.customer_number}" title="Customer Number" sortBy="#{'customerNumber'}" width="15%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>
+								updateHeight();
+							</script>
+							<h:outputText value="#{lblPrd.customer_number}"
+								title="#{lblPrd.customer_number}" />
+						</a4j:outputPanel>
+					</f:facet>
+					
+					<bm:entityDisplay link = "true" contextType="ENTTCUST" bean="#{(customersBean==null ? MbCustomersBottom : customersBean).class.name}" value="#{item.customerNumber != null ? item.customerNumber : '...'}" />
+	                
+				</rich:column>
+
+				<rich:column id="name" label="#{lblCommon.name}"
+					title="Customer name" width="16%" sortBy="#{'CUSTOMER_NAME'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+					</f:facet>
+					
+					<bm:entityDisplay contextType="ENTTCUST" bean="#{(customersBean==null ? MbCustomersBottom : customersBean).class.name}"  
+						value="#{item.person.firstName} #{item.person.secondName} #{item.person.surname}"
+						description="#{item.person.firstName} #{item.person.secondName} #{item.person.surname}"
+						rendered="#{item.personCustomer}"/>
+
+					<bm:entityDisplay contextType="ENTTCUST" bean="#{(customersBean==null ? MbCustomersBottom : customersBean).class.name}"  
+						value="#{item.company.label}"
+						description="#{item.company.label}"
+						rendered="#{item.companyCustomer}"/>
+				</rich:column>
+
+				<rich:column id="customerType" label="#{lblPrd.customer_type}"
+					title="Customer type" sortBy="#{'ENTITY_TYPE'}" width="17%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrd.customer_type}"
+							title="#{lblPrd.customer_type}" />
+					</f:facet>
+					<bm:entityDisplay contextType="ENTTCUST" bean="#{(customersBean==null ? MbCustomersBottom : customersBean).class.name}" description="#{DictUtils.articles[item.entityType]}" 
+						value="#{DictUtils.articles[item.entityType]}"/>
+				</rich:column>
+
+				<rich:column id="status" label="#{lblCommon.status}" title="ID"
+					width="12%" sortBy="#{'STATUS'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.status}"
+							title="#{lblCommon.status}" />
+					</f:facet>
+					<bm:entityDisplay contextType="ENTTCUST" bean="#{(customersBean==null ? MbCustomersBottom : customersBean).class.name}" description="#{DictUtils.articles[item.status]}" 
+						value="#{DictUtils.articles[item.status]}"/>
+				</rich:column>
+
+				<rich:column id="address" label="#{lblCommon.address}"
+					title="Address" width="25%" rendered="false">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.address}"
+							title="#{lblCommon.address}" />
+					</f:facet>
+						<bm:entityDisplay contextType="ENTTCUST" bean="#{(customersBean==null ? MbCustomersBottom : customersBean).class.name}" description="#{item.address}" 
+							value="#{item.address}"/>
+				</rich:column>
+
+				<rich:column id="inst" label="#{lblCommon.institution}"
+					title="#{lblCommon.institution}" width="32%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.institution}"
+							title="#{lblCommon.institution}" />
+					</f:facet>
+						
+					<bm:entityDisplay link="true" contextType="ENTTINST" bean="#{(customersBean==null ? MbCustomersBottom : customersBean).class.name}" entityId="#{item.instId}" value="#{item.instName != null ? item.instName : '...'}"/>
+				</rich:column>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+				<h:panelGroup>
+				<bre:taggedCommandButton id="associateBtn"
+										 value="#{lblPrd.associate}"
+										 oncomplete="#{rich:component('customerSearchModalPanel')}.show()"
+										 reRender="customerSearchModalPanel"
+										 disabled="#{activeItem == null or ( !MbCustomersBottom.enableAssocBtn and activeItem != null)}"
+										 image="/images/create_doc.gif"
+										 action="#{MbCustomersBottom.setAccociateFilter()}">
+										 <a4j:actionparam name="beanNameForCustomersModal"
+														  value="MbCustomersBottom"
+														  assignTo="#{MbCustomerSearchModal.beanName}"/>
+										 <a4j:actionparam name="methodNameForCustomersModal"
+														  value="associate"
+														  assignTo="#{MbCustomerSearchModal.methodName}"/>
+										 <a4j:actionparam name="rerenderListCustomersModal"
+														  value="bottomCustomerForm:customerTable, bottomCustomerForm:btnPanel"
+														  assignTo="#{MbCustomerSearchModal.rerenderList}"/>
+										 <a4j:actionparam name="showPersonTabForCustomersModal"
+														  value="#{true}"
+														  assignTo="#{MbCustomerSearchModal.notPersonTab}"/>
+				</bre:taggedCommandButton>
+				<bre:taggedCommandButton id="deleteBtn"
+										 value="#{lblForm.delete}"
+										 disabled="#{MbCustomersBottom.activeItem == null}"
+										 image="/images/delete.gif"
+										 oncomplete="#{rich:component('deleteCustView:confirmPanel')}.show()">
+				</bre:taggedCommandButton>
+				</h:panelGroup>
+				
+				<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveCustTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteCustTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveCustTableState" action="#{MbCustomersBottom.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteCustTableState" action="#{MbCustomersBottom.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+			</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbCustomersBottom}"/>
+		<ui:param name="yesAction" value="unbind"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="bottomCustomerForm:customerTable"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteCustomerViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbCustomersBottom}"/>
+		<ui:param name="yesAction" value="unbind"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="bottomCustomerForm:customerTable, bottomCustomerForm:btnPanel"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteCustView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

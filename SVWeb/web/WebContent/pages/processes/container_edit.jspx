@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+		function checkContainerFields() {
+			var checked = true;
+			
+			if (document.getElementById('containerEditForm:name').value == "") {
+				document.getElementById('containerEditForm:nameError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('containerEditForm:inst').value == "") {
+				document.getElementById('containerEditForm:instError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//-->
+	</script>
+
+	<rich:modalPanel onshow="showPanel('containerEditForm:cancel_btn'); actualHelp.setModeHelp('#{MbContainersAllSearch.newMode}');" 
+			onhide="hidePanel(); actualHelp.setHelp('#{pageHelp}')"
+			id="prc_container_modal_panel" autosized="true" minWidth="300" minHeight="50">
+    	<f:facet name="header">
+    		<h:panelGroup id="prc_container_modal_header">
+        		<h:outputText value="#{lblPrc.new_container}" rendered="#{MbContainersAllSearch.newMode}"/>
+        		<h:outputText value="#{lblPrc.edit_container}" rendered="#{MbContainersAllSearch.editMode}"/>
+        	</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+			<h:panelGroup id="prc_container_modal_control" rendered="#{showHelpModal}">
+   	        		<h:graphicImage value="/_img/icon_modal_help.png" style="cursor:pointer" 
+   	        			onclick="showHelp(actualHelp.getURL())" width="15px"/>
+			</h:panelGroup>
+		</f:facet>
+		<h:form id="containerEditForm" >
+			<script type="text/javascript">
+//<!--
+				oldValue["containerEditForm"] = "#{MbContainersAllSearch.newProcess.lang}";
+			//-->
+			</script>
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">        
+					
+					<h:outputLabel for="lang" value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+					<h:selectOneMenu id="lang" value="#{MbContainersAllSearch.newProcess.lang}" rendered="#{MbContainersAllSearch.newMode}">
+						<f:selectItems value="#{MbContainersAllSearch.languages}"/>
+					</h:selectOneMenu>
+					<h:selectOneMenu id="editLang" value="#{MbContainersAllSearch.newProcess.lang}"
+							rendered="#{MbContainersAllSearch.editMode}"
+							onchange="document.getElementById('container:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('container:confirmPanel')}.show()">
+						<f:selectItems value="#{MbContainersAllSearch.languages}"/>
+					</h:selectOneMenu>
+					
+					<h:outputLabel for="name" value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="name" value="#{MbContainersAllSearch.newProcess.name}"
+							label="#{lblCommon.name}"
+							maxlength="200"
+							onblur="hideErrorField(this)">
+							<f:validateLength minimum="3"/>
+							<a4j:support event="onchange" reRender="nameErr" limitToList="true"/>
+						</h:inputText>
+						<rich:message id="nameErr" for="name" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="nameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel for="full_desc" value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+					<h:inputTextarea id="full_desc" value="#{MbContainersAllSearch.newProcess.description}"
+						rows="5" cols="150" onkeydown="limitText(this,2000);" onkeyup="limitText(this,2000);" />
+					
+					<h:outputLabel for="inst" value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="inst" value="#{MbContainersAllSearch.newProcess.instId}"
+								label="#{lblCommon.institution}" disabled="#{MbContainersAllSearch.editMode}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbContainersAllSearch.institutions}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="instError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.institution}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>		
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		    	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton 
+			            		value="#{lblForm.save}" type="submit" 
+			                	reRender="#{rerenderList}" 
+			                	action="#{MbContainersAllSearch.save}"
+			                	onclick="if (!checkContainerFields()) return false; disableModalPanelBtns(this)"
+			                	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) {
+										#{rich:component('prc_container_modal_panel')}.hide();
+										flushTabs();
+									}"
+			                	/>               
+						<bre:taggedCommandButton id="cancel_btn"
+								value="#{lblForm.cancel}"				                        		
+								action="#{MbContainersAllSearch.close}" immediate="true"
+								oncomplete="#{rich:component('prc_container_modal_panel')}.hide()" 
+								reRender="containerEditForm">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>               
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>					
+		</h:form>	
+	</rich:modalPanel>   	
+
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+	   	<ui:param name="backingBean" value="#{MbContainersAllSearch}"/>
+	   	<ui:param name="rerenderList" value="containerEditForm:name, containerEditForm:full_desc"/>
+	   	<ui:param name="editElem" value="containerEditForm:editLang"/>
+	   	<ui:param name="newValue" value="#{MbContainersAllSearch.newProcess.lang}"/>
+	   	<ui:param name="subviewId" value="container"/>
+	   	<ui:param name="formName" value="containerEditForm" />
+	   </ui:include>
+	</ui:composition>
+</html>

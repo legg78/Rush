@@ -1,0 +1,889 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:o="http://openfaces.org/"
+	  xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc">
+<ui:composition>
+	<script type="text/javascript">//<!--
+   var askForSave = false;
+   var saveWhenChange = true;
+   var legetimeClose = false;
+   
+   function goodbye(e) {
+	   	if (legetimeClose){
+	   		legetimeClose = false;
+	   		return;
+	   	}	   	
+		if(!e) e = window.event;
+		//e.cancelBubble is supported by IE - this will kill the bubbling process.
+		e.cancelBubble = true;
+		e.returnValue = 'Are you sure you want to leave?'; //This is displayed on the dialog
+
+		//e.stopPropagation works in Firefox.
+		if (e.stopPropagation) {
+			e.stopPropagation();
+			e.preventDefault();
+		}
+	}
+	window.onbeforeunload=goodbye;
+
+   
+		var blockInited = false;
+		var selectedId;
+		   function saveIdSelected(id){
+			   //document.getElementById('lov_panel_div:selectId').value = id;		    
+			   selectedId = id;
+			   return true;
+		   }
+   
+            function printObjectsSelected(output, sgcomponent){
+                output.innerHTML=sgcomponent.getSelectedItems().pluck('state');
+            }
+
+            function setValue(from) {
+                var toText = elId;
+                var toValue = elId+"Value";
+            	document.getElementById(toValue).value = $(from).value;
+            	var txt = $(from).options[$(from).selectedIndex].text;            	
+            	$(toText).value = txt;
+            }
+
+            var loaded = false;
+            var needPanel = false;
+            var elId;
+            var oldElId;
+            function setElId(elId1) {            	
+                elId = elId1;
+                //document.getElementById('lov_panel_div:dropdownList').style.display = "";              
+            }
+
+            function preparePanel() {
+                loaded = false;
+                //document.getElementById('lov_panel_div:dropdownList').style.display = "none";                
+            }
+            
+            function printObjectsSelected(sgcomponent){
+                if (oldElId == elId) {
+                document.getElementById(elId).value=sgcomponent.getSelectedItems().pluck('label');
+                document.getElementById(elId+"1").value=sgcomponent.getSelectedItems().pluck('value');
+                }
+                oldElId = elId;
+            }
+
+            function setNeedPanel(value){
+                needPanel = value;
+            }
+
+            function setLoaded(value){
+                loaded = value;
+            }
+
+            function showModalPanel(panel){
+                if (needPanel) {
+					panel.show();
+                }
+            }
+
+            function simulateClick(event, anchorObj) {
+				 if (anchorObj.click) {
+					    anchorObj.click();
+					  } else if(document.createEvent) {
+					    if(event.target !== anchorObj) {
+					      var evt = document.createEvent("MouseEvents"); 
+					      evt.initMouseEvent("click", true, true, window, 
+					          0, 0, 0, 0, 0, false, false, false, false, 0, null); 
+					      var allowDefault = anchorObj.dispatchEvent(evt);
+					      // you can check allowDefault for false to see if
+					      // any handler called evt.preventDefault().
+					      // Firefox will *not* redirect to anchorObj.href
+					      // for you. However every other browser will.
+					    }
+					  }
+			}
+			
+			function askForApply(useBlocksrepresentation) {
+				if (useBlocksrepresentation) {
+					if (blockInited) {
+						if (askForSave) {
+							if (confirm("Save changes?")) {
+								try {
+								  saveEditFormExternal();
+								} catch (err) {
+								
+								}
+								changeSelectionBlocks();
+							} else {
+								blockInited = false;
+								changeSelectionBlocks();
+							}
+						} else {
+							if (saveWhenChange) {
+								try {
+									saveEditFormExternal();
+								} catch (err) {
+								
+								}
+								changeSelectionBlocks();
+							} else {
+								changeSelectionBlocks();
+							}
+						}
+					} else {
+						blockInited = false;
+						changeSelectionBlocks();
+					}
+				} else {
+					changeSelection();
+				}
+				return true;
+			}
+
+			function markInited() {
+				blockInited = true;				
+			}
+
+			function setFocusToTable(){
+				SearchInput = jQuery("#appForm\\:appTable [class*='o_class_'] input");
+				var strLength= SearchInput.val().length;
+				SearchInput.focus();
+				SearchInput[0].setSelectionRange(strLength, strLength);
+			}
+			
+			
+	//-->
+	</script>
+
+	<a4j:loadScript src="resource:///pages/acquiring/applications/utils.js" />
+	<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+
+	<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"
+		timeZone="#{CommonUtils.timeZone}" defaultTime="#{CommonUtils.defaultTime}"
+		onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+		zindex="1000" inputClass="hidden" buttonClass="hidden" />
+
+    <rich:calendar buttonIcon="/images/calendar.gif" id="calendarWOTime" datePattern="#{usession.datePattern}"
+                   onchanged="#{rich:component('calendarWOTime')}.customInput.value=event.rich.component.getSelectedDateString();"
+                   zindex="1000" inputClass="hidden" buttonClass="hidden" />
+
+	<script type="text/javascript">
+		#{rich:component('calendar')}.customExpand=customExpand;
+	</script>
+
+    <script type="text/javascript">
+        #{rich:component('calendarWOTime')}.customExpand=customExpand;
+    </script>
+
+	<f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App" />
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+
+	<!-- navigation bar -->
+	<bpct:navBar pageName="#{lblApp.application}" />
+
+	<h:inputText style="margin:0px;" id="statesinput2" rendered="false" />
+	<rich:suggestionbox height="200" width="200" rendered="false"
+		usingSuggestObjects="true"
+		onobjectchange="printObjectsSelected(#{rich:component('suggestion')});"
+		suggestionAction="#{MbApplication.autocomplete1}" var="item"
+		for="statesinput2" fetchValue="#{item.label}" id="suggestion"
+		tokens=",">
+		<h:column>
+			<h:outputText value="#{item.label}" />
+		</h:column>
+	</rich:suggestionbox>
+
+	<h:form id="switch">
+		<h:panelGroup id="switchers">
+			<a4j:commandLink rendered="#{MbApplication.useBlocksRepresentation}"
+				value="#{lblApp.switch_to_tree}" onclick="initEditForm(); if (saveWhenChange) {saveAndSwitch();}"
+				reRender="switchers, appGrid, appBtnForm, appPanelForm"
+				oncomplete="markInited();returnFormFields()"/>
+			<a4j:commandLink rendered="#{!MbApplication.useBlocksRepresentation}"
+				value="#{lblApp.switch_to_block}" action="#{MbApplication.switchToBlocks}"
+				reRender="switchers, appGrid, appBtnForm, appPanelForm"
+				oncomplete="initEditForm();markInited();returnFormFields()" />
+		</h:panelGroup>
+	</h:form>
+
+	<a4j:queue name="queue" ignoreDupResponses="true" size="4" sizeExceededBehavior="dropNext" requestDelay="500" />
+	<h:panelGrid columns="2" columnClasses="top width350, top"
+		style="width:100%" id="appGrid">
+		<h:panelGroup styleClass="search_result_block" layout="block"
+			style="width:#{MbApplication.useBlocksRepresentation?'370px':'100%'}">
+			<h:form id="appForm">
+				<a4j:jsFunction name="changeSelectionBlocks" limitToList="true"
+					eventsQueue="queue"
+					reRender="addBlockBtn, delBlockBtn, lov_panel_div, edit_block_form"
+					oncomplete="initEditForm();markInited();" />
+
+				<a4j:jsFunction name="changeSelection" limitToList="true"
+					eventsQueue="queue"
+					reRender="addBlockBtn, delBlockBtn, lov_panel_div"
+					oncomplete="setLoaded(true);if (needPanel == true) #{rich:component('lov_panel')}.show();setNeedPanel(false); setFocusToTable();" />
+				<a4j:jsFunction name="currencyListener" limitToList="true"
+					eventsQueue="queue"
+					reRender="appTable"
+					actionListener="#{MbApplication.currencyChangeListener}"/>	
+
+				<h:panelGroup styleClass="search_result_block_left fix-ff"
+					layout="block"
+					style="height: 600px;overflow-y:hidden;overflow-x:hidden;">
+					<o:treeTable id="appTable" var="app"
+						expansionState="levelsExpanded:2" cellpadding="0" cellspacing="0"
+						headerHorizSeparator="1px solid #D7DAC2"
+						headerVertSeparator="1px solid #D7DAC2"
+						headerSectionClass="res-tree-table-header"
+						commonHeaderRowClass="res-tree-table-header"
+						sortableHeaderClass="res-tree-table-header"
+						sortedColumnHeaderClass="res-tree-table-header"
+						sortableHeaderRolloverClass="res-tree-table-header"
+						styleClass="res-tree-table"
+						bodyOddRowClass="res-tree-table-row odd-tree-table"
+						bodyRowClass="res-tree-table-row"
+						headerRowClass="res-tree-table-header"
+						verticalGridLines="1px solid #D7DAC2"
+						style="width:100%;height: 600px"
+                        preloadedNodes="all">
+						<o:scrolling />
+						<o:columnResizing minColWidth="50px" />
+						<o:dynamicTreeStructure
+							nodeChildren="#{MbApplication.nodeChildren}"
+							nodeHasChildren="#{MbApplication.nodeHasChildren}"
+							nodeKey="#{app.uniqueId}" />
+
+						<o:singleNodeSelection enabled="true"
+							nodeData="#{MbApplication.node}"
+							nodePath="#{MbApplication.nodePath}" keyboardSupport="false"
+							onchange="askForApply(#{MbApplication.useBlocksRepresentation})"
+							>
+							<a4j:support event="onselectionchange" reRender="btnPanel" />
+						</o:singleNodeSelection>
+
+						<o:treeColumn id="shortDesc" width="35%">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.name}" />
+							</f:facet>
+
+							<h:panelGroup layout="block">
+								<h:outputText value="#{app.name}" styleClass="treeTableText bold" title="#{app.name}"
+									rendered="#{app.complex and app.shortDesc == null}" />
+								<h:outputText value="#{app.name}" styleClass="treeTableText" title="#{app.name}"
+									rendered="#{!app.complex and app.shortDesc == null}" />
+	
+								<h:outputText value="#{app.shortDesc}" title="#{app.shortDesc}"
+									styleClass="treeTableText bold"
+									rendered="#{app.complex and app.shortDesc != null}" />
+								<h:outputText value="#{app.shortDesc}" styleClass="treeTableText" title="#{app.shortDesc}"
+									rendered="#{!app.complex and app.shortDesc != null}" />
+									
+								<h:outputLabel value="*" rendered="#{app.required}" />
+							</h:panelGroup>							
+							
+							<h:panelGroup rendered="#{MbApplication.useBlocksRepresentation}">
+								<h:outputText value="#{app.additionalDesc}"
+									label="#{app.additionalDesc}" />
+								<h:outputText value=" - #{app.valueText}"
+									label="#{app.shortDesc}"
+									rendered="#{app.name == 'ACCOUNT_OBJECT' or app.name == 'SERVICE_OBJECT' or app.name == 'ATTRIBUTE_NUM' or app.name == 'ATTRIBUTE_CHAR' or app.name == 'ATTRIBUTE_CYCLE' or app.name == 'ATTRIBUTE_DATE' or  app.name == 'ATTRIBUTE_FEE' or app.name == 'ATTRIBUTE_LIMIT'}" />
+								<h:outputText value=" - #{app.blockName}"
+									label="#{app.shortDesc}"
+									rendered="#{app.name == 'ACCOUNT' or app.name == 'CARD' or app.name == 'MERCHANT' or app.name == 'TERMINAL'}" />
+								<h:outputText value="New " rendered="#{app.content}" />
+							</h:panelGroup>
+						</o:treeColumn>
+						<o:column id="value" width="#{MbApplication.viewMode?'45%':'25%'}"
+							rendered="#{!MbApplication.useBlocksRepresentation}">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.value}" />
+							</f:facet>
+
+							<h:panelGroup layout="block" rendered="#{MbApplication.viewMode}"
+								style="overflow-x:hidden;width: 100%;margin-left: 5px;">
+								<h:outputText rendered="#{app.char and !app.hasMask and app.lovId == null and !app.fake}"
+											  value="#{app.valueV}" title="#{app.valueV}" />
+								<h:outputText rendered="#{app.char and app.hasMask and app.lovId == null and !app.fake}"
+											  value="#{app.valueMask}" title="#{app.valueMask}" />
+								<h:outputText rendered="#{app.number and app.lovId == null and !app.fake and !app.fixValue}"
+											  value="#{app.valueN}" title="#{app.valueN}">
+									<bm:convertNumberNew groupingUsed="false" type="number"
+														 maxIntegerDigits="20" minFractionDigits="0"/>
+								</h:outputText>
+								<h:outputText rendered="#{app.number and app.lovId == null and !app.fake and app.fixValue}"
+											  value="#{app.valueN}" title="#{app.valueN}">
+									<bm:convertNumberNew groupingUsed="true" type="currency" currencySymbol="" maxIntegerDigits="20" minFractionDigits="#{CurrencyUtils.currencyObjectsMap[MbApplication.currencyValue].exponent}"/>
+								</h:outputText>
+
+								<h:outputText rendered="#{app.date and app.lovId == null and !app.fake}"
+											  value="#{app.valueD}" title="#{app.valueD}">
+									<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}"/>
+								</h:outputText>
+								<h:outputText rendered="#{app.lovId != null and !app.fake}"
+											  value="#{app.valueText}"
+											  title="#{app.valueText}, dataId:#{app.dataId}, id:#{app.id}, innerId:#{app.innerId}, name:#{app.name}, orderNum:#{app.orderNum}, path:#{app.path}, stId:#{app.stId}"/>
+
+								<h:inputText value="#{app.valueText}" label="#{app.shortDesc}"
+											 readonly="true" title="#{app.valueText}"
+											 rendered="#{app.name == 'ACCOUNT_OBJECT' or app.name == 'SERVICE_OBJECT'  or app.name == 'ATTRIBUTE_NUM' or app.name == 'ATTRIBUTE_CHAR' or app.name == 'ATTRIBUTE_DATE' or app.name == 'ATTRIBUTE_FEE' or app.name == 'ATTRIBUTE_CYCLE' or app.name == 'ATTRIBUTE_LIMIT'}"/>
+								<h:inputText value="#{app.blockName}" label="#{app.shortDesc}"
+											 readonly="true" title="#{app.blockName}"
+											 rendered="#{app.name == 'ACCOUNT' or app.name == 'CARD' or app.name == 'MERCHANT' or app.name == 'TERMINAL'}"/>
+							</h:panelGroup>
+
+                            <a4j:region>
+                                <h:inputText
+                                    rendered="#{!MbApplication.viewMode and app.char and app.lovId == null and !app.fake and app.name != 'TERMINAL_NUMBER' and app.name != 'MERCHANT_NUMBER' and app.name != 'ACCOUNT_NUMBER' and app.name != 'CARD_NUMBER'}"
+                                    maxlength="#{app.maxLength}" id="val1" value="#{app.valueV }" title="#{app.valueV }"
+                                    style="width:200px" onclick="setNeedPanel(false)" disabled="#{!app.updatable}"
+                                    readonly="#{!app.updatable}" label="#{app.shortDesc}">
+                                    <a4j:support event="onblur" action="#{MbApplication.nodeValueChanged}" eventsQueue="queue" ajaxSingle="true"></a4j:support>
+                                </h:inputText>
+                            </a4j:region>
+
+                            <a4j:region>
+                                <h:inputText
+                                    rendered="#{!MbApplication.viewMode and app.char and !app.hasMask and app.lovId == null and !app.fake and (app.name == 'TERMINAL_NUMBER' or app.name == 'MERCHANT_NUMBER' or app.name == 'ACCOUNT_NUMBER' or app.name == 'CARD_NUMBER')}"
+                                    maxlength="#{app.maxLength}" id="unmaskedCharField" value="#{app.valueV }" title="#{app.valueV }"
+                                    style="width:200px" onclick="setNeedPanel(false)"
+                                    readonly="#{!app.updatable}" label="#{app.shortDesc}">
+                                    <a4j:support event="onblur" action="#{MbApplication.updateAddDescForObjects }"
+                                                 id="umaskedCharFieldSupport" eventsQueue="queue" ajaxSingle="true"/>
+                                </h:inputText>
+                            </a4j:region>
+
+                            <a4j:region>
+                                <h:inputText
+                                    rendered="#{!MbApplication.viewMode and app.char and app.hasMask and app.lovId == null and !app.fake and (app.name == 'TERMINAL_NUMBER' or app.name == 'MERCHANT_NUMBER' or app.name == 'ACCOUNT_NUMBER' or app.name == 'CARD_NUMBER')}"
+                                    maxlength="#{app.maxLength}" id="maskedCharField" value="#{app.valueMask }" title="#{app.valueMask }"
+                                    style="width:200px" onclick="setNeedPanel(false)"
+                                    readonly="#{!app.updatable}" label="#{app.shortDesc}">
+                                    <a4j:support event="onblur" action="#{MbApplication.updateAddDescForObjects }"
+                                                 id="maskedCharFieldSupport" eventsQueue="queue" ajaxSingle="true"/>
+                                </h:inputText>
+                            </a4j:region>
+
+							<a4j:region>
+								<h:inputText
+										rendered="#{!MbApplication.viewMode and app.number and app.lovId == null and !app.fake and !(app.fixValue)}"
+										maxlength="#{app.maxLength}" id="val2" value="#{app.valueN}" title="#{app.valueN}" onkeypress="if (!numbersOnly(this, event, true)) return false; "
+										style="width:200px" onclick="setNeedPanel(false)" disabled="#{!app.updatable}"
+										readonly="#{!app.updatable}" label="#{app.shortDesc}" validator="#{MbApplication.validatorN}"
+										minLength="#{app.minLength}"
+										minValue="#{empty app.minValue ? MbApplication.getMinNumericByMaxLength(app.maxLength) : app.minValue}"
+										maxValue="#{empty app.maxValue ? MbApplication.getMaxNumericByMaxLength(app.maxLength) : app.maxValue}">
+									<bm:convertNumberNew groupingUsed="false" type="number" maxIntegerDigits="20" />
+									<a4j:support event="onblur" action="#{MbApplication.nodeValueChanged}" eventsQueue="queue" ajaxSingle="true"></a4j:support>
+								</h:inputText>
+							</a4j:region>	
+							<h:panelGroup id="val6">
+								<h:inputText
+									rendered="#{!MbApplication.viewMode and app.number and app.lovId == null and !app.fake and (app.fixValue)}"
+									maxlength="#{app.maxLength}" id="val6Input" value="#{app.valueN}" title="#{app.valueN}"
+									style="width:200px" onclick="setNeedPanel(false)"
+									readonly="#{!app.updatable}" label="#{app.shortDesc}">
+									<bm:numericMaskConverter numericType="bigdecimal" />
+									<f:attribute name="decDigits"
+										value="#{CurrencyUtils.currencyObjectsMap[MbApplication.currencyValue].exponent}" />
+									<f:validateLength minimum="#{app.minLength}" />
+									<f:validateLongRange
+										maximum="#{empty app.maxValue ? MbApplication.maxLong : app.maxValue}"
+										minimum="#{empty app.minValue ? MbApplication.minLong : app.minValue}" />
+									<a4j:support event="onblur" action="#{MbApplication.nodeValueChanged}" eventsQueue="queue" ajaxSingle="true"></a4j:support>
+								</h:inputText>
+								<bm:jsMask for="val6Input" decDigits="#{CurrencyUtils.currencyObjectsMap[MbApplication.currencyValue].exponent}" />
+							</h:panelGroup>
+
+							<a4j:region>
+								<h:panelGroup
+									rendered="#{!MbApplication.viewMode and app.date and app.lovId == null and app.name != 'BIRTHDAY' and app.name != 'ID_ISSUE_DATE' and app.name != 'ID_EXPIRE_DATE'}">
+									<h:inputText id="val3" style="max-width:175px" onkeypress="return false"
+										value="#{app.valueD}"
+										onclick="setNeedPanel(false);#{rich:component('calendar')}.customExpand(event, #{rich:element('val3')}, #{rich:element('val3Btn')});">
+										<f:convertDateTime pattern="#{usession.fullDatePattern}" timeZone="#{CommonUtils.timeZone}" />
+										<a4j:support event="onblur" action="#{MbApplication.nodeValueChanged}" eventsQueue="queue" ajaxSingle="true"></a4j:support>
+									</h:inputText>
+									<h:graphicImage
+										value="/images/calendar.gif"
+										onclick="setNeedPanel(false);#{rich:component('calendar')}.customExpand(event, #{rich:element('val3')}, #{rich:element('val3Btn')});"
+										id="val3Btn" />
+								</h:panelGroup>
+							</a4j:region>
+
+                            <h:panelGroup
+                                    rendered="#{!MbApplication.viewMode and app.date and app.lovId == null and (app.name == 'BIRTHDAY' or app.name == 'ID_ISSUE_DATE' or app.name == 'ID_EXPIRE_DATE')}">
+                                <h:inputText id="birthday" style="max-width:175px" onkeypress="return false"
+                                             value="#{app.valueD}"
+                                             onclick="setNeedPanel(false);#{rich:component('calendarWOTime')}.customExpand(event, #{rich:element('birthday')}, #{rich:element('birthdayBtn')});">
+									<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+									<a4j:support event="onblur" action="#{MbApplication.nodeValueChanged}" eventsQueue="queue" ajaxSingle="true"></a4j:support>
+                                </h:inputText>
+                                <h:graphicImage
+                                        value="/images/calendar.gif"
+                                        onclick="setNeedPanel(false);#{rich:component('calendarWOTime')}.customExpand(event, #{rich:element('birthday')}, #{rich:element('birthdayBtn')});"
+                                        id="birthdayBtn" />
+                            </h:panelGroup>
+
+							<h:inputHidden id="fakeValue" value="#{app.valueN}"
+								rendered="#{!MbApplication.viewMode and app.fake}" />
+							<h:inputText style="margin:0px; width:200px;" id="val4" value="#{app.valueText}" title="#{app.valueText}"
+								label="#{app.shortDesc}" readonly="true"
+								rendered="#{!MbApplication.viewMode and (app.name == 'ACCOUNT_OBJECT' or app.name == 'SERVICE_OBJECT' or app.name == 'ATTRIBUTE_NUM' or app.name == 'ATTRIBUTE_CHAR' or app.name == 'ATTRIBUTE_DATE' or app.name == 'ATTRIBUTE_FEE' or app.name == 'ATTRIBUTE_CYCLE' or app.name == 'ATTRIBUTE_LIMIT')}" />
+							<h:inputText style="margin:0px; width:200px;" id="val5" value="#{app.blockName}" title="#{app.blockName}"
+								label="#{app.shortDesc}" readonly="true"
+								rendered="#{!MbApplication.viewMode and (app.name == 'ACCOUNT' or app.name == 'CARD' or app.name == 'MERCHANT' or app.name == 'TERMINAL')}" />
+
+							<h:panelGroup
+								rendered="#{!MbApplication.viewMode and app.number and app.lovId != null}">
+								<h:inputHidden id="statesinputNValue" value="#{app.valueN}"
+									label="#{app.shortDesc}" />
+								<h:inputText style="margin:0px; width:200px;" id="statesinputN"
+									label="#{app.shortDesc}" readonly="true"
+									value="#{app.valueText}" title="#{app.valueText}" disabled="#{!app.updatable}"
+									onclick="preparePanel();setElId(this.id);setNeedPanel(true);if (loaded) {#{rich:component('lov_panel')}.show();setNeedPanel(false);}">
+								</h:inputText>
+							</h:panelGroup>
+
+							<h:panelGroup
+								rendered="#{!MbApplication.viewMode and app.char and app.lovId != null}">
+								<h:inputHidden id="statesinputVValue" value="#{app.valueV}"
+									label="#{app.shortDesc}" />
+								<h:inputText style="margin:0px; width:200px;" id="statesinputV"
+									label="#{app.shortDesc}" readonly="true"
+									value="#{app.valueText}" title="#{app.valueText}" disabled="#{!app.updatable}"
+									onclick="preparePanel();setElId(this.id);setNeedPanel(true);if (loaded) {#{rich:component('lov_panel')}.show();setNeedPanel(false);}">
+								</h:inputText>
+							</h:panelGroup>
+
+							<h:graphicImage url="/images/icon_warning.png"
+								rendered="#{!app.valid}" height="16px" width="16px"
+								title="#{lblApp.element_invalid_format}" />
+							<h:graphicImage url="/images/stop-icon.png"
+								rendered="#{!app.validRequired}" height="16px" width="16px"
+								title="#{lblApp.element_is_required}" />
+
+						</o:column>
+						
+						<o:column width="10%"
+							rendered="#{!MbApplication.useBlocksRepresentation}">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.language}" />
+							</f:facet>
+							<a4j:region>
+								<h:selectOneMenu rendered="#{app.multiLang}"
+									value="#{app.valueLang}" style="width: 120px;"
+									disabled="#{!app.updatable or MbApplication.viewMode}">
+									<f:selectItems value="#{MbApplication.languages}"
+										id="items_lang" />
+								</h:selectOneMenu>
+							</a4j:region>
+						</o:column>
+
+						<o:column width="10%"
+							rendered="#{!(MbApplication.viewMode or MbApplication.useBlocksRepresentation)}">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.type}" />
+							</f:facet>
+							<h:outputText value="#{DictUtils.articles[app.dataType]}"
+								rendered="#{app.lovId == null and !app.fake}" />
+						</o:column>
+
+						<o:column width="10%"
+							rendered="#{!(MbApplication.viewMode or MbApplication.useBlocksRepresentation)}">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.min_length}" />
+							</f:facet>
+							<h:outputText value="#{app.minLength}"
+								rendered="#{app.lovId == null and !app.fake}" />
+						</o:column>
+
+						<o:column width="10%"
+							rendered="#{!(MbApplication.viewMode or MbApplication.useBlocksRepresentation)}">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.max_length}" />
+							</f:facet>
+							<h:outputText value="#{app.maxLength}"
+								rendered="#{app.lovId == null and !app.fake}" />
+						</o:column>
+					</o:treeTable>
+				</h:panelGroup>
+				<a4j:jsFunction name="submitAppTree" eventsQueue="queue"
+					reRender="appTable, panel"
+					oncomplete="if (#{usession.noErrorResponse})#{rich:component('panel')}.show()"
+					action="#{MbApplication.save}" process="newStatus" />
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block-tree">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left-tree">
+						<h:panelGrid styleClass="buttons_block"
+							columns="#{MbApplication.useBlocksRepresentation?5:10}"
+							id="btnPanel">
+							<bre:taggedCommandButton value="#{lblApp.add_element}"
+									id="addBlockBtn" disabled="#{MbApplication.disabledAddBlock}"
+									action="#{MbApplication.showAddBlock}" reRender="addBlockDiv"
+									oncomplete="#{rich:component('add_block_panel')}.show()"
+									rendered="#{!MbApplication.viewMode}"
+									/>
+							<bre:taggedCommandButton value="#{lblApp.delete_element}"
+									id="delBlockBtn"
+									disabled="#{!MbApplication.currentNode.deletable or MbApplication.currentNode.wizard}"
+									action="#{MbApplication.deleteBlock }"
+									reRender="appTable, addBlockBtn, delBlockBtn"
+									rendered="#{!MbApplication.viewMode}"
+									/>
+							<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+									id="preSaveButton" reRender="appTable, panel, saveWindowDiv, saveWindowBtns"
+									onclick="askForApply(#{MbApplication.useBlocksRepresentation})"
+									oncomplete="if (#{usession.noErrorResponse}){if (#{MbApplication.valid}){#{rich:component('saveWindow')}.show();}else{#{rich:component('panel')}.show();}}"
+									action="#{MbApplication.validate}"
+									rendered="#{!MbApplication.viewMode}"
+                                    eventsQueue="queue"
+									/>
+
+							<bre:taggedCommandButton value="#{lblForm.cancel}"
+									onclick="legetimeClose = true;simulateClick(event, document.getElementById('appForm:cancel'));return false;"
+									/>
+							<bre:taggedCommandButton value="#{lblApp.refresh}"
+									reRender="appTable" />
+							
+							<a4j:commandLink id="cancel" action="#{MbApplication.cancel}"
+								value="cancel" style="display:none">
+								<f:param name="appType" value="#{MbApplication.module}" />
+							</a4j:commandLink>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</h:panelGroup>
+		<h:panelGroup id="edit_block_form"
+			rendered="#{MbApplication.useBlocksRepresentation}">
+			<ui:include src="#{MbApplication.blockPage}"></ui:include>
+		</h:panelGroup>
+	</h:panelGrid>
+
+
+
+	<h:form id="appPanelForm">
+		<rich:modalPanel id="panel" autosized="true" minWidth="300"
+			minHeight="50">
+			<f:facet name="header">
+				<h:panelGroup>
+					<h:outputText value="Information"></h:outputText>
+				</h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+				<h:panelGroup>
+					<h:outputText value="" styleClass="hidelink" id="hidelink" />
+				</h:panelGroup>
+			</f:facet>
+
+			<h:panelGrid columns="2" rendered="#{!MbApplication.valid}">
+				<h:graphicImage url="/images/warning-icon.png" />
+				<h:outputText value="#{lblApp.app_error_msg}" />
+			</h:panelGrid>
+
+			<h:panelGrid columns="2" rendered="#{MbApplication.valid}">
+				<h:graphicImage url="/images/tick-icon.png" />
+				<h:outputText value="#{lblApp.app_saved}" />
+			</h:panelGrid>
+
+			<a4j:commandLink id="close" action="#{MbApplication.close}"
+				value="close" styleClass="hidden">
+				<f:param name="appType" value="#{MbApplication.module}" />
+			</a4j:commandLink>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons"
+				rendered="#{!MbApplication.valid}">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+								onclick="#{rich:component('saveWindow')}.show(); #{rich:component('panel')}.hide(); return false;"
+								/>
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+								action="#{MbApplication.notSave}" immediate="true"
+								oncomplete="#{rich:component('panel')}.hide()"
+								/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons"
+				rendered="#{MbApplication.valid}">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="2" columnClasses="width99P,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.close}"
+								onclick="legetimeClose = true;simulateClick(event, document.getElementById('appPanelForm:close')); return false;">
+							<a4j:actionparam name="appType" value="#{MbApplication.module}" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</rich:modalPanel>
+	</h:form>
+
+	<rich:modalPanel id="add_block_panel" autosized="true" minWidth="200"
+		minHeight="50">
+		<f:facet name="header">
+			<h:panelGroup>
+				<h:outputText value="#{lblApp.add_element}"></h:outputText>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+			<h:panelGroup>
+				<h:outputText value="" styleClass="hidelink" id="hidelink1" />
+
+			</h:panelGroup>
+		</f:facet>
+		<h:form>
+			<h:panelGrid id="addBlockDiv" cellpadding="0" cellspacing="0">
+
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper"
+					rendered="#{!MbApplication.showAttributes}">
+					<h:panelGrid columns="2" styleClass="cardholderdata"
+						columnClasses="firstColModal, width250">
+						<h:outputLabel value="#{lblApp.element}: "
+							title="#{lblApp.element}" />
+						<h:selectOneMenu value="#{MbApplication.blockToAdd}">
+							<f:selectItems value="#{MbApplication.curNodeBlocksToAdd}" />
+						</h:selectOneMenu>
+					</h:panelGrid>
+				</h:panelGroup>
+
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper"
+					rendered="#{MbApplication.showAttributes}">
+					<h:panelGrid columns="2" styleClass="cardholderdata"
+						columnClasses="firstColModal, width250">
+						<h:outputLabel value="#{lblPrd.service_term}: "
+							title="#{lblApp.attribute}" />
+						<h:selectOneMenu value="#{MbApplication.attrId}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbApplication.currentAttrsToAdd}" />
+						</h:selectOneMenu>
+					</h:panelGrid>
+				</h:panelGroup>
+
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                  <script>
+                    function add_block_panel_addbutton_onComplete() {
+                      if(#{usession.noErrorResponse}) {
+                          #{rich:component('add_block_panel')}.hide();
+                          if (#{MbApplication.useBlocksRepresentation}) {
+                              addChildElementSync();
+                          }
+                      }
+                    }
+                  </script>
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="3" columnClasses="width99P,,">
+							<h:outputText />
+							<bre:taggedCommandButton value="#{lblForm.add}" id="addbutton"
+									action="#{MbApplication.add}"
+									oncomplete="add_block_panel_addbutton_onComplete()"
+									reRender="appForm:appTable" image="/images/create_doc.gif" />
+							<bre:taggedCommandButton value="#{lblForm.cancel}"
+									id="hidebutton1" />
+
+							<rich:componentControl for="add_block_panel"
+								attachTo="hidebutton1" operation="hide" event="onclick" />
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGrid>
+		</h:form>
+	</rich:modalPanel>
+
+
+	<rich:modalPanel id="lov_panel" autosized="true" minWidth="200"
+		minHeight="50">
+		<f:facet name="header">
+			<h:panelGroup>
+				<h:outputText value="#{lblCommon.lov}"></h:outputText>
+			</h:panelGroup>
+		</f:facet>
+		<h:form id="lov_panel_div">
+			<h:panelGrid cellpadding="0" cellspacing="0" id="dropdownList">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstCol firstColModal, width250">
+						<h:outputLabel value="#{lblCommon.lov}: " title="#{lblCommon.lov}" />
+						<h:selectOneMenu id="newValueDTTPCHAR"
+										 value="#{MbApplication.currentNode.valueV}"
+										 rendered="#{MbApplication.currentNode.char}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbApplication.autocomplete}"/>
+						</h:selectOneMenu>
+
+						<h:selectOneMenu id="newValueDTTPNMBR"
+										 value="#{MbApplication.currentNode.valueN}"
+										 rendered="#{MbApplication.currentNode.number}">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbApplication.autocomplete}"/>
+						</h:selectOneMenu>
+					</h:panelGrid>
+				</h:panelGroup>
+
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="3" columnClasses="width99P,,">
+							<h:outputText/>
+							<bre:taggedCommandButton id="addbutton"
+													 value="#{lblForm.set}"
+													 action="#{MbApplication.nodeValueChanged}"
+													 oncomplete="if(#{usession.noErrorResponse})
+													                #{rich:component('lov_panel')}.hide();
+													             setValue('lov_panel_div:newValue#{MbApplication.currentNode.dataType}');
+													             if (#{MbApplication.currentNode.name=='CURRENCY'})
+													                {currencyListener();}"
+													 reRender="#{MbApplication.reRenderElements}"
+													 image="/images/create_doc.gif"/>
+							<bre:taggedCommandButton id="hidebutton2"
+													 value="#{lblForm.cancel}"
+													 oncomplete="#{rich:component('lov_panel')}.hide()"
+													 limitToList="true"
+													 immediate="true"/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGrid>
+		</h:form>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="add_attribute_panel" autosized="true"
+		minWidth="200" minHeight="50">
+		<f:facet name="header">
+			<h:panelGroup>
+				<h:outputText value="#{lblApp.add_attribute}"></h:outputText>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+			<h:panelGroup>
+				<h:outputText value="" styleClass="hidelink" id="hidelink3" />
+
+			</h:panelGroup>
+		</f:facet>
+		<h:form>
+
+		</h:form>
+	</rich:modalPanel>
+
+	<script>
+		function showComments(){
+			var comment = document.getElementById('saveWindowForm:comment');
+			comment.style.display = "inline";
+			var commentLabel = document.getElementById('saveWindowForm:commentLabel');
+			commentLabel.style.display = "inline";
+		}
+	</script>
+
+	<rich:modalPanel id="appWarningWindow" autosized="true" minWidth="200" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="#{lblCommon.warning_label}"/>
+		</f:facet>
+		<f:facet name="controls"/>
+		<h:form id="appStatusWarningForm">
+			<h:panelGroup id="appStatusWarningPanel" style="padding:0px;" layout="block">
+				<h:panelGroup style="padding:10px 10px;" layout="block">
+					<h:outputText value="#{lblApp.app_status_change_confirm}" style="padding:10px 10px;" />
+				</h:panelGroup>
+
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="2" columnClasses="width99P,">
+							<bre:taggedCommandButton value="#{lblForm.yes}"
+													 immediate="true"
+													 reRender="saveWindow"
+													 disabled="#{!usession.noErrorResponse}]"
+													 oncomplete="#{rich:component('appWarningWindow')}.hide();
+													             #{rich:component('saveWindow')}.show()">
+							</bre:taggedCommandButton>
+							<bre:taggedCommandButton value="#{lblForm.no}"
+													 immediate="true"
+													 reRender="saveWindow"
+													 action="#{MbApplication.cancelStatusChange}"
+													 oncomplete="#{rich:component('appWarningWindow')}.hide();
+													             #{rich:component('saveWindow')}.show()">
+							</bre:taggedCommandButton>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="saveWindow" autosized="true" minWidth="200"
+		minHeight="50">
+		<f:facet name="header">
+			<h:panelGroup>
+				<h:outputText value="#{lblForm.save}"></h:outputText>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+
+		</f:facet>
+		<h:form id="saveWindowForm">
+
+			<h:commandLink id="save" action="#{MbApplication.forceSave}"
+				value="save" styleClass="hidden">
+				<f:param name="appType" value="#{MbApplication.module}" />
+			</h:commandLink>
+
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper" id="saveWindowDiv">
+				<h:panelGrid columns="2" styleClass="cardholderdata"
+					columnClasses="firstCol firstColModal, width250">
+					<h:outputLabel value="#{lblCommon.status}:" />
+					<h:selectOneMenu value="#{MbApplication.activeApp.newStatusRejectCode}"
+									 disabled="#{!MbApplication.valid}"
+									 rendered="#{!MbApplication.viewMode}"
+									 required="true" label="#{lblCommon.status}"
+									 id="newStatus"
+									 style="width:200px!important;">
+						<a4j:support event="onchange"
+									 reRender="appStatusWarningPanel"
+									 ajaxSingle="true"
+									 limitToList="true"
+									 oncomplete="if(#{MbApplication.showWarning}) #{rich:component('appWarningWindow')}.show()"/>
+						<f:selectItems value="#{MbApplication.applicationStatuses}" />
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblApp.comments}:" id="commentLabel"
+						style="display:none;" />
+					<h:inputTextarea value="#{MbApplication.activeApp.comment}"
+						id="comment" style="display:none;" rows="3" />
+
+				</h:panelGrid>
+				<script>
+				showComments();
+				</script>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block" id="saveWindowBtns"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit" disabled="#{!usession.noErrorResponse}"
+								onclick="legetimeClose = true;simulateClick(event, document.getElementById('saveWindowForm:save')); return false;"
+								/>
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+								action="#{MbApplication.notSave}" immediate="true"
+								oncomplete="#{rich:component('saveWindow')}.hide()"
+								/>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

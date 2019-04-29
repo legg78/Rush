@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		 xmlns:f="http://java.sun.com/jsf/core"
+		 xmlns:h="http://java.sun.com/jsf/html"
+		 xmlns:ui="http://java.sun.com/jsf/facelets"
+		 xmlns:a4j="http://richfaces.org/a4j"
+		 xmlns:rich="http://richfaces.org/rich"
+		 xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		 xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		 xmlns:c="http://java.sun.com/jstl/core"
+		>
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm"/>
+
+		<bpct:navBar pageName="#{lblAcm.dashboards}"/>
+
+		<script type="text/javascript">
+			//<![CDATA[
+
+			var highlighted = false;
+			var highlightedDiv = new Array();
+
+			function highlightOff() {
+				if(highlighted) {
+					jQuery(highlightedDiv).each(function(){
+						jQuery(this).css("background-color", "#fafafa"); //color from widgets.css .emptyWidget background-color
+					});
+					highlighted = false;
+					highlightedDiv = new Array();
+				}
+			}
+
+			/*
+			 * Get drop column depending on the number of columns, rendered on the client side
+			 */
+			function getDrop(currentTD, currentDropColumn) {
+				if(jQuery(currentTD).prev().length != 0) {
+					currentDropColumn++;
+					return getDrop(jQuery(currentTD).prev(), currentDropColumn);
+				} else {
+					return currentDropColumn;
+				}
+			}
+
+			function highlightOn(element, widgetWidth, widgetHight) {
+				var isOccupied = false;
+
+				var indicator = jQuery("#indicator");
+				// if dragging in process
+				if(indicator.css("display") != "none") {
+					var hDivArrayIndex = 0;
+					var wDivArrayIndex = 0;
+
+					var panel = jQuery(element).parent().parent().parent();
+					var dropRow = getDrop(jQuery(element).parent().parent(), 0);
+					var rowsNumber = jQuery(panel).children().size();
+					var indexCol = jQuery(element).parent().parent().children().index(jQuery(element).parent());
+
+					var columnsNumber = jQuery(element).parent().parent().children().size();
+					var hDivArrayColIndex = 0;
+					var dropColumn = getDrop(jQuery(element).parent(), 0);
+
+					//get divs for highlighting
+					if(dropRow - widgetHight + 1 > 0){
+						lowR = dropRow - widgetHight + 1;
+					}else{
+						lowR = 0;
+					}
+
+					if(dropColumn + widgetWidth < columnsNumber){
+						topC = dropColumn + widgetWidth;
+					}else{
+						topC = columnsNumber;
+					}
+
+					existWidgetR = -1;
+					existWidgetC = -1;
+					for(var i = dropRow; i>=lowR; i--) {
+						for(var j = dropColumn; j<topC; j++) {
+							row = panel.children().get(i);
+							var div = jQuery(row).find("div").not(".removeButton").get(j);
+							if(jQuery(div).hasClass("existWidget")) {
+								existWidgetR = i;
+								existWidgetC = j;
+								break;
+							}
+						}
+					}
+					if(dropRow == existWidgetR){
+						topC = existWidgetC;
+					}
+
+					if(dropColumn == existWidgetC){
+						lowR = existWidgetR + 1;
+					}
+
+					if(dropColumn < existWidgetC && dropRow > existWidgetR){
+						lowR = existWidgetR + 1;
+					}
+
+
+					index = 0;
+					var row;
+					for(var i = dropRow; i>=lowR; i--) {
+						wDivArrayIndex = 0;
+						for(var j = dropColumn; j<topC; j++) {
+							row = panel.children().get(i);
+							var div = jQuery(row).find("div").not(".removeButton").get(j);
+							if(jQuery(div).hasClass("existWidget")) {
+								isOccupied = true;
+								break;
+							}
+							if(jQuery(div).hasClass("emptyWidget")) {
+								highlightedDiv[index] = div;
+								wDivArrayIndex++;
+								index++;
+							}
+						}
+						hDivArrayIndex++
+					}
+
+					if(hDivArrayIndex<widgetHight) {
+						isOccupied = true;
+					}
+					if(wDivArrayIndex<widgetWidth) {
+						isOccupied = true;
+					}
+
+					//highlighting
+					jQuery(highlightedDiv).each(function(){
+						if(!isOccupied) {
+							indicator
+							jQuery(this).css("background-color", "#FFFFAA"); //yellow
+						} else {
+							jQuery(this).css("background-color", "#faa9a9"); //red
+						}
+					});
+					highlighted = true;
+				}
+			}
+			//]]>
+		</script>
+
+		<h1>
+			<span class="ico settings"></span>
+			<h:outputText value="#{MbDashboardCustomization.currentDashboard.item.name}"/>
+		</h1>
+
+		<rich:dragIndicator id="indicator" />
+
+		<h:form id="mainForm">
+			<a4j:queue />
+
+			<div id="pageContent-right">
+
+				<a4j:jsFunction name="setDraggedWidgetId" reRender="refreshPanel">
+					<a4j:actionparam name="param1" assignTo="#{MbDashboardCustomization.draggedWidgetId}"/>
+				</a4j:jsFunction>
+
+				<h:outputText value="Widgets List:" />
+				<div class="spacer-thin" />
+
+
+				<a4j:repeat value="#{MbDashboardCustomization.widgetList}" var="widget">
+					<a4j:outputPanel style="cursor: pointer">
+						<rich:dragSupport dragType="accept" dragIndicator=":indicator" ondragstart="setDraggedWidgetId(#{widget.id})">
+							<a4j:actionparam assignTo="#{MbDashboardCustomization.draggedWidgetId}" value="#{widget.id}" name="widgetIdParam"/>
+							<rich:dndParam name="label" value="#{widget.name}" />
+							<rich:dndParam name="default">
+								<h:outputText styleClass="widgetThumbnail #{widget.cssName}"/>
+							</rich:dndParam>
+							<rich:dndParam name="accept">
+								<h:outputText styleClass="widgetThumbnail #{widget.cssName}"/>
+							</rich:dndParam>
+							<rich:dndParam name="reject">
+								<h:outputText styleClass="widgetThumbnail #{widget.cssName}"/>
+							</rich:dndParam>
+						</rich:dragSupport>
+						<h:outputText styleClass="widgetThumbnail #{widget.cssName}"/>
+						<h:outputText value="#{widget.name}" title="Drag and drop on dashboard" styleClass="bold" style="margin-left: 5px;" />
+						<h:outputText value=" [#{widget.width}x#{widget.height}]" title="Drag and drop on dashboard" styleClass="bold" style="color: #666666;" />
+						<a4j:outputPanel layout="block" styleClass="spacer-thin" />
+					</a4j:outputPanel>
+				</a4j:repeat>
+
+				<div class="spacer-thin" />
+
+				<bre:taggedCommandButton value="#{lblForm.save}" action="#{MbDashboardCustomization.save}"
+										 onclick="if (!confirm('#{lblMsg.confirm_save}')) return false;"/>
+				<bre:taggedCommandButton value="#{lblForm.cancel}" action="#{MbDashboardCustomization.cancel}"
+										 onclick="if (!confirm('#{lblMsg.confirm_cancel}')) return false;"
+										 reRender="refreshPanel"/>
+
+				<div class="spacer" />
+				<div class="spacer" />
+			</div>
+
+			<div id="pageContent-left">
+				<a4j:outputPanel id="refreshPanel" styleClass="widgets" layout="block">
+					<table style="width: 100%;">
+						<a4j:repeat value="#{MbDashboardCustomization.currentDashboard.widgetTable}" var="row">
+							<tr>
+								<a4j:repeat value="#{row.availableColumnItems}" var="column">
+									<h:panelGroup rendered="#{column.widget.id == null}">
+										<td colspan="#{column.width}" class="columnWidth-#{column.width}">
+											<a4j:outputPanel layout="block" styleClass="emptyWidget" onmouseover="highlightOn(this, #{MbDashboardCustomization.draggedWidgetWidth}, #{MbDashboardCustomization.draggedWidgetHeight})" onmouseout="highlightOff()">
+												<rich:dropSupport acceptedTypes="accept" reRender="refreshPanel" action="#{MbDashboardCustomization.addWidget}">
+													<a4j:actionparam assignTo="#{MbDashboardCustomization.dropRow}" value="#{row.rowNumber}" name="dropRow"/>
+													<a4j:actionparam assignTo="#{MbDashboardCustomization.dropColumn}" value="#{column.columnNumber}" name="dropColumn"/>
+												</rich:dropSupport>
+											</a4j:outputPanel>
+										</td>
+									</h:panelGroup>
+
+									<h:panelGroup rendered="#{column.widget.id != null}">
+										<td colspan="#{column.width}" rowspan="#{column.widget.height}" class="columnWidth-#{column.width}">
+											<c:set var="height" value="#{253*column.widget.height}"/>
+											<a4j:outputPanel layout="block" styleClass="existWidget" style="height: #{height}px">
+												<rich:dropSupport acceptedTypes="reject" reRender="refreshPanel"/>
+												<h:outputText value="#{column.widget.name}" />
+
+												<a4j:outputPanel layout="block" styleClass="removeButton">
+													<a4j:commandLink action="#{MbDashboardCustomization.removeWidget}" reRender="refreshPanel">
+														<h:graphicImage url="/images/widgets/closeWidget.png" alt="remove" title="remove"/>
+														<a4j:actionparam assignTo="#{MbDashboardCustomization.dropRow}" value="#{row.rowNumber}" name="deleteRow"/>
+														<a4j:actionparam assignTo="#{MbDashboardCustomization.dropColumn}" value="#{column.columnNumber}" name="deleteColumn"/>
+													</a4j:commandLink>
+												</a4j:outputPanel>
+											</a4j:outputPanel>
+										</td>
+									</h:panelGroup>
+								</a4j:repeat>
+							</tr>
+						</a4j:repeat>
+					</table>
+				</a4j:outputPanel>
+			</div>
+		</h:form>
+	</ui:define>
+</ui:composition>
+</html>

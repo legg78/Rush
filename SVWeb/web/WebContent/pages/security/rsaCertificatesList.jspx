@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+
+<ui:composition template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<h:panelGroup rendered="#{usession.inRole['VIEW_RSA_CERTIFICATE']}">
+		
+			<link rel="stylesheet" type="text/css" href="#{facesContext.externalContext.requestContextPath}/css/stretch.css" />
+			<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/stretch.js" />
+		
+			<f:loadBundle var="lblSec" basename="ru.bpc.sv2.ui.bundles.Sec" />
+		
+			<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+
+			<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.datePattern}"
+				onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();"
+				zindex="1000" inputClass="hidden" buttonClass="hidden" />
+
+			<script>
+				#{rich:component('calendar')}.customExpand=customExpand;
+			</script>
+			
+			<!-- navigation bar -->
+			<bpct:navBar pageName="#{lblSec.rsa_certificate}" />
+			
+			<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+							 if (event.keyCode == 13) {
+								 document.getElementById('rsaCertificateSearchForm:searchBtn').click(); 
+								 return false; 
+							} 
+							return true;
+						 }	
+			//]]>
+			</script>
+
+			<!-- search panel -->
+			<h:form id="rsaCertificateSearchForm" onkeypress="handleEnter(event)">
+				<h:panelGroup layout="block" styleClass="search_block">
+					<h:panelGroup layout="block" styleClass="search_block_inner1">
+						<h:panelGroup layout="block" styleClass="search_block_inner2">
+							<h:panelGroup layout="block" styleClass="search_block_left">
+								<h:panelGrid styleClass="fw" columns="2"
+									columnClasses=",link-cont">
+									<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4"
+										columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+										<h:outputLabel for="authorityId" value="#{lblSec.authority_id}:" />
+										<h:selectOneMenu 
+											id="authorityId"
+											value="#{MbRsaCertificate.filter.authorityId}">
+											<f:selectItem itemValue="" />
+											<f:selectItems value="#{MbRsaCertificate.authorities}" />
+										</h:selectOneMenu>
+
+										<h:outputLabel value="#{lblSec.expir_date}:" />
+										<rich:calendar id="calendar" datePattern="#{usession.datePattern}"
+											value="#{MbRsaCertificate.filter.expirDate}" inputClass="inputDate"/>
+
+										<h:outputLabel for="subjectId" value="#{lblSec.subject_id}:" />
+										<h:inputText
+											id="subjectId"
+											value="#{MbRsaCertificate.filter.subjectId}">
+										</h:inputText>
+
+									</h:panelGrid>
+
+									<h:panelGrid columns="1">
+										<h:panelGroup styleClass="stdButton">
+											<bre:taggedCommandButton action="#{MbRsaCertificate.search}"
+												reRender="RsaCertificateTable, RsaCertificateDataScroller, pagesNum, rsaCertificateBtnForm:btnPanel, #{MbRsaCertificate.tabName}"
+												id="searchBtn"
+												image="/_img/icon_search.png" value="#{lblForm.search }"
+												style="width:85px;"
+												onclick="disableModalPanelBtns(this);"
+												oncomplete="enableModalPanelBtns(this);"
+												eventsQueue="queue" />
+
+										</h:panelGroup>
+
+										<h:panelGroup styleClass="link-clear" layout="block">
+											<h:graphicImage url="/_img/icon_clear.png" />
+											<a4j:commandLink value="#{lblForm.clear_all}"
+												action="#{MbRsaCertificate.clearFilter}"
+												reRender="rsaCertificateResultForm, rsaCertificateSearchForm, rsaCertificateBtnForm, #{MbRsaCertificate.tabName}">
+											</a4j:commandLink>
+										</h:panelGroup>
+									</h:panelGrid>
+
+								</h:panelGrid>
+								<h:graphicImage url="/_img/hd_searchblock.gif"
+									styleClass="hd-searchblock" />
+								<h:panelGroup styleClass="collapse-vert" layout="block" />
+							</h:panelGroup>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+			
+			<!-- Result panel -->
+			<h:form id="rsaCertificateResultForm">
+				<h:panelGroup styleClass="search_result_block" layout="block">
+					<h:panelGroup styleClass="search_result_block_left fix-ff"
+						layout="block">
+						<h:panelGroup styleClass="search_result_block_inner" id="mainTableWrapper" layout="block">
+						<rich:extendedDataTable id="RsaCertificateTable"
+							styleClass="res-table" headerClass="res-table-header"
+							rowClasses=",odd" selectedClass="res-table-selected" var="item"
+							value="#{MbRsaCertificate.dataModel}"
+							selection="#{MbRsaCertificate.itemSelection}"
+							rows="#{MbRsaCertificate.rowsNum}" 
+							selectionMode="single" width="100%" enableContextMenu="false"
+							height="255px"
+							noDataLabel="#{MbRsaCertificate.searching ? lblCommon.no_records_found : lblCommon.enter_search_criteria_above}"
+							reRender="rsaCertificateBtnForm:btnPanel, #{MbRsaCertificate.tabName}">
+								
+							<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="rsaCertificateBtnForm:btnPanel, #{MbRsaCertificate.tabName}" />
+
+							<rich:column title="Id" sortBy="#{'id'}" width="6%">
+								<f:facet name="header">
+									<h:panelGroup>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+										<script>
+											updateHeight();
+										</script>
+									</h:panelGroup>
+								</f:facet>
+								<h:outputText value="#{item.id}" title="#{item.id}" />
+							</rich:column>
+
+							<rich:column title="Authority Id"
+								sortBy="#{'authorityId'}" width="11%">
+								<f:facet name="header">
+									<h:outputText value="#{lblSec.authority_id}"
+										title="#{lblSec.authority_id}" />
+								</f:facet>
+								<h:outputText 
+									value="#{MbRsaCertificate.authoritiesMap[item.authorityId]}" 
+									title="#{MbRsaCertificate.authoritiesMap[item.authorityId]}" 
+									rendered="#{item.authorityId != null }" />
+								<h:outputText value="" title="" rendered="#{item.authorityId == null }" />
+							</rich:column>
+							
+							<rich:column title="Certified Key Id"
+								sortBy="#{'certifiedKeyId'}" width="14%">
+								<f:facet name="header">
+									<h:outputText value="#{lblSec.certified_key_id}"
+										title="#{lblSec.certified_key_id}" />
+								</f:facet>
+								<h:outputText
+										value="#{item.certifiedKeyId}"
+										title="#{item.certifiedKeyId}"/>
+							</rich:column>
+							
+							<rich:column title="Authority Key Id"
+								sortBy="#{'authorityKeyId'}" width="13%">
+								<f:facet name="header">
+									<h:outputText value="#{lblSec.authority_key_id}"
+										title="#{lblSec.authority_key_id}" />
+								</f:facet>
+								<h:outputText
+										value="#{item.authorityKeyId}"
+										title="#{item.authorityKeyId}"/>
+							</rich:column>
+
+							<rich:column title="Expir Date"
+								sortBy="#{'expirDate'}" width="11%">
+								<f:facet name="header">
+									<h:outputText value="#{lblSec.expir_date}"
+										title="#{lblSec.expir_date}" />
+								</f:facet>
+								<h:outputText value="#{item.expirDate}" 
+									title="#{item.expirDate}">
+									<f:convertDateTime pattern="#{usession.datePattern}"
+										timeZone="#{CommonUtils.timeZone}" />
+								</h:outputText>
+							</rich:column>
+
+							<rich:column title="Subject Id"
+								sortBy="#{'subjectId'}" width="11%">
+								<f:facet name="header">
+									<h:outputText value="#{lblSec.subject_id}"
+										title="#{lblSec.subject_id}" />
+								</f:facet>
+								<h:outputText
+										value="#{item.subjectId}"
+										title="#{item.subjectId}"/>
+							</rich:column>
+							
+							<rich:column title="Serial Number"
+								sortBy="#{'serialNumber'}" width="11%">
+								<f:facet name="header">
+									<h:outputText value="#{lblSec.serial_number}"
+										title="#{lblSec.serial_number}" />
+								</f:facet>
+								<h:outputText
+										value="#{item.serialNumber}"
+										title="#{item.serialNumber}"/>
+							</rich:column>
+							
+							<rich:column title="Visa Service Id"
+								sortBy="#{'visaServiceId'}" width="11%">
+								<f:facet name="header">
+									<h:outputText value="#{lblSec.visa_service_id}"
+										title="#{lblSec.visa_service_id}" />
+								</f:facet>
+								<h:outputText
+										value="#{item.visaServiceId}"
+										title="#{item.visaServiceId}"/>
+							</rich:column>
+							
+						</rich:extendedDataTable>
+						</h:panelGroup>
+						<a4j:outputPanel ajaxRendered="true">
+							<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+							<h:graphicImage url="/_img/hd_searchblock.gif"
+								styleClass="hd-searchblock" />
+							<h:panelGroup styleClass="collapse-vert table-collapse-vert"
+								layout="block" />
+						</a4j:outputPanel>
+					</h:panelGroup>
+				</h:panelGroup>
+            </h:form>
+
+            <h:form id="rsaCertificateBtnForm">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+						<h:panelGroup layout="block" styleClass="table_tools">
+							<h:panelGrid styleClass="fw field-cont" columns="4"
+								columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount">
+	
+								<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" />
+	
+								<h:selectOneMenu id="rows_num"
+									value="#{MbRsaCertificate.rowsNum}" styleClass="row_per_page">
+									<a4j:support event="onchange"
+										reRender="RsaCertificateTable, RsaCertificateDataScroller, pagesNum, rsaCertificateBtnForm, #{MbRsaCertificate.tabName}" />
+									<f:selectItem itemValue="10" itemLabel="10" />
+									<f:selectItem itemValue="20" itemLabel="20" />
+									<f:selectItem itemValue="50" itemLabel="50" />
+								</h:selectOneMenu>
+	
+								<rich:datascroller id="RsaCertificateDataScroller" maxPages="10"
+									fastControls="hide" pagesVar="pages"
+									styleClass="res-datascroller" for="RsaCertificateTable"
+									reRender="rsaCertificateBtnForm:btnPanel, #{MbRsaCertificate.tabName}">
+									<f:facet name="first">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="first_disabled">
+										<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="last">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="last_disabled">
+										<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="previous_disabled">
+										<h:outputText value="#{lblCommon.prev}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="next">
+										<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+									</f:facet>
+									<f:facet name="next_disabled">
+										<h:outputText value="#{lblCommon.next}"
+											styleClass="prev-next-dis" />
+									</f:facet>
+									<f:facet name="pages">
+									</f:facet>
+								</rich:datascroller>
+	
+								<h:panelGroup id="pagesNum">
+									<h:outputText styleClass="strongClass" value="#{pages} " />
+									<h:outputText value=" #{lblCommon.pages}" />
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbRsaCertificate.dataModel.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+	
+						<h:panelGrid id="btnPanel" columns="3" styleClass="buttons_block">
+							
+							<bre:taggedCommandButton id="deleteBtn"
+								value="#{lblForm.delete}"
+								disabled="#{MbRsaCertificate.activeItem == null}"
+								image="/images/delete.gif"
+								rendered="#{usession.inRole['REMOVE_RSA_CERTIFICATE']} and false" 
+								oncomplete="#{rich:component('deleteRsaCertView:confirmPanel')}.show()"/>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+
+            <h:form>
+                <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="rsaCertificateResultForm">
+                    <a4j:actionparam name="tabName" assignTo="#{MbRsaCertificate.tabName}" />
+                </a4j:jsFunction>
+            </h:form>
+
+			<!-- Working panel -->
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+				<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content">
+					
+	            	<rich:tab ontabenter="storeTab('detailsTab')" label="#{lblCommon.details}" name="detailsTab">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblCommon.details}"
+									title="#{lblCommon.details}" />
+							</h:panelGroup>
+						</f:facet>
+	
+	                	<h:panelGroup id="detailsTab" layout="block">
+							<ui:include src="/pages/security/rsaCertificateDetails.jspx"></ui:include>	
+							<h:panelGroup layout="block"
+								styleClass="bottom_search_result_block_buttons"/>
+	       				</h:panelGroup>
+	            	</rich:tab>					
+	            	
+	            	<rich:tab ontabenter="storeTab('rsaKeysTab')" label="#{lblSec.rsa_keys}" name="rsaKeysTab" style="height:100%;" rendered="#{usession.inRole['VIEW_RSA_KEYPAIR']}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblSec.rsa_keys}"
+									title="#{lblSec.rsa_keys}" />
+							</h:panelGroup>
+						</f:facet>
+	
+	                	<h:panelGroup id="rsaKeysTab" layout="block" styleClass="carddata-wrapper" style="height: 100%; overflow: hidden;position:relative;">
+							<ui:include src="/pages/security/rsaCertificateKeysBottom.jspx"></ui:include>	
+	       				</h:panelGroup>
+	            	</rich:tab>					
+	
+				</rich:tabPanel>
+			</h:panelGroup>
+		</h:panelGroup>
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbRsaCertificate}"/>
+			<ui:param name="yesAction" value="deleteActiveRsaCertificate"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="RsaCertificateTable, RsaCertificateDataScroller, pagesNum, btnPanel, #{MbRsaCertificate.tabName}"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteRsaCertView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script type="text/javascript">
+		
+			function updateHeight(){
+                updateGridHeight();
+			}
+
+            layout =
+                    {
+                        SEARCH_FORM_ID:                 'rsaCertificateSearchForm',
+                        SEARCH_RESULT_FORM_ID:          'rsaCertificateResultForm',
+                        SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                        SEARCH_RESULT_FOOTER_FORM_ID:   'rsaCertificateBtnForm',
+                        TAB_PANEL_ID:                   'workplacePanel',
+
+                        TAB_DATA:      [{
+                            TAB_FORM_ID:            'rsaCertificateDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'rsaCertificateDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'rsaKeyResultForm',
+                            TAB_FORM_WRAPPER_ID:    'rsaKeyTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }]
+                    };
+
+			updateHeight();
+            jQuery(window).resize(updateHeight);
+		</script>		
+		
+	</ui:define>
+</ui:composition>
+</html>	

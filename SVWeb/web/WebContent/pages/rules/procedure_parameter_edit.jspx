@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+		function checkFields() {
+			var checked = true;
+			if (document.getElementById('procParamEditForm:param') != null
+					&& document.getElementById('procParamEditForm:param').value == "") {
+				document.getElementById('procParamEditForm:paramError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('procParamEditForm:displayOrder').value == "") {
+				document.getElementById('procParamEditForm:displayOrderError').style.display = "inline";
+				checked = false;
+			}
+			return checked;
+		}
+
+	//-->
+	</script>
+
+    <rich:modalPanel id="rul_proc_param_modal_panel" autosized="true" minWidth="100" minHeight="50" showWhenRendered="#{MbProcedureParams.showModal}">
+    	<f:facet name="header">
+    		<h:panelGroup id="rul_proc_param_modal_header">
+        		<h:outputText value="#{lblOpr.new_procedure_param}" rendered="#{MbProcedureParams.newMode}"/>
+        		<h:outputText value="#{lblOpr.edit_procedure_param}" rendered="#{MbProcedureParams.editMode}"/>
+        	</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:form id="procParamEditForm">
+			<script type="text/javascript">//<!--
+				oldValue["procParamEditForm"] = "#{MbProcedureParams.newProcedureParam.lang}";
+				
+			//-->			
+			</script>
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+					columnClasses="firstColModal, width250">
+	
+					<h:outputLabel value="#{lblCommon.language}: "
+						title="#{lblCommon.language}" />
+					<h:selectOneMenu id="lang" value="#{MbProcedureParams.newProcedureParam.lang}"
+						rendered="#{MbProcedureParams.newMode}">
+						<f:selectItems value="#{MbProcedureParams.languages}" />
+					</h:selectOneMenu>
+					<h:selectOneMenu id="editLang" value="#{MbProcedureParams.newProcedureParam.lang}"
+						rendered="#{MbProcedureParams.editMode}"
+						onchange="document.getElementById('procParam:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('procParam:confirmPanel')}.show()">
+						<f:selectItems value="#{MbTags.languages}" />
+					</h:selectOneMenu>
+	
+					<h:outputLabel value="* #{lblCommon.parameter}: "
+						title="#{lblCommon.parameter}" />
+					<h:panelGrid columns="2" cellpadding="0" cellspacing="0"
+							columnClasses="width99p, ieCol20"
+							rendered="#{MbProcedureParams.newMode}">
+						<h:selectOneMenu id="param" 
+								value="#{MbProcedureParams.newProcedureParam.paramId}"
+								valueChangeListener="#{MbProcedureParams.changeParameter}"
+								onblur="hideErrorField(this)"
+								>
+							<a4j:support event="onchange" reRender="paramName, dataType, newLovLabel, newLov"
+									limitToList="true" ajaxSingle="true" />
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbProcedureParams.parameters}" />
+						</h:selectOneMenu>
+						
+						<a4j:commandLink value="..." action="#{MbProcedureParams.selectParameter}"
+								style="padding-left:10px">
+						</a4j:commandLink>
+
+						<h:outputFormat value="#{lblMsg.value_request}"
+							styleClass="errorMarker" id="paramError"
+							style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.parameter}"/>
+						</h:outputFormat>
+						<h:outputText />
+					</h:panelGrid>
+					<h:inputText value="#{MbProcedureParams.newProcedureParam.name}"
+						id="paramShortName" label="#{lblCommon.name}" disabled="true"
+						rendered="#{MbProcedureParams.editMode}"/>
+						
+					<h:outputLabel value="#{lblCommon.name}: "
+						title="#{lblCommon.name}" />
+					<h:inputText
+						value="#{MbProcedureParams.newProcedureParam.name}"
+						id="paramName" label="#{MbProcedureParams.newProcedureParam.name}" maxlength="200"
+					/>
+	
+					<h:outputLabel value="#{lblCommon.data_type}: "
+						title="#{lblCommon.data_type}" />
+					<h:inputText
+						value="#{DictUtils.articles[MbProcedureParams.newProcedureParam.dataType]}"
+						id="dataType" disabled="true" label="#{lblCommon.data_type}"
+						maxlength="200" />
+					
+					<a4j:outputPanel id="newLovLabel">
+						<h:outputLabel value="#{lblCommon.lov}: " title="#{lblCommon.lov}"
+							rendered="#{MbProcedureParams.lovAppliable}" />
+					</a4j:outputPanel>
+					<a4j:outputPanel id="newLov">
+						<h:selectOneMenu 
+							value="#{MbProcedureParams.newProcedureParam.lovId}"
+							rendered="#{MbProcedureParams.lovAppliable}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbProcedureParams.lovs}" />
+						</h:selectOneMenu>
+					</a4j:outputPanel>
+	
+					<h:outputLabel for="displayOrder" value="* #{lblCommon.order}: "
+						title="#{lblCommon.order}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="displayOrder"
+							value="#{MbProcedureParams.newProcedureParam.displayOrder}"
+							label="#{lblCommon.order}" maxlength="4"
+							onkeypress="if (!numbersOnly(this, event)) return false;"
+							onblur="hideErrorField(this)">
+						</h:inputText>
+						<h:outputFormat value="#{lblMsg.value_request}"
+							styleClass="errorMarker" id="displayOrderError"
+							style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.order}" />
+						</h:outputFormat>
+					</h:panelGrid>
+	
+					<h:outputLabel for="isMandatory" value="#{lblCommon.mandatory}: "
+						title="#{lblCommon.mandatory}" />
+					<h:selectBooleanCheckbox id="isMandatory"
+						value="#{MbProcedureParams.newProcedureParam.mandatory}" />
+						
+					<h:outputLabel for="description" value="#{lblCommon.description}: "
+						title="#{lblCommon.description}" />
+					<h:inputTextarea id="description" rows="3"
+						value="#{MbProcedureParams.newProcedureParam.description}" 
+						onkeypress="if (!limitText(event,this,2000)) return false;" 
+						label="#{lblCommon.description}">
+						<f:validateLength maximum="2000" />
+					</h:inputTextarea>						
+						
+				</h:panelGrid>
+			</h:panelGroup>			
+	
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							onclick="if (!checkFields()) return false; disableModalPanelBtns(this)"
+							reRender="#{rerenderList}"
+							action="#{MbProcedureParams.save}"
+							oncomplete="enableModalPanelBtns(this);if (#{usession.noErrorResponse}) #{rich:component('rul_proc_param_modal_panel')}.hide()" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbProcedureParams.cancel}" immediate="true"
+							oncomplete="#{rich:component('rul_proc_param_modal_panel')}.hide()">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbProcedureParams}" />
+		<ui:param name="rerenderList"
+			value="procParamEditForm:paramName, procParamEditForm:short_desc, procParamEditForm:localDescription" />
+		<ui:param name="editElem" value="procParamEditForm:editLang" />
+		<ui:param name="newValue"
+			value="#{MbProcedureParams.newProcedureParam.lang}" />
+		<ui:param name="subviewId" value="procParam" />
+		<ui:param name="formName" value="procParamEditForm" />
+	</ui:include>
+</ui:composition>
+</html>

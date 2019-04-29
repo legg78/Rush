@@ -1,0 +1,1255 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="crd">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql> 
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>                
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+
+	<resultMap  id="mapping-invoice"
+                class="ru.bpc.sv2.credit.CreditInvoice">
+		<result property="id" column="id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="serialNumber" column="serial_number"/>
+		<result property="accountNumber" column="account_number"/>
+		<result property="currency" column="currency"/>
+		<result property="invoiceDate" column="invoice_date"/>
+		<result property="type" column="invoice_type"/>
+		<result property="minAmountDue" column="min_amount_due"/>
+		<result property="totalAmountDue" column="total_amount_due"/>
+		<result property="ownFunds" column="own_funds"/>
+		<result property="dueDate" column="due_date"/>
+		<result property="graceDate" column="grace_date"/>
+		<result property="penaltyDate" column="penalty_date"/>
+		<result property="tadPaid" column="is_tad_paid"/>
+		<result property="madPaid" column="is_mad_paid"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="instId" column="inst_id"/>
+		<result property="aging" column="aging_period"/>
+		<result property="agingName" column="aging_period_name"/>
+		<result property="annualPercentageRate" column="apr" />
+		<result property="internalRateReturn" column="irr" />
+	</resultMap>
+
+
+	<select id="get-invoices"
+			parameterClass="qparams"
+			resultMap="mapping-invoice">
+		<include refid="paginatedOpen"/>
+			SELECT 	  inv.id
+					, inv.account_id
+					, inv.serial_number
+					, inv.account_number
+					, inv.currency
+					, inv.invoice_date
+					, inv.invoice_type
+					, inv.min_amount_due
+					, inv.total_amount_due
+					, inv.own_funds
+					, inv.due_date
+					, inv.grace_date
+					, inv.penalty_date
+					, inv.is_tad_paid
+					, inv.is_mad_paid
+					, inv.agent_id
+					, inv.inst_id
+					, inv.aging_period
+					, inv.aging_period_name
+					, inv.apr
+					, inv.irr
+			FROM
+				crd_ui_invoice_vw inv
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">inv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountId">inv.account_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountNumber">reverse(inv.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceDateFrom">inv.invoice_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceDateTo">inv.invoice_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">inv.id $sorting[].direction$, inv.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="accountNumber">inv.account_number $sorting[].direction$, inv.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="invoiceDate">inv.invoice_date $sorting[].direction$, inv.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="type">inv.invoice_type $sorting[].direction$, inv.id ASC</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">inv.invoice_date DESC, inv.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-invoices-count"
+			parameterClass="qparams"
+			resultClass="int">
+			<include refid="limitationOpenCount"/>
+			SELECT
+				inv.id
+			FROM
+				crd_ui_invoice_vw inv
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">inv.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountId">inv.account_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountNumber">reverse(inv.account_number) $filters[].condition$ reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceDateFrom">inv.invoice_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceDateTo">inv.invoice_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			</iterate>
+			<include refid="limitationClose"/>
+	</select>
+
+	<resultMap  id="mapping-invoice-debt"
+                class="ru.bpc.sv2.credit.CreditInvoiceDebt">
+		<result property="id" column="id"/>
+		<result property="invoiceId" column="invoice_id"/>
+		<result property="amount" column="amount"/>
+		<result property="currency" column="currency"/>
+		<result property="macrosTypeName" column="macros_type_name"/>
+		<result property="operDate" column="oper_date"/>
+		<result property="operType" column="oper_type"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantCity" column="merchant_city"/>
+		<result property="merchantCountry" column="merchant_country"/>
+		<result property="merchantStreet" column="merchant_street"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+		<result property="cardNumber" column="card_number"/>
+		<result property="amountPurpose" column="amount_purpose"/>
+	</resultMap>
+
+	
+
+	<select id="get-invoice-debts"
+			parameterClass="qparams"
+			resultMap="mapping-invoice-debt">
+		<include refid="paginatedOpen"/>
+			SELECT 	  d.debt_id id
+					, d.invoice_id
+					, d.amount
+					, d.currency
+					, d.macros_type macros_type_name
+					, d.oper_date
+					, d.oper_type
+					, d.merchant_name
+					, d.merchant_city
+					, d.merchant_country
+					, d.merchant_street
+					, d.oper_amount
+					, d.oper_currency
+					, d.card_number
+					, d.amount_purpose
+			FROM
+				crd_ui_invoice_debt_vw d
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.debt_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceId">d.invoice_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardNumber">d.card_number LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateFrom">d.oper_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateTo">d.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+				<isEqual property="filters[].element" compareValue="operType">d.oper_type = #filters[].value#</isEqual>
+
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">d.debt_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="invoiceId">d.invoice_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardNumber">d.card_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operDate">d.oper_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operType">d.oper_type $sorting[].direction$</isEqual>
+
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">d.oper_date DESC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-invoice-debts-count"
+			parameterClass="qparams"
+			resultClass="int">
+			SELECT
+				count(d.debt_id)
+			FROM
+				crd_ui_invoice_debt_vw d
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.debt_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceId">d.invoice_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="cardNumber">d.card_number LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateFrom">d.oper_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateTo">d.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+				<isEqual property="filters[].element" compareValue="operType">d.oper_type = #filters[].value#</isEqual>
+			</iterate>
+	</select>
+
+	<resultMap  id="mapping-invoice-aging"
+                class="ru.bpc.sv2.credit.Aging">
+		<result property="id" column="id"/>
+		<result property="invoiceId" column="invoice_id"/>
+		<result property="agingPeriod" column="aging_period"/>
+		<result property="agingDate" column="aging_date"/>
+		<result property="agingAmount" column="aging_amount"/>
+	</resultMap>
+
+	<select id="get-invoice-agings"
+			parameterClass="qparams"
+			resultMap="mapping-invoice-aging">
+		<include refid="paginatedOpen"/>
+			SELECT 	  d.id
+					, d.invoice_id
+					, d.aging_period
+					, d.aging_date
+					, d.aging_amount
+			FROM
+				crd_ui_aging_vw d
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceId">d.invoice_id = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="agingPeriod">d.aging_period $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="agingDate">d.aging_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="agingAmount">d.aging_amount $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">d.aging_period ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-invoice-agings-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+			SELECT
+				d.id
+			FROM
+				crd_ui_aging_vw d
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">d.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceId">d.invoice_id = #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap  id="mapping-invoice-payment"
+                class="ru.bpc.sv2.credit.CreditInvoicePayment">
+		<result property="id" column="id"/>
+		<result property="invoiceId" column="invoice_id"/>
+		<result property="amount" column="amount"/>
+		<result property="currency" column="currency"/>
+		<result property="macrosType" column="macros_type"/>
+		<result property="operDate" column="oper_date"/>
+		<result property="operType" column="oper_type"/>
+		<result property="merchantName" column="merchant_name"/>
+		<result property="merchantCity" column="merchant_city"/>
+		<result property="merchantCountry" column="merchant_country"/>
+		<result property="merchantStreet" column="merchant_street"/>
+		<result property="operAmount" column="oper_amount"/>
+		<result property="operCurrency" column="oper_currency"/>
+	</resultMap>
+
+	<select id="get-invoice-payments"
+			parameterClass="qparams"
+			resultMap="mapping-invoice-payment">
+		<include refid="paginatedOpen"/>
+			SELECT 	  p.pay_id id
+					, p.invoice_id
+					, p.amount
+					, p.currency
+					, p.macros_type
+					, p.oper_date
+					, p.oper_type
+					, p.merchant_name
+					, p.merchant_city
+					, p.merchant_country
+					, p.merchant_street
+					, p.oper_amount
+					, p.oper_currency
+			FROM
+				crd_ui_invoice_payment_vw p
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">p.pay_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceId">p.invoice_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateFrom">p.oper_date >= TO_DATE(#filters[].value#, 'Dp.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateTo">p.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'Dp.MM.YYYY')+1</isEqual>
+				<isEqual property="filters[].element" compareValue="operType">p.oper_type = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">p.pay_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="invoiceId">p.invoice_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operDate">p.oper_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operType">p.oper_type $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">p.oper_date DESC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-invoice-payments-count"
+			parameterClass="qparams"
+			resultClass="int">
+			SELECT
+				count(p.pay_id)
+			FROM
+				crd_ui_invoice_payment_vw p
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">p.pay_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="invoiceId">p.invoice_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateFrom">p.oper_date >= TO_DATE(#filters[].value#, 'Dp.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="operDateTo">p.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'Dp.MM.YYYY')+1</isEqual>
+				<isEqual property="filters[].element" compareValue="operType">p.oper_type = #filters[].value#</isEqual>
+			</iterate>
+	</select>
+
+
+	<resultMap id="mapping-debts"
+		class="ru.bpc.sv2.credit.CreditDebt">
+		<result property="id" column="id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="cardId" column="card_id"/>
+		<result property="productId" column="product_id"/>
+		<result property="serviceId" column="service_id"/>
+		<result property="operationId" column="oper_id" javaType="java.lang.Long"/>
+		<result property="operationType" column="oper_type"/>
+		<result property="settlementType" column="sttl_type"/>
+		<result property="feeType" column="fee_type"/>
+		<result property="terminalType" column="terminal_type"/>
+		<result property="operationDate" column="oper_date"/>
+		<result property="postingDate" column="posting_date"/>
+		<result property="settlementDay" column="sttl_day"/>
+		<result property="settlementDate" column="sttl_date"/>
+		<result property="currency" column="currency"/>
+		<result property="amount" column="amount"/>
+		<result property="debtAmount" column="debt_amount"/>
+		<result property="merchantCategoryCode" column="mcc"/>
+		<result property="agingPeriod" column="aging_period"/>
+		<result property="new" column="is_new" javaType="boolean"/>
+		<result property="status" column="status"/>
+		<result property="instId" column="inst_id"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="accountNumber" column="account_number"/>
+		<result property="cardMask" column="card_mask"/>
+		<result property="cardNumber" column="card_number"/>
+		<result property="institutionName" column="inst_name"/>
+		<result property="agentName" column="agent_name"/>
+		<result property="productName" column="product_name"/>
+		<result property="serviceName" column="service_name"/>
+        <result property="productNumber" column="product_number"/>
+        <result property="agentNumber" column="agent_number"/>
+        <result property="macrosTypeId" column="macros_type_id"/>
+        <result property="macrosTypeName" column="macros_type_name"/>
+        <result property="amountPurpose" column="amount_purpose"/>
+	</resultMap>
+	
+	<resultMap id="mapping-debts-cur"
+		class="ru.bpc.sv2.credit.CreditDebt">
+		<result property="id" column="id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="cardId" column="card_id"/>
+		<result property="productId" column="product_id"/>
+		<result property="serviceId" column="service_id"/>
+		<result property="operationId" column="oper_id" javaType="java.lang.Long"/>
+		<result property="operationType" column="oper_type"/>
+		<result property="settlementType" column="sttl_type"/>
+		<result property="settlementDate" column="sttl_date"/>
+		<result property="feeType" column="fee_type"/>
+		<result property="terminalType" column="terminal_type"/>
+		<result property="operationDate" column="oper_date"/>
+		<result property="postingDate" column="posting_date"/>
+		<result property="settlementDay" column="sttl_day"/>
+		<result property="currency" column="currency"/>
+		<result property="amount" column="amount"/>
+		<result property="debtAmount" column="debt_amount"/>
+		<result property="merchantCategoryCode" column="mcc"/>
+		<result property="agingPeriod" column="aging_period"/>
+		<result property="new" column="is_new" javaType="boolean"/>
+		<result property="status" column="status"/>
+		<result property="instId" column="inst_id"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="accountNumber" column="account_number"/>
+		<result property="cardMask" column="card_mask"/>
+		<result property="cardNumber" column="card_number"/>
+		<result property="institutionName" column="inst_name"/>
+		<result property="agentName" column="agent_name"/>
+		<result property="productName" column="product_name"/>
+		<result property="serviceName" column="service_name"/>
+        <result property="productNumber" column="product_number"/>
+        <result property="agentNumber" column="agent_number"/>
+        <result property="macrosTypeId" column="macros_type_id"/>
+        <result property="macrosTypeName" column="macros_type_name"/>
+        <result property="amountPurpose" column="amount_purpose"/>
+		<result property="revertedAmount" column="reverted_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+	</resultMap>
+	
+	<parameterMap class="java.util.Map" id="get-debits-cur-map">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-debts-cur"/>
+		<parameter property="first_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="last_row" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap> 
+	
+	<procedure id="get-debits-cur" 
+		parameterMap="get-debits-cur-map">
+		{ call crd_ui_debt_search_pkg.get_ref_cur(
+			o_ref_cur		=> ?
+			, i_first_row 	=> ?
+			, i_last_row	=> ?
+			, i_tab_name	=> ?
+			, i_param_tab	=> ?
+			, i_sorting_tab	=> ?
+		)}
+	</procedure>
+	
+	<parameterMap class="java.util.Map" id="get-debits-cur-count-map">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="tab_name" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="param_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap> 
+	
+	<procedure id="get-debits-cur-count" 
+		parameterMap="get-debits-cur-count-map">
+		{ call crd_ui_debt_search_pkg.get_row_count(
+			o_row_count		=> ?
+			, i_tab_name	=> ?
+			, i_param_tab	=> ?
+		)}
+	</procedure>
+
+	<select id="get-debts"
+		parameterClass="qparams"
+		resultMap="mapping-debts">
+		<include refid="paginatedOpen"/>
+
+			SELECT dbt.id
+				, dbt.account_id
+				, dbt.card_id
+				, dbt.product_id
+				, dbt.service_id
+				, dbt.oper_id
+				, dbt.oper_type
+				, dbt.sttl_type
+				, dbt.fee_type
+				, dbt.terminal_type
+				, dbt.oper_date
+				, dbt.posting_date
+				, dbt.sttl_day
+				, dbt.sttl_date
+				, dbt.currency
+				, dbt.amount
+				, dbt.debt_amount
+				, dbt.mcc
+				, dbt.aging_period
+				, dbt.is_new
+				, dbt.status
+				, dbt.inst_id
+				, dbt.agent_id
+				, dbt.split_hash
+				, dbt.account_number
+				, dbt.card_mask
+				, dbt.card_number
+				, dbt.amount_purpose
+				, dbt.macros_type_id
+				, inst.name inst_name
+				, agn.name agent_name
+				, p.label product_name
+                , s.label service_name
+                , p.product_number
+                , agn.agent_number
+                , m.name macros_type_name
+			FROM
+				crd_ui_debt_vw dbt, ost_ui_institution_sys_vw inst, ost_ui_agent_vw agn
+				, prd_ui_product_vw p, prd_ui_service_vw s
+				, acc_ui_macros_type_vw m
+			WHERE
+				dbt.inst_id = inst.id
+				AND dbt.agent_id = agn.id(+)
+				AND dbt.product_id = p.id
+                AND dbt.service_id = s.id
+                AND dbt.macros_type_id = m.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">dbt.id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">dbt.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountNumber">reverse(dbt.account_number) LIKE reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="cardNumber">reverse(dbt.card_number) LIKE reverse(#filters[].value#)</isEqual>
+				<isEqual property="filters[].element" compareValue="dateFrom">dbt.oper_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+				<isEqual property="filters[].element" compareValue="dateTo">dbt.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">
+					inst.lang = #filters[].value# AND agn.lang(+) = #filters[].value#
+					AND p.lang = #filters[].value# AND s.lang = #filters[].value#
+					AND m.lang(+) = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="operationType">dbt.oper_type LIKE #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">dbt.status LIKE #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">dbt.id $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="instId">dbt.inst_id $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="accountNumber">dbt.account_number $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="cardNumber">dbt.card_number $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="operationDate">dbt.oper_date $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="sttlDate">dbt.sttl_date $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">dbt.status $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="operationType">dbt.oper_type $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="amount">dbt.amount $sorting[].direction$, dbt.id ASC</isEqual>
+					<isEqual property="sorting[].property" compareValue="debtAmount">dbt.debt_amount $sorting[].direction$, dbt.id ASC</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend=" ORDER BY ">dbt.oper_date DESC, dbt.id ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-debts-count"
+		parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			dbt.id
+		FROM
+			crd_ui_debt_vw dbt, ost_ui_institution_sys_vw inst
+			, prd_ui_product_vw p, prd_ui_service_vw s
+		WHERE
+			dbt.inst_id = inst.id
+			AND dbt.product_id = p.id
+            AND dbt.service_id = s.id
+		<iterate prepend=" AND " conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">dbt.id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">dbt.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountNumber">reverse(dbt.account_number) LIKE reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="cardNumber">reverse(dbt.card_number) LIKE reverse(#filters[].value#)</isEqual>
+			<isEqual property="filters[].element" compareValue="dateFrom">dbt.oper_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">dbt.oper_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">
+					inst.lang = #filters[].value#
+					AND p.lang = #filters[].value# AND s.lang = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="operationType">dbt.oper_type LIKE #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">dbt.status LIKE #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+
+	<resultMap id="mapping-debtPayments"
+		class="ru.bpc.sv2.credit.CreditDebtPayment">
+		<result property="id" column="id"/>
+		<result property="balanceType" column="balance_type"/>
+		<result property="debtPaymentAmount" column="debt_pay_amount"/>
+		<result property="effDate" column="eff_date"/>
+		<result property="reversal" column="is_reversal"/>
+		<result property="originalOperationId" column="original_oper_id"/>
+		<result property="postingDate" column="posting_date"/>
+		<result property="settlementDay" column="sttl_day"/>
+		<result property="currency" column="currency"/>
+		<result property="amount" column="amount" javaType="java.lang.Double"/>
+		<result property="paymentAmount" column="pay_amount"/>
+		<result property="new" column="is_new"/>
+		<result property="status" column="status"/>
+	</resultMap>
+
+	<select id="get-debtPayments"
+		parameterClass="qparams"
+		resultMap="mapping-debtPayments">
+		<include refid="paginatedOpen"></include>
+		   	SELECT
+		   		dpay.id,
+		        dpay.balance_type,
+		        dpay.debt_pay_amount,
+		        dpay.eff_date,
+		        dpay.debt_id,
+		        dpay.is_reversal,
+		        dpay.original_oper_id,
+		        dpay.posting_date,
+		        dpay.sttl_day,
+		        dpay.currency,
+		        dpay.amount,
+		        dpay.pay_amount,
+		        dpay.is_new,
+		        dpay.status
+	   		FROM crd_ui_debt_payment_vw dpay
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+			 	<isEqual property="filters[].element" compareValue="debtId">dpay.debt_id = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="balanceType">dpay.balance_type $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="effDate">dpay.eff_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="debtPaymentAmount">dpay.debt_pay_amount $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="amount">dpay.amount $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="postingDate">dpay.posting_date $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+		<include refid="paginatedClose"></include>
+	</select>
+
+	<select id="get-debtPayments-count"
+		parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			dpay.id
+		FROM
+			crd_ui_debt_payment_vw dpay
+		 <iterate prepend=" WHERE " conjunction="AND" property="filters">
+		 	<isEqual property="filters[].element" compareValue="debtId">dpay.debt_id = #filters[].value#</isEqual>
+		 </iterate>
+		 <include refid="limitationClose"/>
+	</select>
+
+	<resultMap id="mapping-debtInterests" class="ru.bpc.sv2.credit.CreditDebtInterest">
+		<result property="id" column="id"/>
+		<result property="debtId" column="debt_id"/>
+		<result property="balanceType" column="balance_type"/>
+		<result property="startDate" column="start_date"/>
+		<result property="endDate" column="end_date"/>
+		<result property="duration" column="duration"/>
+		<result property="amount" column="amount"/>
+		<result property="minAmountDue" column="min_amount_due"/>
+		<result property="interestAmount" column="interest_amount"/>
+		<result property="feeId" column="fee_id"/>
+		<result property="feeDesc" column="fee_desc"/>
+		<result property="addFeeId" column="add_fee_id"/>
+		<result property="addFeeDesc" column="add_fee_desc"/>
+		<result property="charged" column="is_charged" nullValue="false"/>
+		<result property="graceEnable" column="is_grace_enable" nullValue="false"/>
+		<result property="invoiceId" column="invoice_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="invoiceDate" column="invoice_date"/>
+		<result property="currency" column="currency"/>
+		<result property="operId" column="oper_id"/>
+		<result property="operType" column="oper_type"/>
+		<result property="operationDate" column="oper_date"/>
+		<result property="waived" column="is_waived" nullValue="false"/>
+	</resultMap>
+
+	<parameterMap class="java.util.Map" id="map-get-debt-interests-count">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="debt_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-debt-interests-count" parameterMap="map-get-debt-interests-count">
+		{ call crd_ui_debt_search_pkg.get_interest_details_count(
+			  o_row_count	=> ?
+			, i_debt_id		=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="map-get-debt-interests">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-debtInterests"/>
+		<parameter property="debt_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-debt-interests" parameterMap="map-get-debt-interests">
+		{ call crd_ui_debt_search_pkg.get_interest_details(
+			  o_ref_cur		=> ?
+			, i_debt_id		=> ?
+			, i_sorting_tab	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="map-get-invoice-interests-count">
+		<parameter property="row_count" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="OUT"/>
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="invoice_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-invoice-interests-count" parameterMap="map-get-invoice-interests-count">
+		{ call crd_ui_invoice_search_pkg.get_interest_details_count(
+			  o_row_count	=> ?
+			, i_account_id	=> ?
+			, i_invoice_id	=> ?
+		)}
+	</procedure>
+
+	<parameterMap class="java.util.Map" id="map-get-invoice-interests">
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-debtInterests"/>
+		<parameter property="account_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="invoice_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="sorting_tab" jdbcType="COM_PARAM_MAP_TPT" typeName="COM_PARAM_MAP_TPT" typeHandler="ru.bpc.sv2.utils.CommonParamTypeHandler" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-invoice-interests" parameterMap="map-get-invoice-interests">
+		{ call crd_ui_invoice_search_pkg.get_interest_details(
+			  o_ref_cur		=> ?
+			, i_account_id	=> ?
+			, i_invoice_id	=> ?
+			, i_sorting_tab	=> ?
+		)}
+	</procedure>
+
+	<resultMap id="mapping-payments"
+		class="ru.bpc.sv2.credit.CreditPayment">
+		<result property="id" column="id"/>
+		<result property="operId" column="oper_id"/>
+		<result property="isReversal" column="is_reversal"/>
+		<result property="originalOperId" column="original_oper_id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="cardId" column="card_id"/>
+		<result property="productId" column="product_id"/>
+		<result property="postingDate" column="posting_date"/>
+		<result property="sttlDay" column="sttl_day"/>
+		<result property="currency" column="currency"/>
+		<result property="amount" column="amount"/>
+		<result property="payAmount" column="pay_amount"/>
+		<result property="isNew" column="is_new"/>
+		<result property="status" column="status"/>
+		<result property="instId" column="inst_id"/>
+		<result property="agentId" column="agent_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="accountNumber" column="account_number"/>
+		<result property="cardMask" column="card_mask"/>
+		<result property="cardNumber" column="card_number"/>
+		<result property="institutionName" column="name"/>
+		<result property="operDate" column="oper_date"/>
+		<result property="revertedAmount" column="reverted_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+	</resultMap>
+
+	<select id="get-payments"
+		parameterClass="qparams"
+		resultMap="mapping-payments">
+		<include refid="paginatedOpen"></include>
+		SELECT
+			  pay.id
+			, pay.oper_id
+			, pay.is_reversal
+			, pay.original_oper_id
+			, pay.account_id
+			, pay.card_id
+			, pay.product_id
+			, pay.posting_date
+			, pay.sttl_day
+			, pay.currency
+			, pay.amount
+			, pay.pay_amount
+			, pay.is_new
+			, pay.status
+			, pay.inst_id
+			, pay.agent_id
+			, pay.split_hash
+			, pay.account_number
+			, pay.card_mask
+			, pay.card_number
+			, inst.name
+			, pay.oper_date
+			, pay.reverted_amount
+	    FROM
+	    	crd_ui_payment_vw pay, ost_ui_institution_sys_vw inst
+	    WHERE
+			pay.inst_id = inst.id(+)
+	    <iterate prepend="AND" conjunction="AND" property="filters">
+		 	<isEqual property="filters[].element" compareValue="instId">pay.inst_id = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="accountNumber">reverse(pay.account_number) like reverse(#filters[].value#)</isEqual>
+		 	<isEqual property="filters[].element" compareValue="cardNumber">reverse(pay.card_number) like reverse(#filters[].value#)</isEqual>
+		 	<isEqual property="filters[].element" compareValue="dateFrom">pay.posting_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">pay.posting_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			<isEqual property="filters[].element" compareValue="status">pay.status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">inst.lang = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="operDate">pay.oper_date = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="cardId">pay.card_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="accountId">pay.account_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="instId">pay.inst_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="accountNumber">pay.account_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="cardNumber">pay.card_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="postingDate">pay.posting_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="isReversal">pay.is_reversal $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="status">pay.status $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="amount">pay.amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="payAmount">pay.amount $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+		<include refid="paginatedClose"></include>
+	</select>
+
+	<select id="get-payments-count"
+		parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			pay.id
+		FROM
+			crd_ui_payment_vw pay
+	    <iterate prepend="WHERE" conjunction="AND" property="filters">
+		 	<isEqual property="filters[].element" compareValue="instId">pay.inst_id = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="accountNumber">pay.account_number like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="accountInstId">pay.account_inst_id = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="cardNumber">reverse(pay.card_number) like reverse(#filters[].value#)</isEqual>
+		 	<isEqual property="filters[].element" compareValue="dateFrom">pay.posting_date >= TO_DATE(#filters[].value#, 'DD.MM.YYYY')</isEqual>
+			<isEqual property="filters[].element" compareValue="dateTo">pay.posting_date <![CDATA[<=]]>  TO_DATE(#filters[].value#, 'DD.MM.YYYY')+1</isEqual>
+			<isEqual property="filters[].element" compareValue="status">pay.status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="cardId">pay.card_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="accountId">pay.account_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+<!-- todo vlad start -->
+
+    <resultMap id="mapping-debtBalances"
+               class="ru.bpc.sv2.credit.CreditDebtBalance">
+        <result property="id" column="id"/>
+        <result property="balanceType" column="balance_type"/>
+        <result property="balanceAmount" column="amount"/>
+        <result property="repayPriority" column="repay_priority"/>
+        <result property="minAmountDue" column="min_amount_due"/>
+        <result property="currency" column="currency"/>
+    </resultMap>
+
+    <select id="get-debtBalances"
+            parameterClass="qparams"
+            resultMap="mapping-debtBalances">
+        <include refid="paginatedOpen"></include>
+        SELECT
+        dbal.id
+        , dbal.debt_id
+        , dbal.debt_intr_id
+        , dbal.balance_type
+        , dbal.amount
+        , dbal.repay_priority
+        , dbal.min_amount_due
+        , dbal.split_hash
+        , dbal.currency
+        FROM crd_ui_debt_balance_vw dbal
+        <iterate prepend=" WHERE " conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="debtId">dbal.debt_id = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="balanceType">dbal.balance_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="balanceAmount">dbal.amount $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="repayPriority">dbal.repay_priority $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="minAmountDue">dbal.min_amount_due $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"></include>
+    </select>
+
+    <select id="get-debtBalances-count"
+            parameterClass="qparams"
+            resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+        dbal.id
+        FROM
+        crd_ui_debt_balance_vw dbal
+        <iterate prepend=" WHERE " conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="debtId">dbal.debt_id = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+<!-- todo vlad end -->
+
+
+
+
+
+	<resultMap id="mapping-payment-expenditures"
+		class="ru.bpc.sv2.credit.CreditPaymentExpenditure">
+		<result property="id" column="id"/>
+		<result property="debtId" column="debt_id"/>
+		<result property="balanceType" column="balance_type"/>
+		<result property="payId" column="pay_id"/>
+		<result property="debtPayAmount" column="debt_pay_amount"/>
+		<result property="effDate" column="eff_date"/>
+		<result property="operType" column="oper_type"/>
+		<result property="operDate" column="oper_date"/>
+		<result property="postingDate" column="posting_date"/>
+		<result property="sttlDay" column="sttl_day"/>
+		<result property="currency" column="currency"/>
+		<result property="amount" column="amount"/>
+		<result property="debtAmount" column="debt_amount"/>
+		<result property="operId" column="oper_id"/>
+	</resultMap>
+
+	<select id="get-payment-expenditures"
+		parameterClass="qparams"
+		resultMap="mapping-payment-expenditures">
+		<include refid="paginatedOpen"></include>
+		SELECT
+			pexp.id,
+			pexp.debt_id,
+			pexp.balance_type,
+			pexp.pay_id,
+			pexp.debt_pay_amount,
+			pexp.eff_date,
+			pexp.oper_type,
+			pexp.oper_date,
+			pexp.posting_date,
+			pexp.sttl_day,
+			pexp.currency,
+			pexp.amount,
+			pexp.debt_amount,
+			pexp.oper_id
+		FROM
+			crd_ui_payment_expenditure_vw pexp
+	    <iterate prepend="WHERE" conjunction="AND" property="filters">
+		 	<isEqual property="filters[].element" compareValue="payId">pexp.pay_id = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="operId">pexp.oper_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operDate">pexp.oper_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">pexp.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="balanceType">pexp.balance_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="effDate">pexp.eff_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="debtAmount">pexp.debt_amount $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+		<include refid="paginatedClose"></include>
+	</select>
+
+	<select id="get-payment-expenditures-count"
+		parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>		
+		SELECT
+			pexp.id
+		FROM
+			crd_ui_payment_expenditure_vw pexp
+	    <iterate prepend="WHERE" conjunction="AND" property="filters">
+		 	<isEqual property="filters[].element" compareValue="payId">pexp.pay_id = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<resultMap id="mapping-eventBunchTypes"
+		class="ru.bpc.sv2.credit.CreditEventBunchType">
+		<result property="id" column="id"/>
+		<result property="seqnum" column="seqnum"/>
+		<result property="eventType" column="event_type"/>
+		<result property="balanceType" column="balance_type"/>
+		<result property="bunchTypeId" column="bunch_type_id"/>
+		<result property="bunchTypeName" column="bunch_type_name"/>
+		<result property="addBunchTypeId" column="add_bunch_type_id"/>
+		<result property="addBunchTypeName" column="add_bunch_type_name"/>
+		<result property="instId" column="inst_id"/>
+		<result property="instName" column="inst_name"/>
+	</resultMap>
+
+	<select id="get-eventBunchTypes"
+		parameterClass="qparams"
+		resultMap="mapping-eventBunchTypes">
+		<include refid="paginatedOpen"></include>
+			select ebt.id
+				 , ebt.seqnum
+				 , ebt.event_type
+				 , ebt.balance_type
+				 , ebt.bunch_type_id
+				 , bt.name bunch_type_name
+				 , ebt.add_bunch_type_id
+				 , abt.name add_bunch_type_name
+				 , ebt.inst_id
+				 , inst.name inst_name
+			  from crd_ui_event_bunch_type_vw ebt
+				 , ost_ui_institution_sys_vw inst
+				 , acc_ui_bunch_type_vw bt
+				 , acc_ui_bunch_type_vw abt
+			 where ebt.inst_id = inst.id
+			   and ebt.bunch_type_id = bt.id(+)
+			   and ebt.add_bunch_type_id = abt.id(+)
+	    <iterate prepend="AND" conjunction="AND" property="filters">
+	    	<isEqual property="filters[].element" compareValue="id">ebt.id = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="instId">ebt.inst_id = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="eventType">ebt.event_type = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="balanceType">ebt.balance_type = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="lang">
+				bt.lang(+) = #filters[].value# and abt.lang(+) = #filters[].value# and inst.lang = #filters[].value#
+			</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">ebt.id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="seqnum">ebt.seqnum $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="eventType">ebt.event_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="balanceType">ebt.balance_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="bunchTypeName">bt.name $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="instId">ebt.inst_id $sorting[].direction$</isEqual>
+			</isNotEqual>
+        </iterate>
+		<include refid="paginatedClose"></include>
+	</select>
+
+	<select id="get-eventBunchTypes-count"
+		parameterClass="qparams"
+		resultClass="int">
+		<include refid="limitationOpenCount"/>
+			SELECT
+				ebt.id
+			FROM
+				crd_ui_event_bunch_type_vw ebt
+				, ost_ui_institution_sys_vw inst
+            WHERE
+                ebt.inst_id = inst.id
+	    <iterate prepend="AND" conjunction="AND" property="filters">
+	    	<isEqual property="filters[].element" compareValue="id">ebt.id = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="instId">ebt.inst_id = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="eventType">ebt.event_type = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="balanceType">ebt.balance_type = #filters[].value#</isEqual>
+		 	<isEqual property="filters[].element" compareValue="lang">inst.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-event-bunch-type" parameterClass="ru.bpc.sv2.credit.CreditEventBunchType">
+		{call CRD_UI_EVENT_BUNCH_TYPE_PKG.add_event_bunch_type(
+			  o_id					=> #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum				=> #seqnum,jdbcType=NUMERIC,mode=OUT#
+			, i_event_type			=> #eventType#
+			, i_balance_type		=> #balanceType#
+			, i_bunch_type_id		=> #bunchTypeId#
+			, i_add_bunch_type_id	=> #addBunchTypeId#
+			, i_inst_id				=> #instId#
+		)}
+	</procedure>
+
+   	<procedure id="remove-event-bunch-type"
+  		parameterClass="ru.bpc.sv2.credit.CreditEventBunchType">
+	   	{call CRD_UI_EVENT_BUNCH_TYPE_PKG.remove_event_bunch_type(
+				  i_id				=> #id#
+				, i_seqnum			=> #seqnum#
+				)}
+    </procedure>
+
+	<procedure id="edit-event-bunch-type" parameterClass="ru.bpc.sv2.credit.CreditEventBunchType">
+		{call CRD_UI_EVENT_BUNCH_TYPE_PKG.modify_event_bunch_type(
+			  i_id					=> #id#
+			, io_seqnum				=> #seqnum,jdbcType=NUMERIC,mode=INOUT#
+			, i_event_type			=> #eventType#
+			, i_balance_type		=> #balanceType#
+			, i_bunch_type_id		=> #bunchTypeId#
+			, i_add_bunch_type_id	=> #addBunchTypeId#
+			, i_inst_id				=> #instId#
+		)}
+	</procedure>
+    
+    <resultMap id="mapping-debt-dalances-mad"
+			   class="ru.bpc.sv2.credit.CreditDebtBalance">
+		<result property="debtId" column="debt_id"/>
+		<result property="id" column="id"/>
+		<result property="balanceType" column="balance_type"/>
+		<result property="balanceAmount" column="amount"/>
+		<result property="minAmountDue" column="min_amount_due"/>
+		<result property="currency" column="currency"/>
+		<result property="feeType" column="fee_type"/>
+		<result property="operationId" column="oper_id"/>
+		<result property="macrosTypeId" column="macros_type_id"/>
+		<result property="operType" column="oper_type"/>
+		<result property="operDate" column="oper_date"/>
+		<result property="debtAmount" column="debt_amount"/>
+		<result property="status" column="status"/>
+		<result property="macrosTypeName" column="macros_type_name"/>
+	</resultMap>
+	
+	<select id="get-invoice-mad" resultMap="mapping-debt-dalances-mad"
+			parameterClass="qparams">
+		<include refid="paginatedOpen"/>
+		SELECT
+			mad.debt_id
+			, mad.id
+			, mad.balance_type
+			, mad.amount
+			, mad.min_amount_due
+			, mad.currency
+			, mad.fee_type
+			, mad.oper_id
+			, mad.macros_type_id
+			, mad.oper_type
+			, mad.oper_date
+			, mad.debt_amount
+			, mad.status
+			, mad.macros_type_name
+		FROM crd_ui_invoice_mad_vw mad
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="invoiceId">mad.invoice_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">mad.lang = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction="," property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="debtId">mad.debt_id $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="balanceType">mad.balance_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operDate">mad.oper_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operType">mad.oper_type $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="sttlDate">mad.sttl_date $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="minAmountDue">mad.min_amount_due $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="balanceAmount">mad.amount $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="operId">mad.oper_id $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-invoice-mad-count" resultClass="int"
+			parameterClass="qparams">
+		<include refid="limitationOpenCount"/>
+
+		SELECT
+			mad.id
+		FROM
+			crd_ui_invoice_mad_vw mad
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="invoiceId">mad.invoice_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">mad.lang = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+    
+    <resultMap class="ru.bpc.sv2.credit.CreditDetailsRecord" id="mapping-credit-info-record">
+		<result property="systemName" column="system_name"/>
+		<result property="name" column="name"/>
+		<result property="value" column="value"/>
+	</resultMap>
+
+	<resultMap class="ru.bpc.sv2.credit.CreditDetailsRecord" id="mapping-debt-info-record">
+		<result property="parentName" column="parent_name"/>
+		<result property="systemName" column="system_name"/>
+		<result property="name" column="name"/>
+		<result property="value" column="value"/>
+	</resultMap>
+
+	<parameterMap id="get-credit-details-map" class="java.util.Map" >
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-credit-info-record"/>
+		<parameter property="accountId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>		
+	</parameterMap>
+	
+	<procedure id="get-credit-details"
+		parameterMap="get-credit-details-map">
+		{ call crd_ui_account_info_pkg.get_credit_info (
+			  	  o_ref_cur		=> ?   
+ 				, i_account_id  => ?
+			)}
+	</procedure>
+
+	<parameterMap id="get-total-debt-calculation-map" class="java.util.Map" >
+		<parameter property="accountId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="payOffDate" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+		<parameter property="ref_cur" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="mapping-debt-info-record"/>
+	</parameterMap>
+
+	<procedure id="get-total-debt-calculation"
+			   parameterMap="get-total-debt-calculation-map">
+		{ call crd_ui_account_info_pkg.total_debt_calculation (
+			  i_account_id	=> ?
+			, i_payoff_date	=> ?
+			, o_ref_cur		=> ?
+		) }
+	</procedure>
+
+	<parameterMap id="get-close-credit-map" class="java.util.Map" >
+		<parameter property="accountId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="payOffDate" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-close-credit"
+			   parameterMap="get-close-credit-map">
+		{ call crd_ui_account_info_pkg.close_credit (
+			  i_account_id	=> ?
+			, i_eff_date	=> ?
+		) }
+	</procedure>
+
+	<resultMap id="get-dpp-calculation-instalments-map" class="ru.bpc.sv2.credit.Instalment">
+		<result property="number" jdbcType="NUMERIC" javaType="java.lang.Integer"/>
+		<result property="date" jdbcType="DATE" javaType="java.util.Date"/>
+		<result property="amount" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+		<result property="interest" jdbcType="NUMERIC" javaType="java.math.BigDecimal"/>
+	</resultMap>
+
+	<parameterMap id="get-dpp-calculation-map" class="ru.bpc.sv2.credit.DppCalculation">
+		<parameter property="dppAmount" jdbcType="NUMERIC" javaType="java.math.BigDecimal" mode="IN"/>
+		<parameter property="feeId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="firstInstalmentDate" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+		<parameter property="instalmentCount" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="INOUT"/>
+		<parameter property="instalmentAmount" jdbcType="NUMERIC" javaType="java.math.BigDecimal" mode="INOUT"/>
+		<parameter property="calcAlgorithm" jdbcType="VARCHAR" javaType="java.lang.String" mode="INOUT"/>
+		<parameter property="accountNumber" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+		<parameter property="accountId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="instId" jdbcType="NUMERIC" javaType="java.lang.Integer" mode="IN"/>
+		<parameter property="interestRate" jdbcType="NUMERIC" javaType="java.math.BigDecimal" mode="OUT"/>
+		<parameter property="instalments" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="get-dpp-calculation-instalments-map"/>
+	</parameterMap>
+
+	<procedure id="get-dpp-calculation" parameterMap="get-dpp-calculation-map">
+		{call dpp_ui_payment_plan_pkg.calculate_dpp (
+			  i_dpp_amount				=> ?
+			, i_fee_id					=> ?
+			, i_first_instalment_date	=> ?
+			, io_instalment_count		=> ?
+			, io_instalment_amount		=> ?
+			, io_calc_algorithm			=> ?
+			, i_account_number			=> ?
+			, i_account_id				=> ?
+			, i_inst_id					=> ?
+			, o_interest_rate			=> ?
+			, o_instalments				=> ?
+		)}
+	</procedure>
+
+	<resultMap id="map-get-interest-calc-record" class="ru.bpc.sv2.credit.CreditDetailsRecord">
+		<result property="parentName" column="parent_name"/>
+		<result property="systemName" column="system_name"/>
+		<result property="name" column="name"/>
+		<result property="value" column="value"/>
+	</resultMap>
+
+	<parameterMap id="map-get-interest-calc" class="java.util.Map" >
+		<parameter property="accountId" jdbcType="NUMERIC" javaType="java.lang.Long" mode="IN"/>
+		<parameter property="startDate" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+		<parameter property="endDate" jdbcType="DATE" javaType="java.util.Date" mode="IN"/>
+		<parameter property="result" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="map-get-interest-calc-record"/>
+	</parameterMap>
+
+	<procedure id="get-interest-calc" parameterMap="map-get-interest-calc">
+		{call crd_ui_account_info_pkg.interest_calculation(
+			  i_account_id	=> ?
+			, i_start_date	=> ?
+			, i_end_date	=> ?
+			, o_ref_cur		=> ?
+		)}
+	</procedure>
+
+    <procedure id="get-operation-debt" parameterClass="java.util.Map">
+        {call crd_ui_account_info_pkg.get_operation_debt(
+                i_oper_id => #id,jdbcType=NUMERIC#
+                , o_debt_amount => #amount,jdbcType=NUMERIC,javaType=java.math.BigDecimal,mode=OUT#
+                , o_debt_currency => #currency,jdbcType=VARCHAR,mode=OUT#
+        )}
+    </procedure>
+</sqlMap>

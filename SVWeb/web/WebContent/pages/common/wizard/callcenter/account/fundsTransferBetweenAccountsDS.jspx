@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+      xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:rich="http://richfaces.org/rich"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:bpc="http://www.bpc.ru/jsf/misc">
+<ui:composition template="../accDetailsTemplate.jspx">
+    <ui:define name="stepContent">
+        <!--@elvariable id="stepBean" type="ru.bpc.sv2.ui.common.wizard.callcenter.account.MbFundsTranferBetweenAccountsDS"-->
+        <f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common" />
+        <f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc" />
+        <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr" />
+
+        <bpct:customerSearchModalPanels id="customerSearchPanels"/>
+
+        <h:form id="accountFundsTransferDSForm" style="padding:10px;">
+            <ui:include src="/pages/common/wizard/commonWizardActions.jspx">
+                <ui:param name="bean" value="#{bean}" />
+                <ui:param name="action" value="#{action}" />
+            </ui:include>
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <h:panelGroup styleClass="cardholderdata" style="width: 100%">
+                    <h:outputLabel for="accountDestCustomer" value="#{lblAcc.select_destination_customer}"
+                                   style="padding-bottom: 5px; text-align: left;"/>
+                    <h:panelGrid columns="2" width="100%" columnClasses="width99P,">
+                        <bpc:selectCustomer id="accountDestCustomer"
+                                            valueId="#{stepBean.destCustomer.id}"
+                                            valueNumber="#{stepBean.destCustomer.customerNumber}"
+                                            custInfoField="#{stepBean.destCustomer.customerName}"
+                                            beanName="stepBean"
+                                            modalPanel="customerSearchModalPanel"
+                                            formName="accountFundsTransferDSForm"
+                                            viewIdColon="customerNumberVw"
+                                            methodName="selectCustomer"
+                                            rendered="true"
+                                            manualInput="true"
+                                            rerenderList="accountFundsTransferDSForm:accountDestCustomer,
+                                                          accountFundsTransferDSForm:accountFundsTransferTable"
+                                            style="max-width:100% !important; margin-left:0px;">
+                        </bpc:selectCustomer>
+
+                        <bre:taggedCommandButton id="searchBtn" value="#{lblForm.search}"
+                                                 action="#{stepBean.searchDestAccounts}"
+                                                 reRender="customerResultModalForm, accountFundsTransferTable, searchBtn"
+                                                 image="/_img/icon_search.png"
+                                                 type="submit"
+                                                 style="width:85px;"
+                                                 onclick="disableModalPanelBtns(this);"
+                                                 oncomplete="enableModalPanelBtns(this);"
+                                                 eventsQueue="queue"/>
+                    </h:panelGrid>
+
+                    <h:outputLabel for="accountFundsTransferTable" value="#{lblAcc.select_destination_account}"
+                                   style="padding-bottom: 5px; text-align: left;"/>
+                    <rich:extendedDataTable id="accountFundsTransferTable"
+                                            styleClass="res-table"
+                                            headerClass="res-table-header"
+                                            rowClasses=",odd"
+                                            selectedClass="res-table-selected"
+                                            var="item"
+                                            value="#{stepBean.destAccounts}"
+                                            selection="#{stepBean.itemSelection}"
+                                            rows="#{stepBean.rowsNum}"
+                                            selectionMode="single"
+                                            width="100%"
+                                            noDataLabel="#{lblCommon['no_records_found']}}"
+                                            height="200px">
+                        <a4j:support event="onselectionchange" reRender="accountFundsTransferTable" ajaxSingle="true" limitToList="true"/>
+
+                        <rich:column id="account_number"
+                                     label="#{lblAcc.account_number}" title="#{lblAcc.account_number}"
+                                     width="65%">
+                            <f:facet name="header">
+                                <a4j:outputPanel layout="none">
+                                    <h:outputText value="#{lblAcc.account_number}" title="#{lblAcc.account_number}" />
+                                </a4j:outputPanel>
+                            </f:facet>
+                            <h:outputText value="#{item.accountNumber}" title="#{item.accountNumber}" />
+                        </rich:column>
+
+                        <rich:column id="available_balance"
+                                     label="#{lblAcc.available_balance}" title="#{lblAcc.available_balance}"
+                                     style="text-align: right" width="25%">
+                            <f:facet name="header">
+                                <h:outputText value="#{lblAcc.available_balance}" title="#{lblAcc.available_balance}" />
+                            </f:facet>
+                            <h:outputText value="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}"
+                                          title="#{fmt:formatMoney(item.balance, CurrencyUtils.currencyObjectsMap[item.currency].exponent)}" />
+                        </rich:column>
+
+                        <rich:column id="available_balance_currency"  style="text-align: right" width="5%">
+                            <f:facet name="header">
+                                <h:outputText value="" title="" />
+                            </f:facet>
+                            <div class="#{CurrencyUtils.flagMap[item.currency]}"/>
+                        </rich:column>
+                    </rich:extendedDataTable>
+
+                    <h:outputLabel for="accountFundsTransferAmount" value="#{lblAcc.transfer_amount}"
+                                   style="padding-bottom: 5px; padding-top: 10px; text-align: left;"/>
+                    <h:panelGroup>
+                        <h:inputText id="accountFundsTransferAmount" value="#{stepBean.operation.operationAmount}"
+                                     style="max-width: 99%">
+                            <bpc:numericMaskConverter numericType="bigdecimal" />
+                            <f:attribute name="decDigits"
+                                         value="#{CurrencyUtils.currencyObjectsMap[stepBean.operation.accountCurrency].exponent}" />
+                        </h:inputText>
+                        <bpc:jsMask for="accountFundsTransferAmount"
+                                    decDigits="#{CurrencyUtils.currencyObjectsMap[stepBean.operation.accountCurrency].exponent}" />
+                    </h:panelGroup>
+
+                    <h:outputLabel for="accountFundsTransferReason" value="#{lblOpr.oper_reason}"
+                                   style="padding-bottom: 5px; padding-top: 10px; text-align: left;"/>
+                    <h:panelGrid columns="1" cellpadding="0" cellspacing="0" style="width: 100%">
+                        <h:selectOneMenu id="accountFundsTransferReason" label="#{lblOpr.oper_reason}"
+                                         value="#{stepBean.operation.operReason}"
+                                         style="max-width: 100%">
+                            <f:selectItem itemValue="%" itemLabel="% - #{lblCommon.any}" />
+                            <f:selectItems value="#{stepBean.operReasons}" />
+                        </h:selectOneMenu>
+                    </h:panelGrid>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </ui:define>
+</ui:composition>
+</html>

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+	PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+	"http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="trace">
+	<sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+
+	<sql id="paginatedOpen">
+			SELECT *
+			FROM(
+				SELECT a.*, rownum r
+				FROM(
+		<include refid="limitationOpen"/>         
+	</sql>
+
+	<sql id="paginatedClose">
+		<include refid="limitationClose"/>
+					) a
+				WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+			)
+			WHERE r >= (#range.start# + 1)
+	</sql>
+
+	<resultMap id="mapping-trace" class="ru.bpc.sv2.process.ProcessTrace">
+		<result property="id" column="id" />
+		<result property="threadNumber" column="thread_number" />
+		<result property="traceLevel" column="trace_level" />
+		<result property="traceText" column="text" />
+		<result property="traceTimestamp" column="trace_timestamp" />
+		<result property="userId" column="user_id" />
+		<result property="sessionId" column="session_id" />
+		<result property="details" column="details" />
+		<result property="entityType" column="entity_type" />
+		<result property="objectId" column="object_id" />
+		<result property="entityDescription" column="entity_description" />
+		<result property="traceSection" column="trace_section" />
+		<result property="eventId" column="event_id" />
+		<result property="labelId" column="label_id" />
+		<result property="instId" column="inst_id" />
+		<result property="whoCalled" column="who_called" />
+		<result property="text" column="label_text" />
+	</resultMap>
+
+	<select
+			id="get-trace"
+			parameterClass="qparams"
+			resultMap="mapping-trace">
+		select t.id,
+			t.thread_number,
+			t.trace_level,
+			t.text,
+			t.details,
+			t.trace_timestamp,
+			t.user_id,
+			t.session_id,
+			t.label_id,
+			t.label_text,
+			t.entity_type,
+			t.object_id,
+			get_object_desc(i_entity_type => entity_type, i_object_id => object_id) entity_description,
+			t.trace_section,
+			t.event_id,
+			t.inst_id,
+			t.who_called
+		from (
+		<include refid="paginatedOpen"/>
+			select rownum id,
+			thread_number,
+			trace_level,
+			text,
+			details,
+			trace_timestamp,
+			user_id,
+			session_id,
+			label_id,
+			nvl2(label_id, text, null) as label_text,
+			entity_type,
+			object_id,
+			trace_section,
+			event_id,
+			inst_id,
+			who_called
+		from trc_ui_log_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="traceLevel">
+				#filters[].value# >= decode(trace_level, 'DEBUG', 6, 'INFO', 5, 'WARNING', 4, 'ERROR', 3, 'FATAL', 2)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="threadNumber">thread_number = #filters[].value#</isEqual>
+		</iterate>
+		<iterate prepend="ORDER BY" conjunction=", " property="sorting">
+			<isNotEqual property="sorting[].direction" compareValue="AUTO">
+				<isEqual property="sorting[].property" compareValue="id">trace_timestamp $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="threadNumber">thread_number $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="traceLevel">trace_level $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="traceText">trace_text $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="traceTimestamp">trace_timestamp $sorting[].direction$</isEqual>
+				<isEqual property="sorting[].property" compareValue="userId">user_id $sorting[].direction$</isEqual>
+			</isNotEqual>
+		</iterate>
+		<isEmpty property="sorting" prepend="ORDER BY ">trace_timestamp DESC</isEmpty>
+		<include refid="paginatedClose"/>
+		) t
+	</select>
+
+	<select
+			id="get-trace-count"
+			parameterClass="qparams"
+			resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			rownum id,
+			thread_number,
+			trace_level,
+			trace_text,
+			trace_timestamp,
+			user_id,
+			session_id,
+			label_id
+		FROM trc_ui_log_vw
+		<iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="sessionId">session_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="traceLevel">
+				#filters[].value# >= decode(trace_level, 'DEBUG', 6, 'INFO', 5, 'WARNING', 4, 'ERROR', 3, 'FATAL', 2)
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="entityType">entity_type = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="objectId">object_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="threadNumber">thread_number = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+	
+	<select id="get-error-details" resultClass="String">
+    	SELECT trc_log_pkg.get_details FROM dual
+    </select>
+</sqlMap>

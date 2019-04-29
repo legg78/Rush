@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<script type="text/javascript">
+		//<![CDATA[
+		function enableButtons() {
+			var disableAll = #{(servicesBean==null ? MbProductServices : servicesBean).filter.productId == null};
+			if (disableAll) {
+				document.getElementById("productServicesForm:addBtn").disabled = true;
+				document.getElementById("productServicesForm:editBtn").disabled = true;
+				document.getElementById("productServicesForm:deleteBtn").disabled = true;
+			} else {
+				if (document.getElementById("productServicesForm:productServicesTree").isSelectionEmpty()) {
+					document.getElementById("productServicesForm:addBtn").disabled = false;
+					document.getElementById("productServicesForm:editBtn").disabled = true;
+					document.getElementById("productServicesForm:deleteBtn").disabled = true;
+				} else {
+					document.getElementById("productServicesForm:addBtn").disabled = false;
+					document.getElementById("productServicesForm:editBtn").disabled = false;
+					document.getElementById("productServicesForm:deleteBtn").disabled = false;
+				}
+			}
+		}
+		
+		function setMaxCount(el){
+			var checked = el.checked;
+			var maxCountEl = document.getElementById("productServiceModalDiv:newMaxCount");
+			if (checked){
+				maxCountEl.value = "#{lblFcl.unlimited}";
+				maxCountEl.disabled = true;
+			} else {
+				maxCountEl.value = 0;
+				maxCountEl.disabled = false;
+			}
+		}
+		
+		function setDisabled(){
+			var checked = document.getElementById("productServiceModalDiv:unlimited").checked;
+			var maxCountEl = document.getElementById("productServiceModalDiv:newMaxCount");
+			if (checked){
+				maxCountEl.disabled = true;
+			} else {
+				maxCountEl.disabled = false;
+			}
+		}
+		
+		function setMandatory(el){
+			var checked = el.checked;
+			var minCountEl = document.getElementById("productServiceModalDiv:newMinCount");
+			if (minCountEl == null || minCountEl == "undefined") {
+				return;
+			}
+			if (checked) {
+				if (minCountEl.value > 0) {
+					//nothing to do
+				} else {
+					minCountEl.value = 1;
+				}
+			} else {
+				if (minCountEl.value > 0) {
+					minCountEl.value = 0;
+				} else {
+					//nothing to do
+				}
+			}
+		}
+
+		function checkMandatory(el) {
+			var mandatoryEl = document.getElementById("productServiceModalDiv:newMandatory");
+			if (el.value > 0) {
+				mandatoryEl.checked = true;
+			} else {
+				if (mandatoryEl.checked) {
+					el.value = 1;
+				} else {
+					el.value = 0;
+				}
+			}
+		}
+		
+		function checkProductServiceFields() {
+			var checked = true;
+
+			if (document.getElementById('productServiceModalDiv:newService') != null) {
+				if (document.getElementById('productServiceModalDiv:newService').value == "") {
+					document.getElementById('productServiceModalDiv:newServiceError').style.display = "inline";
+					checked = false;
+				}
+			}
+			
+			if (document.getElementById('productServiceModalDiv:newMinCount').value == "") {
+				document.getElementById('productServiceModalDiv:newMinCountError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('productServiceModalDiv:newMaxCount').value == "") {
+				document.getElementById('productServiceModalDiv:newMaxCountError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//]]>
+	</script>
+
+   	<a4j:outputPanel ajaxRendered="true" id="q_bundle_prd" >
+   		<o:loadBundle var="lblPrdQ" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+   		<o:loadBundle var="lblCommonQ" basename="ru.bpc.sv2.ui.bundles.Common"/>
+   	</a4j:outputPanel>
+
+	<h:form id="productServicesForm">
+		<h:panelGroup id="productServicesTreeWrapper" layout="block" style="padding:0px;margin:0px;">
+			<o:treeTable id="productServicesTree"
+						 var="service"
+						 expansionState="allExpanded"
+						 headerHorizSeparator="1px solid #D7DAC2"
+						 headerVertSeparator="1px solid #D7DAC2"
+						 headerSectionClass="res-tree-table-header"
+						 commonHeaderRowClass="res-tree-table-header"
+						 sortableHeaderClass="res-tree-table-header"
+						 sortedColumnHeaderClass="res-tree-table-header"
+						 sortableHeaderRolloverClass="res-tree-table-header"
+						 styleClass="extdt-table-layout res-tree-table"
+						 bodyOddRowClass="res-tree-table-row odd-tree-table"
+						 bodyRowClass="res-tree-table-row"
+						 headerRowClass="res-tree-table-header"
+						 verticalGridLines="1px solid #D7DAC2"
+						 cellpadding="0"
+						 cellspacing="0"
+						 preloadedNodes="all"
+						 useAjax="true"
+						 style="height:#{tableHeight}">
+				<o:scrolling/>
+				<f:facet name="noDataMessage">
+				  	<h:panelGroup>
+				       <h:outputText value="#{lblCommon['no_records_found']}"/>
+					</h:panelGroup>
+				</f:facet>
+				
+      			<o:dynamicTreeStructure 
+      					nodeChildren="#{(servicesBean==null ? MbProductServices : servicesBean).nodeChildren}" 
+      					nodeHasChildren="#{(servicesBean==null ? MbProductServices : servicesBean).nodeHasChildren}" 
+      					nodeKey="#{service.modelId}"/>
+	
+			    <o:singleNodeSelection nodePath="#{(servicesBean==null ? MbProductServices : servicesBean).nodePath}"
+			          	nodeData="#{(servicesBean==null ? MbProductServices : servicesBean).node}"
+	         			keyboardSupport="false"
+	         			onchange="enableButtons()"
+	         			styleClass="treetable_selection"
+	         			>
+				</o:singleNodeSelection>
+	
+		       	<o:column width="3%" style="padding:0;text-align: center">
+					<h:graphicImage value="/images/arrow-down-green.png" 
+							rendered="#{service.inherited}" 
+							title="#{lblPrdQ.inherited_from_parent_prd}">
+					</h:graphicImage>
+		       	</o:column>
+
+			    <o:treeColumn id="serviceName" width="35%">
+			    	<f:facet name="header">
+			    		<a4j:outputPanel layout="none">
+			    			<script>if(window['updateHeight'])updateHeight();</script>
+			    			<h:outputText value="#{lblPrdQ.service}"/>
+			    		</a4j:outputPanel>
+			      	</f:facet>
+			      	<h:outputText value="#{service.serviceName}" title="#{service.serviceName}"
+			      			styleClass="treeTableText row_#{service.modelId}"
+			      			rendered="#{!service.inherited}"/>
+			      	<h:outputText value="#{service.serviceName}" title="#{service.serviceName}"
+			      			styleClass="treeTableText inherited row_#{service.modelId}"
+			      			rendered="#{service.inherited}"/>
+			    </o:treeColumn>
+
+                <o:column id="serviceNumber" width="15%">
+                    <f:facet name="header">
+                        <h:outputText value="#{lblPrdQ.service_number}"/>
+                    </f:facet>
+                    <h:outputText value="#{service.serviceNumber}" title="#{service.serviceNumber}"
+                                  styleClass="res-tree-table-cell"/>
+                </o:column>
+
+			    <o:column id="minCount" width="9%">
+			    	<f:facet name="header">
+			        	<h:outputText value="#{lblPrdQ.min_count}"/>
+			      	</f:facet>
+			      	<h:outputText value="#{service.minCount}" title="#{service.minCount}"
+			      			styleClass="res-tree-table-cell"/>
+			    </o:column>
+	
+			    <o:column id="maxCount" width="9%">
+			    	<f:facet name="header">
+			        	<h:outputText value="#{lblPrdQ.max_count}"/>
+			      	</f:facet>
+			      	<h:outputText value="#{service.maxCount}" title="#{service.maxCount}"
+			      			styleClass="res-tree-table-cell"/>
+			    </o:column>
+
+			    <o:column id="mandatory" width="9%">
+			    	<f:facet name="header">
+			        	<h:outputText value="#{lblCommonQ.mandatory}"/>
+			      	</f:facet>
+			      	<h:outputText styleClass="res-tree-table-cell"
+			      			value="#{service.minCount > 0 ? lblCommon.yes : lblCommon.no}"
+			      			title="#{service.minCount > 0 ? lblCommon.yes : lblCommon.no}"/>
+			    </o:column>
+
+				<o:column id="conditionalGroup" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrd.cond_service}"/>
+					</f:facet>
+					<h:outputText styleClass="res-tree-table-cell"
+								  value="#{DictUtils.allArticlesDesc[service.conditionalGroup]}"
+								  title="#{DictUtils.allArticlesDesc[service.conditionalGroup]}"/>
+				</o:column>
+			</o:treeTable>
+		</h:panelGroup>
+
+        <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	            <h:panelGrid id="btnPanel" columns="3" cellpadding="0" cellspacing="0" width="auto">
+	            	<bre:taggedCommandButton id="addBtn"
+                      		reRender="productServiceModalHeader, productServiceModalDiv"
+                      		value="#{lblForm.add}"
+                   			oncomplete="#{rich:component('productServiceModalPanel')}.show()"
+                      		action="#{(servicesBean==null ? MbProductServices : servicesBean).add}"
+                      		rendered="#{usession.inRole['ADD_PRODUCT_SERVICE'] and !(servicesBean==null ? MbProductServices : servicesBean).child}"
+                      		image="/images/create_doc.gif"/>
+	            	<bre:taggedCommandButton id="editBtn"
+                      		reRender="productServiceModalHeader, productServiceModalDiv"
+                      		value="#{lblForm.edit}"
+                   			oncomplete="#{rich:component('productServiceModalPanel')}.show(); setDisabled()"
+                      		action="#{(servicesBean==null ? MbProductServices : servicesBean).edit}"
+                      		rendered="#{usession.inRole['MODIFY_PRODUCT_SERVICE'] and !(servicesBean==null ? MbProductServices : servicesBean).child}"
+                      		image="/images/edit.gif"/>
+					<bre:taggedCommandButton id="deleteBtn"
+                      		value="#{lblForm.disable}"
+                      		rendered="#{usession.inRole['REMOVE_PRODUCT_SERVICE'] and !(servicesBean==null ? MbProductServices : servicesBean).child}"
+                      		image="/images/delete.gif"
+                      		oncomplete="#{rich:component('deleteServiceView:confirmPanel')}.show()"/>
+
+		        	<script type="text/javascript">
+//<!--
+		        		if (!#{(servicesBean==null ? MbProductServices : servicesBean).child}) {
+	        				enableButtons();
+		        		}
+
+	        			// select first row which for some reason doesn't want to do it automatically 
+	        			var nodeKey = "#{(servicesBean==null ? MbProductServices : servicesBean).node.modelId}";
+		        		if (document.getElementById("productServicesForm:productServicesTree").getSelectedNodeKey() == null
+	        					&& nodeKey != "") {
+	        				document.getElementById("productServicesForm:productServicesTree").setSelectedNodeKey(nodeKey);
+	        			}
+	        			// -->
+		        	</script>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<ui:include src="/pages/products/services/product_service_modal_panel.jspx">
+		<ui:param name="servicesBean" value="#{(servicesBean==null ? MbProductServices : servicesBean)}"/>
+	</ui:include>
+
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{(servicesBean==null ? MbProductServices : servicesBean)}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_disable}"/> 
+		<ui:param name="rerenderList" value="productServicesForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteServiceView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

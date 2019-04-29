@@ -1,0 +1,746 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:o="http://openfaces.org/"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:param name="pageHelp" value="users_settings.htm"/>
+	<ui:param name="pageHelpModalAdd" value="users_create.htm" />
+	<ui:param name="pageHelpModalEdit" value="users_edit.htm" />
+	<ui:param name="showHelpModal" value="true" />
+	
+    <ui:define name="navigatableContent">
+    	<a4j:loadScript src="/js/stretch.js" />
+    	<script type="text/javascript">
+//<!--	
+			function checkUserFields() {
+				var checked = true;
+				
+				if (trim(document.getElementById('userEditForm:login').value) == "") {
+					document.getElementById('userEditForm:loginError').style.display = "inline";
+					checked = false;
+				}
+
+				if (trim(document.getElementById('userEditForm:password').value) == "") {
+					document.getElementById('userEditForm:passwordError').style.display = "inline";
+					checked = false;
+				}
+				
+				if (document.getElementById('userEditForm:personName').value == "") {
+					document.getElementById('userEditForm:personNameError').style.display = "inline";
+					checked = false;
+				}
+				
+				if (document.getElementById('userEditForm:defRole').value == "") {
+					document.getElementById('userEditForm:defRoleError').style.display = "inline";
+					checked = false;
+				}
+                if (document.getElementById('userEditForm:authScheme').value == "") {
+                    document.getElementById('userEditForm:authSchemeError').style.display = "inline";
+                    checked = false;
+                }
+				if (document.getElementById('userEditForm:defInst').value == "") {
+					document.getElementById('userEditForm:defInstError').style.display = "inline";
+					checked = false;
+				}
+				
+				return checked;
+			}
+			//-->
+		</script>
+
+		<style type="text/css">
+			.status_locked {
+				background-color: #FFB2B2;
+			}
+			.status_inactive {
+				background-color: #BBBBBB;
+			}
+		</style>
+
+    	<f:loadBundle var="lblAcm" basename="ru.bpc.sv2.ui.bundles.Acm"/>
+    	<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb"/>
+    	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+    	<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblAcm.users}"/>
+		<bpct:greyMenu selectMode="#{lblAcm.users}"/>
+		<bpct:filterBarModalPanels id="filterPanels"
+								   rerenderList="filtersTable, usersForm:mainTable, usersFormBtnForm:dsUsers, usersFormBtnForm:pagesNum, save_filter_panel_div, #{MbUsersSearch.tabName}"
+								   selectedFilter="#{MbUsersSearch.selectedSectionFilter}"
+								   sectionFilter="#{MbUsersSearch.sectionFilter}"
+								   sectionFilterModeEdit="#{MbUsersSearch.sectionFilterModeEdit}"
+								   searchAutomatically="#{MbUsersSearch.searchAutomatically}"
+								   sectionId="1080"
+								   beanName="MbUsersSearch"/>
+		
+		<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('usersSearchForm:searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			
+		<h:form id="usersSearchForm" onkeypress="handleEnter(event)">			
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">	                
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol" id="filtersTable">
+		                		
+	                			<h:outputText value="#{lblAcm.username}:" title="#{lblAcm.username}" />
+	                			<h:inputText value="#{MbUsersSearch.filter.name}"/>
+	                			
+	                			<h:outputText value="#{lblCommon.surname}:" title="#{lblCommon.surname}" />
+	                			<h:inputText value="#{MbUsersSearch.filter.person.surname}"/>
+	                			
+	                			<h:outputText value="#{lblCommon.status}:" title="#{lblCommon.status}" />
+	                			<h:selectOneMenu id="filter_statuses"
+	                							value="#{MbUsersSearch.filter.status}">
+	                				<f:selectItems value="#{MbUsersSearch.statuses}"/>
+	                			</h:selectOneMenu>
+		                			
+		                	</h:panelGrid>
+		                	<h:panelGrid columns="1" >
+		                		<bre:taggedCommandButton value="#{lblForm.search}" style="width:85px;"
+										 reRender="mainTable, dsUsers, pagesNum, btnsUser, #{MbUsersSearch.elemsToUpdate}"
+										 id="searchBtn" 
+		                				 action="#{MbUsersSearch.search}"			                			
+		                				 image="/_img/icon_search.png" type="submit"
+		                				 onclick="disableModalPanelBtns(this);"
+		                				 oncomplete="enableModalPanelBtns(this);"
+		                				 eventsQueue="queue"/>
+		                		<h:panelGroup styleClass="link-clear" layout="block"  >
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+		                					action="#{MbUsersSearch.clearFilter}"
+		                					reRender="usersSearchForm, usersForm, #{MbUsersSearch.tabName}, usersFormBtnForm">
+		                			</a4j:commandLink>
+		                		</h:panelGroup>
+								<h:panelGroup>
+									<bpct:filterBar sectionId="1080"/>
+								</h:panelGroup>
+		                	</h:panelGrid>
+	                	</h:panelGrid>
+	                	<a4j:outputPanel ajaxRendered="true">	                	
+		                	<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		                	<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	                	</a4j:outputPanel>
+	                </h:panelGroup>
+	            </h:panelGroup>
+				</h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+        
+		<h:form id="usersForm">
+            <h:panelGroup styleClass="search_result_block" layout="block">
+            	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+            		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable enableContextMenu="true"
+				           id="mainTable"
+				           tableState="#{MbUsersSearch.tableState}"
+				           styleClass="res-table" 
+				           headerClass="res-table-header"
+				           rowClasses=",odd"
+				           selectedClass="res-table-selected" 
+				           var="item"
+				           value="#{MbUsersSearch.users}"
+				           selection="#{MbUsersSearch.itemSelection}"
+				           rows="#{MbUsersSearch.rowsNum}"
+				           height="255px"
+				           selectionMode="single"
+				           noDataLabel="#{MbUsersSearch.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+				           reRender="btnsUser, #{MbUsersSearch.elemsToUpdate}"
+				           onRowMouseDown="handleMouseClick(event)">
+				           
+	                    <a4j:support event="onselectionchange" eventsQueue="queue" 
+	                    			reRender="btnsUser, #{MbUsersSearch.elemsToUpdate}"/>
+				           
+		                <rich:column title="Name" id="name" label="#{lblAcm.username}" sortBy="#{'name'}"  width="25%">
+	                        <f:facet name="header">
+	                            <a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblAcm.username}" title="#{lblAcm.username}"/>
+								</a4j:outputPanel>
+	                        </f:facet>
+	                        <bm:entityDisplay contextType="ENTTUSER" bean="MbUsersSearch"  value="#{item.name}"/>
+	                    </rich:column>
+	                    
+	                    <rich:column id="person" label="#{lblCommon.person}" title="Person" width="25%" sortBy="#{'surname'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.person}" title="#{lblCommon.person}"/>
+			                </f:facet>
+			                 <bm:entityDisplay contextType="ENTTUSER" bean="MbUsersSearch" value="#{item.person.surname} #{item.person.firstName}" />
+				        </rich:column>
+				        
+				        <rich:column title="Status" sortExpression="asc" sortBy="#{'status'}" id="mainTableStatus" label="#{lblCommon.status}" width="25%"
+									 styleClass="#{(item.status == 'USSTNOAC') ? 'status_inactive' : (item.unlockDate != null) ? 'status_locked' : ''}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+			                </f:facet>
+			                 <bm:entityDisplay contextType="ENTTUSER" bean="MbUsersSearch" value="#{DictUtils.articles[item.status]}"/>
+				        </rich:column>
+
+						<rich:column id="mainTableUnlockDate" title="#{lblAcm.unlock_date}" label="#{lblAcm.unlock_date}"
+									 sortExpression="asc" width="25%">
+							<f:facet name="header">
+								<h:outputText value="#{lblAcm.unlock_date}" title="#{lblAcm.unlock_date}"/>
+							</f:facet>
+							<h:outputLabel value="#{item.unlockDate}" title="#{item.unlockDate}">
+								<f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+												   timeZone="#{CommonUtils.timeZone}" />
+							</h:outputLabel>
+						</rich:column>
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>				    
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+        <h:form id="usersFormBtnForm">
+            <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5" 
+			        	columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+	                        <h:selectOneMenu id="rows_num" value="#{MbUsersSearch.rowsNum}" styleClass="row_per_page" >
+	                        	<a4j:support event="onchange"
+	                        		reRender="mainTable, dsUsers, pagesNum, btnsUser, #{MbUsersSearch.elemsToUpdate}"/>
+								<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>				         
+    	
+		                    <rich:datascroller maxPages="10" fastControls="hide" 
+		                    		page="#{MbUsersSearch.pageNumber}"
+		                    		reRender="btnsUser, #{MbUsersSearch.elemsToUpdate}"
+				                    pagesVar="pages" styleClass="res-datascroller"
+				                    id="dsUsers" for="mainTable">
+			                    <f:facet name="first">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="first_disabled">
+			                        <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="last">
+			                        <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="last_disabled">
+			                        <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="previous">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="previous_disabled">
+			                        <h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="next">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+			                    </f:facet>
+			                    <f:facet name="next_disabled">
+			                        <h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+			                    </f:facet>
+			                    <f:facet name="pages">							                        
+			                    </f:facet>
+			            	</rich:datascroller>
+		                    
+                        	<h:panelGroup id="pagesNum">
+	                        	<h:outputText styleClass="strongClass" value="#{pages} "/>
+	                        	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbUsersSearch.users.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                        	</h:panelGroup>
+                        	
+                        	<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbUsersSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbUsersSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+                        </h:panelGrid>
+					</h:panelGroup>
+                       
+                    <h:panelGrid styleClass="buttons_block" columns="7" id="btnsUser">
+                       	<h:panelGroup styleClass="stdButton" rendered="#{usession.inRole['ADD_NEW_USER']}"> 
+	                        <bre:taggedCommandButton
+	                        		action="#{MbUsersSearch.createUser}" 
+	                        		value="#{lblForm.add}"
+	                        		oncomplete="#{rich:component('userPanel')}.show()"
+									reRender="userPanel"
+									image="/images/create_doc.gif"/>
+                        </h:panelGroup>
+						<h:panelGroup styleClass="midButton" rendered="#{(MbSystemInfo.weblogic or MbSystemInfo.websphere) and  (usession.inRole['CHANGE_PASSWORD'] or usession.inRole['CHANGE_USER_PASSWORD'])}">
+							<bre:taggedCommandButton id="btn_change_password" disabled="#{MbUsersSearch.activeUser == null or (!usession.inRole['CHANGE_PASSWORD'] and usession.inRole['CHANGE_USER_PASSWORD'] and MbUsersSearch.activeUser.name != usession.userName)}"
+													 value="#{lblAcm.change_password}" oncomplete="#{rich:component('changePasswordPanel')}.show()" reRender="changePasswordPanel" />
+						</h:panelGroup>
+                       
+                        <h:panelGroup styleClass="midButton" rendered="#{usession.inRole['UNBLOCK_USER']}"> 
+	                        <bre:taggedCommandButton id="btn_unblock_user" disabled="#{MbUsersSearch.activeUser == null or MbUsersSearch.activeUser.status eq 'USSTACTV' }"
+	                        		action="#{MbUsersSearch.unblockUser}" reRender="mainTable, dsUsers, pagesNum, btnsUser, detailsTab, det_roles, det_inst"
+	                        		value="#{lblForm.activate}"/>
+                        </h:panelGroup>
+                        <h:panelGroup styleClass="midButton" rendered="#{usession.inRole['BLOCK_USER']}">
+	                        <bre:taggedCommandButton id="btn_block_user" disabled="#{MbUsersSearch.activeUser == null or MbUsersSearch.activeUser.status eq 'USSTNOAC' }"
+	                        		action="#{MbUsersSearch.blockUser}" reRender="mainTable, dsUsers, pagesNum, btnsUser, detailsTab, det_roles, det_inst"
+	                        		value="#{lblForm.inactivate}"/>
+                        </h:panelGroup>
+
+						<h:panelGroup styleClass="midButton" rendered="#{usession.inRole['CHANGE_USER_AUTH_SCHEME']}">
+							<bre:taggedCommandButton id="btn_change_auth_scheme" disabled="#{MbUsersSearch.activeUser == null or !usession.inRole['CHANGE_USER_AUTH_SCHEME']}"
+													 value="#{lblAcm.change_auth_scheme}" oncomplete="#{rich:component('changeAuthSchemePanel')}.show()" reRender="changeAuthSchemePanel" />
+						</h:panelGroup>
+
+						<h:panelGroup styleClass="midButton"
+									  rendered="#{(MbSystemInfo.weblogic or
+									               MbSystemInfo.websphere) and
+									              (usession.inRole['CHANGE_PASSWORD'] or
+									               usession.inRole['CHANGE_USER_PASSWORD'])}">
+							<bre:taggedCommandButton id="btn_unlock_user"
+													 disabled="#{MbUsersSearch.activeUser == null or
+													             MbUsersSearch.activeUser.unlockDate == null or
+													            (!usession.inRole['CHANGE_PASSWORD'] and
+													             usession.inRole['CHANGE_USER_PASSWORD'] and
+													             MbUsersSearch.activeUser.name != usession.userName)}"
+													 value="#{lblAcm.unlock_user}"
+													 action="#{MbUsersSearch.unlockUser()}"
+													 reRender="usersForm"/>
+						</h:panelGroup>
+                    </h:panelGrid>
+		        </h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<a4j:queue name="queue" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNext" requestDelay="500" />
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                            requestDelay="500" reRender="#{MbUsersSearch.rerenderList}">
+                <a4j:actionparam name="tabName" assignTo="#{MbUsersSearch.tabName}" />
+            </a4j:jsFunction>
+            <a4j:jsFunction name="storeFlexibleFieldsTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                            requestDelay="500" reRender="#{MbUsersSearch.rerenderList}">
+                <a4j:actionparam name="tabName" value = "flexibleFieldsTab" assignTo="#{MbInstitution.rerenderList}" />
+            </a4j:jsFunction>
+            <a4j:jsFunction name="storeInstsTab" ajaxSingle="true" limitToList="true" ignoreDupResponses="true" eventsQueue="queue"
+                            requestDelay="500" reRender="#{MbUsersSearch.rerenderList}">
+                <a4j:actionparam name="elem" value="instForm:ostTreeTable, instForm:btnPanel" assignTo="#{MbUsersSearch.instsTabElems}" />
+                <a4j:actionparam name="tabName" value="instsTab" assignTo="#{MbUsersSearch.tabName}"/>
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="detailsUser"  tabClass="tab-cell"
+	    		activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    		contentClass="tab-content" selectedTab="#{MbUsersSearch.tabName}">
+	   			
+	   			<rich:tab ontabenter="storeTab('detailsTab');" label="Details" name="detailsTab">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>   
+                    <h:panelGroup id="detailsTab" layout="block">
+	                    <h:form id="userDetailsForm">
+	                    	<h:panelGroup layout="block" styleClass="langSelector">
+								<h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable"
+										id="detailsData" columnClasses=",secondCol">
+									<h:outputLabel for="lang" value="#{lblCommon.lang_selector}: "
+											title="#{lblCommon.lang_selector}" />
+									<h:selectOneMenu id="lang"
+											disabled="#{MbUsersSearch.activeUser == null}"
+											value="#{MbUsersSearch.activeUser.person.lang}"
+											valueChangeListener="#{MbUsersSearch.changeLanguage}">
+										<a4j:support event="onchange" reRender="userDetailsForm"
+												limitToList="true" />
+										<f:selectItems value="#{MbUsersSearch.languages}" />
+									</h:selectOneMenu>
+								</h:panelGrid>
+							</h:panelGroup>
+		                    <h:panelGroup id="userDetailsWrapper" layout="block" styleClass="carddata-wrapper" 
+									style="height: 100%; overflow-y: auto;overflow-x: hidden;position:relative;">
+								<rich:dataTable id="userDetailsTable"
+										value="#{MbUsersSearch.emptyTable}" 
+										var="field"
+										styleClass="res-table noHeader" width="100%">
+									<rich:columnGroup rowClasses=",odd" 
+											columnClasses="firstCol alignLeft width20, width80 width250 noPadding">
+										<rich:column styleClass="detailsCategory expandedBranch">
+											<h:graphicImage url="/images/minus.gif" onclick="showHideDetails(this)"/>
+											<h:outputLabel value="#{lblPrd.general_data}:" />
+										</rich:column>
+										<rich:column>
+											<script>updateHeight();</script>
+										</rich:column>					
+										
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblAcm.username}: " title="#{lblAcm.username}"/>
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{MbUsersSearch.activeUser.name}"
+													title="#{MbUsersSearch.activeUser.name}" />
+										</rich:column>
+										
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblCommon.person}: " title="#{lblCommon.person}"/>
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{MbUsersSearch.activeUser.person.firstName} #{MbUsersSearch.activeUser.person.surname}"
+													title="#{MbUsersSearch.activeUser.person.firstName} #{MbUsersSearch.activeUser.person.surname}" />
+										</rich:column>
+						
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblCommon.status}: " title="#{lblCommon.status}"/>
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{DictUtils.articlesByLang[MbUsersSearch.activeUser.person.lang][MbUsersSearch.activeUser.status]}"
+													title="#{DictUtils.articlesByLang[MbUsersSearch.activeUser.person.lang][MbUsersSearch.activeUser.status]}"/>
+										</rich:column>
+
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblCommon.creation_date}: " title="#{lblCommon.creation_date}"/>
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{MbUsersSearch.activeUser.creationDate}"
+														   title="#{MbUsersSearch.activeUser.creationDate}">
+												<f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+															   	   timeZone="#{CommonUtils.timeZone}" />
+											</h:outputLabel>
+										</rich:column>
+
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblAcm.unlock_date}: " title="#{lblAcm.unlock_date}"/>
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{MbUsersSearch.activeUser.unlockDate}"
+														   title="#{MbUsersSearch.activeUser.unlockDate}">
+												<f:convertDateTime pattern="#{usession.fullDatePatternSeconds}"
+																   timeZone="#{CommonUtils.timeZone}" />
+											</h:outputLabel>
+										</rich:column>
+
+										<rich:column breakBefore="true">
+											<h:outputLabel value="#{lblAcm.auth_scheme}: " title="#{lblAcm.auth_scheme}"/>
+										</rich:column>
+										<rich:column>
+											<h:outputLabel value="#{DictUtils.articlesByLang[MbUsersSearch.activeUser.person.lang][MbUsersSearch.activeUser.authScheme]}"
+														   title="#{DictUtils.articlesByLang[MbUsersSearch.activeUser.person.lang][MbUsersSearch.activeUser.authScheme]}"/>
+										</rich:column>
+									</rich:columnGroup>
+								</rich:dataTable>
+								<script>setDetailsState("userDetailsForm:userDetailsTable");</script>
+							</h:panelGroup>
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+								<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+									<h:panelGrid columns="2" cellpadding="0" cellspacing="0"  styleClass="buttons_block">
+				                        <bre:taggedCommandButton
+				                        		action="#{MbUsersSearch.showPerson}" id="btn_show_person_user"
+				                        		value="#{lblForm.person_details}" 
+				                        		disabled="#{MbUsersSearch.activeUser == null || MbUsersSearch.activeUser.personId == null}"
+				                        		oncomplete="#{rich:component('personPanel')}.show()"
+												reRender="personDiv"
+												rendered="#{usession.inRole['VIEW_PERSON']}"
+												/>
+				                        <bre:taggedCommandButton
+				                        		action="#{MbUsersSearch.editPerson}" id="btn_edit_person_user"
+				                        		value="#{lblForm.edit_person}" 
+				                        		disabled="#{MbUsersSearch.activeUser == null || MbUsersSearch.activeUser.personId == null}"
+				                        		oncomplete="#{rich:component('personEditPanel')}.show()"
+												reRender="personEditPanel"
+												rendered="#{usession.inRole['MODIFY_PERSON']}"
+												/>
+				                    </h:panelGrid>
+		                        </h:panelGroup>
+		                    </h:panelGroup>
+						</h:form>
+					</h:panelGroup>
+            	</rich:tab>
+            	
+    			<rich:tab ontabenter="storeFlexibleFieldsTab('flexibleFieldsTab')" label="Additional" name="flexibleFieldsTab" style="height:100%;"
+    				rendered="#{usession.inRole['VIEW_FLEXIBLE_DATA']}">
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblCommon.additional}" title="#{lblCommon.additional}"/>
+        				</h:panelGroup>
+        			</f:facet>
+
+					<h:panelGroup id="flexibleFieldsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       						<ui:include src="/pages/common/flexible/flexFieldsTableBottom.jspx">
+       							<ui:param name="parentPriv" value="#{usession.inRole['ADD_NEW_USER']}"/>
+       						</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+            	
+            	<rich:tab ontabenter="storeTab('rolesTab');" label="Roles" name="rolesTab" rendered="#{usession.inRole['VIEW_USER_ROLE']}" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblAcm.roles}" title="#{lblAcm.roles}"/>
+       					</h:panelGroup>
+       				</f:facet>   
+       				
+                	<h:panelGroup id="rolesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       					<ui:include src="/pages/administrative/users_management/userRolesTableBottom.jspx"></ui:include>        	
+                    </h:panelGroup>
+            	</rich:tab>
+            	
+            	<rich:tab ontabenter="storeInstsTab();" label="Institutions and agents" name="instsTab" rendered="#{usession.inRole['VIEW_USER_INST']}" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblOst.institutions}" title="#{lblOst.institutions}"/>
+       					</h:panelGroup>
+       				</f:facet>   
+                	<h:panelGroup id="instsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       					<ui:include src="/pages/org_struct/list_user_institutions.jspx"></ui:include>        	
+                    </h:panelGroup>
+            	</rich:tab>
+            	
+            	<rich:tab ontabenter="storeTab('notesTab');" label="Notes" name="notesTab" style="height:100%;" rendered="#{usession.inRole['VIEW_NOTE']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblNote.notes}" title="#{lblNote.notes}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="notesTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       						<ui:include src="/pages/notes/list_notes_bottom.jspx"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+       			
+       			<rich:tab ontabenter="storeTab('privsTab');" label="Privileges" name="privsTab" rendered="#{usession.inRole['VIEW_USER_PRIVILEGE']}" style="height:100%;">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblAcm.privileges}" title="#{lblAcm.privileges}"/>
+       					</h:panelGroup> 
+       				</f:facet>
+       				<h:panelGroup id="privsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       						<ui:include src="/pages/administrative/users_management/list_user_privileges.jspx"></ui:include>
+       				</h:panelGroup>
+       			</rich:tab>	            	
+       			
+       			<rich:tab ontabenter="storeTab('contactsTab');" label="Contacts" name="contactsTab" style="height:100%;" rendered="#{usession.inRole['VIEW_CONTACT']}">
+       				<f:facet name="label">
+       					<h:panelGroup styleClass="tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.contacts}" title="#{lblCommon.contacts}"/>
+       					</h:panelGroup>
+       				</f:facet>
+       				<h:panelGroup id="contactsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+       					<ui:include src="/pages/contacts/contactsTableBottom.jspx">
+       						<ui:param name="parentPriv" value="#{usession.inRole['ADD_NEW_USER']}"/>
+       					</ui:include>
+       				</h:panelGroup>
+       			</rich:tab>
+
+				<rich:tab ontabenter="storeTab('applicationsTab');"
+						  label="Applications"
+						  name="applicationsTab"
+						  style="height:100%;"
+						  rendered="#{usession.inRole['VIEW_APPLICATION_DATA']}">
+					<f:facet name="label">
+						<h:panelGroup styleClass="tab-label" layout="block">
+							<h:outputText value="#{lblApp.applications}" title="#{lblApp.applications}"/>
+						</h:panelGroup>
+					</f:facet>
+
+					<h:panelGroup id="applicationsTab"
+								  layout="block"
+								  styleClass="carddata-wrapper"
+								  style="height: 100%; overflow: hidden;position:relative;">
+						<ui:include src="/pages/acquiring/applications/objectApplicationsBottom.jspx"/>
+					</h:panelGroup>
+				</rich:tab>
+
+			    <rich:tab ontabenter="storeTab('groupsTab');"
+			              label="Groups"
+			              name="groupsTab"
+			              style="height:100%;"
+			              rendered="#{usession.inRole['VIEW_USER_GROUPS']}">
+				    <f:facet name="label">
+					    <h:panelGroup styleClass="tab-label" layout="block">
+						    <h:outputText value="#{lblAcm.groups}" title="#{lblAcm.groups}"/>
+					    </h:panelGroup>
+				    </f:facet>
+
+				    <h:panelGroup id="groupsTab"
+				                  layout="block"
+				                  styleClass="carddata-wrapper"
+				                  style="height: 100%; overflow: hidden;position:relative;">
+					    <ui:include src="/pages/administrative/users_management/user_groups_table_bottom.jspx"/>
+				    </h:panelGroup>
+			    </rich:tab>
+			</rich:tabPanel>
+		</h:panelGroup>
+
+		<ui:include src="/pages/administrative/users_management/change_password_panel.jspx"></ui:include>
+		<ui:include src="/pages/administrative/users_management/change_auth_scheme_panel.jspx"></ui:include>
+
+		<h:form id="initUserPanel">
+			<a4j:jsFunction action="#{MbUsersSearch.initUserPanel}"
+				name="initializeUserPanel" limitToList="true" reRender="userEditForm, initUserPanel">
+			</a4j:jsFunction>
+		</h:form>
+			    	
+	    <rich:modalPanel id="userPanel" autosized="true" minWidth="300" minHeight="50" showWhenRendered="#{MbUsersSearch.showModal}"
+	    	onshow="actualHelp.setModeHelp('#{MbUsersSearch.managingNew}')" onbeforeshow="initializeUserPanel()"
+			onhide="actualHelp.setHelp('#{pageHelp}')">
+	    	<f:facet name="header">
+	    		<h:panelGroup id="userDivHeader">
+	        		<h:outputText value="#{lblAcm.add_user}" rendered="#{MbUsersSearch.managingNew }"/>
+	        		<h:outputText value="#{lblAcm.edit_user}" rendered="#{not MbUsersSearch.managingNew }"/>
+        		</h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+				<h:panelGroup id="prc_container_modal_control" rendered="#{showHelpModal}">
+	   	        	<h:graphicImage value="/_img/icon_modal_help.png" style="cursor:pointer" 
+	   	        			onclick="showHelp(actualHelp.getURL())" width="15px" />
+	   	        </h:panelGroup>
+			</f:facet>
+	
+			<h:form id="userEditForm">      	    
+			    <h:panelGroup id="userDiv">
+			    	<ui:include src="/pages/administrative/users_management/user_details.jspx"/>
+
+					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			     	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+								<h:outputText/>
+								<bre:taggedCommandButton 
+					            		value="#{lblForm.save}" type="submit" 
+					                	reRender="mainTable, dsUsers, pagesNum, btnsUser, #{MbUsersSearch.tabName}" 
+					                	action="#{MbUsersSearch.save}" 
+					                	onclick="if (!checkUserFields()) return false; disableModalPanelBtns(this)"
+					                	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse})#{rich:component('userPanel')}.hide()" />
+								<bre:taggedCommandButton 
+										value="#{lblForm.cancel}"				                        		
+										action="#{MbUsersSearch.cancel}" immediate="true"
+										oncomplete="#{rich:component('userPanel')}.hide()" 
+										reRender="#{MbUsersSearch.rerenderCancelList}">
+									<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+								</bre:taggedCommandButton>               
+							</h:panelGrid>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+		
+		<rich:modalPanel id="personPanel" width="#{usession.inRole['VIEW_PERSON_ID'] ? '640' : '380'}" 
+				height="#{usession.inRole['VIEW_PERSON_ID'] ? '550' : '280'}">
+	    	<f:facet name="header">
+	        	<h:outputText value="#{lblCommon.person_details}" />
+			</f:facet>
+			<f:facet name="controls">
+			</f:facet>
+	
+		    <h:panelGroup id="personDiv">
+		    	<ui:include src="/pages/common/persons/personDetailsBottom.jspx"/>
+				<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons" style="position: absolute; left: 0; width: 100%; bottom: 0;">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+						<h:form id="personForm">      	    
+			     	    	<h:panelGrid columns="3" columnClasses="width99P,paddingR12">
+								<h:outputText/>
+								<h:outputText/>
+								<bre:taggedCommandButton 
+										value="#{lblForm.close}"				                        		
+										 immediate="true"
+										oncomplete="#{rich:component('personPanel')}.hide()" 
+										/>               
+							</h:panelGrid>
+						</h:form>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+		</rich:modalPanel>
+ 
+		<ui:include src="/pages/common/persons/editPersonWithIds.jspx">
+			<ui:param name="rerenderList" value="mainTable, detailsTab"></ui:param>
+		</ui:include>
+        
+		<script>
+		//<![CDATA[
+		function updateHeight(){
+            updateGridHeight();
+        }
+
+        layout =
+                {
+                    SEARCH_FORM_ID:                 'usersSearchForm',
+                    SEARCH_RESULT_FORM_ID:          'usersForm',
+                    SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                    SEARCH_RESULT_FOOTER_FORM_ID:   'usersFormBtnForm',
+                    TAB_PANEL_ID:                   'workplacePanel',
+
+                    TAB_DATA:
+                    [
+                        {
+                            TAB_FORM_ID:            'userDetailsForm',
+                            TAB_FORM_WRAPPER_ID:    'userDetailsWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'flexDataForm',
+                            TAB_FORM_WRAPPER_ID:    'flexDataWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'bottonUserRolesForm',
+                            TAB_FORM_WRAPPER_ID:    'bottomUserRolesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'instForm',
+                            TAB_FORM_WRAPPER_ID:    'ostTreeTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'notesBtmForm',
+                            TAB_FORM_WRAPPER_ID:    'notesTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'userPrivsForm',
+                            TAB_FORM_WRAPPER_ID:    'userPrivsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                        }, {
+                            TAB_FORM_ID:            'contactsForm',
+                            TAB_FORM_WRAPPER_ID:    'bottomContactsTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'contactDatasForm',
+                            TAB_FORM_WRAPPER_ID:    'bottomContactDatasTableWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+                            TAB_FORM_ID:            'applicationsForm',
+                            TAB_FORM_WRAPPER_ID:    'applicationsFormWrapper',
+                            CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                        }, {
+	                        TAB_FORM_ID:            'bottomUserGroupsForm',
+	                        TAB_FORM_WRAPPER_ID:    'bottomUserGroupsTableWrapper',
+	                        CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                    }
+                    ]
+                };
+        jQuery(window).resize(updateHeight);
+		
+		updateHeight();
+		//]]>
+		</script>        
+    </ui:define>
+    
+</ui:composition>
+</html>

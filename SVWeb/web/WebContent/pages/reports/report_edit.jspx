@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<rich:modalPanel id="rpt_report_modal_panel" autosized="true" minWidth="300" minHeight="100"
+		onshow="actualHelp.setModeHelp('#{MbReportsSearch.newMode}')"
+		onhide="actualHelp.setHelp('#{pageHelp}')">
+   	    <f:facet name="header">
+  	    	<h:panelGroup id="rpt_report_modal_header">
+        	    <h:outputText value="#{lblRpt.new_report}" rendered="#{MbReportsSearch.newMode}"/>
+        	    <h:outputText value="#{lblRpt.edit_report}" rendered="#{MbReportsSearch.editMode}"/>
+   	    	</h:panelGroup>
+        </f:facet>
+        <f:facet name="controls">
+        	<h:panelGroup id="rpt_report_modal_control" rendered="#{showHelpModal}">
+			  	<h:graphicImage value="/_img/icon_modal_help.png" style="cursor:pointer" 
+	   	        			onclick="showHelp(actualHelp.getURL())" width="15px" />
+			</h:panelGroup>
+   	    </f:facet>
+		<h:form id="reportEditForm">
+			<script type="text/javascript">//<!--
+				oldValue["reportEditForm"] = "#{MbReportsSearch.newReport.lang}";
+				
+				function checkReportFields() {
+					var checked = true;
+					
+					checked = checkField('reportEditForm:name');
+					if (!document.getElementById('reportEditForm:instId').disabled
+							&& document.getElementById('reportEditForm:instId').value == "") {
+						document.getElementById('reportEditForm:instIdError').style.display = "inline";
+						checked = false;
+					}		
+					checked = checkField('reportEditForm:sourceType') && checked;
+					var element = document.getElementById("reportEditForm:viewButton");
+					if (element) {
+						document.getElementById("reportEditForm:reportSourceText").value =
+								document.getElementById("viewXmlForm:previewBox").value;
+
+						checked = checkField('reportEditForm:reportSourceText') && checked;
+					}else {
+						checked = checkField('reportEditForm:reportSourceXML') && checked;
+					}
+					
+					return checked;
+				}
+
+				function hideErrorFieldForSource(){
+					document.getElementById("reportEditForm:reportSourceTextError").style.display = "none";
+				}
+				
+				//-->
+			</script>
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+					columnClasses="firstColModal, width250">
+
+					<h:outputLabel value="#{lblCommon.language}: "
+						title="#{lblCommon.language}" />
+					<h:selectOneMenu id="editLang"
+						value="#{MbReportsSearch.newReport.lang}"
+						onchange="if (#{MbReportsSearch.newMode}) {return true;} document.getElementById('report:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('report:confirmPanel')}.show()">
+						<f:selectItems value="#{MbReportsSearch.languages}" />
+					</h:selectOneMenu>
+
+					<h:outputLabel value="* #{lblCommon.name}: "
+						title="#{lblCommon.name}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="name" value="#{MbReportsSearch.newReport.name}"
+							maxlength="200" label="#{lblCommon.name}"
+							onblur="hideErrorField(this)">
+							<f:validateLength minimum="3" />
+							<a4j:support event="onchange" reRender="nameErr" limitToList="true" ajaxSingle="true"/>	
+						</h:inputText>
+						<rich:message for="name" id="nameErr" styleClass="errorMarker" />
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="nameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblCommon.description}: "
+						title="#{lblCommon.description}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputTextarea id="descr"
+							value="#{MbReportsSearch.newReport.description}"
+							onkeypress="if (!limitText(event,this,2000)) return false;" 
+							label="#{lblCommon.description}">
+							<f:validateLength maximum="2000" />
+						</h:inputTextarea>
+						<rich:message for="descr" id="descrError" styleClass="errorMarker" />
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.institution}: "
+						title="#{lblCommon.institution}" />
+					<a4j:region>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="instId"
+								value="#{MbReportsSearch.newReport.instId}"
+								label="#{lblCommon.institution}"
+								disabled="#{MbReportsSearch.blockInstitution}"
+								onblur="#{!MbReportsSearch.blockInstitution ? 'hideErrorField(this)' : ''}">
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbReportsSearch.institutions}" />
+								<a4j:support event="onchange"
+									reRender="parentId, tags, nameFormatId, #{!MbReportsSearch.xmlSource ? '' : 'reportSource'}"
+									limitToList="true" ajaxSingle="true" />
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="instIdError" style="display:none;" rendered="#{!MbReportsSearch.blockInstitution}">
+								<f:param name="fieldName" value="#{lblCommon.institution}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</a4j:region>
+
+					<h:outputLabel value="* #{lblRpt.source_type}: " title="#{lblRpt.source_type}"/>
+					<a4j:region>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="sourceType"
+								disabled="#{MbReportsSearch.editMode}"
+								value="#{MbReportsSearch.newReport.sourceType}"
+								label="#{lblRpt.source_type}"
+								onblur="hideErrorField(this)">
+								<a4j:support event="onchange" reRender="reportSourcePanel"
+									limitToList="true" ajaxSingle="true" />
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbReportsSearch.sourceTypes}" />
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="sourceTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblRpt.source_type}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</a4j:region>
+
+					<h:outputLabel value="#{lblAcm.role}: " title="#{lblAcm.role}"
+						rendered="#{MbReportsSearch.newMode}" />
+					<a4j:region rendered="#{MbReportsSearch.newMode}">
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="roleId"
+								value="#{MbReportsSearch.newReport.roleId}"
+								label="#{lblAcm.roles}">
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbReportsSearch.roles}" />
+							</h:selectOneMenu>
+						</h:panelGrid>
+					</a4j:region>
+
+					<h:outputLabel value="#{lblRpt.deterministic}: " title="#{lblRpt.deterministic}"/>
+					<h:selectBooleanCheckbox value="#{MbReportsSearch.newReport.isDeterministic}">
+						<a4j:support event="onchange" process="reportEditForm" limitToList="true" reRender="reportEditForm" />
+					</h:selectBooleanCheckbox>
+
+					<h:outputLabel value="#{lblCommon.document_type}: " title="#{lblCommon.document_type}"
+						rendered="#{MbReportsSearch.newReport.isDeterministic}"/>
+					<h:selectOneMenu id="documentType"
+					                 rendered="#{MbReportsSearch.newReport.isDeterministic}"
+					                 value="#{MbReportsSearch.newReport.documentType}">
+						<f:selectItem itemValue="" />
+						<f:selectItems value="#{MbReportsSearch.documentTypes}"/>
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblRpt.notification}: " title="#{lblRpt.notification}"/>
+					<h:selectBooleanCheckbox value="#{MbReportsSearch.newReport.isNotification}"/>
+
+					<h:outputLabel value="#{lblRul.naming_format}: " title="#{lblRul.naming_format}"/>
+					<h:selectOneMenu id="nameFormatId"
+							value="#{MbReportsSearch.newReport.nameFormatId}">
+						<f:selectItem itemValue="" />
+						<f:selectItems value="#{MbReportsSearch.nameFormats}"/>
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblRpt.tags}: " title="#{lblRpt.tags}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectManyListbox value="#{MbReportsSearch.editingReportTagsIds}" id="tags"
+							size="9" style="height:90px" converter="javax.faces.Integer"
+							>
+							<f:selectItems value="#{MbReportsSearch.tagsByInstitute}"/>
+						</h:selectManyListbox>
+						<rich:message for="tags" id="tagsErr" styleClass="errorMarker"/>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblRpt.report_source}: "
+						title="#{lblRpt.report_source}" />
+					<h:panelGroup id="reportSourcePanel">
+						<bre:taggedCommandButton value="#{lblForm.view}"
+								id="viewButton"
+								limitToList="true" immediate="true"
+								rendered="#{!MbReportsSearch.xmlSource}"
+								oncomplete="#{rich:component('reportSourceView:code_mirror_modal_panel')}.show(); setCodeValue_reportSourceView();  hideErrorFieldForSource();"
+								reRender="reportSourceView:code_mirror_modal_panel">
+						</bre:taggedCommandButton>
+							
+						<h:inputTextarea
+								value="#{MbReportsSearch.newReport.reportSource}"
+								rendered="#{!MbReportsSearch.xmlSource}"
+								onblur="hideErrorField(this)"
+								id="reportSourceText" rows="20" style="width:450px;display: none">
+						</h:inputTextarea>
+
+						<h:selectOneMenu id="reportSourceXML"
+							value="#{MbReportsSearch.newReport.reportSource}"
+							rendered="#{MbReportsSearch.xmlSource}"
+							label="#{lblRpt.report_source}"
+							onblur="hideErrorField(this)">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbReportsSearch.dsProcedures}"/>
+						</h:selectOneMenu>
+
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="reportSourceTextError" style="display:none;">
+							<f:param name="fieldName" value="#{lblRpt.report_source}"/>
+						</h:outputFormat>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="reportSourceXMLError" style="display:none;">
+							<f:param name="fieldName" value="#{lblRpt.report_source}"/>
+						</h:outputFormat>
+					</h:panelGroup>
+
+				</h:panelGrid>
+			</h:panelGroup>
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	      	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	      	    		<h:outputText/>
+                     	<bre:taggedCommandButton
+                     			value="#{lblForm.save}" type="submit" action="#{MbReportsSearch.save}"
+                     			onclick="if (!checkReportFields()) return false; disableModalPanelBtns(this);"
+                     			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('rpt_report_modal_panel')}.hide()"
+                     			limitToList="true" reRender="err_ajax, #{rerenderList}"
+								/>
+                     	<bre:taggedCommandButton
+	                      		value="#{lblForm.cancel}" action="#{MbReportsSearch.close}" immediate="true"
+	                      		oncomplete="#{rich:component('rpt_report_modal_panel')}.hide()"
+	                      		reRender="reportEditForm">
+                     		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbReportsSearch}"/>
+		<ui:param name="rerenderList" value="reportEditForm:name, reportEditForm:descr"/>
+		<ui:param name="editElem" value="reportEditForm:editLang"/>
+		<ui:param name="newValue" value="#{MbReportsSearch.newReport.lang}"/>
+		<ui:param name="subviewId" value="report"/>
+		<ui:param name="formName" value="reportEditForm" />
+	</ui:include>
+	
+	<ui:include src="/pages/utils/codeMirrorPanel.jspx">
+		<ui:param name="codeElement" value="viewXmlForm:previewBox"/>
+		<ui:param name="subviewId" value="reportSourceView"/>
+		<ui:param name="readOnly" value="false"/>
+		<ui:param name="title" value="#{lblRpt.report_source}"/>
+		<ui:param name="nosubmit" value="#{true}" />
+	</ui:include>
+	<rich:modalPanel id="viewXmlPanel" autosized="true" minWidth="300" minHeight="100">
+		<h:form id="viewXmlForm">
+			<h:inputTextarea id="previewBox" 
+				value="#{MbReportsSearch.selectedParValXml}" 
+				rows="15" style="max-width:none;padding:0"/>
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

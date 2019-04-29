@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:c="http://java.sun.com/jstl/core"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc">
+<ui:composition>
+
+	<h:form id="terminalsForm">
+		<h:panelGroup styleClass="search_result_block" layout="block">
+	   		<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+				<h:panelGroup id="terminalsTableWrapper" layout="block" styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="terminalsTable"
+							tableState="#{MbTerminal.tableState}"
+							styleClass="res-table"
+							headerClass="res-table-header"
+							rowClasses=",odd"
+							selectedClass="res-table-selected"
+							var="item"
+							value="#{MbTerminal.terminals}"
+							selection="#{MbTerminal.itemSelection}"
+							rows="#{MbTerminal.rowsNum}"
+							selectionMode="single"
+							enableContextMenu="true"
+							height="255px"
+							noDataLabel="#{MbTerminal.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="terminalBtnForm, err_ajax, #{MbTerminal.tabName}, togglePanel"
+							onRowMouseDown="handleMouseClick(event)"
+                            binding="#{MbTerminal.table}">
+                        <f:event type="preRenderComponent" listener="#{MbTerminal.onSortablePreRenderTable()}"></f:event>
+						<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="terminalBtnForm, #{MbTerminal.tabName}, togglePanel, workplacePanel"
+								oncomplete="flushTabs();setTabLoaded(currentTab); toggleTabs(currentTab); updateHeight();"/>
+		
+						<rich:column id="id" label="#{lblCommon.id}" title="Id" sortExpression="asc" sortBy="#{'id'}" width="10%">
+		                    <f:facet name="header">
+	                        	<h:panelGroup>         
+	                        		<script>updateHeight();</script>
+		                    		<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+		                    	</h:panelGroup>
+		                    </f:facet>
+		                	<bm:entityDisplay contextType="ENTTTRMN" bean="MbTerminal" value="#{item.id}" description="#{item.id}"/>
+						</rich:column>
+		
+						<rich:column id="terminal_number" label="#{lblAcq.terminal_number}" title="Number" sortExpression="asc" sortBy="#{'terminal_number'}" width="25%">
+		                    <f:facet name="header">
+		                    	<h:outputText value="#{lblAcq.terminal_number}" title="#{lblAcq.terminal_number}" />
+		                    </f:facet>
+		                	<bm:entityDisplay contextType="ENTTTRMN" bean="MbTerminal" value="#{item.terminalNumber}" description="#{item.terminalNumber}"/>
+						</rich:column>
+						
+				        <rich:column id="type" label="#{lblCommon.type}" title="Type" width="25%" sortBy="#{'TERMINAL_TYPE'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.type}" title="#{lblCommon.type}" />
+			                </f:facet>
+			                <bm:entityDisplay contextType="ENTTTRMN" bean="MbTerminal" value="#{DictUtils.articles[item.terminalType]}" description="#{DictUtils.articles[item.terminalType]}"/>
+				        </rich:column>
+		
+				        <rich:column id="status" label="#{lblCommon.status}" title="Status" width="15%" sortBy="#{'status'}">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+			                </f:facet>
+			                <bm:entityDisplay contextType="ENTTTRMN" bean="MbTerminal" value="#{DictUtils.articles[item.status]}" description="#{DictUtils.articles[item.status]}"/>
+				        </rich:column>
+
+						<rich:column id="merchant_number" label="#{lblAcq.merchant_number}" title="Merchant" sortExpression="asc" sortBy="#{'merchant_number'}" width="25%">
+							<f:facet name="header">
+								<h:outputText value="#{lblAcq.merchant_number}" title="#{lblAcq.merchant_number}" />
+							</f:facet>
+							<bm:entityDisplay contextType="ENTTTRMN" bean="MbTerminal" value="#{item.merchantNumber}" description="#{item.merchantNumber}"/>
+						</rich:column>
+					</rich:extendedDataTable>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+	<h:form id="terminalBtnForm">
+	    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+	        	<h:panelGroup layout="block" styleClass="table_tools">
+		        	<h:panelGrid styleClass="fw field-cont" columns="5"
+		        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+			        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+						<h:selectOneMenu id="rows_num" value="#{MbTerminal.rowsNum}" styleClass="row_per_page">
+							<a4j:support event="onchange" reRender="terminalsTable, dsTerminals, pagesNum, terminalBtnForm, #{MbTerminal.tabName}" 
+									oncomplete="flushTabs();setTabLoaded(currentTab); toggleTabs(currentTab)"/>
+							<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+	                   	</h:selectOneMenu>
+	
+	                    <rich:datascroller maxPages="10" fastControls="hide"
+	                    		pagesVar="pages" styleClass="res-datascroller"
+			                    id="dsTerminals" for="terminalsTable" 
+			                    reRender="terminalBtnForm, #{MbTerminal.tabName}"
+			                    oncomplete="flushTabs();setTabLoaded(currentTab); toggleTabs(currentTab)">
+			            	<f:facet name="first">
+			                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+							</f:facet>
+			                <f:facet name="first_disabled">
+			                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+			                </f:facet>
+			                <f:facet name="last">
+			                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+			                </f:facet>
+			                <f:facet name="last_disabled">
+			                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+			                </f:facet>
+			                <f:facet name="previous">
+								<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+			                </f:facet>
+			                <f:facet name="previous_disabled">
+			                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+			                </f:facet>
+			                <f:facet name="next">
+			                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+			                </f:facet>
+			                <f:facet name="next_disabled">
+			                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+			                </f:facet>
+			                <f:facet name="pages">
+			                </f:facet>
+						</rich:datascroller>
+	
+	                    <h:panelGroup id="pagesNum">
+	                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+	                       	<h:outputText value=" #{lblCommon.pages}"/>
+                            <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                            <h:outputText styleClass="strongClass" value="#{MbTerminal.terminals.rowCount}"/>
+                            <h:outputText value=" #{lblCommon.records}"/>
+                            <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+	                    </h:panelGroup>
+	                    
+	                    <h:panelGroup>
+	                    	<h:graphicImage url="/images/tab_new.png" title="#{lblCommon.manage_details_tabs}" styleClass="action_icon"
+								onclick="#{rich:component('tabsManagePanel')}.show()"/>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveTableState" action="#{MbTerminal.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteTableState" action="#{MbTerminal.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			
+               <h:panelGrid id="btnPanel" columns="8" styleClass="buttons_block">
+					<bre:taggedCommandButton id="backBtn" value="#{lblForm.back}"
+							action="#{MbTerminal.back}" rendered="#{MbTerminal.showBackBtn}"/>
+	
+					<rich:spacer width="20px" rendered="#{MbTerminal.showBackBtn}"/>
+					
+	            	<bre:taggedCommandButton id="ctrlBtn" rendered="false"
+	                   		value="#{lblAcq.control}"/>
+	            	<bre:taggedCommandButton id="operBtn"
+	                   		value="#{lblAcq.operations}"
+	                   		disabled="#{MbTerminal.activeTerminal == null}"
+	                   		rendered="#{usession.inRole['VIEW_OPERATION_WIZARD']}"
+	                   		action="#{MbTerminal.toOperations}"/>
+	            	<bre:taggedCommandButton id="applBtn"
+	                   		value="#{lblAcq.applications}" disabled="#{MbTerminal.activeTerminal == null}"
+	                   		action="#{MbTerminal.toApplications}">
+	               		<a4j:actionparam name="appType" value="acquiring"/>
+		        	</bre:taggedCommandButton>
+	            	<bre:taggedCommandButton id="reloadBtn" rendered="#{usession.inRole['RELOAD_TERMINAL']}"
+	            			disabled="#{MbTerminal.activeTerminal == null}"
+	                   		value="#{lblForm.reload}"
+	                   		action="#{MbTerminal.reload}"
+	                   		reRender="synchronizationResultModalPanel"
+	                   		oncomplete="if (#{usession.noErrorResponse}) {#{rich:component('synchronizationResultModalPanel')}.show();}"/>
+	                <bre:taggedCommandButton id="reloadCacheBtn" rendered="#{usession.inRole['RELOAD_CASH_TERMINAL']}"
+	                		disabled="#{MbTerminal.activeTerminal == null}"
+	                   		value="#{lblForm.refresh}" 
+	                   		action="#{MbTerminal.reloadCache}" />
+	            	<bre:taggedCommandButton id="voiceOprBtn"
+                      		value="#{lblOpr.operation}" 
+                      		disabled="#{MbTerminal.activeTerminal == null}"
+                      		action="#{MbTerminal.setupWizard}"
+                      		reRender="wizardWindow"
+                      		rendered="#{usession.inRole['VIEW_OPERATION_WIZARD']}"
+                      		oncomplete="if (#{usession.noErrorResponse}){Richfaces.showModalPanel('wizardWindow');}"
+                      		 />               		
+				</h:panelGrid>
+			</h:panelGroup>
+	    </h:panelGroup>
+    </h:form>
+    
+	<ui:include src="/pages/common/wizard/commonWizard.jspx">
+		<ui:param name="bean" value="MbTerminal" />
+		<ui:param name="action" value="updateTerminalData" />
+	</ui:include>    
+
+    <ui:include src="/pages/acquiring/terminals/synchronizationResultModalPanel.jspx">
+    	<ui:param name="bean" value="#{MbTerminal}"/>
+    </ui:include>
+    
+</ui:composition>
+</html>

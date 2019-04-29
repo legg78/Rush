@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblPrc" basename="ru.bpc.sv2.ui.bundles.Process"/>
+
+	<h:form id="processParamsForm">
+	   	<h:panelGroup id="processParamsTableBottomWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable enableContextMenu="true"
+					id="processParamsTableBottom"
+					styleClass="res-table" 
+					headerClass="res-table-header table-header-ext"
+					rowClasses=",odd"
+					selectedClass="res-table-selected" 
+					var="item"
+					value="#{MbProcessParamsSearch.processParams}"
+					selection="#{MbProcessParamsSearch.itemSelection}"
+					selectionMode="single"
+					tableState="#{MbProcessParamsSearch.tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}"
+					>
+				<a4j:support event="onselectionchange" requestDelay="500" 
+						reRender="paramsBtns"/>
+			           
+				<rich:column id="name" label="Name" title="Name" width="20%">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}"/>
+						</a4j:outputPanel>
+					</f:facet>
+		            <h:outputText value="#{item.name}"/>
+		            <h:outputText value="#{item.systemName}" rendered="#{empty item.name}"/>
+				</rich:column>
+				
+				<rich:column id="value" label="Value" title="Value" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.value}" title="#{lblCommon.value}"/>
+					</f:facet>
+					               
+					<h:outputText value="#{item.lovValue}" styleClass="treeTableText"
+							rendered="#{item.lovId != null}"/>
+					<h:outputText value="#{item.valueV}" styleClass="treeTableText" 
+							rendered="#{item.char and item.lovId == null}"/>
+					<h:outputText value="#{item.valueN}" styleClass="treeTableText" 
+							rendered="#{item.number and item.lovId == null}">
+						<bm:convertNumberNew minFractionDigits="0"/>
+					</h:outputText>
+					<h:outputText value="#{item.valueD}" styleClass="treeTableText" 
+							rendered="#{item.date and item.lovId == null}">
+						<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+					</h:outputText>
+				</rich:column>
+
+				<rich:column id="description" label="Description" title="Description" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.description}" title="#{lblCommon.description}"/>
+					</f:facet>
+					<h:outputText value="#{item.description}"/>
+				</rich:column>
+		        
+		        <rich:column id="display_order" label="Display Order" title="Display Order" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.display_order}" title="#{lblCommon.display_order}"/>
+					</f:facet>
+					<h:outputText value="#{item.displayOrder}"/>
+				</rich:column>
+			        
+				<rich:column id="format" label="Format" title="Format" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrc.need_format}" title="#{lblPrc.need_format}"/>
+					</f:facet>
+					<h:outputText value="#{lblCommon.yes}" title="#{lblCommon.yes}"
+							rendered="#{item.format}"/>
+					<h:outputText value="#{lblCommon.no}" title="#{lblCommon.no}"
+							rendered="#{!item.format}"/>
+				</rich:column>
+
+		        <rich:column id="mandatory" label="Mandatory" title="Mandatory" width="10%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.mandatory}" title="#{lblCommon.mandatory}"/>
+					</f:facet>
+					<h:selectBooleanCheckbox value="#{item.mandatory}" disabled="true" />
+				</rich:column>
+			</rich:extendedDataTable>	
+		</h:panelGroup>
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons" >
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" style="padding-right:9px">
+               	<h:panelGrid styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup id="btnPanelParams">
+						<bre:taggedCommandButton
+								value="#{lblForm.add}" id="prc_add_prc_param_btn"
+								action="#{MbProcessParamsSearch.add}"
+								oncomplete="#{rich:component('processParamModalPanel')}.show()"
+								disabled="#{MbProcessParamsSearch.filter.processId == null}"
+								reRender="processParamModalForm, processParamModalHeader"
+								rendered="#{usession.inRole['ADD_PARAM_PRC']}"
+								image="/images/create_doc.gif"
+								/>
+						<bre:taggedCommandButton id="prc_edit_prc_param_btn"
+	                       		value="#{lblForm.edit}"
+	                       		action="#{MbProcessParamsSearch.edit}"
+	                       		oncomplete="#{rich:component('processParamModalPanel')}.show()"
+	                       		disabled="#{MbProcessParamsSearch.activeProcessParam == null}"
+	                       		rendered="#{usession.inRole['MODIFY_PARAM_PRC']}"
+	                       		reRender="processParamModalForm, processParamModalHeader"
+	                       		image="/images/edit.gif"
+	                       		/>
+						<bre:taggedCommandButton
+	                    	   	value="#{lblForm.delete}" id="prc_delete_prc_param_btn"
+	                    	   	oncomplete="#{rich:component('deleteParamViewId:confirmPanel')}.show()"
+	                       		disabled="#{MbProcessParamsSearch.activeProcessParam == null}"
+	                       		rendered="#{usession.inRole['REMOVE_PARAM_PRC']}"
+	                       		image="/images/delete.gif"
+	                       		/>
+	                </h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveTableState" action="#{MbProcessParamsSearch.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteTableState" action="#{MbProcessParamsSearch.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+             
+	<ui:include src="/pages/processes/param_to_prc.jspx">
+		<ui:param name="rerenderList" value="processParamsTableBottom, btnPanelParams"/>
+	</ui:include>
+	
+	<ui:include src="/pages/processes/param_value_modal.jspx"></ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbProcessParamsSearch}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="paramsTab"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteParamViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+    
+</ui:composition>
+</html>

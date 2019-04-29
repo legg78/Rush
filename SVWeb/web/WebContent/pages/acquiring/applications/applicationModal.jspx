@@ -1,0 +1,1507 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+	  xmlns:bpc="http://www.bpc.ru/jsf/misc"
+	  xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<script type="text/javascript">
+		//<!--
+		var selectedId;
+		function clear(el){
+			el.value ="";
+	   }
+
+		function clearContract#{viewId}() {
+			document.getElementById('#{viewIdColon}appCreateForm:contractNumber').value ="";
+			document.getElementById('#{viewIdColon}appCreateForm:contractNumberHidden').value ="";
+			document.getElementById('#{viewIdColon}appCreateForm:product_id').disabled = "";
+		}
+
+		function clearCustomer#{viewId}() {
+			document.getElementById('#{viewIdColon}appCreateForm:customerNumber').value ="";
+			document.getElementById('#{viewIdColon}appCreateForm:customerNumberHidden').value ="";
+			clearContract#{viewId}();	
+			return true;
+		}
+
+		function setCustomerNumberFilter#{viewId}() {
+			var value = document.getElementById('#{viewIdColon}appCreateForm:customerNumber').value;
+			if (value != null && value != "") { 
+				document.getElementById('#{viewIdColon}appsContractsForm:customerNumber').value = value;
+				document.getElementById('#{viewIdColon}appsContractsForm:customerNumber').disabled = true;
+			} else {
+				document.getElementById('#{viewIdColon}appsContractsForm:customerNumber').value = "";
+				document.getElementById('#{viewIdColon}appsContractsForm:customerNumber').disabled = false;
+			}
+		}
+
+		function setContractNumber#{viewId}() {
+			var value = document.getElementById('#{viewIdColon}appCreateForm:contractNumberHidden').value;
+			document.getElementById('#{viewIdColon}appCreateForm:contractNumber').value = value;
+			setCustomerNumber();
+			document.getElementById('#{viewIdColon}appCreateForm:product_id').disabled = "disabled";
+		}
+
+		function setCustomerNumber#{viewId}() {
+			var value = document.getElementById('#{viewIdColon}appCreateForm:customerNumberHidden').value;
+			document.getElementById('#{viewIdColon}appCreateForm:customerNumber').value = value;
+		}
+
+		function checkApplicationFields() {
+			var checked = true;
+
+			checked = checkField('#{viewIdColon}appCreateForm:appType');
+			checked = checkField('#{viewIdColon}appCreateForm:instId') && checked;
+			checked = checkField('#{viewIdColon}appCreateForm:agent') && checked;
+			checked = checkField('#{viewIdColon}appCreateForm:customerType') && checked;
+			var chkNewContract = document.getElementById('#{viewIdColon}appCreateForm:chkNewContract');
+			if (chkNewContract != null && chkNewContract.checked == true) {
+				checked = checkField('#{viewIdColon}appCreateForm:contractType') && checked;
+			}
+			checked = checkField('#{viewIdColon}appCreateForm:product_id') && checked;
+			checked = checkField('#{viewIdColon}appCreateForm:flow') && checked;
+			checked = checkField('#{viewIdColon}appCreateForm:product_select') && checked;
+			checked = checkField('#{viewIdColon}appCreateForm:flowApp') && checked;
+
+			var chkNewProduct = document.getElementById('#{viewIdColon}appCreateForm:chkNewProduct');
+			if (chkNewProduct == null || chkNewProduct.checked == false) {
+				checked = checkField('#{viewIdColon}appCreateForm:productId') && checked;
+			}
+			checked = checkField('#{viewIdColon}appCreateForm:productInstId') && checked;
+			checked = checkField('#{viewIdColon}appCreateForm:productContractType') && checked;
+			checked = checkField('#{viewIdColon}appCreateForm:productFlow') && checked;
+
+			return checked;
+		}
+		
+		function blurAction(selectBooleanCheckbox){
+			selectBooleanCheckbox.blur(); 
+		}	
+		// --> 
+	</script>
+
+	<f:loadBundle var="lblApp" basename="ru.bpc.sv2.ui.bundles.App" />
+	<f:loadBundle var="lblAcc" basename="ru.bpc.sv2.ui.bundles.Acc" />
+	<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss" />
+	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq" />
+	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul" />
+	<f:loadBundle var="lblOst" basename="ru.bpc.sv2.ui.bundles.Ost" />
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+	<f:loadBundle var="lblNote" basename="ru.bpc.sv2.ui.bundles.Ntb" />
+
+	<h:form>
+		<a4j:jsFunction action="#{MbApplicationCreate.initializeModalPanel}"
+			name="initializeAppPanel#{viewId}" reRender="#{viewIdColon}appCreateForm">
+		</a4j:jsFunction>
+
+		<a4j:jsFunction name="finish" immediate="true"
+			action="#{MbApplicationCreate.finish}" />
+	</h:form>
+
+	<bpct:productSearchModalPanels id="productSearchPanels"/>
+
+	<rich:modalPanel id="appPanel" autosized="true" minWidth="300"
+		minHeight="50"
+		onbeforeshow="if (#{empty fromCtx ? false : true}) initializeAppPanel#{viewId}()">
+		<f:facet name="header">
+			<h:outputText value="#{lblApp.create_app}" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+
+		<h:form id="appCreateForm">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid id="commonApp" columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250"
+							 rendered="#{!MbApplicationCreate.isProductType()}">
+					<h:outputLabel value="* #{lblApp.application_type}: " title="#{lblApp.application_type}"
+								   rendered="#{MbApplicationCreate.showAppType}"/>
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0"
+								 rendered="#{MbApplicationCreate.showAppType}">
+						<h:selectOneMenu value="#{MbApplicationCreate.appType}" id="appType">
+							<a4j:support event="onchange"
+										 reRender="#{viewIdColon}appCreateForm:instId, #{viewIdColon}appCreateForm:agent,
+											#{viewIdColon}appCreateForm:flow, #{viewIdColon}appCreateForm:appObjectsTabPanel,
+											#{viewIdColon}appCreateForm:customerTypeGroup, #{viewIdColon}appCreateForm:product_id,
+											#{viewIdColon}appCreateForm:chkNewContract, #{viewIdColon}appCreateForm:chkNewCustomer,
+											#{viewIdColon}appCreateForm:customersLink, #{viewIdColon}appCreateForm:contractsLink,
+											#{viewIdColon}appCreateForm:contractTypeGroup,
+											err_ajax"
+										 action="#{MbApplicationCreate.onAppTypeChanged}"
+										 oncomplete="clearCustomer#{viewId}(); hideErrorField(this);"
+							/>
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbApplicationCreate.applicationTypes}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="appTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblApp.application_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblOst.institution}: " title="#{lblOst.institution}" />
+					<a4j:region>
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="instId"
+											 value="#{MbApplicationCreate.newApplication.instId}"
+											 label="#{lblOst.institution}"
+											 disabled="#{MbApplicationCreate.disableInst || MbApplicationCreate.newApplication.appType == null}"
+							>
+								<a4j:support event="onchange"
+											 reRender="#{viewIdColon}appCreateForm:agent, #{viewIdColon}appCreateForm:instId,
+											#{viewIdColon}appCreateForm:flow, #{viewIdColon}appCreateForm:appObjectsTabPanel, appCreateForm:customerTypeGroup,
+											#{viewIdColon}appCreateForm:product_id, appCreateForm:chkNewContract, appCreateForm:chkNewCustomer,
+											#{viewIdColon}appCreateForm:customersLink, #{viewIdColon}appCreateForm:contractsLink, appCreateForm:contractTypeGroup,
+											err_ajax"
+											 ajaxSingle="true" limitToList="true"
+											 action="#{MbApplicationCreate.onInstitutionChanged}"
+											 oncomplete="clearCustomer#{viewId}(); hideErrorField(this);" />
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbApplicationCreate.institutions}" />
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="instIdError" style="display:none;">
+								<f:param name="fieldName" value="#{lblOst.institution}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</a4j:region>
+
+					<h:outputLabel value="* #{lblOst.agent}: " title="#{lblOst.agent}" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu
+								value="#{MbApplicationCreate.newApplication.agentId}" id="agent"
+								disabled="#{MbApplicationCreate.newApplication.instId == null or MbApplicationCreate.disableAgent}"
+								onchange="clearContract#{viewId}()">
+							<f:selectItems value="#{MbApplicationCreate.agents}"/>
+							<a4j:support event="onchange" ajaxSingle="true" limitToList="true"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="agentError" style="display:none;">
+							<f:param name="fieldName" value="#{lblOst.agent}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblApp.new_customer}:" />
+					<h:selectBooleanCheckbox value="#{MbApplicationCreate.newCustomer}" id="chkNewCustomer">
+						<a4j:support event="onchange" reRender="appCreateForm:customerNumber,
+						appCreateForm:customersLink,
+						appCreateForm:customersLinkClear,
+						appCreateForm:customerTypeGroup,
+						appCreateForm:extCustomerTypeTitle,
+						appCreateForm:extCustomerTypeGroup,
+						appCreateForm:appObjectsTabPanel,
+						appCreateForm:contractNumber,
+						appCreateForm:contractsLink,
+						appCreateForm:contractsLinkClear,
+						appCreateForm:contractTypeGroup,
+						appCreateForm:product_id,
+						appCreateForm:flow" ajaxSingle="true"/>
+					</h:selectBooleanCheckbox>
+
+					<h:outputLabel value="#{lblPrd.customer_number}: " title="#{lblPrd.customer_number}" />
+					<h:panelGroup>
+						<h:inputHidden id="customerNumberHidden"
+									   value="#{MbApplicationCreate.newApplication.customerNumber}" />
+						<h:inputText id="customerNumber" style="margin-right:5px;"
+									 value="#{MbApplicationCreate.newApplication.customerNumber}"
+									 readonly="true" disabled="true" />
+
+						<h:graphicImage url="/_img/icon_search.png" styleClass="searchComponent-icon" id="customersLink">
+							<a4j:support immediate="true"
+										 event="onclick" onsubmit="if(#{MbApplicationCreate.newApplication.instId == null
+										or MbApplicationCreate.disableCustomer or MbApplicationCreate.newCustomer}) {return false;}"
+										 oncomplete="Richfaces.showModalPanel('customerSearchModalPanel');"
+										 reRender="customerSearchModalPanel" limitToList="true"
+										 action="#{MbApplicationCreate.showCustomers}">
+							</a4j:support>
+						</h:graphicImage>
+
+						<h:graphicImage url="/_img/icon_clear.png" id="customersLinkClear">
+							<a4j:support immediate="true"
+										 event="onclick" onsubmit="if(#{MbApplicationCreate.disableCustomer or MbApplicationCreate.newCustomer}) {return false;} else {clearCustomer#{viewId}();}"
+										 reRender="#{viewIdColon}appCreateForm:customerTypeGroup,
+															appCreateForm:customerNumber,
+															appCreateForm:appObjectsTabPanel,
+															appCreateForm:contractNumber,
+															appCreateForm:contractsLink,
+															appCreateForm:contractsLinkClear,
+															appCreateForm:contractTypeGroup,
+															appCreateForm:product_id,
+															appCreateForm:flow "
+										 limitToList="true"
+										 action="#{MbApplicationCreate.clearCustomerNumber}"
+										 process="#{viewIdColon}appCreateForm:customerNumberHidden,
+															#{viewIdColon}appCreateForm:contractNumberHidden">
+							</a4j:support>
+						</h:graphicImage>
+					</h:panelGroup>
+
+					<h:outputLabel value="* #{lblPrd.customer_type}: " title="#{lblPrd.customer_type}" />
+					<h:panelGroup id="customerTypeGroup">
+						<a4j:region>
+							<h:panelGrid columns="1" cellpadding="0" cellspacing="0" style="display: #{MbApplicationCreate.newApplication.customerNumber == null ? 'inline' : 'none'};">
+								<h:selectOneMenu id="customerType"
+												 value="#{MbApplicationCreate.newApplication.customerType}"
+												 disabled="#{!MbApplicationCreate.newCustomer}"
+												 label="#{lblPrd.customer_type}"
+												 onclick="hideErrorField(this)">
+									<a4j:support event="onchange" action="#{MbApplicationCreate.updateContractTypes}"
+												 reRender="#{viewIdColon}appCreateForm:contractType, err_ajax, appCreateForm:customerType,
+													#{viewIdColon}appCreateForm:product_id, appCreateForm:flow, extCustomerTypeTitle,
+													extCustomerTypeGroup,serviceProviderTitle, serviceProvider"
+												 ajaxSingle="true" limitToList="true" />
+									<f:selectItem itemValue="" />
+									<f:selectItems value="#{MbApplicationCreate.customerTypes}" />
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+												id="customerTypeError" style="display:none;">
+									<f:param name="fieldName" value="#{lblPrd.customer_type}"/>
+								</h:outputFormat>
+							</h:panelGrid>
+						</a4j:region>
+						<h:inputText disabled="true"
+									 rendered="#{MbApplicationCreate.newApplication.customerNumber != null}"
+									 value="#{MbApplicationCreate.customerTypeDescription}" />
+					</h:panelGroup>
+
+					<h:panelGroup id="extCustomerTypeTitle">
+						<h:outputLabel value=" #{lblPrd.ext_customer_type}: " label="#{lblPrd.ext_customer_type}"
+									   rendered="#{MbApplicationCreate.newCustomer and MbApplicationCreate.customerCompany and MbApplicationCreate.issuingType}"
+									   title="#{lblPrd.customer_type}" />
+					</h:panelGroup>
+					<h:panelGrid id="extCustomerTypeGroup">
+						<h:selectOneMenu id="extCustomerType" rendered="#{MbApplicationCreate.newCustomer and MbApplicationCreate.customerCompany and MbApplicationCreate.issuingType}"
+										 value="#{MbApplicationCreate.newApplication.extCustomerType }">
+							<a4j:support event="onchange" reRender="serviceProviderTitle, serviceProvider"/>
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbApplicationCreate.extCustomerTypes}" />
+						</h:selectOneMenu>
+					</h:panelGrid>
+
+					<h:panelGroup id="serviceProviderTitle">
+						<h:outputLabel value="#{lblPrd.service_provider}: " label="#{lblPrd.service_provider}"
+									   rendered="#{MbApplicationCreate.srvp}"/>
+					</h:panelGroup>
+					<h:panelGrid id="serviceProvider">
+						<h:selectOneMenu id="serviceProviderValue" value="#{MbApplicationCreate.newApplication.extObjectId}"
+										 rendered="#{MbApplicationCreate.srvp}">
+							<f:selectItem  itemValue=""/>
+							<f:selectItems value="#{MbApplicationCreate.serviceProviders}"/>
+						</h:selectOneMenu>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblApp.new_contract}:" />
+					<h:selectBooleanCheckbox value="#{MbApplicationCreate.newContract}" id="chkNewContract">
+						<a4j:support event="onchange" reRender="appCreateForm:appObjectsTabPanel, appCreateForm:contractNumber, appCreateForm:contractsLink, appCreateForm:contractsLinkClear, appCreateForm:contractTypeGroup, appCreateForm:product_id, appCreateForm:flow" ajaxSingle="true"/>
+					</h:selectBooleanCheckbox>
+
+					<h:outputLabel value="#{lblPrd.contract}: " title="#{lblPrd.contract}" />
+					<h:panelGroup style="white-space: nowrap;">
+
+						<h:inputHidden id="contractNumberHidden"
+									   value="#{MbApplicationCreate.newApplication.contractNumber}" />
+						<h:inputText id="contractNumber" style="margin-right:5px;"
+									 value="#{MbApplicationCreate.newApplication.contractNumber}"
+									 readonly="true" disabled="true" />
+
+						<h:panelGroup id="contractsLink">
+							<h:graphicImage url="/_img/icon_search.png" styleClass="searchComponent-icon">
+								<a4j:support immediate="true"
+											 event="onclick" onsubmit="if(#{MbApplicationCreate.newApplication.instId == null
+																or MbApplicationCreate.newApplication.appType == null
+																or MbApplicationCreate.disableContract or MbApplicationCreate.newContract}) {return false;}"
+											 oncomplete="Richfaces.showModalPanel('#{viewIdColon}appsContractsModalPanel'); setCustomerNumberFilter#{viewId}();"
+											 reRender="#{viewIdColon}appsContractsForm" limitToList="true"
+											 action="#{MbApplicationCreate.showContracts}">
+								</a4j:support>
+							</h:graphicImage>
+						</h:panelGroup>
+
+						<h:graphicImage url="/_img/icon_clear.png" id="contractsLinkClear">
+							<a4j:support immediate="true"
+										 event="onclick" onsubmit="if(#{MbApplicationCreate.disableContract or MbApplicationCreate.newContract}) {return false;} else {clearContract#{viewId}();}"
+										 reRender="#{viewIdColon}appCreateForm:flow,
+										  #{viewIdColon}appCreateForm:appObjectsTabPanel,
+										  #{viewIdColon}appCreateForm:contractTypeGroup,
+										  				appCreateForm:product_id"
+										 limitToList="true"
+										 action="#{MbApplicationCreate.clearContractNumber}"
+										 process="#{viewIdColon}appCreateForm:contractNumberHidden">
+							</a4j:support>
+						</h:graphicImage>
+					</h:panelGroup>
+
+					<h:outputLabel value="* #{lblPrd.contract_type}: " title="#{lblPrd.contract_type}" />
+					<h:panelGroup id="contractTypeGroup">
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0" style="display: #{MbApplicationCreate.newApplication.contractNumber == null ? 'inline' : 'none'};"
+						>
+							<h:selectOneMenu id="contractType"
+											 disabled="#{MbApplicationCreate.disableContractType or !MbApplicationCreate.newContract}"
+											 value="#{MbApplicationCreate.newApplication.contractType}"
+											 label="#{lblPrd.contract_type}"
+											 onclick="hideErrorField(this)">
+								<a4j:support event="onchange"
+											 reRender="appCreateForm:flow, appCreateForm:contractType, appCreateForm:product_id, #{viewIdColon}appCreateForm:appObjectsTabPanel"
+											 ajaxSingle="true" limitToList="true" />
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbApplicationCreate.contractTypes}" />
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="contractTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblPrd.contract_type}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						<h:inputText disabled="true"
+									 rendered="#{MbApplicationCreate.newApplication.contractNumber != null}"
+									 value="#{MbApplicationCreate.contractTypeDescription}" />
+					</h:panelGroup>
+
+					<h:outputLabel value="* #{lblRul.product}: " title="#{lblRul.product}" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="product_id"
+										 value="#{MbApplicationCreate.newApplication.productId}"
+										 label="#{lblRul.product}"
+										 disabled="#{MbApplicationCreate.disableProduct}"
+										 onclick="hideErrorField(this)">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbApplicationCreate.products}" />
+							<a4j:support event="onchange"
+										 reRender="#{viewIdColon}appCreateForm:appObjectsTabPanel"
+										 limitToList="true" ajaxSingle="true"
+										 action="#{MbApplicationCreate.flush}" />
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="product_idError" style="display:none;">
+							<f:param name="fieldName" value="#{lblRul.product}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblApp.flow}: " title="#{lblApp.flow}" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu
+								value="#{MbApplicationCreate.newApplication.flowId}" id="flow"
+								label="#{lblApp.flow}"
+								disabled="#{MbApplicationCreate.disableAppFlow}"
+								onclick="hideErrorField(this)">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbApplicationCreate.applicationFlows}" />
+							<a4j:support event="onchange"
+										 reRender="#{viewIdColon}appCreateForm:appObjectsTabPanel"
+										 limitToList="true" ajaxSingle="true"
+										 action="#{MbApplicationCreate.flush}" />
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="flowError" style="display:none;">
+							<f:param name="fieldName" value="#{lblApp.flow}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+
+				<h:panelGrid id="productApp" columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250"
+							 rendered="#{MbApplicationCreate.isProductType()}">
+					<h:outputLabel value="* #{lblOst.institution}: " title="#{lblOst.institution}"/>
+					<a4j:region>
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="productInstId"
+											 value="#{MbApplicationCreate.newApplication.instId}"
+											 label="#{lblOst.institution}"
+											 disabled="#{MbApplicationCreate.disableInst || MbApplicationCreate.newApplication.appType == null}">
+								<a4j:support event="onchange"
+											 reRender="#{viewIdColon}appCreateForm:productInstId,
+													   #{viewIdColon}appCreateForm:productFlow,
+													   #{viewIdColon}appCreateForm:appObjectsTabPanel,
+													   #{viewIdColon}appCreateForm:productId,
+													   #{viewIdColon}appCreateForm:chkNewProduct,
+													   #{viewIdColon}appCreateForm:productContractType,
+													   err_ajax"
+											 ajaxSingle="true" limitToList="true"
+											 action="#{MbApplicationCreate.onInstitutionChanged}"
+											 oncomplete="clearCustomer#{viewId}(); hideErrorField(this);" />
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbApplicationCreate.institutions}" />
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="productInstIdError" style="display:none;">
+								<f:param name="fieldName" value="#{lblOst.institution}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</a4j:region>
+
+					<h:outputLabel value="* #{lblPrd.contract_type}: " title="#{lblPrd.contract_type}"/>
+					<h:panelGroup id="productContractTypeGroup">
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0"
+									 style="display: #{MbApplicationCreate.newApplication.contractNumber == null ? 'inline' : 'none'};">
+							<h:selectOneMenu id="productContractType"
+											 disabled="#{MbApplicationCreate.disableContractType or !MbApplicationCreate.newContract}"
+											 value="#{MbApplicationCreate.newApplication.contractType}"
+											 label="#{lblPrd.contract_type}"
+											 onclick="hideErrorField(this)">
+								<a4j:support event="onchange"
+											 reRender="#{viewIdColon}appCreateForm:productFlow,
+													   #{viewIdColon}appCreateForm:productContractType,
+													   #{viewIdColon}appCreateForm:productId,
+													   #{viewIdColon}appCreateForm:appObjectsTabPanel"
+											 ajaxSingle="true" limitToList="true" />
+								<f:selectItem itemValue="" />
+								<f:selectItems value="#{MbApplicationCreate.contractTypes}" />
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="productContractTypeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblPrd.contract_type}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						<h:inputText disabled="true"
+									 rendered="#{MbApplicationCreate.newApplication.contractNumber != null}"
+									 value="#{MbApplicationCreate.contractTypeDescription}" />
+					</h:panelGroup>
+
+					<h:outputLabel value="#{lblApp.is_new_product}: " title="#{lblApp.is_new_product}"/>
+					<a4j:region>
+						<h:selectBooleanCheckbox id="chkNewProduct" value="#{MbApplicationCreate.newProduct}">
+							<a4j:support event="onchange" ajaxSingle="true" limitToList="true"
+										 reRender="#{viewIdColon}appCreateForm:productId,
+												   #{viewIdColon}appCreateForm:productFlow,
+												   #{viewIdColon}appCreateForm:appObjectsTabPanel"/>
+						</h:selectBooleanCheckbox>
+					</a4j:region>
+
+					<h:outputLabel value="* #{lblRul.product}: " title="#{lblRul.product}" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="productId"
+										 value="#{MbApplicationCreate.newApplication.productId}"
+										 label="#{lblRul.product}"
+										 disabled="#{MbApplicationCreate.disableProduct || MbApplicationCreate.newProduct}"
+										 onclick="hideErrorField(this)">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbApplicationCreate.products}" />
+							<a4j:support event="onchange"
+										 reRender="#{viewIdColon}appCreateForm:appObjectsTabPanel"
+										 limitToList="true" ajaxSingle="true"
+										 action="#{MbApplicationCreate.flush}" />
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="productIdError" style="display:none;">
+							<f:param name="fieldName" value="#{lblRul.product}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblApp.flow}: " title="#{lblApp.flow}" />
+					<h:panelGrid columns="1" cellpadding="0" cellspacing="0">
+						<h:selectOneMenu id="productFlow" value="#{MbApplicationCreate.newApplication.flowId}"
+										 label="#{lblApp.flow}"
+										 disabled="#{MbApplicationCreate.disableAppFlow}"
+										 onclick="hideErrorField(this)">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbApplicationCreate.applicationFlows}" />
+							<a4j:support event="onchange"
+										 reRender="#{viewIdColon}appCreateForm:appObjectsTabPanel"
+										 limitToList="true" ajaxSingle="true"
+										 action="#{MbApplicationCreate.flush}" />
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+										id="productFlowError" style="display:none;">
+							<f:param name="fieldName" value="#{lblApp.flow}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+			<h:panelGroup id="appObjectsTabPanel">
+				<rich:jQuery selector=".parentCheckBox"
+					query="click(function(){
+									jQuery(this).parents('fieldset:eq(0)').find('.childCheckBox').attr('checked', this.checked);
+									})" />
+				<rich:jQuery selector=".childCheckBox"
+					query="click(function(){ 
+									
+									if (jQuery(this).parents('fieldset:eq(0)').find('.parentCheckBox').attr('checked') == true) {
+										if  (this.checked == false) {
+											jQuery(this).parents('fieldset:eq(0)').find('.parentCheckBox').attr('checked', false);
+										}
+									}
+									if (this.checked == true) {
+										var flag = true;
+										jQuery(this).parents('fieldset:eq(0)').find('.childCheckBox').each(
+											function() {
+												if (this.checked == false)
+												flag = false;
+											}
+										);
+										jQuery(this).parents('fieldset:eq(0)').find('.parentCheckBox').attr('checked', flag);
+									}
+									})" />
+
+				<rich:tabPanel switchType="client" tabClass="tab-cell"
+					activeTabClass="active-tab-cell" headerClass="tabs"
+					headerSpacing="0px" contentClass="tab-content"
+					rendered="#{MbApplicationCreate.newApplication.flowId != null}">
+
+					<rich:tab label="#{lblApp.accounts}" name="accountTab"
+						rendered="#{MbApplicationCreate.hasAccounts}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblApp.accounts}"
+									title="#{lblApp.accounts}" />
+							</h:panelGroup>
+						</f:facet>
+						<fieldset id="accountServicesDiv"
+							style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.services}" />
+							</legend>
+							<h:panelGroup layout="block"
+								style="max-height: 150px; width:100%; overflow-y:auto;">
+								<table id="services">
+									<a4j:repeat
+										value="#{MbApplicationCreate.accountInitialServices}"
+										var="service">
+										<tr>
+											<td>
+												<h:inputHidden id="serviceMinCount"
+													value="#{service.minCount}" /> 
+												<h:inputHidden
+													id="serviceCurrentCount" value="#{service.currentCount}" />
+												<h:inputHidden id="serviceMaxCount"
+													value="#{service.maxCount}" /> 
+												<h:outputLabel value="#{service.serviceName}: " rendered="false" />
+											</td>
+											<td>
+												<rich:inputNumberSpinner rendered="false" /> 
+												<h:selectOneMenu value="#{service.currentCount}" style="width:auto" disabled="#{MbApplicationCreate.disabledAccServices}">
+													<f:selectItems value="#{MbApplicationCreate.serviceCountList}" />
+												</h:selectOneMenu>
+											</td>
+											<td><h:outputText value="#{service.serviceName}"
+													rendered="true" />
+											</td>
+										</tr>
+									</a4j:repeat>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+                        <h:panelGroup id="accountsPanelOuter">
+                            <h:panelGroup id="accountsPanel" rendered="#{MbApplicationCreate.newApplication.contractNumber != null
+                                                                         and not empty MbApplicationCreate.newApplication.contractNumber
+                                                                         or MbApplicationCreate.searchingAccountsWithoutContract}">
+                                <fieldset id="accountsDiv" style="border: 1px solid #D7DAC2;">
+                                    <legend>
+                                        <h:outputText value="#{lblApp.existing}" />
+                                    </legend>
+                                    <h:panelGroup layout="block"
+                                        style="max-height: 150px; width:250px; overflow-y:auto;">
+
+                                        <table id="accounts">
+                                            <tr>
+                                                <td>
+                                                    <h:selectBooleanCheckbox styleClass="parentCheckBox" />
+                                                </td>
+                                                <td>
+                                                    <h:outputLabel value="Select all" title="Select all" styleClass="parentCheckBox" />
+                                                </td>
+                                            </tr>
+                                            <a4j:repeat value="#{MbApplicationCreate.contractAccounts}" var="acct">
+                                                <tr>
+                                                    <td>
+                                                        <h:selectBooleanCheckbox id="acct" value="#{acct.checked}" styleClass="childCheckBox" />
+                                                    </td>
+                                                    <td>
+                                                        <h:outputText value="#{acct.number}" />
+                                                    </td>
+                                                </tr>
+                                            </a4j:repeat>
+                                        </table>
+                                    </h:panelGroup>
+                                </fieldset>
+                            </h:panelGroup>
+                        </h:panelGroup>
+
+						<h:panelGroup id="cbsAccountsPanel" rendered="#{MbApplicationCreate.issuingType and MbApplicationCreate.cbsSyncEnabled and MbApplicationCreate.hasCbsAccounts}">
+							<fieldset id="cbsAccountsDiv" style="border: 1px solid #D7DAC2;">
+								<legend>
+									<h:outputText value="Accounts in CBS"/>
+								</legend>
+								<h:panelGroup layout="block" style="max-height: 150px; width:250px; overflow-y:auto;">
+									<table id="cbsAccounts">
+										<tr>
+											<td>
+												<h:selectBooleanCheckbox styleClass="parentCheckBox" />
+											</td>
+											<td>
+												<h:outputLabel value="Select all" title="Select all" styleClass="parentCheckBox" />
+											</td>
+										</tr>
+										<a4j:repeat value="#{MbApplicationCreate.cbsAccounts}" var="acct">
+											<tr>
+												<td>
+													<h:selectBooleanCheckbox id="acct" value="#{acct.checked}" styleClass="childCheckBox" />
+												</td>
+												<td>
+													<h:outputText value="#{acct.number}" />
+												</td>
+											</tr>
+										</a4j:repeat>
+									</table>
+								</h:panelGroup>
+							</fieldset>
+						</h:panelGroup>
+
+						<h:panelGroup id="eWalletAccountsPanel" rendered="#{MbApplicationCreate.issuingType and MbApplicationCreate.eWalletSyncEnabled and MbApplicationCreate.hasEWalletAccounts}">
+							<fieldset id="eWalletAccountsDiv" style="border: 1px solid #D7DAC2;">
+								<legend>
+									<h:outputText value="Accounts in eWallet" />
+								</legend>
+								<h:panelGroup layout="block" style="max-height: 150px; width:250px; overflow-y:auto;">
+									<table id="eWalletAccounts">
+										<tr>
+											<td>
+												<h:selectBooleanCheckbox styleClass="parentCheckBox" />
+											</td>
+											<td>
+												<h:outputLabel value="Select all" title="Select all" styleClass="parentCheckBox" />
+											</td>
+										</tr>
+										<a4j:repeat value="#{MbApplicationCreate.eWalletAccounts}" var="acct">
+											<tr>
+												<td>
+													<h:selectBooleanCheckbox id="acct" value="#{acct.checked}" styleClass="childCheckBox" />
+												</td>
+												<td>
+													<h:outputText value="#{acct.number}" />
+												</td>
+											</tr>
+										</a4j:repeat>
+									</table>
+								</h:panelGroup>
+							</fieldset>
+						</h:panelGroup>
+
+						<fieldset id="showAllAccountsDiv" style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.additional}" />
+							</legend>
+							<h:panelGroup layout="block" style="max-height: 150px; width:100%; overflow-y:auto;">
+								<table id="showAllAccountsTable">
+									<tr>
+										<td>
+											<h:selectBooleanCheckbox id="showAllAccounts" value="#{MbApplicationCreate.searchingAccountsWithoutContract}">
+												<a4j:support event="onchange" action="#{MbApplicationCreate.searchAccountsWithoutContract}" reRender="accountsPanelOuter"/>
+											</h:selectBooleanCheckbox>
+										</td>
+										<td>
+											<h:outputLabel value="#{lblApp.show_all_accounts}" title="#{lblApp.show_all_accounts}" styleClass="parentCheckBox" />
+										</td>
+									</tr>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+					</rich:tab>
+
+					<rich:tab label="#{lblApp.cards}" name="cardTab"
+						rendered="#{MbApplicationCreate.hasCards}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblApp.cards}" title="#{lblApp.cards}" />
+							</h:panelGroup>
+						</f:facet>
+						<fieldset id="cardServicesDiv" style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.services}" />
+							</legend>
+							<h:panelGroup layout="block"
+								style="max-height: 150px; width:100%;  overflow-y:auto;">
+								<table id="services">
+									<a4j:repeat value="#{MbApplicationCreate.cardInitialServices}"
+										var="service">
+										<tr>
+											<td>
+												<h:inputHidden id="serviceMinCount" value="#{service.minCount}" /> 
+												<h:inputHidden id="serviceCurrentCount" value="#{service.currentCount}" />
+												<h:inputHidden id="serviceMaxCount" value="#{service.maxCount}" />
+											</td>
+											<td>
+												<h:selectOneMenu value="#{service.currentCount}" disabled="#{MbApplicationCreate.disabledCardServices}"
+													style="width:auto">
+													<f:selectItems value="#{MbApplicationCreate.serviceCountList }" />
+												</h:selectOneMenu>
+											</td>
+											<td>
+												<h:outputText value="#{service.serviceName}" />
+											</td>
+										</tr>
+									</a4j:repeat>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+
+                        <h:panelGroup id="cardsPanelOuter">
+                            <h:panelGroup id="cardsPanel" rendered="#{MbApplicationCreate.newApplication.contractNumber != null
+                                                                      and not empty MbApplicationCreate.newApplication.contractNumber
+                                                                      or MbApplicationCreate.searchingCardsWithoutContract}">
+                                <fieldset id="cardsDiv" style="border: 1px solid #D7DAC2;">
+                                    <legend>
+                                        <h:outputText value="#{lblApp.existing}" />
+                                    </legend>
+                                    <h:panelGroup layout="block"
+                                        style="max-height: 150px; width:250px; overflow-y:auto;">
+
+                                        <table id="cards">
+                                            <tr>
+                                                <td><h:selectBooleanCheckbox styleClass="parentCheckBox" />
+                                                </td>
+                                                <td><h:outputLabel value="Select all" /></td>
+                                            </tr>
+                                            <a4j:repeat value="#{MbApplicationCreate.contractCards}"
+                                                var="card">
+                                                <tr>
+                                                    <td><h:selectBooleanCheckbox id="acct"
+                                                            value="#{card.checked}" styleClass="childCheckBox" /></td>
+
+                                                    <td><h:outputText value="#{card.mask}" rendered="#{card.mask != null}"/>
+                                                        <h:outputText value="#{card.number}" rendered="#{card.mask == null}"/>
+                                                    </td>
+                                                </tr>
+                                            </a4j:repeat>
+                                        </table>
+                                    </h:panelGroup>
+                                </fieldset>
+                            </h:panelGroup>
+                        </h:panelGroup>
+
+						<fieldset id="showAllCardsDiv" style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.additional}" />
+							</legend>
+							<h:panelGroup layout="block" style="max-height: 150px; width:100%; overflow-y:auto;">
+								<table id="showAllCardsTable">
+									<tr>
+										<td>
+											<h:selectBooleanCheckbox id="showAllCards" value="#{MbApplicationCreate.searchingCardsWithoutContract}">
+												<a4j:support event="onchange" action="#{MbApplicationCreate.searchCardsWithoutContract}" reRender="cardsPanelOuter"/>
+											</h:selectBooleanCheckbox>
+										</td>
+										<td>
+											<h:outputLabel value="#{lblApp.show_all_cards}" title="#{lblApp.show_all_cards}" styleClass="parentCheckBox" />
+										</td>
+									</tr>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+					</rich:tab>
+
+					<rich:tab label="#{lblApp.merchants}" name="merchantTab"
+						rendered="#{MbApplicationCreate.hasMerchants}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblApp.merchants}"
+									title="#{lblApp.merchants}" />
+							</h:panelGroup>
+						</f:facet>
+						<fieldset id="merchantServicesDiv"
+							style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.services}" />
+							</legend>
+							<h:panelGroup layout="block"
+								style="max-height: 150px; width:100%;  overflow-y:auto;">
+								<table id="services">
+									<a4j:repeat
+										value="#{MbApplicationCreate.merchantInitialServices}"
+										var="service">
+										<tr>
+											<td><h:inputHidden id="serviceMinCount"
+													value="#{service.minCount}" /> <h:inputHidden
+													id="serviceCurrentCount" value="#{service.currentCount}" />
+												<h:inputHidden id="serviceMaxCount"
+													value="#{service.maxCount}" /></td>
+											<td><h:selectOneMenu value="#{service.currentCount}"
+													style="width:auto">
+													<f:selectItems
+														value="#{MbApplicationCreate.serviceCountList}" />
+												</h:selectOneMenu></td>
+											<td><h:outputText value="#{service.serviceName}" /></td>
+										</tr>
+									</a4j:repeat>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+						<h:panelGroup
+							rendered="#{MbApplicationCreate.newApplication.contractNumber != null }">
+							<fieldset id="merchantsDiv" style="border: 1px solid #D7DAC2;">
+								<legend>
+									<h:outputText value="#{lblApp.existing}" />
+								</legend>
+								<h:panelGroup layout="block"
+									style="max-height: 150px; width:250px; overflow-y:auto;">
+
+									<table id="merchants">
+										<tr>
+											<td><h:selectBooleanCheckbox styleClass="parentCheckBox" />
+											</td>
+											<td><h:outputLabel value="Select all" /></td>
+										</tr>
+										<a4j:repeat value="#{MbApplicationCreate.contractMerchants}"
+											var="merch">
+											<tr>
+												<td><h:selectBooleanCheckbox id="merch"
+														value="#{merch.checked}" styleClass="childCheckBox" /></td>
+
+												<td><h:outputText value="#{merch.number}" /></td>
+											</tr>
+										</a4j:repeat>
+									</table>
+								</h:panelGroup>
+							</fieldset>
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblApp.terminals}" name="terminalTab"
+						rendered="#{MbApplicationCreate.hasTerminals}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblApp.terminals}"
+									title="#{lblApp.terminals}" />
+							</h:panelGroup>
+						</f:facet>
+						<fieldset id="terminalServicesDiv"
+							style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.services}" />
+							</legend>
+							<h:panelGroup layout="block"
+								style="max-height: 150px; width:100%;  overflow-y:auto;">
+								<table id="services">
+									<a4j:repeat
+										value="#{MbApplicationCreate.terminalInitialServices}"
+										var="service">
+										<tr>
+											<td><h:inputHidden id="serviceMinCount"
+													value="#{service.minCount}" /> <h:inputHidden
+													id="serviceCurrentCount" value="#{service.currentCount}" />
+												<h:inputHidden id="serviceMaxCount"
+													value="#{service.maxCount}" /></td>
+											<td><h:selectOneMenu value="#{service.currentCount}"
+													style="width:auto">
+													<f:selectItems
+														value="#{MbApplicationCreate.serviceCountList}" />
+												</h:selectOneMenu></td>
+											<td><h:outputText value="#{service.serviceName}" /></td>
+										</tr>
+									</a4j:repeat>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+						<h:panelGroup
+							rendered="#{MbApplicationCreate.newApplication.contractNumber != null }">
+							<fieldset id="terminalsDiv" style="border: 1px solid #D7DAC2;">
+								<legend>
+									<h:outputText value="#{lblApp.existing}" />
+								</legend>
+								<h:panelGroup layout="block"
+									style="max-height: 150px; width:250px; overflow-y:auto;">
+
+									<table id="terminals">
+										<tr>
+											<td><h:selectBooleanCheckbox styleClass="parentCheckBox" />
+											</td>
+											<td><h:outputLabel value="Select all" /></td>
+										</tr>
+										<a4j:repeat value="#{MbApplicationCreate.contractTerminals}"
+											var="term">
+											<tr>
+												<td><h:selectBooleanCheckbox id="term"
+														value="#{term.checked}" styleClass="childCheckBox" /></td>
+
+												<td><h:outputText value="#{term.number}" /></td>
+											</tr>
+										</a4j:repeat>
+									</table>
+								</h:panelGroup>
+							</fieldset>
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblApp.services}" name="servicesTab"
+							  rendered="#{MbApplicationCreate.hasServices}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblApp.services}" title="#{lblApp.services}" />
+							</h:panelGroup>
+						</f:facet>
+						<fieldset id="servicesServicesDiv" style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.new_services}" />
+							</legend>
+							<h:panelGroup layout="block"  style="max-height: 150px; width:100%;  overflow-y:auto;">
+								<table id="services">
+									<a4j:repeat value="#{MbApplicationCreate.serviceInitialServices}" var="service">
+										<tr>
+											<td>
+												<h:inputHidden id="serviceMinCount" value="#{service.minCount}" />
+												<h:inputHidden id="serviceCurrentCount" value="#{service.currentCount}" />
+												<h:inputHidden id="serviceMaxCount" value="#{service.maxCount}" /></td>
+											<td>
+												<h:selectOneMenu value="#{service.currentCount}" style="width:auto">
+													<f:selectItems value="#{MbApplicationCreate.serviceCountList}"/>
+												</h:selectOneMenu>
+											</td>
+											<td>
+												<h:outputText value="#{service.serviceName}"/>
+											</td>
+										</tr>
+									</a4j:repeat>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+						<h:panelGroup rendered="#{MbApplicationCreate.newApplication.productId != null}">
+							<fieldset id="servicesDiv" style="border: 1px solid #D7DAC2;">
+								<legend>
+									<h:outputText value="#{lblApp.existing}" />
+								</legend>
+								<h:panelGroup layout="block" style="max-height: 150px; width:250px; overflow-y:auto;">
+									<table id="services">
+										<tr>
+											<td>
+												<h:selectBooleanCheckbox styleClass="parentCheckBox" />
+											</td>
+											<td>
+												<h:outputLabel value="Select all" />
+											</td>
+										</tr>
+										<a4j:repeat value="#{MbApplicationCreate.productServices}" var="serv">
+											<tr>
+												<td>
+													<h:selectBooleanCheckbox id="serv" value="#{serv.checked}" styleClass="childCheckBox" />
+												</td>
+												<td>
+													<h:outputText value="#{serv.serviceName}" />
+												</td>
+											</tr>
+										</a4j:repeat>
+									</table>
+								</h:panelGroup>
+							</fieldset>
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblApp.card_types}" name="cardTypesTab"
+							  rendered="#{MbApplicationCreate.hasCardTypes}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblApp.card_types}" title="#{lblApp.card_types}" />
+							</h:panelGroup>
+						</f:facet>
+						<fieldset id="cardTypeDiv" style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.new_card_types}" />
+							</legend>
+							<h:panelGroup layout="block"  style="max-height: 150px; width:100%;  overflow-y:auto;">
+								<table id="services">
+									<a4j:repeat value="#{MbApplicationCreate.cardTypeInitialServices}" var="service">
+										<tr>
+											<td>
+												<h:inputHidden id="serviceMinCount" value="#{service.minCount}" />
+												<h:inputHidden id="serviceCurrentCount" value="#{service.currentCount}" />
+												<h:inputHidden id="serviceMaxCount" value="#{service.maxCount}" /></td>
+											<td>
+												<h:selectOneMenu value="#{service.currentCount}" style="width:auto">
+													<f:selectItems value="#{MbApplicationCreate.serviceCountList}"/>
+												</h:selectOneMenu>
+											</td>
+											<td>
+												<h:outputText value="#{service.serviceName}"/>
+											</td>
+										</tr>
+									</a4j:repeat>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+						<h:panelGroup rendered="#{MbApplicationCreate.newApplication.productId != null}">
+							<fieldset id="servicesDiv" style="border: 1px solid #D7DAC2;">
+								<legend>
+									<h:outputText value="#{lblApp.existing}" />
+								</legend>
+								<h:panelGroup layout="block" style="max-height: 150px; width:250px; overflow-y:auto;">
+									<table id="cardTypes">
+										<tr>
+											<td>
+												<h:selectBooleanCheckbox styleClass="parentCheckBox" />
+											</td>
+											<td>
+												<h:outputLabel value="Select all" />
+											</td>
+										</tr>
+										<a4j:repeat value="#{MbApplicationCreate.cardTypes}" var="crdt">
+											<tr>
+												<td>
+													<h:selectBooleanCheckbox id="crdt" value="#{crdt.checked}" styleClass="childCheckBox" />
+												</td>
+												<td>
+													<h:outputText value="#{crdt.id} - #{crdt.cardTypeName}" />
+												</td>
+											</tr>
+										</a4j:repeat>
+									</table>
+								</h:panelGroup>
+							</fieldset>
+						</h:panelGroup>
+					</rich:tab>
+
+					<rich:tab label="#{lblApp.account_types}" name="accountTypesTab"
+							  rendered="#{MbApplicationCreate.hasAccountTypes}">
+						<f:facet name="label">
+							<h:panelGroup styleClass="first tab-label" layout="block">
+								<h:outputText value="#{lblApp.account_types}" title="#{lblApp.account_types}" />
+							</h:panelGroup>
+						</f:facet>
+						<fieldset id="accountTypeDiv" style="border: 1px solid #D7DAC2;">
+							<legend>
+								<h:outputText value="#{lblApp.new_account_types}" />
+							</legend>
+							<h:panelGroup layout="block"  style="max-height: 150px; width:100%;  overflow-y:auto;">
+								<table id="services">
+									<a4j:repeat value="#{MbApplicationCreate.accountTypeInitialServices}" var="service">
+										<tr>
+											<td>
+												<h:inputHidden id="serviceMinCount" value="#{service.minCount}" />
+												<h:inputHidden id="serviceCurrentCount" value="#{service.currentCount}" />
+												<h:inputHidden id="serviceMaxCount" value="#{service.maxCount}" /></td>
+											<td>
+												<h:selectOneMenu value="#{service.currentCount}" style="width:auto">
+													<f:selectItems value="#{MbApplicationCreate.serviceCountList}"/>
+												</h:selectOneMenu>
+											</td>
+											<td>
+												<h:outputText value="#{service.serviceName}"/>
+											</td>
+										</tr>
+									</a4j:repeat>
+								</table>
+							</h:panelGroup>
+						</fieldset>
+						<h:panelGroup rendered="#{MbApplicationCreate.newApplication.productId != null}">
+							<fieldset id="servicesDiv" style="border: 1px solid #D7DAC2;">
+								<legend>
+									<h:outputText value="#{lblApp.existing}" />
+								</legend>
+								<h:panelGroup layout="block" style="max-height: 150px; width:250px; overflow-y:auto;">
+									<table id="accountTypes">
+										<tr>
+											<td>
+												<h:selectBooleanCheckbox styleClass="parentCheckBox" />
+											</td>
+											<td>
+												<h:outputLabel value="Select all" />
+											</td>
+										</tr>
+										<a4j:repeat value="#{MbApplicationCreate.accountTypes}" var="acct">
+											<tr>
+												<td>
+													<h:selectBooleanCheckbox id="acct" value="#{acct.checked}" styleClass="childCheckBox" />
+												</td>
+												<td>
+													<h:outputText value="#{acct.id} - #{acct.accountTypeName}" />
+												</td>
+											</tr>
+										</a4j:repeat>
+									</table>
+								</h:panelGroup>
+							</fieldset>
+						</h:panelGroup>
+					</rich:tab>
+				</rich:tabPanel>
+			</h:panelGroup>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+
+						<bre:taggedCommandButton id="createBtn"
+												 value="#{lblForm.create}"
+												 action="#{MbApplicationCreate.applySelectObjects}"
+												 reRender="add_branch_panel, appCreateForm:decisionDiv"
+												 onclick="if (!checkApplicationFields()) return false;"
+												 oncomplete="if (!#{usession.noErrorResponse}) {return false;}
+												             if (#{MbApplicationCreate.closeWizard}) {finish();return false;}
+												             decision#{viewId}();
+												             #{rich:component('appPanel')}.hide();
+												             #{rich:component('add_branch_panel')}.show();"/>
+
+						<bre:taggedCommandButton id="cancelBtn"
+												 value="#{lblForm.cancel}"
+												 action="#{MbApplicationCreate.cleanSelectObjects}"
+												 immediate="true"
+												 limitToList="true"
+												 oncomplete="Richfaces.hideModalPanel('#{viewIdColon}appPanel')"
+												 reRender="#{viewIdColon}appCreateForm">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+			<h:panelGroup id="decisionDiv" styleClass="hidden">
+				<bre:taggedCommandButton id="finish" styleClass="hidden"
+					action="#{MbApplicationCreate.finish}" />
+				<script type="text/javascript">
+			    	 	//<![CDATA[
+			    	 		function decision#{viewId}() {
+				    	 		if (#{MbApplicationCreate.hasSelectedObjects}) {
+					    	 		return true;
+				    	 		} else {
+					    	 		document.getElementById("#{viewIdColon}appCreateForm:finish").click();
+					    	 		return false;
+				    	 		}
+			    	 		}
+			    	 	//]]>
+			    	 </script>
+			</h:panelGroup>
+			
+			<a4j:jsFunction name="flipPanels" 
+				immediate="true" 
+				limitToList="true" 
+				reRender="add_branch_panel, appCreateForm:decisionDiv"
+				oncomplete="
+				#{rich:component('add_branch_panel')}.show();"							
+				>
+				<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+			</a4j:jsFunction>
+			
+			
+		</h:form>
+	</rich:modalPanel>
+
+	
+
+	<rich:modalPanel id="add_branch_panel" autosized="true" minWidth="200"
+		minHeight="50">
+		<f:facet name="header">
+			<h:panelGroup id="addBranchHeader">
+				<h:outputText
+					value="#{DictUtils.articles[MbApplicationCreate.branchEntity]} - #{MbApplicationCreate.branchObjectId }" 
+					rendered="#{MbApplicationCreate.branchEntity != 'ENTTCARD' }" />
+				<h:outputText
+					value="#{DictUtils.articles[MbApplicationCreate.branchEntity]} - #{MbApplicationCreate.currentObject.mask}" 
+					rendered="#{MbApplicationCreate.branchEntity == 'ENTTCARD' and MbApplicationCreate.currentObject.mask != null}" />
+				<h:outputText
+					value="#{DictUtils.articles[MbApplicationCreate.branchEntity]} - #{MbApplicationCreate.currentObject.number}" 
+					rendered="#{MbApplicationCreate.branchEntity == 'ENTTCARD' and MbApplicationCreate.currentObject.mask == null}" />	
+					
+						
+					
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+			<h:panelGroup>
+				<h:outputText value="" styleClass="hidelink" id="hidelink2" />
+
+			</h:panelGroup>
+		</f:facet>
+		<h:form id="addBranchDiv"
+			rendered="#{MbApplicationCreate.branchObjectId != null}">
+			<rich:jQuery selector=".parentCheckBox"
+				query="click(function(){
+								jQuery(this).parents('fieldset:eq(0)').find('.childCheckBox').attr('checked', this.checked);
+								})" />
+			<rich:jQuery selector=".childCheckBox"
+				query="click(function(){ 
+									
+									if (jQuery(this).parents('fieldset:eq(0)').find('.parentCheckBox').attr('checked') == true) {
+										if  (this.checked == false) {
+											jQuery(this).parents('fieldset:eq(0)').find('.parentCheckBox').attr('checked', false);
+										}
+									}
+									if (this.checked == true) {
+										var flag = true;
+										jQuery(this).parents('fieldset:eq(0)').find('.childCheckBox').each(
+											function() {
+												if (this.checked == false)
+												flag = false;
+											}
+										);
+										jQuery(this).parents('fieldset:eq(0)').find('.parentCheckBox').attr('checked', flag);
+									}
+									})" />
+
+
+			<h:panelGroup layout="block" styleClass="header_text" style="margin-top: 10px">
+				<h:outputLabel value="#{lblApp.wizard_select_objects}" />
+			</h:panelGroup>
+			<fieldset id="serviceDiv" style="border: 1px solid #D7DAC2; ">
+				<legend>
+					<h:outputText value="#{lblApp.services}" style="font-weight: bold;"/>
+				</legend>
+				<h:panelGroup layout="block"
+							  style="max-height: 150px; width:450px; overflow-y:auto;">
+					<o:treeTable id="serviceTable" var="serviceNode"
+								 expansionState="allExpanded" style="border:0px"
+								 headerRowStyle="background:white" cellpadding="0" cellspacing="0"
+								 preloadedNodes="all" >
+
+						<f:facet name="noDataMessage">
+							<h:panelGroup>
+								<h:outputText value="#{lblCommon['no_records_found']}"/>
+							</h:panelGroup>
+						</f:facet>
+
+						<o:dynamicTreeStructure
+								nodeChildren="#{MbApplicationCreate.serviceNodeChildren}"
+								nodeHasChildren="#{MbApplicationCreate.serviceNodeHasChildren}"
+								nodeKey="#{serviceNode.modelId}" />
+
+						<o:column id="serviceActive" width="3%" align="center">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.active}" />
+							</f:facet>
+							<h:selectBooleanCheckbox value="#{serviceNode.checked}"
+													 onclick="blurAction(this);"
+													 disabled="#{serviceNode.disabled}">
+								<a4j:support event="onchange"
+											 action="#{MbApplicationCreate.changeServiceActivity}"
+											 limitToList="true" reRender="serviceTable" />
+
+							</h:selectBooleanCheckbox>
+						</o:column>
+
+						<o:treeColumn id="serviceName" sortBy="#{'label'}" width="30%">
+							<h:outputText value="#{serviceNode.label}" rendered="#{!serviceNode.checkedOld or (!serviceNode.disabled and serviceNode.checked)}"/>
+							<h:outputText value="#{serviceNode.label}" rendered="#{serviceNode.checkedOld and (serviceNode.disabled or !serviceNode.checked)}" style="font-weight: bold;"/>
+						</o:treeColumn>
+
+						<o:column id="serviceEdit" width="3%" style="margin-left:50%"
+								  align="center">
+							<f:facet name="header">
+								<h:outputText value="#{lblForm.edit}" />
+							</f:facet>
+							<h:selectBooleanCheckbox value="#{serviceNode.edit}"
+													 rendered="#{serviceNode.checkedOld}" disabled="#{serviceNode.initial and MbApplicationCreate.disabled}"
+									/>
+							<h:selectBooleanCheckbox value="#{serviceNode.edit}"
+													 rendered="#{!serviceNode.checkedOld}" disabled="true" />
+						</o:column>
+
+					</o:treeTable>
+				</h:panelGroup>
+			</fieldset>
+
+			<script>
+				var parentMerchantRequired = #{MbApplicationCreate.parentMerchantRequired};				
+			</script>
+
+			<a4j:outputPanel
+				rendered="#{MbApplicationCreate.renderParentMerchant}">
+				<fieldset id="parentMerchantDiv" style="border: 1px solid #D7DAC2;" >
+					<legend>
+						<h:outputText value="#{lblApp.parent_merchant}" style="font-weight: bold;"/>
+					</legend>
+					<ui:remove>
+						<h:selectOneMenu id="parentMerchant" 
+							value="#{MbApplicationCreate.parentMerchantId}"
+							label="#{lblApp.parent_merchant}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbApplicationCreate.branchMerchants}" />
+							<a4j:support event="onchange" reRender="nextbutton, finishbutton" ajaxSingle="true"/> 
+						</h:selectOneMenu>
+					</ui:remove>
+					<rich:dragIndicator id="indicator1">
+						<f:facet name="single">
+							<h:graphicImage styleClass="indicatorPicture"
+								value="/richfaces/jQuery/images/{draggedImage}" />
+						</f:facet>
+					</rich:dragIndicator>
+
+					<rich:dragIndicator id="indicator2" />
+					
+					<ui:remove>
+					<rich:tree ajaxKeys="#{null}" style="width:100px"
+						nodeSelectListener="#{MbApplicationCreate.processSelection}"
+						switchType="client" dragIndicator="indicator2"
+						value="#{MbApplicationCreate.treeNode}" var="item" id="tree"
+						treeNodeVar="treeNode"
+						dropListener="#{MbApplicationCreate.dropListener}"
+						nodeFace="#{item.type}">
+						<rich:treeNode type="existing" acceptedTypes="newMerchant">
+							<h:outputText value="#{item.data}" />
+						</rich:treeNode>
+						<rich:treeNode type="root" acceptedTypes="newMerchant">
+							<h:outputText value="#{item.data}" />
+						</rich:treeNode>
+						<rich:treeNode type="new" dragType="newMerchant"
+							acceptedTypes="newMerchant">
+							<rich:dndParam name="label" type="drag">#{item.data}</rich:dndParam>
+							<h:outputText value="new #{item.data}" />
+						</rich:treeNode>
+					</rich:tree>
+					</ui:remove>
+					
+					<h:selectOneListbox id = "MerchantList" dragIndicator="indicator2"
+					 size="5" value="#{MbApplicationCreate.parentMerchantId}"
+						label="#{lblApp.parent_merchant}">
+						<f:selectItems value="#{MbApplicationCreate.merchant}"/>
+						<a4j:support event="onchange" reRender="nextbutton, finishbutton" ajaxSingle="true"/>
+					</h:selectOneListbox>
+				</fieldset>
+			</a4j:outputPanel>
+
+			<a4j:outputPanel
+				rendered="#{MbApplicationCreate.hasCards and MbApplicationCreate.branchEntity == 'ENTTACCT'}">
+				<fieldset id="cardsDiv" style="border: 1px solid #D7DAC2;">
+					<legend>
+						<h:outputText value="#{lblApp.cards}" style="font-weight: bold;"/>
+					</legend>
+					<h:panelGroup layout="block"
+						style="max-height: 150px; width:250px; overflow-y:auto;">
+
+						<table id="cards">
+							<a4j:repeat value="#{MbApplicationCreate.toLinkCards}"
+								var="card">
+								<tr>
+									<td><h:selectBooleanCheckbox id="card"
+											value="#{card.checked}" styleClass="childCheckBox" /></td>
+
+									<td><h:outputText value="#{card.mask}" rendered="#{card.mask != null}"/>
+										<h:outputText value="#{card.number}" rendered="#{card.mask == null}"/>
+									</td>
+								</tr>
+							</a4j:repeat>
+						</table>
+					</h:panelGroup>
+				</fieldset>
+			</a4j:outputPanel>
+
+			<a4j:outputPanel
+				rendered="#{MbApplicationCreate.hasMerchants and MbApplicationCreate.branchEntity == 'ENTTACCT'}">
+				<fieldset id="merchantsDiv" style="border: 1px solid #D7DAC2;">
+					<legend>
+						<h:outputText value="#{lblApp.merchants}" style="font-weight: bold;"/>
+					</legend>
+					<h:panelGroup layout="block"
+						style="max-height: 150px; width:250px; overflow-y:auto;">
+
+						<table id="merchants">
+							<a4j:repeat value="#{MbApplicationCreate.toLinkMerchants}"
+								var="merch">
+								<tr>
+									<td><h:selectBooleanCheckbox id="merch"
+											value="#{merch.checked}" styleClass="childCheckBox" /></td>
+
+									<td><h:outputText value="#{merch.number}" /></td>
+								</tr>
+							</a4j:repeat>
+						</table>
+					</h:panelGroup>
+				</fieldset>
+			</a4j:outputPanel>
+
+			<a4j:outputPanel
+				rendered="#{MbApplicationCreate.hasTerminals and MbApplicationCreate.branchEntity == 'ENTTACCT'}">
+				<fieldset id="terminalsDiv" style="border: 1px solid #D7DAC2;">
+					<legend>
+						<h:outputText value="#{lblApp.terminals}" style="font-weight: bold;"/>
+					</legend>
+					<h:panelGroup layout="block"
+						style="max-height: 150px; width:250px; overflow-y:auto;">
+
+						<table id="terminals">
+							<a4j:repeat value="#{MbApplicationCreate.toLinkTerminals}"
+								var="term">
+								<tr>
+									<td><h:selectBooleanCheckbox id="term"
+											value="#{term.checked}" styleClass="childCheckBox" /></td>
+
+									<td><h:outputText value="#{term.number}" /></td>
+								</tr>
+							</a4j:repeat>
+						</table>
+					</h:panelGroup>
+				</fieldset>
+			</a4j:outputPanel>
+
+			<a4j:outputPanel
+				rendered="#{MbApplicationCreate.hasAccounts and MbApplicationCreate.branchEntity == 'ENTTCARD' or MbApplicationCreate.branchEntity == 'ENTTMRCH' or MbApplicationCreate.branchEntity == 'ENTTTRMN'}">
+				<fieldset id="accountsDiv" style="border: 1px solid #D7DAC2;">
+					<legend>
+						<h:outputText value="#{lblApp.accounts}" style="font-weight: bold;"/>
+					</legend>
+					<h:panelGroup layout="block"
+						style="max-height: 150px; width:250px; overflow-y:auto;">
+
+						<table id="accounts">
+							<a4j:repeat value="#{MbApplicationCreate.toLinkAccounts}"
+								var="acct1">
+								<tr>
+									<td><h:selectBooleanCheckbox id="acct1"
+											value="#{acct1.checked}" styleClass="childCheckBox" /></td>
+
+									<td><h:outputText value="#{acct1.number}" /></td>
+								</tr>
+							</a4j:repeat>
+						</table>
+					</h:panelGroup>
+				</fieldset>
+			</a4j:outputPanel>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="5" columnClasses="width99P,,,,">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.back}" id="backbutton" style="height:26px"
+							rendered="#{MbApplicationCreate.hasBackInWizard}"
+							action="#{MbApplicationCreate.back}" oncomplete="if(!#{MbApplicationCreate.hasBackInWizard}) {Richfaces.hideModalPanel('add_branch_panel'); Richfaces.showModalPanel('appPanel',{top:50});}"
+							reRender="#{viewIdColon}addBranchDiv, #{viewIdColon}addBranchHeader, backbutton" />
+						<bre:taggedCommandButton value="#{lblForm.next}" id="nextbutton" style="height:26px"
+							rendered="#{!MbApplicationCreate.renderFinishButton}"
+							oncomplete="if (#{MbApplicationCreate.closeWizard}){finish();}"
+							action="#{MbApplicationCreate.next}"
+							reRender="#{viewIdColon}addBranchDiv, #{viewIdColon}addBranchHeader" />
+						<bre:taggedCommandButton value="#{lblForm.finish}" id="finishbutton" style="height:26px"
+							rendered="#{MbApplicationCreate.renderFinishButton}"
+							action="#{MbApplicationCreate.finish}" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}" style="height:26px"
+							id="hidebutton2" immediate="true" 
+							reRender="#{viewIdColon}appCreateForm">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+
+						<rich:componentControl for="#{viewIdColon}add_branch_panel"
+							attachTo="#{viewIdColon}addBranchDiv:hidebutton2"
+							operation="hide" event="onclick" />
+						<rich:componentControl for="#{viewIdColon}appPanel"
+							attachTo="#{viewIdColon}addBranchDiv:hidebutton2"
+							operation="hide" event="onclick" />
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<ui:include
+		src="/pages/acquiring/applications/contractsForApplication.jspx">
+		<ui:param name="viewId" value="#{viewId}" />
+		<ui:param name="viewIdColon" value="#{viewIdColon}" />
+	</ui:include>
+
+	<ui:include src="/pages/acquiring/applications/customersListModalPanel.jspx" >
+		<ui:param name="viewId" value="#{viewId}" />
+		<ui:param name="viewIdColon" value="#{viewIdColon}" />
+	</ui:include>
+
+	<ui:include src="/pages/acquiring/applications/operationsListModalPanel.jspx" >
+		<ui:param name="viewId" value="#{viewId}" />
+		<ui:param name="viewIdColon" value="#{viewIdColon}" />
+	</ui:include>
+
+	<h:form>
+		<a4j:jsFunction name="flush" action="#{MbApplicationCreate.flush}" />
+	</h:form>
+
+</ui:composition>
+</html>

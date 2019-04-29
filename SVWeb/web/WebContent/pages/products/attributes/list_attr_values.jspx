@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:fmt="http://www.bpc.ru/el/formatter">
+<ui:composition>
+	<style type="text/css">
+	.noBorder {
+		border-width: 0 !important;
+	}
+	.thinLine {
+		line-height: 10px !important;
+	}
+	</style>
+	
+	<script type="text/javascript">//<!--
+		function checkAttrValueFields() {
+			var checked = true;
+			
+			checked = checkField('attrValueEditForm:attrValueV') && checked;
+			checked = checkField('attrValueEditForm:attrValueN') && checked;
+			checked = checkField('attrValueEditForm:attrLovValueV') && checked;
+			checked = checkField('attrValueEditForm:attrLovValueN') && checked;
+			
+			var elD = document.getElementById('attrValueEditForm:attrValueDInputDate');
+			if (elD != null && elD.value == "") {
+				document.getElementById('attrValueEditForm:attrValueDError').style.display = "inline";
+				checked = false;
+			}
+
+			return checked;
+		}
+
+		//-->
+	</script>
+
+	<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul"/>
+	<f:loadBundle var="lblCmpn" basename="ru.bpc.sv2.ui.bundles.Cmpn"/>
+
+	<h:form id="attrValuesForm">
+		<h:panelGroup id="attrValuesTableWrapper" layout="block" style="padding:0px;margin:0px;">
+			<rich:extendedDataTable
+					id="attrValuesTable"
+					styleClass="res-table" 
+					headerClass="res-table-header table-header-ext"
+					rowClasses=",odd"
+					selectedClass="res-table-selected"  
+					var="item"
+					value="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).attributeValues}"
+					selection="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).itemSelection}"
+                    rows="0" height="220px"
+					width="100%"
+					selectionMode="single"
+					enableContextMenu="true"
+					tableState="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+				<a4j:support event="onselectionchange" reRender="btnPanel" />
+
+		       	<rich:column id="inherited_text" width="7%" style="padding:0;text-align: center">
+					<h:graphicImage value="/images/arrow-down-green.png" 
+							rendered="#{(not (attrValuesBean==null ? MbAttributeValues : attrValuesBean).product and item.ownerProductId != null)
+									or ((attrValuesBean==null ? MbAttributeValues : attrValuesBean).product and item.inherited)}"
+							title="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).inheritedText}">
+					</h:graphicImage>
+		       	</rich:column>
+
+		        <rich:column id="mod_name" label="#{lblAcq.mod_name}" title="Mod" width="18%" sortBy="#{'modName'}">
+					<f:facet name="header">
+						<h:panelGroup>         
+							<script>if (#{(attrValuesBean==null)}) updateHeight(); else updateContextHeight('accountDetailsModalPanel');</script>
+							<h:outputText value="#{lblAcq.mod_name}" title="#{lblAcq.mod_name}"/>
+						</h:panelGroup>
+					</f:facet>
+	                <h:outputText value="#{item.modPriority} - #{item.modName}"
+	                		title="#{item.modPriority} - #{item.modName}"
+	                		rendered="#{item.modPriority != null}"/>
+	                <h:outputText value="#{item.modName}"
+	                		title="#{item.modName}"
+	                		rendered="#{item.modPriority == null}"/>
+		        </rich:column>
+
+		        <rich:column id="eff_period" label="#{lblCommon.eff_period}" title="Effective period" width="25%" sortBy="#{'startDate'}">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.eff_period}" title="#{lblCommon.eff_period}"/>
+					</f:facet>
+					<f:facet name="filter">
+						<h:panelGroup>
+		                	<h:inputText value="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).effDate}" 
+		                			id="regDateFrom" style="width:80%" 
+									onclick="#{rich:component('dateCalendar')}.customExpand(event, #{rich:element('regDateFrom')}, #{rich:element('regDateFromBtn')});"
+									>
+								<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+								<a4j:support event="onchange" reRender="attrValuesTable"
+										action="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).filterByEffDate}"
+										ajaxSingle="true" limitToList="true"/>
+							</h:inputText>
+							<h:graphicImage
+									value="/images/calendar.gif"
+									onclick="#{rich:component('dateCalendar')}.customExpand(event, #{rich:element('regDateFrom')}, #{rich:element('regDateFromBtn')});"
+									id="regDateFromBtn" />	
+		                </h:panelGroup>
+						
+					</f:facet>
+					
+					<h:outputText 
+							value="#{fmt:formatDateRange(item.startDate, item.endDate, usession.datePattern, CommonUtils.timeZoneId)}"
+							title="#{lblPrd.registered}: #{fmt:formatDate(item.regDate, usession.datePattern, CommonUtils.timeZoneId)}; 
+									#{lblPrd.effective}: #{fmt:formatDateRange(item.startDate, item.endDate, usession.fullDatePattern, CommonUtils.timeZoneId)}"
+							/>
+		        </rich:column>
+
+		        <rich:column id="value" label="#{lblAcq.value}" title="Value" width="30%" sortBy="#{'value'}">
+					<f:facet name="header">
+		            	<h:outputText value="#{lblAcq.value}" title="#{lblAcq.value}"/>
+					</f:facet>
+					
+					<h:outputText style="color: green;" value="*"
+	                		title="#{lblRul.attr_applie}"
+	                		rendered="#{item.actual}"/>
+		               
+					<h:outputText value="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).lovValue}" title="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).lovValue}"
+							rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).attribute.lovId != null}"/>
+					<ui:param name="fclModalPanel" value="#{fullViewIdColon}fclModalPanel" />
+					<a4j:commandLink 
+							 action="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).view}" 
+							 onclick="if (!/extdt-row-selected/.test(jQuery(this).closest('tr').attr('class'))) return false;"
+							 immediate="true"
+							 reRender="#{fullViewIdColon}fclModalHeader, #{fullViewIdColon}fclModalDiv"
+							 oncomplete="if (#{usession.noErrorResponse}) #{rich:component(fclModalPanel)}.show()"
+							 rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).attribute.attrEntityType != null}">
+						<h:outputText value="#{item.valueDesc}" title="#{item.valueDesc}" rendered="#{item.valueDesc != null}"/>
+						<h:outputText value="&#160;" rendered="#{item.valueDesc == null}"/>
+					</a4j:commandLink>
+					<h:panelGroup rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).attribute.attrEntityType == null and (attrValuesBean==null ? MbAttributeValues : attrValuesBean).attribute.lovId == null}">
+			       		<h:outputText value="#{item.valueV}" title="#{item.valueV}"
+			       				rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).charValue}"
+			       				/>
+			       		<h:outputText value="#{item.valueN}" title="#{item.valueN}"
+			       				rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).numberValue}"
+			       				>
+			       			<bm:convertNumberNew minFractionDigits="0"/>
+			       		</h:outputText>
+			       		<h:outputText value="#{item.valueD}" title="#{item.valueD}"
+								rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).dateValue}">
+							<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+						</h:outputText>
+					</h:panelGroup>
+		        </rich:column>
+
+				<rich:column id="campaign" label="#{lblCmpn.campaign}" title="#{lblCmpn.campaign}" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCmpn.campaign}" title="#{lblCmpn.campaign}"/>
+					</f:facet>
+
+					<h:outputText value="#{item.campaignName}" title="#{item.campaignName}"/>
+				</rich:column>
+		    </rich:extendedDataTable>
+		</h:panelGroup>
+	
+		<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons"
+						  rendered="#{fullViewIdColon==null and attrValuesBean==null}">
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup>
+						<bre:taggedCommandButton id="setBtn"
+												 value="#{lblForm.set}"
+												 reRender="attrValueModalDiv, attrValueModalHeader"
+												 oncomplete="#{rich:component('attrValueModalPanel')}.show()"
+												 action="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).add}"
+												 disabled="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).isDisabled('setBtn')}"
+												 rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).isRendered('setBtn', disableEditing)}"
+												 image="/images/create_doc.gif"/>
+						<bre:taggedCommandButton id="setExtBtn"
+												 value="#{lblForm.set}"
+												 reRender="fclModalHeader, fclModalDiv"
+												 oncomplete="if (#{usession.noErrorResponse}) #{rich:component('fclModalPanel')}.show()"
+												 action="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).add}"
+												 disabled="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).isDisabled('setExtBtn')}"
+												 rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).isRendered('setExtBtn', disableEditing)}"
+												 image="/images/create_doc.gif"/>
+
+						<bre:taggedCommandButton id="editBtn"
+												 value="#{lblForm.edit}"
+												 reRender="attrValueModalDiv, attrValueModalHeader"
+												 oncomplete="#{rich:component('attrValueModalPanel')}.show()"
+												 action="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).edit}"
+												 disabled="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).isDisabled('editBtn')}"
+												 rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).isRendered('editBtn', disableEditing)}"
+												 image="/images/edit.gif"/>
+						<bre:taggedCommandButton id="editExtBtn"
+												 value="#{lblForm.change_period}"
+												 reRender="fclModalHeader, fclModalDiv"
+												 oncomplete="if (#{usession.noErrorResponse}) #{rich:component('fclModalPanel')}.show()"
+												 action="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).edit}"
+												 disabled="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).isDisabled('editExtBtn') }"
+												 rendered="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).isRendered('editExtBtn', disableEditing)}"
+												 image="/images/edit.gif"/>
+					</h:panelGroup>
+
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png"
+										title="#{lblCommon.save_table_state}"
+										styleClass="action_icon"
+										onclick="saveAttrValueTableState();"/>
+						<h:graphicImage url="/images/red-cross.png"
+										title="#{lblCommon.delete_table_state}"
+										styleClass="action_icon"
+										onclick="deleteAttrValueTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveAttrValueTableState"
+										action="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).saveTableStateDB}"
+										eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteAttrValueTableState"
+										action="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).deleteTableStateDB}"
+										eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="attrValueModalPanel" autosized="true" minWidth="200" minHeight="100" trimOverlayedElements="false">
+      	<f:facet name="header">
+      		<h:panelGroup id="attrValueModalHeader">
+	        	<h:outputText value="#{lblPrd.edit_service_term_value}: #{MbAttributeValues.attribute.attributeName}" rendered="#{MbAttributeValues.editMode}"/>
+	        	<h:outputText value="#{lblRul.set_service_term_value}: #{MbAttributeValues.attribute.attributeName}" rendered="#{MbAttributeValues.newMode}"/>
+	        </h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<a4j:outputPanel id="attrValueModalDiv">
+      		<h:form id="attrValueEditForm">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+			        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstCol firstColModal, width250">
+						<h:outputLabel value="#{lblAcq.modifier}: " title="#{lblAcq.modifier}" rendered="#{MbAttributeValues.attribute.scaleId != null}"/>
+						<h:selectOneMenu 
+								id="mod" style="width: 250px;"
+								value="#{MbAttributeValues.newAttributeValue.modId}"
+								rendered="#{MbAttributeValues.attribute.scaleId != null}"
+								>
+						    <f:selectItems value="#{MbAttributeValues.mods}"/>
+						</h:selectOneMenu>
+			
+               			<h:outputLabel value="#{lblAcq.start_date}:" title="#{lblAcq.start_date}"/>
+               			<rich:calendar zindex="1000" buttonIcon="/images/calendar.gif" datePattern="#{usession.fullDatePattern}"
+               					inputStyle="width:218px" id="startDate"
+								value="#{MbAttributeValues.newAttributeValue.startDate}"
+								label="#{lblAcq.start_date}"
+								timeZone="#{CommonUtils.timeZone}"
+								disabled="#{MbAttributeValues.periodStarted}"
+								showApplyButton="true"
+								defaultTime="00:00:00"
+								onchanged="hideErrorDateField(this)">
+						</rich:calendar>
+
+               			<h:outputLabel value="#{lblAcq.end_date}:" title="#{lblAcq.end_date}"/>
+               			<rich:calendar zindex="1000" buttonIcon="/images/calendar.gif" datePattern="#{usession.fullDatePattern}" inputStyle="width:218px"
+								value="#{MbAttributeValues.newAttributeValue.endDate}"
+								timeZone="#{CommonUtils.timeZone}"
+								showApplyButton="true" defaultTime="23:59:59"
+								/>
+
+						<h:outputLabel value="* #{lblAcq.value}: " title="#{lblAcq.value}"/>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0" style="white-space: nowrap"
+								rendered="#{MbAttributeValues.attribute.lovId == null}">
+							<h:inputText style="width: 250px;padding-left:0;padding-right:0" 
+									id="attrValueV" 
+									value="#{MbAttributeValues.newAttributeValue.valueV}"
+									label="#{lblAcq.value}"
+									rendered="#{MbAttributeValues.charValue}"
+									disabled="#{MbAttributeValues.periodStarted}"
+									onblur="hideErrorField(this)">
+							</h:inputText>
+							<a4j:region>
+								<h:inputText style="width: 250px;padding-left:0;padding-right:0" 
+										id="attrValueN" 
+										value="#{MbAttributeValues.newAttributeValue.valueN}"
+										label="#{lblAcq.value}"
+										rendered="#{MbAttributeValues.numberValue}"
+										converterMessage="'#{lblAcq.value}' #{lblMsg.must_be_number}"
+										onkeypress="if (!numbersOnly(this, event, true)) return false;"
+										disabled="#{MbAttributeValues.periodStarted}">
+									<a4j:support event="onchange" reRender="attrValueNErrorMsg" 
+											limitToList="true" ajaxSingle="true"
+											onsubmit="hideErrorField(this)"/>
+									<bm:convertNumberNew minFractionDigits="0"/>
+								</h:inputText>
+							</a4j:region>
+               				<rich:calendar zindex="1000" buttonIcon="/images/calendar.gif" id="attrValueD" datePattern="#{usession.datePattern}" inputStyle="width:225px"
+									value="#{MbAttributeValues.newAttributeValue.valueD}"
+									label="#{lblAcq.value}"
+									rendered="#{MbAttributeValues.dateValue}"
+									timeZone="#{CommonUtils.timeZone}"
+									disabled="#{MbAttributeValues.periodStarted}"
+									onchanged="hideErrorDateField(this)">
+							</rich:calendar>
+							
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="attrValueVError" style="display:none;">
+								<f:param name="fieldName" value="#{lblAcq.value}"/>
+							</h:outputFormat>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="attrValueNError" style="display:none;">
+								<f:param name="fieldName" value="#{lblAcq.value}"/>
+							</h:outputFormat>
+							<rich:message for="attrValueN" 
+									id="attrValueNErrorMsg"
+									styleClass="errorMarker"
+									rendered="#{MbAttributeValues.numberValue}"				
+							/>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="attrValueDError" style="display:none;">
+								<f:param name="fieldName" value="#{lblAcq.value}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0" 
+								rendered="#{MbAttributeValues.attribute.lovId != null}">
+							<h:selectOneMenu label="#{lblAcq.value}"
+									id="attrLovValueN" style="width: 250px;"
+									value="#{MbAttributeValues.newAttributeValue.valueN}"
+									disabled="#{MbAttributeValues.periodStarted}"
+									rendered="#{MbAttributeValues.attribute.lovId != null and MbAttributeValues.numberValue}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+						    	<f:selectItems value="#{MbAttributeValues.lovs}"/>
+							</h:selectOneMenu>
+							
+							<h:selectOneMenu label="#{lblAcq.value}"
+									id="attrLovValueV" style="width: 250px;" 
+									value="#{MbAttributeValues.newAttributeValue.valueV}"
+									disabled="#{MbAttributeValues.periodStarted}"
+									rendered="#{MbAttributeValues.attribute.lovId != null and MbAttributeValues.charValue}"
+									onblur="hideErrorField(this)">
+								<f:selectItem itemValue=""/>
+						    	<f:selectItems value="#{MbAttributeValues.lovs}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="attrLovValueVError" style="display:none;">
+								<f:param name="fieldName" value="#{lblAcq.value}"/>
+							</h:outputFormat>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="attrLovValueNError" style="display:none;">
+								<f:param name="fieldName" value="#{lblAcq.value}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+				    </h:panelGrid>
+				</h:panelGroup>
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:form id="attrValueModalDivButtonsForm">
+							<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+								<h:outputText/>
+
+								<bre:taggedCommandButton value="#{lblForm.save}"
+														 action="#{MbAttributeValues.save}"
+														 reRender="attrValuesForm:attrValuesTable, attrValuesForm:btnPanel"
+														 onclick="if (!checkAttrValueFields()) return false;
+														          disableModalPanelBtns(this)"
+														 oncomplete="enableModalPanelBtns(this);
+														             if (#{usession.noErrorResponse})
+														             #{rich:component('attrValueModalPanel')}.hide()"
+														 type="submit"/>
+
+								<bre:taggedCommandButton value="#{lblForm.cancel}"
+														 action="#{MbAttributeValues.cancel}"
+														 oncomplete="#{rich:component('attrValueModalPanel')}.hide()"
+														 immediate="true"
+														 limitToList="true"/>
+							</h:panelGrid>
+						</h:form>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</a4j:outputPanel>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="fclModalPanel" autosized="true" width="900" height="575" trimOverlayedElements="false">
+      	<f:facet name="header">
+      		<h:panelGroup id="fclModalHeader">
+	        	<h:outputText value="#{lblRul.set_service_term_value}: #{MbAttributeValues.attribute.attributeName}" rendered="#{MbFclObjects.newMode}"/>
+	        	<h:outputText value="#{lblCommon.change_eff_period}" rendered="#{MbFclObjects.editMode}"/>
+	        	<h:outputText value="#{lblRul.view_service_term_value}: #{MbAttributeValues.attribute.attributeName}" rendered="#{MbFclObjects.viewMode}"/>
+        	</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls"/>
+		<h:panelGroup id="fclModalDiv">
+			<ui:include src="/pages/fee_cycle_limit/edit_fcl.jspx">
+				<ui:param name="enableBoundsEdit"
+						  value="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).enableBoundsEdit}"/>
+				<ui:param name="parentLimitId"
+						  value="#{(attrValuesBean==null ? MbAttributeValues : attrValuesBean).parentLimit}"/>
+			</ui:include>
+
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons" style="position: absolute; left: 0; width: 100%; bottom: 0;">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+					<h:form id="fclButtonsForm">
+						<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+							<h:outputText/>
+
+							<bre:taggedCommandButton value="#{lblForm.save}"
+													 action="#{MbFclObjects.save}"
+													 onclick="if (!checkFclForm()) return false;
+													          disableModalPanelBtns(this);"
+													 reRender="attrValuesTable"
+													 oncomplete="enableModalPanelBtns(this);
+													             if (#{usession.noErrorResponse})
+													             #{rich:component('fclModalPanel')}.hide()"
+													 type="submit"
+													 rendered="#{!MbFclObjects.viewMode}"/>
+
+							<bre:taggedCommandButton value="#{lblForm.cancel}"
+													 action="#{MbFclObjects.cancel}"
+													 oncomplete="#{rich:component('fclModalPanel')}.hide()"
+													 rendered="#{!MbFclObjects.viewMode}"
+													 immediate="true"/>
+
+							<bre:taggedCommandButton value="#{lblForm.close}"
+													 action="#{MbFclObjects.cancel}"
+													 oncomplete="#{rich:component(fclModalPanel)}.hide()"
+													 rendered="#{MbFclObjects.viewMode}"
+													 immediate="true"/>
+						</h:panelGrid>
+					</h:form>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:panelGroup>
+	</rich:modalPanel>
+</ui:composition>
+</html>

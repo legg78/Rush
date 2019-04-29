@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:c="http://java.sun.com/jstl/core">
+<ui:composition>
+	<h:panelGroup id="togglePanel">
+		<script type="text/javascript">
+	//<!--
+		function checkFeesForm() {
+			var checked = true;
+			var isFixedRate = #{MbFclObjects.fixedValueFee};
+
+			// all elements from columnGroup are considered to be in one row, so they
+			// all have "0" index in their id between table's id and element's id
+			if (document.getElementById("feesForm:feeParamsTable:0:feeCurrency").value == "") {
+				document.getElementById("feesForm:feeParamsTable:0:feeCurrencyError").style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById("feesForm:feeParamsTable:0:feeRateCalc").value == "") {
+				document.getElementById("feesForm:feeParamsTable:0:feeRateCalcError").style.display = "inline";
+				checked = false;
+			}
+			if (!isFixedRate && document.getElementById("feesForm:feeParamsTable:0:feeBaseCalc") != null
+					&& document.getElementById("feesForm:feeParamsTable:0:feeBaseCalc").value == "") {
+				document.getElementById("feesForm:feeParamsTable:0:feeBaseCalcError").style.display = "inline";
+				checked = false;
+			}
+
+			return checked;
+		}
+
+		function hideLimitError(){
+			document.getElementById("limitsForm:limCurrencyError").style.display = "none";
+		}
+		//-->
+		</script>
+	</h:panelGroup>
+
+	<h:form id="feesForm">
+		<rich:dataTable id="feeParamsTable"
+				value="#{MbFclObjects.feeFlexFields}" 
+				var="field" rowKeyVar="index"
+				styleClass="cardholderdata noBorder" width="100%" 
+				columnClasses="firstCol alignLeft noBorder, width250 noBorder">
+			<rich:columnGroup rendered="#{index == 0}" columnClasses="firstCol alignLeft noBorder, width250 noBorder">
+				<rich:column>
+					<h:outputLabel for="feeCurrency" value="* #{lblCommon.currency}: " title="#{lblCommon.currency}"/>
+				</rich:column>
+				<rich:column>
+					<a4j:region>
+						<h:panelGrid cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="feeCurrency" value="#{MbFclObjects.fee.currency}"
+									disabled="#{!MbFclObjects.newMode 
+											or MbFclObjects.feeMode == MbFclObjects.applyValue
+											or MbFclObjects.tiersAvailable}"
+									>
+								<a4j:support event="onchange" reRender="feeTiersForm, limitsForm:limCurrency" 
+										limitToList="true" ajaxSingle="true"
+										action="#{MbFclObjects.changeFeeCurrency}"
+										oncomplete="hideLimitError();"
+										onsubmit="hideErrorField(this)"/>
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="feeCurrencyError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.currency}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</a4j:region>
+				</rich:column>
+				
+				<rich:column breakBefore="true">
+					<h:outputLabel for="feeRateCalc" value="* #{lblFcl.fee_rate_calc}: " title="#{lblFcl.fee_rate_calc}"/>
+				</rich:column>
+				<rich:column>
+					<a4j:region>
+						<h:panelGrid cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="feeRateCalc"  
+									value="#{MbFclObjects.fee.feeRateCalc}"
+									disabled="#{!MbFclObjects.newMode
+											or MbFclObjects.feeMode == MbFclObjects.applyValue
+											or MbFclObjects.tiersAvailable}"
+									valueChangeListener="#{MbFclObjects.changeFeeRateCalc}"
+									>
+								<a4j:support event="onchange" 
+										reRender="feeTiersForm, feeBaseCalcLabelBlock, feeBaseCalcBlock, togglePanel"
+										limitToList="true" ajaxSingle="true"
+										onsubmit="hideErrorField(this)"
+										/>
+								<a4j:support event="onblur" reRender="feeRateCalcError" limitToList="true" ajaxSingle="true"/>
+								<f:selectItems value="#{MbFclObjects.feeRatesCalc}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="feeRateCalcError" style="display:none;">
+								<f:param name="fieldName" value="#{lblFcl.fee_rate_calc}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</a4j:region>
+				</rich:column>
+
+				<rich:column breakBefore="true">
+					<h:panelGroup id="feeBaseCalcLabelBlock">
+						<h:outputLabel for="feeBaseCalc" value="* #{lblFcl.fee_base_calc}: " title="#{lblFcl.fee_base_calc}"
+									   rendered="#{!MbFclObjects.fixedValueFee}"/>
+						<h:outputLabel for="feeBaseCalc" value="#{lblFcl.fee_base_calc}: " title="#{lblFcl.fee_base_calc}"
+									   rendered="#{MbFclObjects.fixedValueFee}"/>
+					</h:panelGroup>
+				</rich:column>
+				<rich:column>
+					<a4j:region>
+						<h:panelGrid cellpadding="0" cellspacing="0" id="feeBaseCalcBlock">
+							<h:selectOneMenu id="feeBaseCalc"  
+									value="#{MbFclObjects.fee.feeBaseCalc}"
+									disabled="#{!MbFclObjects.newMode
+											or MbFclObjects.feeMode == MbFclObjects.applyValue}"
+									onchange="hideErrorField(this)"
+									>
+								<a4j:support event="onblur" reRender="feeBaseCalc" limitToList="true" ajaxSingle="true"/>
+								<f:selectItems value="#{MbFclObjects.feeBasesCalc}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="feeBaseCalcError" style="display:none;">
+								<f:param name="fieldName" value="#{lblFcl.fee_base_calc}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</a4j:region>
+				</rich:column>
+			</rich:columnGroup>
+			
+			<rich:column>
+				<h:outputLabel value="#{field.name}: " title="#{field.name}" rendered="#{field.name != null}"/>
+				<h:outputLabel value="#{field.systemName}: " title="#{field.systemName}" rendered="#{field.name == null and field.systemName != null}"/>
+				<h:outputLabel value=" " rendered="#{field.name == null and field.systemName == null}" title="" />
+			</rich:column>
+			
+			<rich:column>
+				<h:outputLabel value=" " rendered="#{field.id == null}" title="" />
+				
+				<h:inputText rendered="#{field.dataType == 'DTTPCHAR' and field.lovId == null}"
+                		id="charField#{field.fieldId}" value="#{field.valueV}"
+                		disabled="#{!MbFclObjects.newMode || MbFclObjects.feeMode == MbFclObjects.applyValue}">
+                	<a4j:support event="onblur" reRender="charField#{field.fieldId}" 
+                			limitToList="true" ajaxSingle="true"/>
+                </h:inputText>
+
+                <h:inputText rendered="#{field.dataType == 'DTTPNMBR' and field.lovId == null}"
+                		id="numField#{field.fieldId}" value="#{field.valueN}"
+                		disabled="#{!MbFclObjects.newMode || MbFclObjects.feeMode == MbFclObjects.applyValue}">
+                	<a4j:support event="onblur" reRender="numField#{field.fieldId}" 
+                			limitToList="true" ajaxSingle="true"/>
+                </h:inputText>
+				
+				<rich:calendar buttonIcon="/images/calendar.gif" rendered="#{field.dataType == 'DTTPDATE' and field.lovId == null}"
+				    	id="dateField#{field.fieldId}" value="#{field.valueD}"
+				    	timeZone="#{CommonUtils.timeZone}" zindex="1000"
+				    	datePattern="#{usession.datePattern}"
+				    	disabled="#{!MbFclObjects.newMode || MbFclObjects.feeMode == MbFclObjects.applyValue}">
+                	<a4j:support event="onblur" reRender="dateField#{field.fieldId}" 
+                			limitToList="true" ajaxSingle="true"/>
+				</rich:calendar>
+				
+                <h:selectOneMenu rendered="#{field.dataType == 'DTTPNMBR' and field.lovId != null}"
+                		id="lovNumField#{field.fieldId}" value="#{field.valueN}"
+                		disabled="#{!MbFclObjects.newMode || MbFclObjects.feeMode == MbFclObjects.applyValue}">
+                	<a4j:support event="onblur" reRender="lovNumField#{field.fieldId}" 
+                			limitToList="true" ajaxSingle="true"/>
+                	<f:selectItem itemValue=""/>
+                	<f:selectItems value="#{MbFclObjects.listValues}"/>
+                </h:selectOneMenu>
+
+				<h:selectOneMenu rendered="#{field.dataType == 'DTTPCHAR' and field.lovId != null}"
+                		id="lovCharField#{field.fieldId}" value="#{field.valueV}"
+                		disabled="#{!MbFclObjects.newMode || MbFclObjects.feeMode == MbFclObjects.applyValue}">
+                	<a4j:support event="onblur" reRender="lovCharField#{field.fieldId}" 
+                			limitToList="true" ajaxSingle="true"/>
+                	<f:selectItem itemValue=""/>
+                	<f:selectItems value="#{MbFclObjects.listValues}"/>
+                </h:selectOneMenu>
+                
+                <h:selectOneMenu rendered="#{field.dataType == 'DTTPDATE' and field.lovId != null}"
+                		id="lovDateField#{field.fieldId}" value="#{field.valueD}"
+                		disabled="#{!MbFclObjects.newMode || MbFclObjects.feeMode == MbFclObjects.applyValue}">
+                	<a4j:support event="onblur" reRender="lovDateField#{field.fieldId}" 
+                			limitToList="true" ajaxSingle="true"/>
+                	<f:selectItem itemValue=""/>
+                	<f:selectItems value="#{MbFclObjects.listValues}"/>
+                </h:selectOneMenu>
+            </rich:column>
+		</rich:dataTable>
+	</h:form>	
+	<ui:include src="/pages/fee_cycle_limit/fees/list_fee_tiers.jspx">
+		<ui:param name="tableHeight" value="195px"/>
+		<ui:param name="renderBtns" value="true"/>
+		<ui:param name="currencyElemId" value="feesForm:feeParamsTable:0:feeCurrency"/>
+		<ui:param name="feeRateCalcId" value="feesForm:feeParamsTable:0:feeRateCalc"/>
+	</ui:include>
+</ui:composition>
+</html>

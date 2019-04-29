@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+        PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+        "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="userGroups">
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+
+    <sql id="limitationOpen">
+        SELECT *
+        FROM (
+    </sql>
+
+    <sql id="limitationOpenCount">
+        SELECT count(*)
+        FROM (
+    </sql>
+
+    <sql id="limitationClose">
+        ) q
+        <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+
+    <sql id="paginatedOpen">
+        SELECT *
+        FROM(
+        SELECT a.*, rownum r
+        FROM(
+        <include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+        <include refid="limitationClose"/>
+        ) a
+        WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+        )
+        WHERE r >= (#range.start# + 1)
+    </sql>
+
+    <resultMap id="mapping-group" class="ru.bpc.sv2.administrative.groups.Group">
+        <result property="id" column="id"/>
+        <result property="name" column="description"/>
+        <result property="instId" column="inst_id"/>
+        <result property="lang" column="lang"/>
+    </resultMap>
+
+    <resultMap id="mapping-group-full" extends="mapping-group" class="ru.bpc.sv2.administrative.groups.Group">
+        <result property="seqnum" column="seqnum"/>
+    </resultMap>
+
+    <select id="get-groups" parameterClass="qparams" resultMap="mapping-group-full">
+        <include refid="paginatedOpen"/>
+        SELECT
+              g.id
+            , g.description
+            , g.inst_id
+            , g.seqnum
+            , g.lang
+        FROM
+              acm_ui_group_vw g
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">g.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(g.description) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">g.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">g.inst_id = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="id">g.id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="name">upper(g.description) $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-groups-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+        SELECT
+            *
+        FROM
+            acm_ui_group_vw g
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">g.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(g.description) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="id">g.id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">g.inst_id = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+
+    <procedure id="add-group" parameterClass="ru.bpc.sv2.administrative.groups.Group">
+        {call acm_ui_group_pkg.add_group(
+            o_id            => #id,jdbcType=NUMERIC,mode=OUT#
+            , o_seqnum      => #seqnum,jdbcType=NUMERIC,mode=OUT#
+            , i_inst_id     => #instId#
+            , i_name        => #name#
+            , i_lang        => #lang#
+        )}
+    </procedure>
+
+    <procedure id="modify-group" parameterClass="ru.bpc.sv2.administrative.groups.Group">
+        {call acm_ui_group_pkg.modify_group(
+            i_id            => #id#
+            , io_seqnum     => #seqnum,jdbcType=NUMERIC,mode=INOUT#
+            , i_inst_id     => #instId#
+            , i_name        => #name#
+            , i_lang        => #lang#
+        )}
+    </procedure>
+
+    <procedure id="attach-user" parameterClass="java.util.Map">
+        {call acm_ui_group_pkg.attach_user(
+        i_group_id          => #groupId#
+        , i_user_id         => #userId#
+        )}
+    </procedure>
+
+    <procedure id="detach-user" parameterClass="java.util.Map">
+        {call acm_ui_group_pkg.detach_user(
+        i_group_id          => #groupId#
+        , i_user_id         => #userId#
+        )}
+    </procedure>
+
+
+
+    <resultMap id="mapping-user" class="ru.bpc.sv2.administrative.users.User">
+        <result property="id" column="user_id"/>
+        <result property="name" column="user_name"/>
+        <result property="personId" column="person_id"/>
+        <result property="status" column="user_status"/>
+        <result property="person" resultMap="userGroups.mapping-person"/>
+    </resultMap>
+
+    <resultMap id="mapping-person" class="ru.bpc.sv2.common.Person">
+        <result property="personId" column="person_id"/>
+        <result property="lang" column="lang"/>
+        <result property="title" column="title"/>
+        <result property="firstName" column="first_name"/>
+        <result property="secondName" column="second_name"/>
+        <result property="surname" column="surname"/>
+    </resultMap>
+
+    <select id="get-users-by-group" parameterClass="qparams" resultMap="mapping-user" >
+        <include refid="limitationOpen"/>
+        select u.user_id
+        , u.user_name
+        , u.user_status
+        , u.person_id
+        , u.lang
+        , u.title
+        , u.first_name
+        , u.second_name
+        , u.surname
+        from acm_ui_user_group_vw u
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">u.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(u.user_name) like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="groupId">u.group_id = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="name">upper(u.user_name) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="status">u.user_status $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+
+
+    <select id="get-groups-by-user" parameterClass="qparams" resultMap="mapping-group" >
+        <include refid="limitationOpen"/>
+        select u.group_id as id
+        , u.group_name as description
+        , u.group_inst_id as inst_id
+        , u.lang as lang
+        from acm_ui_user_group_vw u
+        <iterate prepend="WHERE" conjunction="AND" property="filters">
+            <isEqual property="filters[].element" compareValue="lang">u.lang = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="userId">u.user_id = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="AUTO">
+                <isEqual property="sorting[].property" compareValue="name">upper(u.user_name) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="status">u.user_status $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+</sqlMap>

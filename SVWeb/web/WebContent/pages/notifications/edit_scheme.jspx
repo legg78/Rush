@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+<h:form id="schemeEditForm">
+	<script type="text/javascript">
+//<!--
+		oldValue["schemeEditForm"] = "#{MbSchemes.newScheme.lang}";
+		
+		function checkSchemeFields() {
+			var checked = true;
+			
+			if (!document.getElementById('schemeEditForm:schemeType').disabled
+					&& document.getElementById('schemeEditForm:schemeType').value == "") {
+				document.getElementById('schemeEditForm:schemeTypeError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (!document.getElementById('schemeEditForm:instId').disabled
+					&& document.getElementById('schemeEditForm:instId').value == "") {
+				document.getElementById('schemeEditForm:instIdError').style.display = "inline";
+				checked = false;
+			}		
+			if (document.getElementById('schemeEditForm:name').value == "") {
+				document.getElementById('schemeEditForm:nameError').style.display = "inline";
+				checked = false;
+			}	
+			
+			return checked;
+		}
+	//-->
+	</script>
+	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+
+			<h:outputLabel value="#{lblCommon.id}: " title="#{lblCommon.id}" rendered="#{MbSchemes.editMode}"/>
+			<h:inputText readonly="true"
+					rendered="#{MbSchemes.editMode}"
+					value="#{MbSchemes.newScheme.id}"/>
+
+			<h:outputLabel value="* #{lblNtf.scheme_type}: " title="#{lblNtf.scheme_type}"/>
+			<a4j:region>
+				<h:panelGrid cellpadding="0" cellspacing="0">
+					<h:selectOneMenu id="schemeType" 
+							value="#{MbSchemes.newScheme.schemeType}"
+							label="#{lblNtf.scheme_type}"
+							disabled="#{MbSchemes.editMode}"
+							onblur="hideErrorField(this)">
+						<f:selectItem itemValue=""/>
+						<f:selectItems value="#{MbSchemes.schemeTypes}"/>
+					</h:selectOneMenu>
+					<rich:message for="schemeType" id="schemeTypeErr" styleClass="errorMarker"/>
+					<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+						id="schemeTypeError" style="display:none;">
+						<f:param name="fieldName" value="#{lblNtf.scheme_type}"/>
+					</h:outputFormat>
+				</h:panelGrid>
+			</a4j:region>
+
+			<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+			<h:panelGrid cellpadding="0" cellspacing="0">
+				<h:selectOneMenu id="instId" 
+						value="#{MbSchemes.newScheme.instId}"
+						disabled="#{MbSchemes.editMode}"
+						label="#{lblCommon.institution}"
+						onblur="hideErrorField(this)">
+					<f:selectItem itemValue=""/>
+					<f:selectItems value="#{MbSchemes.institutions}"/>
+				</h:selectOneMenu>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="instIdError" style="display:none;">
+					<f:param name="fieldName" value="#{lblCommon.institution}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+
+			<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}"/>
+			<h:selectOneMenu id="lang" rendered="#{MbSchemes.newMode}"
+					value="#{MbSchemes.newScheme.lang}">
+			    <f:selectItems value="#{MbSchemes.languages}"/>
+			</h:selectOneMenu>
+			<h:selectOneMenu id="editLang" value="#{MbSchemes.newScheme.lang}"
+					rendered="#{MbSchemes.editMode}"
+					onchange="document.getElementById('scheme:confirmPanelForm:newValue').value = this.value;
+							#{rich:component('scheme:confirmPanel')}.show()">
+				<f:selectItems value="#{MbSchemes.languages}"/>
+			</h:selectOneMenu>
+			
+			<h:outputLabel value="* #{lblCommon.name}: " title="#{lblCommon.name}"/>
+			<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+				<h:inputText id="name" value="#{MbSchemes.newScheme.name}"
+						maxlength="200" label="#{lblCommon.name}"
+						onblur="hideErrorField(this)">					
+					<f:validateLength minimum="3"/>
+					<a4j:support event="onchange" reRender="nameErr" limitToList="true" ajaxSingle="true"/>					
+				</h:inputText>
+				<rich:message for="name" id="nameErr" styleClass="errorMarker"/>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="nameError" style="display:none;">
+					<f:param name="fieldName" value="#{lblCommon.name}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+			
+			<h:outputLabel value="#{lblCommon.description}: " title="#{lblCommon.description}"/>
+			<h:inputTextarea id="fullDesc" value="#{MbSchemes.newScheme.description}"
+					rows="4" 
+					onkeypress="if (!limitText(event,this,2000)) return false;" 
+					label="#{lblCommon.description}">
+				<f:validateLength maximum="2000" />
+			</h:inputTextarea>	
+		</h:panelGrid>
+
+	</h:panelGroup>
+	<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+		<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+				<h:outputText/>
+				<bre:taggedCommandButton
+						value="#{lblForm.save}" type="submit" action="#{MbSchemes.save}"
+						oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('ntfSchemeModalPanel')}.hide()"
+						onclick="if (!checkSchemeFields()) return false; disableModalPanelBtns(this)"
+						reRender="schemesForm:schemesTable, detailsTab, schemesDs, pagesNum,
+							schemesForm:btnPanel, eventsTab"
+						/>
+				<bre:taggedCommandButton
+						value="#{lblForm.cancel}"
+						action="#{MbSchemes.cancel}"
+						immediate="true" limitToList="true"
+						oncomplete="#{rich:component('ntfSchemeModalPanel')}.hide()"
+						reRender="schemeEditForm">
+					<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+				</bre:taggedCommandButton>
+			</h:panelGrid>
+		</h:panelGroup>
+	</h:panelGroup>
+</h:form>
+<ui:include src="/pages/utils/langConfirmPanel.jspx">
+   	<ui:param name="backingBean" value="#{MbSchemes}"/>
+   	<ui:param name="rerenderList" value="schemeEditForm:name, schemeEditForm:fullDesc"/>
+   	<ui:param name="editElem" value="schemeEditForm:editLang"/>
+   	<ui:param name="newValue" value="#{MbSchemes.newScheme.lang}"/>
+   	<ui:param name="subviewId" value="scheme"/>
+   	<ui:param name="formName" value="schemeEditForm" />
+</ui:include>
+</ui:composition>
+</html>

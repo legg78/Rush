@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition>
+	<script type="text/javascript">//<!--
+		function checkReimbChannelFields() {
+			var checked = true;
+			if (document.getElementById('channelEditForm:name').value == "") {
+				document.getElementById('channelEditForm:nameError').style.display = "inline";
+				checked = false;
+			}
+			if (document.getElementById('channelEditForm:inst').value == "") {
+				document.getElementById('channelEditForm:instError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//-->
+	</script>
+
+	<rich:modalPanel id="channelPanel" autosized="true" minWidth="300" minHeight="200" showWhenRendered="#{MbReimbChannelSearch.showModal}">
+    	<f:facet name="header">
+        	<h:panelGroup id="acq_reimb_channel_modal_header">
+        		<h:outputText rendered="#{!MbReimbChannelSearch.managingNew}" value="#{lblAcquiring.edit_channel}" />
+        		<h:outputText rendered="#{MbReimbChannelSearch.managingNew}" value="#{lblAcquiring.new_channel}" />
+        	</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+
+		<h:form id="channelEditForm">
+			<script type="text/javascript">//<!--
+				oldValue["channelEditForm"] = "#{MbReimbChannelSearch.newChannel.lang}";
+			//-->
+			</script>
+			<h:panelGroup id="acq_reimb_channel_modal_div" layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">        
+					
+					<h:outputLabel value="#{lblCommon.language}: " title="#{lblCommon.language}" />
+					<h:selectOneMenu id="language"
+							value="#{MbReimbChannelSearch.newChannel.lang}"
+							onchange="if (#{MbReimbChannelSearch.newMode}) {return true;} document.getElementById('channelEditView:confirmPanelForm:newValue').value = this.value;
+									#{rich:component('channelEditView:confirmPanel')}.show()">
+					    <f:selectItems value="#{MbReimbChannelSearch.languages}"/>
+					</h:selectOneMenu>
+					
+					<h:outputLabel for="name" value="* #{lblCommon.name}: " title="#{lblCommon.name}" />
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:inputText id="name" value="#{MbReimbChannelSearch.newChannel.name}" 
+								label="#{lblCommon.name}" maxlength="200"
+								onblur="hideErrorField(this)">
+							<f:validateLength minimum="3"/>
+							<a4j:support event="onchange" reRender="nameErr" limitToList="true" ajaxSingle="true"/>	
+						</h:inputText>
+						<rich:message for="name" id="nameErr"
+								errorMarkerClass="errorMarker"
+								errorLabelClass="errorMarker"
+								fatalLabelClass="errorMarker"
+								fatalMarkerClass="errorMarker"
+								markerClass="errorMarker"
+								warnMarkerClass="errorMarker"				
+								/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="nameError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.name}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel for="channel_number" value="#{lblAcquiring.channel_number}: "
+							title="#{lblAcquiring.channel_number}"/>
+					<h:inputText id="channel_number" value="#{MbReimbChannelSearch.newChannel.channelNumber}"/>
+					
+					<h:outputLabel for="payment_mode" value="#{lblAcquiring.payment_mode}: " 
+							title="#{lblAcquiring.payment_mode}" />
+					<h:selectOneMenu id="payment_mode" value="#{MbReimbChannelSearch.newChannel.paymentMode}">
+						<f:selectItem itemValue=""/>
+						<f:selectItems value="#{MbReimbChannelSearch.paymentModes}"/>
+					</h:selectOneMenu>
+					
+					<h:outputLabel for="currency" value="#{lblCommon.currency}: "
+							title="#{lblCommon.currency}"/>
+					<h:selectOneMenu id="currency" value="#{MbReimbChannelSearch.newChannel.currency}">
+						<f:selectItem itemValue=""/>
+						<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+					</h:selectOneMenu>
+					
+					<h:outputLabel for="inst" value="* #{lblCommon.institution}: "
+							title="#{lblCommon.institution}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="inst" value="#{MbReimbChannelSearch.newChannel.instId}"
+								disabled="#{!MbReimbChannelSearch.managingNew}"
+								label="#{lblCommon.institution}" onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbReimbChannelSearch.institutions}"/>
+						</h:selectOneMenu>	
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="instError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.institution}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>		
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	     	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText/>
+						<bre:taggedCommandButton
+			            		value="#{lblForm.save}" type="submit"
+			                	reRender="#{rerenderList}"
+			                	action="#{MbReimbChannelSearch.save}" 
+			                	onclick="if (!checkReimbChannelFields()) return false; disableModalPanelBtns(this)"
+			                	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse})#{rich:component('channelPanel')}.hide()"
+			                	/>
+						<bre:taggedCommandButton
+								value="#{lblForm.cancel}"
+								action="#{MbReimbChannelSearch.cancel}" immediate="true"
+								oncomplete="#{rich:component('channelPanel')}.hide()"
+								>
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+    	<ui:param name="backingBean" value="#{MbReimbChannelSearch}"/>
+    	<ui:param name="rerenderList" value="channelEditForm:name"/>
+    	<ui:param name="editElem" value="channelEditForm:lang"/>
+    	<ui:param name="newValue" value="#{MbReimbChannelSearch.newChannel.lang}"/>
+    	<ui:param name="subviewId" value="channelEditView" />
+    	<ui:param name="formName" value="channelEditForm"/>
+    </ui:include>
+</ui:composition>
+</html>

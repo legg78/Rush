@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+
+<script>
+ function getRightTop(ref) {
+	 var position = new Object();
+	 position.top = ref.offsetTop;
+	 position.left = ref.offsetLeft+ref.clientWidth+6;
+ return position;
+ }
+
+ function checkFunction() {
+	 var sourceLang = #{rich:element('translationSearchForm:sourceLang')}.value;
+	 var destLang = #{rich:element('translationSearchForm:destLang')}.value;
+	 if (sourceLang == destLang) {
+		 Richfaces.showModalPanel('check_difference_panel',{top:200, left:500});
+		 return false;
+	 } else {
+		 return true;
+	 }
+ }
+
+</script>
+
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblCommon.translation}"/>
+		<bpct:filterBarModalPanels id="filterPanels"
+								   rerenderList="filtersTable, translationForm:translationsTable, dstranslations, pagesNum, save_filter_panel_div"
+								   selectedFilter="#{MbTranslation.selectedSectionFilter}"
+								   sectionFilter="#{MbTranslation.sectionFilter}"
+								   sectionFilterModeEdit="#{MbTranslation.sectionFilterModeEdit}"
+								   searchAutomatically="#{MbTranslation.searchAutomatically}"
+								   sectionId="2022"
+								   beanName="MbTranslation"/>
+
+		<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event) {
+				 if (event.keyCode == 13) {
+					 document.getElementById('translationSearchForm:searchBtn').click();
+					 return false;
+				}
+				return true;
+			 }
+			//]]>
+			</script>
+
+    	<h:form id="translationSearchForm" onkeypress="handleEnter(event)">
+
+			<script type="text/javascript">
+			 	//load("translationsSearchForm:tabNameInput");
+			</script>
+
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol"
+		                		id="filtersTable">
+
+		            			<h:outputLabel value="#{lblCommon.source_lang}: " title="#{lblCommon.source_lang}" />
+								<h:selectOneMenu
+										id="sourceLang"
+										value="#{MbTranslation.filter.sourceLang}"
+										>
+								    <f:selectItems value="#{MbTranslation.languages}"/>
+								</h:selectOneMenu>
+
+								<h:outputLabel value="#{lblCommon.table_name}" title="#{lblCommon.table_name}" />
+								<h:inputText id="tableName" value="#{MbTranslation.filter.tableName}"/>
+
+								<h:outputLabel value="#{lblCommon.dest_lang}: " title="#{lblCommon.dest_lang}" />
+								<h:selectOneMenu
+										id="destLang"
+										value="#{MbTranslation.filter.destLang}"
+										>
+								    <f:selectItems value="#{MbTranslation.languages}"/>
+								</h:selectOneMenu>
+
+								<h:outputLabel value="#{lblCommon.column_name}" title="#{lblCommon.column_name}" />
+								<h:inputText id="columnName" value="#{MbTranslation.filter.columnName}"/>
+
+								<h:outputLabel value="#{lblCommon.source_text}" title="#{lblCommon.source_text}" />
+								<h:inputText id="srcText" value="#{MbTranslation.filter.srcText}"/>
+
+								<h:outputLabel value="#{lblCommon.dest_text}" title="#{lblCommon.dest_text}" />
+								<h:inputText id="dstText" value="#{MbTranslation.filter.dstText}"/>
+
+								<h:outputLabel value="Exists" title="Exists" />
+								<h:selectBooleanCheckbox id="exists" value="#{MbTranslation.filter.translateExists}"/>
+                			</h:panelGrid>
+	                		<h:panelGrid columns="1">
+	                			<h:panelGroup styleClass="stdButton">
+			                		<bre:taggedCommandButton
+				                			action="#{MbTranslation.search}"
+				                			reRender="translationsTable, dstranslations, pagesNum, btnPanel"
+				                			id="searchBtn"
+		                					image="/_img/icon_search.png" type="submit"
+		                					value="#{lblForm.search}" style="width:85px;"
+		                					onclick = "if (!checkFunction()) return false;"/>
+	                			</h:panelGroup>
+								<h:panelGroup styleClass="link-clear" layout="block">
+									<h:graphicImage url="/_img/icon_clear.png"/>
+									<a4j:commandLink value="#{lblForm.clear_all}"
+													 action="#{MbTranslation.clearFilter}"
+													 reRender="translationSearchForm, translationForm">
+									</a4j:commandLink>
+								</h:panelGroup>
+								<h:panelGroup>
+									<bpct:filterBar sectionId="2022"/>
+								</h:panelGroup>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+		               		<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		               		<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	               		</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+            <h:commandLink id="exportXlsx"
+                           action="#{MbTranslation.unload}"
+                           value="exportXlsx" style="display:none" />
+            <a4j:jsFunction name="uploadTranslationXlsx" oncomplete="#{rich:component('uploadFilePanel')}.show()" reRender="uploadFilePanel">
+            </a4j:jsFunction>
+		</h:form>
+
+		<h:form id="translationForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+				    <rich:extendedDataTable
+							id="translationsTable"
+							tableState="#{MbTranslation.tableState}"
+							styleClass="res-table"
+							headerClass="res-table-header"
+							rowClasses=",odd"
+							selectedClass="res-table-selected"
+							var="item"
+							value="#{MbTranslation.translations}"
+							selection="#{MbTranslation.itemSelection}"
+							rows="#{MbTranslation.rowsNum}"
+							height="459px"
+							selectionMode="single"
+							width="100%"
+							enableContextMenu="true"
+							noDataLabel="#{MbTranslation.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}">
+
+						<rich:column id="isExists" label="" title="Exists" sortBy="#{'translateExists'}" width="3%">
+		                    <f:facet name="header">
+		                    	<h:outputText value="" title="" />
+		                    </f:facet>
+		                	<h:selectBooleanCheckbox value="#{item.translateExists}" disabled="true"/>
+						</rich:column>
+
+						<rich:column id="table" label="#{lblCommon.table}" title="#{lblCommon.table}" sortBy="#{'tableName'}" width="15%">
+		                    <f:facet name="header">
+		                    	<h:outputText value="#{lblCommon.table}" title="#{lblCommon.table}" />
+		                    </f:facet>
+		                	<h:outputText value="#{item.tableName}" />
+						</rich:column>
+
+						<rich:column id="column" label="#{lblCommon.column}" title="#{lblCommon.column}" sortBy="#{'columnName'}" width="10%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.column}" title="#{lblCommon.column}" />
+			                </f:facet>
+			                <h:outputText value="#{item.columnName}"/>
+				        </rich:column>
+
+						<rich:column id="object_id" label="#{lblCommon.object_id}" title="#{lblCommon.object_id}" sortBy="#{'objectId'}" width="10%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.object_id}" title="#{lblCommon.object_id}" />
+			                </f:facet>
+			               <h:outputText value="#{item.objectId}"/>
+				        </rich:column>
+
+				        <rich:column id="source_text" label="#{lblCommon.source_text}" title="#{lblCommon.source_text}" sortBy="#{'srcText'}" width="30%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.source_text}" title="#{lblCommon.source_text}" />
+			                </f:facet>
+			                <h:inputText value="#{item.srcText}" style="width: 90%"/>
+				        </rich:column>
+
+				        <rich:column id="dest_text" label="#{lblCommon.dest_text}" title="#{lblCommon.dest_text}" sortBy="#{'dstText'}" width="30%">
+				           <f:facet name="header">
+			                    <h:outputText value="#{lblCommon.dest_text}" title="#{lblCommon.dest_text}" />
+			                </f:facet>
+			                <h:inputText value="#{item.dstText}" style="width: 90%"/>
+				        </rich:column>
+				    </rich:extendedDataTable>
+				    <a4j:outputPanel ajaxRendered="true">
+					    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+					    <h:panelGroup styleClass="show-more-vert table-collapse-vert" layout="block" rendered="false"/>
+					    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+			<script>
+				function confirmSave() {
+					if (confirm('#{lblMsg.confirm_save}')) {
+						save();
+					}
+
+					return true;
+				}
+			</script>
+			<a4j:jsFunction name="save" action="#{MbTranslation.saveTranslation}" eventsQueue="queue"/>
+
+		    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+		        	<h:panelGroup layout="block" styleClass="table_tools">
+			        	<h:panelGrid styleClass="fw field-cont" columns="5"
+			        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+				        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+							<h:selectOneMenu id="rows_num" value="#{MbTranslation.rowsNum}" style="width:40px">
+								<a4j:support event="onchange" reRender="translationsTable, dstranslations, pagesNum"/>
+		                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+		                    </h:selectOneMenu>
+
+		                    <rich:datascroller maxPages="10" fastControls="hide"
+		                    		pagesVar="pages" styleClass="res-datascroller"
+				                    id="dstranslations" for="translationsTable" limitToList="true"
+				                    onpagechange="confirmSave()" eventsQueue="queue">
+
+				            	<f:facet name="first">
+				                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+				                <f:facet name="first_disabled">
+				                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="last">
+				                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="last_disabled">
+				                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="previous_disabled">
+				                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="next">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+				                </f:facet>
+				                <f:facet name="next_disabled">
+				                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+				                </f:facet>
+				                <f:facet name="pages">
+				                </f:facet>
+							</rich:datascroller>
+
+		                    <h:panelGroup id="pagesNum">
+		                       	<h:outputText styleClass="strongClass" value="#{pages} "/>
+		                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbTranslation.translations.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+		                    </h:panelGroup>
+
+		                    <h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbTranslation.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbTranslation.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGroup layout="block" styleClass="bottom_search_result_block-tree">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left-tree">
+							<h:panelGrid styleClass="buttons_block" columns="3" id="btnPanel">
+				            	<bre:taggedCommandButton id="applBtn"
+			                      		value="#{lblForm.save}" type="submit" eventsQueue="queue"
+			                      		onclick="if (!confirm('#{lblMsg.confirm_save}')) return false;"
+			                      		disabled="#{MbTranslation.activeTranslation == null}"
+			                      		action="#{MbTranslation.saveTranslation}">
+			                	</bre:taggedCommandButton>
+                                <bre:taggedCommandButton id="unloadBtn"
+                                                         value="#{lblForm.unload_xlsx}"
+                                                         status="noAjaxStatus"
+                                                         onclick="document.getElementById('translationSearchForm:exportXlsx').click(); return false;">
+                                </bre:taggedCommandButton>
+                                <bre:taggedCommandButton id="loadBtn"
+                                                         value="#{lblForm.load_xlsx}"
+                                                         status="noAjaxStatus"
+                                                         onclick="uploadTranslationXlsx(); return false;">
+                                </bre:taggedCommandButton>
+
+							</h:panelGrid>
+		                </h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+		    </h:panelGroup>
+	    </h:form>
+
+		<rich:modalPanel id="check_difference_panel" autosized="true" minWidth="100" minHeight="10" styleClass="filter_panel" onshow="hideNew()">
+       	    <f:facet name="header">
+      	    	<h:outputText value="#{lblCommon.warning_label}"/>
+            </f:facet>
+   	        <f:facet name="controls">
+       	    </f:facet>
+       	    	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" columnClasses="firstColModal top, top">
+						<h:outputLabel value="#{lblCommon.check_difference_lang_label}" title="#{lblCommon.check_difference_lang_label}" />
+      	    		</h:panelGrid>
+   	    		</h:panelGroup>
+		      	<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton
+		                        		value="#{lblForm.cancel}"
+		                        		onclick="#{rich:component('check_difference_panel')}.hide();return false">
+		                        </bre:taggedCommandButton>
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+		</rich:modalPanel>
+        <a4j:queue name="queue" size="5" sizeExceededBehavior="dropNext" />
+
+        <rich:modalPanel id="uploadFilePanel" autosized="true" minWidth="200" minHeight="100">
+            <f:facet name="header">
+                <h:outputText value="Upload file"/>
+            </f:facet>
+            <f:facet name="controls">
+            </f:facet>
+            <h:panelGroup id="uploadFileDiv">
+                <h:form id="uploadFileForm">
+                    <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+                            <h:outputLabel value="#{lblCommon.source_lang}: " title="#{lblCommon.source_lang}" />
+                            <h:selectOneMenu
+                                    id="sourceLang_modal"
+                                    value="#{MbTranslation.filter.sourceLang}">
+                                <f:selectItems value="#{MbTranslation.languages}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel value="#{lblCommon.dest_lang}: " title="#{lblCommon.dest_lang}" />
+                            <h:selectOneMenu
+                                    id="destLang_modal"
+                                    value="#{MbTranslation.filter.destLang}">
+                                <f:selectItems value="#{MbTranslation.languages}"/>
+                            </h:selectOneMenu>
+
+                            <h:outputLabel value="#{lblCommon.file}: " title="#{lblCommon.file}"/>
+                            <rich:fileUpload id="upload"
+                                             addControlLabel="#{lblForm.add }"
+                                             fileUploadListener="#{MbTranslation.fileUploadListener}"
+                                             maxFilesQuantity="1"
+                                             immediateUpload="true"
+                                             acceptedTypes="xlsx"
+                                             listHeight="57px;"
+                                             allowFlash="false">
+
+                                <a4j:support event="onfileuploadcomplete"
+                                             ajaxSingle="true"
+                                             limitToList="true"
+                                             reRender="saveImportBtn"/>
+                            </rich:fileUpload>
+
+                        </h:panelGrid>
+                    </h:panelGroup>
+                    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+                        <h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+                            <h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+                                <h:outputText/>
+                                <h:panelGroup styleClass="stdButton">
+                                    <bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+                                                             action="#{MbTranslation.saveUploadedText}"
+                                                             reRender="upload, saveImportBtn, err_ajax"
+                                                             limitToList="true" id="saveImportBtn"
+                                                             disabled="#{empty MbTranslation.uploadedText}"
+                                                             oncomplete="if (#{usession.noErrorResponse}) #{rich:component('uploadFilePanel')}.hide()"
+                                    />
+                                </h:panelGroup>
+                                <h:panelGroup styleClass="stdButton">
+                                    <bre:taggedCommandButton
+                                            value="#{lblForm.cancel}" action="#{MbTranslation.closeUploadedText}"
+                                            immediate="true" limitToList="true"
+                                            oncomplete="#{rich:component('uploadFilePanel')}.hide()"
+                                    />
+                                </h:panelGroup>
+                            </h:panelGrid>
+                        </h:panelGroup>
+                    </h:panelGroup>
+                </h:form>
+            </h:panelGroup>
+        </rich:modalPanel>
+    </ui:define>
+</ui:composition>
+</html>

@@ -1,0 +1,562 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="rcn">
+    <sql id="limitationOpen">
+        select * from (
+    </sql>
+    <sql id="limitationOpenCount">
+        select count(*) from (
+    </sql>
+    <sql id="limitationClose">
+        ) q
+        <isNotNull property="limitation" prepend=" where ">$limitation$</isNotNull>
+    </sql>
+    <sql id="paginatedOpen">
+        select * from(
+        select a.*, rownum r from(
+        <include refid="limitationOpen"/>
+    </sql>
+    <sql id="paginatedClose">
+        <include refid="limitationClose"/>
+        ) a where rownum <![CDATA[<]]>= (#range.end# + 1)
+        ) where r >= (#range.start# + 1)
+    </sql>
+
+    <select id="get-conditions" parameterClass="qparams" resultClass="ru.bpc.sv2.reconciliation.RcnCondition">
+        <include refid="paginatedOpen"/>
+            select id                  as id
+                 , name                as name
+                 , seqnum              as seqNum
+                 , inst_id             as instId
+                 , inst_name           as instName
+                 , recon_type          as reconType
+                 , recon_type_name     as reconTypeName
+                 , condition_type      as condType
+                 , condition_type_name as condTypeName
+                 , condition           as condition
+                 , purpose_id          as purposeId
+                 , purpose_name        as purposeName
+                 , provider_id         as providerId
+                 , provider_name       as providerName
+                 , lang                as lang
+              from rcn_ui_condition_vw
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">inst_id in (9999, #filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="reconType">recon_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="reconTypes">recon_type in ($filters[].value$)</isEqual>
+            <isEqual property="filters[].element" compareValue="condType">condition_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="purposeId">purpose_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="providerId">provider_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang(+) = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="order by" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="auto">
+                <isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="instId">inst_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="reconType">recon_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="condType">condition_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="name">name $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="condition">condition $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting">order by id</isEmpty>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-conditions-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select id
+              from rcn_ui_condition_vw
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">inst_id in (9999, #filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="reconType">recon_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="reconTypes">recon_type in ($filters[].value$)</isEqual>
+            <isEqual property="filters[].element" compareValue="condType">condition_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="name">upper(name) like upper(#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="purposeId">purpose_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="providerId">provider_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="add-condition" parameterClass="ru.bpc.sv2.reconciliation.RcnCondition">
+        {call rcn_ui_reconciliation_pkg.add_condition (
+              o_id          => #id,jdbcType=BIGINT,javaType=java.lang.Long,mode=OUT#
+            , o_seqnum      => #seqNum,jdbcType=INTEGER,javaType=java.lang.Integer,mode=OUT#
+            , i_inst_id     => #instId#
+            , i_recon_type  => #reconType#
+            , i_cond_type   => #condType#
+            , i_name        => #name#
+            , i_condition   => #condition#
+            , i_lang        => #lang#
+        <isEqual property="module" compareValue="SRVP">
+            , i_purpose_id  => #purposeId#
+            , i_provider_id => #providerId#
+        </isEqual>
+        )}
+    </procedure>
+
+    <procedure id="modify-condition" parameterClass="ru.bpc.sv2.reconciliation.RcnCondition">
+        {call rcn_ui_reconciliation_pkg.modify_condition(
+              i_id          => #id#
+            , io_seqnum     => #seqNum,jdbcType=INTEGER,javaType=java.lang.Integer,mode=INOUT#
+            , i_recon_type  => #reconType#
+            , i_cond_type   => #condType#
+            , i_name        => #name#
+            , i_condition   => #condition#
+            , i_lang        => #lang#
+        <isEqual property="module" compareValue="SRVP">
+            , i_purpose_id  => #purposeId#
+            , i_provider_id => #providerId#
+        </isEqual>
+        )}
+    </procedure>
+
+    <procedure id="remove-condition" parameterClass="ru.bpc.sv2.reconciliation.RcnCondition">
+        {call rcn_ui_reconciliation_pkg.remove_match_condition(
+              i_id      => #id#
+            , io_seqnum => #seqNum,jdbcType=INTEGER,javaType=java.lang.Integer,mode=INOUT#
+        )}
+    </procedure>
+
+    <select id="get-messages" parameterClass="qparams" resultClass="ru.bpc.sv2.reconciliation.RcnMessage">
+        <include refid="paginatedOpen"/>
+        <isEqual property="module" compareValue="CBS">
+            select id                      as id
+                 , recon_type              as reconType
+                 , msg_source              as msgSource
+                 , msg_date                as msgDateTime
+                 , null                    as msgDateFrom
+                 , null                    as msgDateTo
+                 , oper_id                 as operationId
+                 , recon_msg_id            as reconMsgRef
+                 , recon_status            as reconStatus
+                 , recon_date              as reconLastDateTime
+                 , recon_inst_id           as reconInstId
+                 , null                    as reconInstName
+                 , oper_type               as operType
+                 , msg_type                as msgType
+                 , sttl_type               as sttlType
+                 , null                    as hostDate
+                 , oper_date               as operDate
+                 , oper_amount             as operAmount
+                 , oper_currency           as operCurrency
+                 , oper_request_amount     as operRequestAmount
+                 , oper_request_currency   as operRequestCurrency
+                 , oper_surcharge_amount   as operSurchargeAmount
+                 , oper_surcharge_currency as operSurchargeCurrency
+                 , originator_refnum       as originatorRefnum
+                 , network_refnum          as networkRefnum
+                 , acq_inst_bin            as acqInstBin
+                 , status                  as status
+                 , nvl(is_reversal, 0)     as reversal
+                 , merchant_number         as merchantNum
+                 , mcc                     as mcc
+                 , merchant_name           as merchantName
+                 , merchant_street         as merchantStreet
+                 , merchant_city           as merchantCity
+                 , merchant_region         as merchantRegion
+                 , merchant_country        as merchantCountry
+                 , merchant_postcode       as merchantPostcode
+                 , terminal_type           as terminalType
+                 , terminal_number         as terminalNum
+                 , acq_inst_id             as acqInstId
+                 , card_number             as cardNumber
+                 , card_mask               as cardMask
+                 , card_seq_number         as cardSeqNum
+                 , card_expir_date         as cardExpirDate
+                 , card_country            as cardCountry
+                 , iss_inst_id             as issInstId
+                 , auth_code               as authCode
+                 , null                    as issFee
+                 , null                    as accFrom
+                 , null                    as accTo
+                 , null                    as traceNumber
+                 , null                    as orderId
+                 , null                    as paymentOrderNumber
+                 , null                    as orderDate
+                 , null                    as orderAmount
+                 , null                    as orderCurrency
+                 , null                    as customerId
+                 , null                    as customerNumber
+                 , null                    as purposeId
+                 , null                    as purposeName
+                 , null                    as purposeNumber
+                 , null                    as providerId
+                 , null                    as providerName
+                 , null                    as providerNumber
+                 , lang                    as lang
+                 , 'CBS'                   as module
+        </isEqual>
+        <isEqual property="module" compareValue="ATM">
+            select id                   as id
+                 , null                 as reconType
+                 , msg_source           as msgSource
+                 , msg_date             as msgDateTime
+                 , null                 as msgDateFrom
+                 , null                 as msgDateTo
+                 , operation_id         as operationId
+                 , recon_msg_ref        as reconMsgRef
+                 , recon_status         as reconStatus
+                 , recon_last_date      as reconLastDateTime
+                 , recon_inst_id        as reconInstId
+                 , null                 as reconInstName
+                 , oper_type            as operType
+                 , null                 as msgType
+                 , null                 as sttlType
+                 , null                 as hostDate
+                 , oper_date            as operDate
+                 , oper_amount          as operAmount
+                 , oper_currency        as operCurrency
+                 , null                 as operRequestAmount
+                 , null                 as operRequestCurrency
+                 , null                 as operSurchargeAmount
+                 , null                 as operSurchargeCurrency
+                 , null                 as originatorRefnum
+                 , null                 as networkRefnum
+                 , null                 as acqInstBin
+                 , null                 as status
+                 , nvl(is_reversal, 0)  as reversal
+                 , null                 as merchantNum
+                 , null                 as mcc
+                 , null                 as merchantName
+                 , null                 as merchantStreet
+                 , null                 as merchantCity
+                 , null                 as merchantRegion
+                 , null                 as merchantCountry
+                 , null                 as merchantPostcode
+                 , terminal_type        as terminalType
+                 , terminal_number      as terminalNum
+                 , acq_inst_id          as acqInstId
+                 , card_number          as cardNumber
+                 , card_mask            as cardMask
+                 , null                 as cardSeqNum
+                 , null                 as cardExpirDate
+                 , null                 as cardCountry
+                 , null                 as issInstId
+                 , auth_code            as authCode
+                 , iss_fee              as issFee
+                 , acc_from             as accFrom
+                 , acc_to               as accTo
+                 , trace_number         as traceNumber
+                 , null                 as orderId
+                 , null                 as paymentOrderNumber
+                 , null                 as orderDate
+                 , null                 as orderAmount
+                 , null                 as orderCurrency
+                 , null                 as customerId
+                 , null                 as customerNumber
+                 , null                 as purposeId
+                 , null                 as purposeName
+                 , null                 as purposeNumber
+                 , null                 as providerId
+                 , null                 as providerName
+                 , null                 as providerNumber
+                 , lang                 as lang
+                 , 'ATM'                as module
+        </isEqual>
+        <isEqual property="module" compareValue="HOST">
+            select id                      as id
+                 , recon_type              as reconType
+                 , msg_source              as msgSource
+                 , msg_date                as msgDateTime
+                 , null                    as msgDateFrom
+                 , null                    as msgDateTo
+                 , oper_id                 as operationId
+                 , recon_msg_id            as reconMsgRef
+                 , recon_status            as reconStatus
+                 , recon_date              as reconLastDateTime
+                 , recon_inst_id           as reconInstId
+                 , null                    as reconInstName
+                 , oper_type               as operType
+                 , msg_type                as msgType
+                 , null                    as sttlType
+                 , host_date               as hostDate
+                 , oper_date               as operDate
+                 , oper_amount             as operAmount
+                 , oper_currency           as operCurrency
+                 , null                    as operRequestAmount
+                 , null                    as operRequestCurrency
+                 , oper_surcharge_amount   as operSurchargeAmount
+                 , oper_surcharge_currency as operSurchargeCurrency
+                 , null                    as originatorRefnum
+                 , null                    as networkRefnum
+                 , null                    as acqInstBin
+                 , status                  as status
+                 , nvl(is_reversal, 0)     as reversal
+                 , merchant_number         as merchantNum
+                 , mcc                     as mcc
+                 , merchant_name           as merchantName
+                 , merchant_street         as merchantStreet
+                 , merchant_city           as merchantCity
+                 , merchant_region         as merchantRegion
+                 , merchant_country        as merchantCountry
+                 , merchant_postcode       as merchantPostcode
+                 , terminal_type           as terminalType
+                 , terminal_number         as terminalNum
+                 , acq_inst_id             as acqInstId
+                 , card_number             as cardNumber
+                 , card_mask               as cardMask
+                 , card_seq_number         as cardSeqNum
+                 , card_expir_date         as cardExpirDate
+                 , null                    as cardCountry
+                 , null                    as issInstId
+                 , null                    as authCode
+                 , null                    as issFee
+                 , null                    as accFrom
+                 , null                    as accTo
+                 , null                    as traceNumber
+                 , null                    as orderId
+                 , null                    as paymentOrderNumber
+                 , null                    as orderDate
+                 , null                    as orderAmount
+                 , null                    as orderCurrency
+                 , null                    as customerId
+                 , null                    as customerNumber
+                 , null                    as purposeId
+                 , null                    as purposeName
+                 , null                    as purposeNumber
+                 , null                    as providerId
+                 , null                    as providerName
+                 , null                    as providerNumber
+                 , lang                    as lang
+                 , 'HOST'                  as module
+        </isEqual>
+        <isEqual property="module" compareValue="SRVP">
+            select id                   as id
+                 , recon_type           as reconType
+                 , msg_source           as msgSource
+                 , msg_date             as msgDateTime
+                 , null                 as msgDateFrom
+                 , null                 as msgDateTo
+                 , null                 as operationId
+                 , recon_msg_id         as reconMsgRef
+                 , recon_status         as reconStatus
+                 , recon_date           as reconLastDateTime
+                 , recon_inst_id        as reconInstId
+                 , inst_name            as reconInstName
+                 , null                 as operType
+                 , null                 as msgType
+                 , null                 as sttlType
+                 , null                 as hostDate
+                 , null                 as operDate
+                 , null                 as operAmount
+                 , null                 as operCurrency
+                 , null                 as operRequestAmount
+                 , null                 as operRequestCurrency
+                 , null                 as operSurchargeAmount
+                 , null                 as operSurchargeCurrency
+                 , null                 as originatorRefnum
+                 , null                 as networkRefnum
+                 , null                 as acqInstBin
+                 , order_status         as status
+                 , 0                    as reversal
+                 , null                 as merchantNum
+                 , null                 as mcc
+                 , null                 as merchantName
+                 , null                 as merchantStreet
+                 , null                 as merchantCity
+                 , null                 as merchantRegion
+                 , null                 as merchantCountry
+                 , null                 as merchantPostcode
+                 , null                 as terminalType
+                 , null                 as terminalNum
+                 , null                 as acqInstId
+                 , null                 as cardNumber
+                 , null                 as cardMask
+                 , null                 as cardSeqNum
+                 , null                 as cardExpirDate
+                 , null                 as cardCountry
+                 , null                 as issInstId
+                 , null                 as authCode
+                 , null                 as issFee
+                 , null                 as accFrom
+                 , null                 as accTo
+                 , null                 as traceNumber
+                 , order_id             as orderId
+                 , payment_order_number as paymentOrderNumber
+                 , order_date           as orderDate
+                 , order_amount         as orderAmount
+                 , order_currency       as orderCurrency
+                 , customer_id          as customerId
+                 , customer_number      as customerNumber
+                 , purpose_id           as purposeId
+                 , purpose_name         as purposeName
+                 , purpose_number       as purposeNumber
+                 , provider_id          as providerId
+                 , provider_name        as providerName
+                 , provider_number      as providerNumber
+                 , lang                 as lang
+                 , 'SRVP'               as module
+        </isEqual>
+        <isEqual property="module" compareValue="CBS">from rcn_ui_cbs_msg_vw</isEqual>
+        <isEqual property="module" compareValue="ATM">from rcn_ui_atm_msg_vw</isEqual>
+        <isEqual property="module" compareValue="HOST">from rcn_ui_host_msg_vw</isEqual>
+        <isEqual property="module" compareValue="SRVP">from rcn_ui_srvp_msg_vw</isEqual>
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">recon_inst_id in (9999, #filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="msgSrc">msg_source = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="msgSources">msg_source in ($filters[].value$)</isEqual>
+            <isEqual property="filters[].element" compareValue="reconStatus">recon_status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="msgType">msg_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="operType">oper_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="dateFrom">msg_date >= to_date(#filters[].value#, 'YYYY-MM-DD HH24:MI:SS')</isEqual>
+            <isEqual property="filters[].element" compareValue="dateTo">msg_date <![CDATA[<=]]> to_date(#filters[].value#, 'YYYY-MM-DD HH24:MI:SS')</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang(+) = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="providerId">provider_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="purposeId">purpose_id = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="order by" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="auto">
+                <isEqual property="sorting[].property" compareValue="reconType">recon_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="operType">oper_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="purpose">purpose_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="msgType">msg_type $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="msgDateTime">msg_date $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="cardMask">upper(card_mask) $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="operAmount">oper_amount $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting">order by id</isEmpty>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-messages-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select id
+        <isEqual property="module" compareValue="CBS">from rcn_ui_cbs_msg_vw</isEqual>
+        <isEqual property="module" compareValue="ATM">from rcn_ui_atm_msg_vw</isEqual>
+        <isEqual property="module" compareValue="HOST">from rcn_ui_host_msg_vw</isEqual>
+        <isEqual property="module" compareValue="SRVP">from rcn_ui_srvp_msg_vw</isEqual>
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="id">id like #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">recon_inst_id in (9999, #filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="msgSrc">msg_source = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="msgSources">msg_source in ($filters[].value$)</isEqual>
+            <isEqual property="filters[].element" compareValue="reconStatus">recon_status = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="msgType">msg_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="operType">oper_type = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="dateFrom">msg_date >= to_date(#filters[].value#, 'YYYY-MM-DD HH24:MI:SS')</isEqual>
+            <isEqual property="filters[].element" compareValue="dateTo">msg_date <![CDATA[<=]]> to_date(#filters[].value#, 'YYYY-MM-DD HH24:MI:SS')</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang(+) = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="providerId">provider_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="purposeId">purpose_id = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="modify-message" parameterClass="ru.bpc.sv2.reconciliation.RcnMessage">
+        {call rcn_ui_reconciliation_pkg.modify_message (
+              i_id           => #id#
+            , i_recon_status => #reconStatus#
+            , i_module       => #module#
+        )}
+    </procedure>
+
+    <select id="get-parameters" parameterClass="qparams" resultClass="ru.bpc.sv2.reconciliation.RcnParameter">
+        <include refid="paginatedOpen"/>
+        <isEqual property="module" compareValue="SRVP">
+            select id            as id
+                 , inst_id       as instId
+                 , inst_name     as instName
+                 , seqnum        as seqnum
+                 , provider_id   as providerId
+                 , provider_name as providerName
+                 , purpose_id    as purposeId
+                 , purpose_name  as purposeName
+                 , param_id      as paramId
+                 , param_name    as paramName
+                 , lang          as lang
+        </isEqual>
+        <isEqual property="module" compareValue="SRVP">from rcn_ui_srvp_parameter_vw</isEqual>
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="ids">id in (#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">inst_id in (9999, #filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="purposeId">purpose_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="providerId">provider_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang(+) = #filters[].value#</isEqual>
+        </iterate>
+        <iterate prepend="order by" conjunction=", " property="sorting">
+            <isNotEqual property="sorting[].direction" compareValue="auto">
+                <isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="name">param_name $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="instId">inst_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="purposeId">purpose_id $sorting[].direction$</isEqual>
+                <isEqual property="sorting[].property" compareValue="providerId">provider_id $sorting[].direction$</isEqual>
+            </isNotEqual>
+        </iterate>
+        <isEmpty property="sorting">order by id</isEmpty>
+        <include refid="paginatedClose"/>
+    </select>
+
+    <select id="get-parameters-count" parameterClass="qparams" resultClass="int">
+        <include refid="limitationOpenCount"/>
+            select id
+        <isEqual property="module" compareValue="SRVP">from rcn_ui_srvp_parameter_vw</isEqual>
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="id">id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="ids">id in (#filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="instId">inst_id in (9999, #filters[].value#)</isEqual>
+            <isEqual property="filters[].element" compareValue="purposeId">purpose_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="providerId">provider_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang(+) = #filters[].value#</isEqual>
+        </iterate>
+        <include refid="limitationClose"/>
+    </select>
+
+    <procedure id="add-parameter" parameterClass="ru.bpc.sv2.reconciliation.RcnParameter">
+        {call rcn_ui_reconciliation_pkg.add_recon_parameter (
+              o_id          => #id,jdbcType=BIGINT,javaType=java.lang.Long,mode=OUT#
+            , o_seqnum      => #seqNum,jdbcType=INTEGER,javaType=java.lang.Integer,mode=OUT#
+            , i_inst_id     => #instId#
+            , i_provider_id => #providerId#
+            , i_purpose_id  => #purposeId#
+            , i_param_id    => #paramId#
+        )}
+    </procedure>
+
+    <procedure id="modify-parameter" parameterClass="ru.bpc.sv2.reconciliation.RcnParameter">
+        {call rcn_ui_reconciliation_pkg.modify_recon_parameter (
+              i_id          => #id#
+            , io_seqnum     => #seqNum,jdbcType=INTEGER,javaType=java.lang.Integer,mode=INOUT#
+            , i_inst_id     => #instId#
+            , i_provider_id => #providerId#
+            , i_purpose_id  => #purposeId#
+            , i_param_id    => #paramId#
+        )}
+    </procedure>
+
+    <procedure id="remove-parameter" parameterClass="ru.bpc.sv2.reconciliation.RcnParameter">
+        {call rcn_ui_reconciliation_pkg.remove_recon_parameter (
+              i_id      => #id#
+            , io_seqnum => #seqNum,jdbcType=INTEGER,javaType=java.lang.Integer,mode=INOUT#
+        )}
+    </procedure>
+
+    <select id="get-message-parameters" parameterClass="qparams" resultClass="ru.bpc.sv2.reconciliation.RcnParameter">
+            select id          as id
+                 , param_id    as paramId
+                 , param_name  as paramName
+                 , param_value as paramValue
+                 , lang        as lang
+              from rcn_ui_srvp_data_vw
+        <iterate prepend="where" conjunction="and" property="filters">
+            <isEqual property="filters[].element" compareValue="msgId">msg_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="purposeId">purpose_id = #filters[].value#</isEqual>
+            <isEqual property="filters[].element" compareValue="lang">lang(+) = #filters[].value#</isEqual>
+        </iterate>
+    </select>
+
+    <procedure id="modify-status" parameterClass="ru.bpc.sv2.reconciliation.RcnMessage">
+        {call rcn_ui_reconciliation_pkg.modify_reconciliation_host (
+            i_id                => #id#
+            , i_recon_status    => #reconStatus#
+        )}
+    </procedure>
+</sqlMap>

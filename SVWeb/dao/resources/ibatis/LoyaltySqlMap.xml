@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="lty">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+    </sql>
+
+    <sql id="paginatedClose">
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)
+    </sql>
+	
+	<resultMap  id="mapping-program"
+                class="ru.bpc.sv2.loyalty.LoyaltyProgram">
+		<result property="id" column="id"/>
+		<result property="seqNum" column="seqnum"/>
+        <result property="name" column="name"/>
+        <result property="lang" column="lang"/>
+        <result property="instId" column="inst_id"/>
+        <result property="instName" column="inst_name"/>
+        <result property="currency" column="currency"/>
+        <result property="accountType" column="acct_type"/>
+        <result property="spendOrder" column="spend_order"/>
+        <result property="spendEntrySetId" column="spend_entry_set_id"/>
+        <result property="outdEntrySetId" column="outd_entry_set_id"/>
+	</resultMap>
+	
+	
+	<select id="get-programs"
+			parameterClass="qparams"
+			resultMap="mapping-program">
+		<include refid="paginatedOpen"/>
+			SELECT 	  p.id
+					, p.seqnum
+					, p.inst_id
+					, p.name
+					, p.lang
+					, p.currency
+					, p.acct_type
+					, p.spend_order
+					, p.spend_entry_set_id
+					, p.outd_entry_set_id
+					, i.name inst_name	
+					, es1.name spend_entry_set_name
+					, es2.name outd_entry_set_name
+			FROM 
+				lty_program p
+				, ost_ui_institution_sys_vw i
+				, acc_ui_entry_set_vw es1
+				, acc_ui_entry_set_vw es2
+			WHERE
+				p.inst_id = i.id(+)
+				AND p.spend_entry_set_id = es1.id
+				AND p.outd_entry_set_id = es2.id
+				AND p.lang = i.lang(+)
+				AND p.lang = es1.lang(+)
+				AND p.lang = es2.lang(+)
+			<iterate prepend=" AND " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountType">p.acct_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">p.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="spendOrder">p.spend_order = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="spendEntrySetId">p.spend_entry_set_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="outdEntrySetId">p.outd_entry_set_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">p.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="name">p.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="currency">p.currency $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="accountType">p.acct_type $sorting[].direction$</isEqual>										
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">p.name ASC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-programs-count"
+			parameterClass="qparams"
+			resultClass="int">
+			SELECT 	  
+				count(p.id)					
+			FROM 
+				lty_program p
+			<iterate prepend=" WHERE " conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">p.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="name">upper(p.name) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">p.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountType">p.acct_type = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="currency">p.currency = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="spendOrder">p.spend_order = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="spendEntrySetId">p.spend_entry_set_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="outdEntrySetId">p.outd_entry_set_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="id">p.id = #filters[].value#</isEqual>				
+			</iterate>	    
+	</select>
+	
+	<procedure id="add-program"
+    		parameterClass="ru.bpc.sv2.loyalty.LoyaltyProgram">
+    	{call LTY_UI_PROGRAM_PKG.add_program(
+    			  o_id              	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum      	  	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_inst_id		    	=> #instId#
+    			, i_lang				=> #lang#
+    			, i_name				=> #name#
+    			, i_currency			=> #currency#
+    			, i_acct_type			=> #accountType#
+    			, i_spend_order			=> #spendOrder#
+    			, i_spend_entry_set_id	=> #spendEntrySetId#
+    			, i_outd_entry_set_id	=> #outdEntrySetId#
+    			)}
+    </procedure>
+
+    <procedure id="modify-program"
+    		parameterClass="ru.bpc.sv2.loyalty.LoyaltyProgram">
+    	{call LTY_UI_PROGRAM_PKG.add_program(
+    			  i_id             		=> #id#
+				, io_seqnum      	  	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_inst_id		    	=> #instId#
+    			, i_lang				=> #lang#
+    			, i_name				=> #name#
+    			, i_currency			=> #currency#
+    			, i_acct_type			=> #accountType#
+    			, i_spend_order			=> #spendOrder#
+    			, i_spend_entry_set_id	=> #spendEntrySetId#
+    			, i_outd_entry_set_id	=> #outdEntrySetId#
+    			)}
+    </procedure>
+    
+    <procedure id="remove-program"
+    		parameterClass="ru.bpc.sv2.loyalty.LoyaltyProgram">
+    	{call LTY_UI_PROGRAM_PKG.remove_program(
+				  i_id					=> #id#
+				, i_seqnum  			=> #seqNum#
+				)}
+    </procedure>
+    
+    <resultMap  id="mapping-bonus"
+                class="ru.bpc.sv2.loyalty.LoyaltyBonus">
+		<result property="id" column="id"/>
+		<result property="accountId" column="account_id"/>
+		<result property="cardId" column="card_id"/>
+		<result property="productId" column="product_id"/>
+		<result property="serviceId" column="service_id"/>
+		<result property="operDate" column="oper_date"/>
+		<result property="postingDate" column="posting_date"/>
+		<result property="startDate" column="start_date"/>
+		<result property="expireDate" column="expire_date"/>
+		<result property="amount" column="amount"/>
+		<result property="spentAmount" column="spent_amount"/>
+		<result property="currency" column="currency"/>
+		<result property="status" column="status"/>
+		<result property="instId" column="inst_id"/>
+		<result property="splitHash" column="split_hash"/>
+		<result property="serviceLabel" column="label"/>
+	</resultMap>
+	
+	
+	<select id="get-bonuses"
+			parameterClass="qparams"
+			resultMap="mapping-bonus">
+		<include refid="paginatedOpen"/>
+			SELECT 	  b.id
+					, b.account_id
+					, b.card_id
+					, b.product_id
+					, b.service_id
+					, b.oper_date
+					, b.posting_date
+					, b.start_date
+					, b.expire_date
+					, b.amount
+					, b.spent_amount
+					, b.status
+					, b.inst_id
+					, b.split_hash		
+					, b.customer_id
+					, a.currency			
+					, s.label	
+					, s.lang					
+			FROM 
+				lty_ui_bonus_vw b
+				, prd_ui_service_vw s
+				, acc_ui_account_vw a		
+			WHERE
+				b.account_id = a.id
+				AND b.service_id = s.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountId">b.account_id = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="serviceLabel">s.label $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="postingDate">b.posting_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="expireDate">b.expire_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="amount">b.amount $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="spentAmount">b.spent_amount $sorting[].direction$</isEqual>															
+					<isEqual property="sorting[].property" compareValue="status">b.status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="operDate">b.oper_date $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+			<isEmpty property="sorting" prepend=" ORDER BY ">b.oper_date DESC</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+	
+	<select id="get-bonuses-count"
+			parameterClass="qparams"
+			resultClass="int">
+			SELECT 	  
+				count(b.id)	
+			FROM 
+				lty_ui_bonus_vw b, prd_ui_service_vw s		
+			WHERE
+				b.service_id = s.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">s.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="accountId">b.account_id = #filters[].value#</isEqual>
+			</iterate>	    
+	</select>
+
+	<select id="get-lottery-tickets-count" parameterClass="qparams" resultClass="int">
+		select count(id)
+		from lty_ui_lottery_ticket_vw
+		<iterate prepend="where" conjunction="and" property="filters">
+			<isEqual property="filters[].element" compareValue="customerId">customer_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="ticketNumber">upper(ticket_number) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="regDateFrom">registration_date >= #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="regDateTo">registration_date <![CDATA[<=]]> #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="status">status = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+		</iterate>
+	</select>
+
+	<resultMap id="map-get-lottery-tickets" class="ru.bpc.sv2.loyalty.LotteryTicket">
+		<result property="id" column="id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="seqNum" column="seqnum" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="splitHash" column="split_hash" javaType="java.lang.Integer" jdbcType="NUMBER"/>
+		<result property="customerNumber" column="customer_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="customerId" column="customer_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="customerInfo" column="customer_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardId" column="card_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="cardMask" column="card_mask" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="serviceId" column="service_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="ticketNumber" column="ticket_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="registrationDate" column="registration_date" javaType="java.util.Date" jdbcType="DATE"/>
+		<result property="status" column="status" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="statusDesc" column="status_desc" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="instId" column="inst_id" javaType="java.lang.Long" jdbcType="NUMBER"/>
+		<result property="instName" column="inst_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="lang" column="lang" javaType="java.lang.String" jdbcType="VARCHAR"/>
+	</resultMap>
+
+	<select id="get-lottery-tickets" parameterClass="qparams" resultMap="map-get-lottery-tickets">
+		<include refid="paginatedOpen"/>
+			select id
+				, seqnum
+				, split_hash
+				, customer_id
+				, customer_number
+				, customer_name
+				, card_id
+				, card_mask
+				, service_id
+				, ticket_number
+				, registration_date
+				, status
+				, status_desc
+				, inst_id
+				, inst_name
+				, lang
+			from lty_ui_lottery_ticket_vw
+			<iterate prepend="where" conjunction="and" property="filters">
+				<isEqual property="filters[].element" compareValue="customerId">customer_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="ticketNumber">upper(ticket_number) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="regDateFrom">registration_date >= #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="regDateTo">registration_date <![CDATA[<=]]> #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">lang = #filters[].value#</isEqual>
+			</iterate>
+			<iterate prepend="order by" conjunction="," property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="auto">
+					<isEqual property="sorting[].property" compareValue="id">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="registrationDate">registration_date $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instId">inst_id $sorting[].direction$</isEqual>
+				</isNotEqual>
+			</iterate>
+			<isEmpty property="sorting" prepend=" order by ">id desc</isEmpty>
+		<include refid="paginatedClose"/>
+	</select>
+
+	<procedure id="add-lottery-ticket" parameterClass="ru.bpc.sv2.loyalty.LotteryTicket">
+		{call lty_ui_lottery_tickets_pkg.add_lottery_ticket(
+			  o_id				=> #id,jdbcType=NUMERIC,mode=OUT#
+			, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+			, i_customer_id		=> #customerId,jdbcType=NUMERIC,mode=IN#
+			, i_card_id			=> #cardId,jdbcType=NUMERIC,mode=IN#
+			, i_ticket_number	=> #ticketNumber,jdbcType=VARCHAR,mode=IN#
+			, i_status			=> #status,jdbcType=VARCHAR,mode=IN#
+			, i_inst_id			=> #instId,jdbcType=NUMERIC,mode=IN#
+		)}
+	</procedure>
+
+	<procedure id="modify-lottery-ticket" parameterClass="ru.bpc.sv2.loyalty.LotteryTicket">
+		{call lty_ui_lottery_tickets_pkg.modify_lottery_ticket(
+			  i_id		=> #id,jdbcType=NUMERIC,mode=IN#
+			, io_seqnum	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+			, i_status	=> #status,jdbcType=VARCHAR,mode=IN#
+		)}
+	</procedure>
+
+	<procedure id="remove-lottery-ticket" parameterClass="ru.bpc.sv2.loyalty.LotteryTicket">
+		{call lty_ui_lottery_tickets_pkg.remove_lottery_ticket(
+			  i_id		=> #id,jdbcType=NUMERIC,mode=IN#
+			, i_seqnum	=> #seqNum,jdbcType=NUMERIC,mode=IN#
+		)}
+	</procedure>
+
+	<parameterMap id="mapOperations" class="java.util.Map">
+		<parameter property="i_inst_id" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="i_merchant_id" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="i_status" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="i_card_number" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="i_auth_code" javaType="java.lang.String" jdbcType="VARCHAR" mode="IN"/>
+		<parameter property="i_start_date" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+		<parameter property="i_end_date" javaType="java.util.Date" jdbcType="DATE" mode="IN"/>
+		<parameter property="i_spent_operation" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="o_ref_cursor" javaType="java.sql.ResultSet" jdbcType="ORACLECURSOR" mode="OUT" resultMap="resultMapOperations"/>
+	</parameterMap>
+
+	<resultMap id="resultMapOperations" class="ru.bpc.sv2.loyalty.LoyaltyOperation" >
+		<result property="operId" column="oper_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="operType" column="oper_type" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="operDate" column="oper_date" javaType="java.util.Date" jdbcType="DATE"/>
+		<result property="operAmount" column="oper_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+		<result property="merchantId" column="merchant_id" javaType="java.lang.Long" jdbcType="NUMERIC"/>
+		<result property="instId" column="inst_id" javaType="java.lang.Integer" jdbcType="NUMERIC"/>
+		<result property="merchantNumber" column="merchant_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="merchantName" column="merchant_name" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="cardNumber" column="card_number" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="authCode" column="auth_code" javaType="java.lang.String" jdbcType="VARCHAR"/>
+		<result property="rewardAmount" column="reward_amount" javaType="java.math.BigDecimal" jdbcType="NUMERIC"/>
+	</resultMap>
+
+	<procedure id="get-acq-operation"
+			   parameterMap="mapOperations">
+		{call lty_api_acq_operation_pkg.get_operations(
+		i_inst_id               => ?
+		, i_merchant_id         => ?
+		, i_status              => ?
+		, i_card_number         => ?
+		, i_auth_code           => ?
+		, i_start_date          => ?
+		, i_end_date            => ?
+		, i_spent_operation     => ?
+		, o_ref_cursor          => ?
+		)}
+	</procedure>
+
+	<parameterMap id="mapAddSpentOperations" class="java.util.Map">
+		<parameter property="i_oper_id_tab" jdbcType="ARRAY" typeName="NUM_TAB_TPT" typeHandler="ru.bpc.sv2.utils.ListTypeHandler" mode="IN" />
+		<parameter property="i_spent_operation" javaType="java.lang.Long" jdbcType="NUMERIC" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="add-spent-operation"
+			   parameterMap="mapAddSpentOperations">
+		{call lty_api_acq_operation_pkg.add_spent_operation(
+		i_oper_id_tab        => ?
+		, i_spent_operation  => ?
+		)}
+	</procedure>
+
+</sqlMap>

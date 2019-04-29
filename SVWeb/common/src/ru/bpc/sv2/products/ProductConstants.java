@@ -1,0 +1,18 @@
+package ru.bpc.sv2.products;
+
+public interface ProductConstants {
+    String STATUS_ACTIVE_PRODUCT   = "PRDS0100";
+    String STATUS_INACTIVE_PRODUCT = "PRDS0200";
+
+    String STATUS_INACTIVE_SERVICE = "SROS0010";
+    String STATUS_ACTIVE_SERVICE   = "SROS0020";
+    String STATUS_CLOSED_SERVICE   = "SROS0030";
+
+    String CONDITIONAL_GROUP_MANY = "CNDSMANY";
+    String CONDITIONAL_GROUP_ONE  = "CNDSONE";
+    String CONDITIONAL_GROUP_NOMO = "CNDSNOMO";
+
+    String ISSUING_PRODUCT     = "PRDT0100";
+    String ACQUIRING_PRODUCT   = "PRDT0200";
+    String INSTITUTION_PRODUCT = "PRDT0300";
+}

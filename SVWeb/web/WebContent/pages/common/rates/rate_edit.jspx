@@ -1,0 +1,475 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<!--
+		function checkCurrencies() {
+			if (document.getElementById("rateModalForm:newSrcCurrency")) {
+				if (document.getElementById("rateModalForm:newSrcCurrency").value != null
+						&& document.getElementById("rateModalForm:newSrcCurrency").value != ""
+						&& document.getElementById("rateModalForm:newSrcCurrency").value == document.getElementById("rateModalForm:newDstCurrency").value) {
+					document.getElementById("rateModalForm:srcDstCurrEq").style.display = "inline";
+					document.getElementById("rateModalForm:dstSrcCurrEq").style.display = "inline";
+					return false;
+				}
+			}
+			return true;
+		}
+
+		function hideCurrencyErrors(el) {
+			document.getElementById("rateModalForm:srcDstCurrEq").style.display = "none";
+			document.getElementById("rateModalForm:dstSrcCurrEq").style.display = "none";
+			var errId = el.id.substr(0, el.id.lastIndexOf(":") + 1)
+					+ el.id.substr(el.id.lastIndexOf(":") + 1) + "Err";
+			document.getElementById(errId).children[0].innerHTML = "";
+		}
+		
+		function checkRateFields() {
+			var checked = true;
+			
+			checked = checkField('rateModalForm:newInst');
+			checked = checkField('rateModalForm:newRateType') && checked;
+			checked = checkField('rateModalForm:effDate') && checked;
+			checked = checkField('rateModalForm:newSrcCurrency') && checked;
+			checked = checkField('rateModalForm:newSrcScale') && checked;
+			checked = checkField('rateModalForm:newDstCurrency') && checked;
+			checked = checkField('rateModalForm:newDstScale') && checked;
+			checked = checkField('rateModalForm:newRate') && checked;
+			return checked;
+		}
+		// -->
+	</script>
+
+	<rich:modalPanel id="com_rate_modal_panel" autosized="true" minWidth="435" minHeight="100"
+		onshow="actualHelp.setModeHelp('true')"
+		onhide="actualHelp.setHelp('#{pageHelp}')">
+      	<f:facet name="header">
+			<h:outputText value="#{lblCommon.new_rate}"/>
+		</f:facet>
+		<f:facet name="controls">
+			<h:panelGroup rendered="#{showHelpModal}">
+					<h:graphicImage value="/_img/icon_modal_help.png" style="cursor:pointer" 
+	   	        			onclick="showHelp(actualHelp.getURL())" width="15px" />
+			</h:panelGroup>
+	    </f:facet>
+		<h:form id="rateModalForm">
+			
+			
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					<h:outputLabel value="* #{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="newInst"
+								value="#{MbRates.newRate.instId}"
+								label="#{lblCommon.institution}"
+								disabled="#{!MbRates.newMode}" valueChangeListener="#{MbRates.changeInstitution}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbRates.institutions}"/>
+							<a4j:support event="onchange" reRender="newRateType,expDate, ratesToAdd, saveBtn" limitToList="true" ajaxSingle="true"
+								action="#{MbRates.initRatesToAdd}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newInstError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.institution}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.rate_type}: " title="#{lblCommon.rate_type}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+						<h:selectOneMenu id="newRateType"
+								value="#{MbRates.newRate.rateType}"
+								label="#{lblCommon.rate_type}"
+								disabled="#{!MbRates.newMode}" valueChangeListener="#{MbRates.changeRateType}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{MbRates.rateTypes}"/>
+							<a4j:support event="onchange" reRender="expDate, ratesToAdd, saveBtn" limitToList="true" ajaxSingle="true"
+								action="#{MbRates.initRatesToAdd}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newRateTypeError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.rate_type}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.eff_date}: " title="#{lblCommon.eff_date}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0" border="0" styleClass="noWrap">
+						<rich:calendar buttonIcon="/images/calendar.gif" id="effDate" label="#{lblCommon.eff_date}"
+		          				datePattern="#{usession.datePattern} HH:mm" zindex="1000"
+		          				valueChangeListener="#{MbRates.changeEffDate}"
+								value="#{MbRates.newRate.effDate}" required="true" showApplyButton="true">
+							<a4j:support event="onchanged" reRender="effDateErr,expDate" limitToList="true" ajaxSingle="true"/>
+						</rich:calendar>
+						<rich:message for="effDate" id="effDateErr" styleClass="errorMarker"/>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblCommon.exp_date}: " title="#{lblCommon.exp_date}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0" border="0" styleClass="noWrap">
+						<rich:calendar buttonIcon="/images/calendar.gif" id="expDate" datePattern="#{usession.datePattern} HH:mm"
+								value="#{MbRates.newRate.expDate}" label="#{lblCommon.rate}"
+								defaultTime="23:59" zindex="1000"
+								showApplyButton="true"/>
+						<rich:message for="expDate" id="expDateErr" styleClass="errorMarker"/>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.src_currency}: " title="#{lblCommon.src_currency}"
+						rendered="#{MbRates.advancedMode}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+						rendered="#{MbRates.advancedMode}">
+						<h:selectOneMenu id="newSrcCurrency"
+								label="#{lblCommon.src_currency}"
+								value="#{MbRates.newRate.srcCurrency}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newSrcCurrencyError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.src_currency}"/>
+						</h:outputFormat>
+		       			<h:outputText id="srcDstCurrEq" styleClass="errorMarker" style="display:none"
+		       					value="#{lblCommon.source_currency_equals_dst_currency}"/>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.src_scale}: " title="#{lblCommon.src_scale}"
+						rendered="#{MbRates.advancedMode}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+						rendered="#{MbRates.advancedMode}">
+						<h:inputText id="newSrcScale" value="#{MbRates.newRate.srcScale}" label="#{lblCommon.src_scale}"
+								maxlength="16" validator="#{MbRates.validateScale}"
+								validatorMessage="#{lblMsg.pos_number}"
+								onkeypress="if (!numbersOnly(this, event, true)) return false;"
+								onblur="hideErrorField(this)"/>
+						<rich:message for="newSrcScale" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newSrcScaleError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.src_scale}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.dst_currency}: " title="#{lblCommon.dst_currency}"
+						rendered="#{MbRates.advancedMode}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+						rendered="#{MbRates.advancedMode}">
+						<h:selectOneMenu id="newDstCurrency"
+								label="#{lblCommon.dst_currency}"
+								value="#{MbRates.newRate.dstCurrency}"
+								onblur="hideErrorField(this)">
+							<f:selectItem itemValue=""/>
+							<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+						</h:selectOneMenu>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newDstCurrencyError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.dst_currency}"/>
+						</h:outputFormat>
+						<h:outputText id="dstSrcCurrEq" styleClass="errorMarker" style="display:none"
+								value="#{lblCommon.source_currency_equals_dst_currency}"/>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.dst_scale}: " title="#{lblCommon.dst_scale}"
+						rendered="#{MbRates.advancedMode}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+						rendered="#{MbRates.advancedMode}">
+						<h:inputText id="newDstScale" value="#{MbRates.newRate.dstScale}" label="#{lblCommon.dst_scale}"
+								onkeypress="if (!numbersOnly(this, event, true)) return false;"
+								maxlength="16" validator="#{MbRates.validateScale}"
+								validatorMessage="#{lblMsg.pos_number}"
+								onblur="hideErrorField(this)"/>
+						<rich:message for="newDstScale" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newDstScaleError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.dst_scale}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblCommon.rate}: " title="#{lblCommon.rate}"
+						rendered="#{MbRates.advancedMode}"/>
+					<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+						rendered="#{MbRates.advancedMode}">
+						<h:inputText id="newRate"
+							value="#{MbRates.newRate.rate}" label="#{lblCommon.rate}"
+							maxlength="16" validator="#{MbRates.validateScale}"
+							onkeypress="if (!numbersOnly(this, event, true)) return false;"
+							onblur="hideErrorField(this)"/>
+						<rich:message for="newRate" id="newRateErr" styleClass="errorMarker"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newRateError" style="display:none;">
+							<f:param name="fieldName" value="#{lblCommon.rate}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="#{lblCommon.inverted}: " title="#{lblCommon.inverted}"
+						rendered="#{MbRates.advancedMode}"/>
+					<h:selectBooleanCheckbox value="#{MbRates.newRate.inverted}"
+						rendered="#{MbRates.advancedMode}"/>
+				</h:panelGrid>
+			
+				<h:panelGroup id="ratesToAdd" style="width:100%" layout="block"
+					styleClass="cardholderdata">
+					<h:panelGroup rendered="#{MbRates != null and MbRates.simpleMode and MbRates.ratesToAddLength != null and MbRates.ratesToAddLength > 0}" >
+					<table style="width:100%">
+						<tr>
+							<td>
+								<h:selectBooleanCheckbox title="#{lblForm.select_unselect_all}" styleClass="parentCheckBox" value="true"/>
+							</td>
+							<td>
+								<h:outputText value="#{lblCommon.label}"/>
+							</td>
+							<td>
+								<h:outputText value="#{lblCommon.src_currency_short}"/>
+							</td>
+							<td>
+								<h:outputText value="#{lblCommon.dst_currency_short}"/>
+							</td>
+							<td>
+								<h:outputText value="#{lblCommon.rate_example}"/>
+							</td>
+							<td>
+								<h:outputText value="#{lblCommon.current_rate_value}"/>
+							</td>
+							<td>
+								<h:outputText value="#{lblCommon.new_rate_value}"/>
+							</td>
+						</tr>
+						<a4j:repeat id="ratesToAddRepeat" value="#{MbRates.ratesToAdd}" var="item">
+							<tr>
+								<td>
+									<h:selectBooleanCheckbox value="#{item.needSave}" styleClass="childCheckBox"/>
+								</td>
+								<td>
+									<h:outputText value="#{item.label}" />
+								</td>
+								
+											<td>
+												<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.srcCurrency]}" />
+												<h:outputText value="#{CurrencyUtils.currencyShortNamesMap[item.srcCurrency]}" />
+											</td>
+											<td>
+												<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.dstCurrency]}" />
+												<h:outputText value="#{CurrencyUtils.currencyShortNamesMap[item.dstCurrency]}" />
+											</td>
+											<td>
+												<h:outputText value="#{item.rateExample}" />
+											</td>
+														
+								<td>
+									<h:inputText readonly="true" value="#{item.effRate}" style="width: 50px"/>
+								</td>
+								<td>
+									<h:inputText style="width: 50px"
+										value="#{item.rate}" label="#{lblCommon.rate}"
+										maxlength="16"
+										onkeypress="if (!numbersOnly(this, event, true)) return false;"/>
+								</td>
+							</tr>
+						</a4j:repeat>
+					</table>
+					
+					<rich:jQuery selector=".parentCheckBox"
+				query="click(function(){
+								jQuery(this).parents('table:eq(0)').find('.childCheckBox').attr('checked', this.checked);
+								})" />
+			<rich:jQuery selector=".childCheckBox"
+				query="click(function(){ 
+									
+									if (jQuery(this).parents('table:eq(0)').find('.parentCheckBox').attr('checked') == true) {
+										if  (this.checked == false) {
+											jQuery(this).parents('table:eq(0)').find('.parentCheckBox').attr('checked', false);
+										}
+									}
+									if (this.checked == true) {
+										var flag = true;
+										jQuery(this).parents('table:eq(0)').find('.childCheckBox').each(
+											function() {
+												if (this.checked == false)
+												flag = false;
+											}
+										);
+										jQuery(this).parents('table:eq(0)').find('.parentCheckBox').attr('checked', flag);
+									}
+									})" />
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:panelGroup>
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="4" columnClasses=",width99P,,,paddingR12">
+	       	    		<bre:taggedCommandButton value="#{lblCommon.simple_mode}" rendered="#{MbRates.advancedMode}"
+	       	    			limitToList="true" oncomplete="returnFormFields()" reRender="rateModalForm"> 
+                       		<a4j:actionparam name="inputMode" value="1" assignTo="#{MbRates.rateSetMode}"/>
+                       	</bre:taggedCommandButton>
+                       	<bre:taggedCommandButton value="#{lblCommon.advanced_mode}" rendered="#{MbRates.simpleMode}"
+	       	    			limitToList="true" oncomplete="returnFormFields()" reRender="rateModalForm"> 
+                       		<a4j:actionparam name="inputMode" value="2" assignTo="#{MbRates.rateSetMode}"/>
+                       	</bre:taggedCommandButton>			
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                                disabled="#{not (MbRates != null  and MbRates.ratesToAddLength != null and MbRates.ratesToAddLength > 0) and MbRates.simpleMode}"
+                       			value="#{lblForm.save}" type="submit" action="#{MbRates.checkRate}"
+			                   	onclick="if (!checkRateFields()) return false; if (!checkCurrencies()) return false; disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse and MbRates.valid}) #{rich:component('com_rate_modal_panel')}.hide()"
+                       			reRender="#{MbRates.valid ? rerenderList : 'confirmPanelCover'}#{MbRates.valid and not empty MbRates.addedRates ? ', ratesReportPanelCover' : ''}"
+                        		id = "saveBtn"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}"
+                        		action="#{MbRates.cancel}"
+                        		immediate="true"
+                        		oncomplete="#{rich:component('com_rate_modal_panel')}.hide()">
+                       		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                        </bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+
+	<a4j:outputPanel id="confirmPanelCover">
+       	<rich:modalPanel id="confirmPanel" autosized="true" minWidth="300" minHeight="100"
+       			rendered="#{!MbRates.valid}" showWhenRendered="true">
+	        <f:facet name="header">
+	            <h:panelGroup>
+	                <h:outputText value="Information"></h:outputText>
+	            </h:panelGroup>
+	        </f:facet>
+	        <f:facet name="controls">
+	            <h:panelGroup>
+	                <h:outputText value="" styleClass="hidelink" id="hidelink"/>
+
+	            </h:panelGroup>
+	        </f:facet>
+	        <h:form>
+		        <h:panelGrid columns="2">
+			        <h:graphicImage url="/images/icon_warning.png"/>
+			        <h:outputText value="#{MbRates.validatorMessage}"/>
+			        <h:outputText/>
+			        <h:outputText value="#{lblMsg.save_anyway}"/>
+		        </h:panelGrid>
+
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+			        		<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+			        				id="savebutton" action="#{MbRates.save}"
+			        				reRender="#{rerenderList}, #{empty MbRates.addedRates ? '' : 'ratesReportPanelCover'}"
+			        				/>
+			        		<bre:taggedCommandButton value="#{lblForm.cancel}"
+			        				id="hidebutton" action="#{MbRates.cancel}"
+			        				/>
+
+				        	<rich:componentControl for="confirmPanel" attachTo="hidebutton" operation="hide" event="onclick"/>
+				        	<rich:componentControl for="com_rate_modal_panel" attachTo="savebutton" operation="hide" event="onclick"/>
+				        	<rich:componentControl for="confirmPanel" attachTo="savebutton" operation="hide" event="onclick"/>
+				        </h:panelGrid>
+				    </h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+	    </rich:modalPanel>
+	</a4j:outputPanel>
+
+	<a4j:outputPanel id="ratesReportPanelCover">
+		<rich:modalPanel id="ratesReportPanel" autosized="true" minWidth="800"
+			minHeight="150" rendered="#{not empty MbRates.addedRates}"
+			showWhenRendered="true">
+			<f:facet name="header">
+				<h:panelGroup>
+					<h:outputText value="#{lblCommon.rates_added}" />
+				</h:panelGroup>
+			</f:facet>
+			<f:facet name="controls">
+			</f:facet>
+			<h:form>
+				<p><h:outputText value="#{lblCommon.fol_rates_added}:" /></p>
+				<rich:extendedDataTable id="ratesTable" var="item"
+					value="#{MbRates.addedRates}" height="100px" width="100%"
+					rowClasses=",odd" headerClass="res-table-header"
+					styleClass="res-table" selectionMode="none"
+					enableContextMenu="false">
+
+					<rich:column width="12%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.rate_type}" title="#{lblCommon.rate_type}" />
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[item.rateType]}"
+							title="#{DictUtils.articles[item.rateType]}"
+							 />
+					</rich:column>
+
+					<rich:column width="13%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.eff_date}" title="#{lblCommon.eff_date}" />
+						</f:facet>
+						<h:outputText value="#{item.effDate}">
+							<f:convertDateTime pattern="#{usession.datePattern}"
+								timeZone="#{CommonUtils.timeZoneId}" />
+						</h:outputText>
+					</rich:column>
+
+					<rich:column width="15%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.src_currency}" title="#{lblCommon.src_currency}" />
+						</f:facet>
+						<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.srcCurrency]}"/>
+						<h:outputText
+							value="#{CurrencyUtils.currencyMap[item.srcCurrency]}"
+							title="#{CurrencyUtils.currencyMap[item.srcCurrency]}"
+							 />
+					</rich:column>
+
+					<rich:column width="12%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.src_scale}" title="#{lblCommon.src_scale}" />
+						</f:facet>
+						<h:outputText value="#{item.srcScale}" />
+					</rich:column>
+
+					<rich:column width="18%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.dst_currency}" title="#{lblCommon.dst_currency}" />
+						</f:facet>
+						<div class="#{EntityIcons.objectsMapS['ENTT0046'][item.dstCurrency]}"/>
+						<h:outputText
+							value="#{CurrencyUtils.currencyMap[item.dstCurrency]}"
+							title="#{CurrencyUtils.currencyMap[item.dstCurrency]}"
+							 />
+					</rich:column>
+
+					<rich:column width="15%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.dst_scale}" title="#{lblCommon.dst_scale}" />
+						</f:facet>
+						<h:outputText value="#{item.dstScale}" />
+					</rich:column>
+
+					<rich:column width="14%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.eff_rate}" title="#{lblCommon.eff_rate}" />
+						</f:facet>
+						<h:outputText value="#{item.effRate}" />
+					</rich:column>
+				</rich:extendedDataTable>
+
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+							<h:outputText />
+							<bre:taggedCommandButton value="#{lblForm.ok}" id="hidebutton"
+								onclick="#{rich:component('ratesReportPanel')}.hide();return false;" />
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</rich:modalPanel>
+	</a4j:outputPanel>
+</ui:composition>
+</html>

@@ -1,0 +1,229 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		>
+<ui:composition>
+	<f:loadBundle var="lblRpt" basename="ru.bpc.sv2.ui.bundles.Rpt"/>
+
+	<h:form id="rptInitForm">
+		<a4j:jsFunction action="#{MbReportsContext.initializeModalPanell}" 
+				name="initializeReportPanel#{viewId}" reRender="#{viewIdColon}reportRunForm:refreshMe"
+				limitToList="true">
+		</a4j:jsFunction>
+		
+		<h:commandLink id="run" action="#{MbReportsContext.runReportImmediately}" 
+				style="display:none" />
+
+		<script type="text/javascript">//<!--
+			function #{viewId}_callAction() {
+				document.getElementById('#{viewIdColon}rptInitForm:run').click();
+			}
+			//-->
+		</script>
+	</h:form>
+
+	<rich:modalPanel id="reportRunPanel"  autosized="true" minWidth="300" minHeight="50"
+	   		onbeforeshow="if (#{empty fromCtx ? false : true}) initializeReportPanel#{viewId}()">
+   	<f:facet name="header">
+       	<h:outputText value="#{lblRpt.run_report}"/>
+	</f:facet>			
+
+	<h:form id="reportRunForm">
+		<a4j:outputPanel id="refreshMe">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper"
+					rendered="#{MbReportsContext.activeReportXml}">
+				<h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+						columnClasses="firstColModal, width250">
+		
+					<h:outputLabel value="* #{lblRpt.template}: " title="#{lblRpt.template}"/>
+					<a4j:region>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="template"
+								value="#{MbReportsContext.templateId}" required="true"
+								label="#{lblRpt.template}">
+								<f:selectItems value="#{MbReportsContext.templates}" />
+								<a4j:support event="onblur" reRender="templateError"
+									limitToList="true" ajaxSingle="true" />
+							</h:selectOneMenu>
+							<rich:message for="template" id="templateError"
+								styleClass="errorMarker" />
+						</h:panelGrid>
+					</a4j:region>
+
+					<h:outputLabel value="* #{lblRpt.format}: " title="#{lblRpt.format}"/>
+					<a4j:region>
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:selectOneMenu id="format"
+									value="#{MbReportsContext.reportFormat}" required="true"
+									label="#{lblRpt.template}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbReportsContext.formats}"/>
+								<a4j:support event="onblur" reRender="formatError"
+										limitToList="true" ajaxSingle="true"/>
+							</h:selectOneMenu>
+							<rich:message for="format" id="formatError"
+									styleClass="errorMarker"/>
+						</h:panelGrid>
+					</a4j:region>
+				</h:panelGrid>
+			</h:panelGroup>
+			
+			<a4j:region>
+				<rich:calendar buttonIcon="/images/calendar.gif" id="calendar1" datePattern="#{usession.datePattern}"
+						timeZone="#{CommonUtils.timeZone}"
+						onchanged="#{rich:component('calendar1')}.customInput.value=event.rich.component.getSelectedDateString();"
+						zindex="1000" inputClass="hidden" buttonClass="hidden">
+					<a4j:support event="oncollapse" reRender="input2Error"
+							limitToList="true" ajaxSingle="true" />
+				</rich:calendar>
+			</a4j:region>
+		
+			<script>
+				#{rich:component('calendar1')}.customExpand=customExpand;
+			</script>
+		
+			<rich:extendedDataTable style="${style}"
+					headerClass="res-table-header" selectedClass="res-table-selected"
+					styleClass="res-table" rowClasses=",odd" id="mainTable" var="item"
+					value="#{MbReportsContext.reportParameters}" rows="0"
+					height="200px" selectionMode="single" enableContextMenu="false"
+					noDataLabel="#{lblCommon['no_records_found']}" width="500px">
+		
+				<rich:column title="Name" sortBy="#{'name'}" width="40%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+					</f:facet>
+					<h:outputText value="#{item.name}" title="#{item.name}" />
+		
+				</rich:column>
+		
+				<rich:column title="Value" width="40%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.value}" title="#{lblCommon.value}" />
+					</f:facet>
+		
+					<h:panelGrid rendered="#{item.char}" columns="1" cellspacing="0"
+							cellpadding="0">
+						<a4j:region>
+							<h:inputText id="val1" value="#{item.valueV}" label="#{item.name}"
+									style="width:150px" required="#{item.mandatory }"
+									rendered="#{item.lovId == null }">
+								<a4j:support event="onchange" reRender="val1Error"
+										limitToList="true" ajaxSingle="true" />
+							</h:inputText>
+						</a4j:region>
+						<a4j:region>
+							<h:selectOneMenu id="val1ValuesList"
+									value="#{item.valueV}" required="#{item.mandatory}"
+									rendered="#{item.lovId != null }" label="#{item.name}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbReportsContext.activeReportListValues}" />
+								<a4j:support event="onchange" reRender="val1ValuesListError"
+										limitToList="true" ajaxSingle="true" />
+							</h:selectOneMenu>
+						</a4j:region>
+						<rich:message for="val1" id="val1Error" styleClass="errorMarker" />
+						<rich:message for="val1ValuesList" id="val1ValuesListError" styleClass="errorMarker" />
+					</h:panelGrid>
+		
+					<h:panelGrid rendered="#{item.number}" columns="1" cellspacing="0"
+						cellpadding="0">
+						<a4j:region>
+							<h:inputText id="numericField" value="#{item.valueN}"
+								label="#{item.name}" style="width:150px"
+								required="#{item.mandatory}" rendered="#{item.lovId == null }">
+								<bm:convertNumberNew minFractionDigits="0" groupingUsed="false"
+									maxIntegerDigits="15" />
+								<a4j:support event="onchange" reRender="numericFieldError"
+									limitToList="true" ajaxSingle="true" />
+							</h:inputText>
+						</a4j:region>
+						<a4j:region>
+							<h:selectOneMenu id="numericFieldValuesList" value="#{item.valueN}"
+								required="#{item.mandatory}" rendered="#{item.lovId != null }"
+								label="#{item.name}">
+								<f:selectItem itemValue=""/>
+								<f:selectItems value="#{MbReportsContext.activeReportListValues}" />
+								<a4j:support event="onchange" reRender="numericFieldValuesListError"
+									limitToList="true" ajaxSingle="true" />
+							</h:selectOneMenu>
+						</a4j:region>
+						<rich:message for="numericField" id="numericFieldError"
+							styleClass="errorMarker" />
+						<rich:message for="numericFieldValuesList" id="numericFieldValuesListError"
+							styleClass="errorMarker" />
+					</h:panelGrid>
+		
+					<h:panelGrid rendered="#{item.date}" columns="1" cellspacing="0"
+							cellpadding="0">
+						<h:panelGroup>
+							<a4j:region>
+								<h:inputText value="#{item.valueD}" id="input2"
+										style="width:150px" label="#{item.name}"
+										required="#{item.mandatory }"
+										onclick="#{rich:component('calendar1')}.customExpand(event, #{rich:element('input2')}, #{rich:element('button2')});">
+									<f:convertDateTime pattern="#{usession.datePattern}"
+											timeZone="#{CommonUtils.timeZone}" />
+								</h:inputText>
+							</a4j:region>
+							<h:graphicImage rendered="#{item.date}"
+									value="/images/calendar.gif"
+									onclick="#{rich:component('calendar1')}.customExpand(event, #{rich:element('input2')}, #{rich:element('button2')});"
+									id="button2">
+							</h:graphicImage>
+						</h:panelGroup>
+						<rich:message for="input2" id="input2Error" styleClass="errorMarker" />
+					</h:panelGrid>
+				</rich:column>
+		
+				<rich:column title="Data type" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.data_type}"
+							title="#{lblCommon.data_type}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[item.dataType]}"
+						title="#{DictUtils.articles[item.dataType]}" />
+				</rich:column>
+		
+				<f:facet name="footer">
+				</f:facet>
+			</rich:extendedDataTable>
+			
+			<h:commandLink id="run" action="#{MbReportsContext.generateFile}" value="run" style="display:none"/>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+	                    <bre:taggedCommandButton value="#{lblRpt.run}"
+                      			action="#{MbReportsContext.runReportt}"
+                       			oncomplete="returnFormFields();
+	                       				if (#{usession.noErrorResponse}) {
+	                       					if (#{MbReportsContext.htmlReport}) {
+	                       						displayReport();
+	                       					} else {
+	                       						document.getElementById('#{viewIdColon}reportRunForm:run').click();
+	                       					}
+	                       					Richfaces.hideModalPanel('#{viewIdColon}reportRunPanel');
+				           				}">		                        		
+                       	</bre:taggedCommandButton>		                        	
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" action="#{MbReportsContext.cancelReport}" immediate="true"
+                        		oncomplete="Richfaces.hideModalPanel('#{viewIdColon}reportRunPanel')"
+                        		reRender="#{viewIdColon}reportRunForm">
+                       		<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+                        </bre:taggedCommandButton>	
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>   
+		    </a4j:outputPanel>
+		</h:form>
+	</rich:modalPanel>
+</ui:composition>
+</html>

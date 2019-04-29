@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:fmt="http://www.bpc.ru/el/formatter">
+<ui:composition>
+	<f:loadBundle var="lblAtm" basename="ru.bpc.sv2.ui.bundles.Atm" />
+
+	<h:form id="adminOperationForm" style="overflow:hidden;">
+
+		<h:panelGroup id="adminOperationTableWrapper" layout="block"
+			style="padding:0px;margin:0px;">
+			<rich:extendedDataTable id="adminOperationTable" styleClass="res-table"
+				headerClass="res-table-header table-header-ext" rowClasses=",odd"
+				selectedClass="res-table-selected" var="item"
+				value="#{MbAdminOperation.dataModel}" selectionMode="single"
+				selection="#{MbAdminOperation.itemSelection}" width="100%"
+				enableContextMenu="true" border="0"
+				tableState="#{MbAdminOperation.tableState}"
+				noDataLabel="#{lblCommon.no_records_found}">
+
+				<rich:column id="command_date" label="#{lblAtm.command_date}" title="Command Date"
+					sortBy="#{'commandDate'}" width="25%">
+					<f:facet name="header">
+						<h:panelGroup>
+							<script>
+								updateHeight();
+							</script>
+							<h:outputText value="#{lblAtm.command_date}"
+									title="#{lblAtm.command_date}" />									
+						</h:panelGroup>
+ 					</f:facet>
+					<f:facet name="filter">
+						<h:panelGrid columns="1" cellpadding="0" cellspacing="0" border="0" >
+					
+						<h:selectOneMenu id="collection"
+								value="#{MbAdminOperation.selectedCollectionIdx}">
+							<a4j:support event="onchange" reRender="adminOperationTable" action="#{MbAdminOperation.updateData}"
+									limitToList="true" ajaxSingle="true"/>
+							<f:selectItems value="#{MbAdminOperation.collections}" />
+						</h:selectOneMenu>
+						
+						<h:panelGroup layout="block" style="padding-top:10px;padding-bottom:10px;">
+							<h:outputText value="#{lblAtm.from}: " />
+							<rich:calendar 
+								id="startDateFilter"
+								reRender="collectionsTable"
+								value="#{MbAdminOperation.filterStartDate}"
+								datePattern="#{usession.datePattern}"
+								timeZone="#{CommonUtils.timeZone}" inputStyle="width:30%;" >
+								<a4j:support event="onchanged" process="startDateFilter" ajaxSingle="true" reRender="adminOperationTable" limitToList="true" action="#{MbAdminOperation.updateData}"/>
+							</rich:calendar>
+							<h:outputText value="#{lblAtm.to}: " />
+							<rich:calendar 
+								id="endDateFilter"
+								reRender="collectionsTable"
+								value="#{MbAdminOperation.filterEndDate}"
+								datePattern="#{usession.datePattern}"
+								timeZone="#{CommonUtils.timeZone}" inputStyle="width:30%;" >
+								<a4j:support event="onchanged" process="endDateFilter" ajaxSingle="true" reRender="adminOperationTable" limitToList="true" action="#{MbAdminOperation.updateData}"/>
+							</rich:calendar>
+						</h:panelGroup>
+						
+						</h:panelGrid>
+					</f:facet> 					
+					<h:outputText value="#{item.commandDate}" 
+						title="#{item.commandDate}">
+						<f:convertDateTime pattern="#{usession.datePattern}"
+							timeZone="#{CommonUtils.timeZone}" />
+					</h:outputText>
+				</rich:column>
+
+				<rich:column id="user" label="#{lblAtm.user}" title="User Name"
+					sortBy="#{'userName'}" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAtm.user}"
+								title="#{lblAtm.user}" />
+ 					</f:facet>
+ 					<f:facet name="filter">
+ 						<h:inputText id="filterUserName" value="#{MbAdminOperation.filter.userName}">
+ 							<a4j:support event="onchange" action="#{MbAdminOperation.updateData}" ajaxSingle="true" reRender="adminOperationTable" />
+ 						</h:inputText>
+ 					</f:facet>
+					<h:outputText
+							value="#{item.userName}"
+							title="#{item.userName}"/>
+				</rich:column>
+							
+				<rich:column id="command" label="#{lblAtm.command}" title="Command Name"
+					sortBy="#{'commandName'}" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAtm.command}"
+								title="#{lblAtm.command}" />
+ 					</f:facet>
+					<h:outputText
+							value="#{item.commandName}"
+							title="#{item.commandName}"/>
+				</rich:column>
+							
+				<rich:column id="command_result" label="#{lblAtm.command_result}" title="Command Result"
+					sortBy="#{'commandResult'}" width="25%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAtm.command_result}"
+								title="#{lblAtm.command_result}" />
+ 					</f:facet>
+					<h:outputText
+							value="#{item.commandResult}"
+							title="#{item.commandResult}"/>
+				</rich:column>
+
+			</rich:extendedDataTable>
+
+		</h:panelGroup>
+
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" >
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup></h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveAdminTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteAdminTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveAdminTableState" action="#{MbAdminOperation.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteAdminTableState" action="#{MbAdminOperation.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+</ui:composition>
+</html>

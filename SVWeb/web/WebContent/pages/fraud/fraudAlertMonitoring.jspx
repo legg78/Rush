@@ -1,0 +1,1109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles"
+		xmlns:c="http://java.sun.com/jstl/core"
+		xmlns:fmt="http://www.bpc.ru/el/formatter"
+		xmlns:bpc="http://www.bpc.ru/jsf/misc"
+		>
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<h:panelGroup rendered="#{usession.inRole['VIEW_MONITORED_FRAUD']}">
+			<script type="text/javascript" src="#{facesContext.externalContext.requestContextPath}/js/checks.js" />
+			<script type="text/javascript">
+	    	//<![CDATA[
+			
+	    	var colorOk = "#FFFFFF";
+	    	var colorMandatory = "#FF5555";
+	    	var colorGroup1 = "#FFAAAA";
+	    	var colorGroup2 = "#FF7777";
+	    	var colorFormat = "#FF9999";
+	    	
+	    	function Component(el, needFocus, needMark, minLength, wildcardType, alfaChar) {
+		    	this.el = el;// el object
+		    	this.needFocus = needFocus;//boolean
+		    	this.needMark = needMark;//boolean
+		    	this.minLength = minLength;//int
+		    	this.wildcardType = wildcardType;//0:no wildcard allow; 1:no wildcard end.
+		    	this.alfaChar = alfaChar; // true: start with alfa char
+	    	}
+	
+	    	function checkMandatory(el, needFocus, needMark, minLength, wildcardType, alfaChar) {
+	    		var result = true;
+	    		if (el.value == null || el.value == "") {
+					result = false;
+				} else if (minLength != null && el.value.replace(/%|\*|\?/g,"").length < minLength) {
+					result = false;
+				} else if (wildcardType != null) {
+					if (wildcardType == 0) {
+						if (/%|\*|\?/g.test(el.value)) {
+							result = false;	
+						} 
+					} else {
+						if (/.*(%|\*|\?)$/g.test(el.value)) {
+							result = false;	
+						} 
+					}
+				} else if (alfaChar) {
+					if (!/^[a-zA-Z].*$/g.test(el.value)) {
+						result = false;
+					}
+				}
+	    		if (result) {
+	    			el.style.backgroundColor = colorOk;
+	    		} else {
+	    			if (needMark) {
+						el.style.backgroundColor = colorMandatory;
+	        		}
+					if (needFocus) {
+						el.focus();
+					}
+	    		}
+				return result;
+	    	}
+	
+	    	function checkGroup(group, color) {
+	        	var validGroup = true;
+	        	for (var i = 0; i < group.length; i++) {
+	        		validGroup = validGroup && checkMandatory(
+	        				group[i].el, group[i].needFocus, group[i].needMark, group[i].minLength, group[i].wildcardType, group[i].alfaChar);
+	    		}
+	    		if (!validGroup) {
+	    			if (color != null) {
+		    			for (var i = 0; i < group.length; i++) {
+		    				group[i].el.style.backgroundColor = color;
+		        		}    			
+	    			}
+	    		} else {
+	    			for (var i = 0; i < group.length; i++) {
+	    				group[i].el.style.backgroundColor = colorOk;
+	        		}
+	    		}
+	    		return validGroup;
+	    	}
+	    	
+	    	function checkGroups(groups) {
+	        	var valid = false;
+	    		for (var i = 0; i < groups.length; i++) {
+	        		if (groups.length > 2) {
+	        			if (i == 0) { 
+	        				valid = valid || checkGroup(groups[i], colorGroup1);
+	        			} else {
+	        				valid = valid || checkGroup(groups[i], null);
+	        			}
+	    			} else {
+	    				if (i == 0) {
+	    					valid = valid || checkGroup(groups[i], colorGroup1);
+	    				} else {
+	    					valid = valid || checkGroup(groups[i], colorGroup2);
+	    				} 
+	    			}
+	    		}
+	    		
+	    		return valid;
+	    	}
+	    	
+	    	function clearColor(groups) {
+	    		for (var i = 0; i < groups.length; i++) {
+	    			for (var j = 0; j < groups[i].length; j++) {
+	    				groups[i][j].el.style.backgroundColor = colorOk;
+	    			}
+	    		}
+	    	}
+	    	
+	    	function checkFieldsAuth() {
+	        	var valid = true;
+	        	var form = "authForm:";/*
+				var instIdEl = document.getElementById(form + "instId");
+				if (instIdEl != null) {
+					valid = valid && checkMandatory(instIdEl, true, true, null, null);
+				}
+				
+				var customerNumberEl = document.getElementById(form + "numberFilter");
+				var contractNumberEl = document.getElementById(form + "contractNumberFilter");
+	
+				var customerValid = checkMandatory(customerNumberEl, false, true, 4, 1);
+				
+				var contractValid = checkMandatory(contractNumberEl, false, true, 4, null);
+				if (contractValid){
+					//contractValid = contractValid && 
+						//(contractNumberEl.value.charAt(0) != '%' ||
+							//	contractNumberEl.value.charAt(contractNumberEl.value.length-1) != '%' );
+					if (/^[%\?\*].*[%\?\*]$/g.test(contractNumberEl.value)) {
+						contractValid = false;
+					} 
+				}
+				
+	    		if (!customerValid && !contractValid) {
+	    			alert("Customer number or contract number must be correctly defined");
+					valid = false; 
+	    		} else {
+	    			customerNumberEl.style.backgroundColor = colorOk;
+	    			contractNumberEl.style.backgroundColor = colorOk;
+	    		}
+	    		*/
+				return valid;
+			}    	    
+	    	           
+	    	function checkFieldsCard() {
+				var valid = true;
+				var form = "cardForm:";
+				
+				var instIdEl = document.getElementById(form + "instId");
+				if (instIdEl != null) {
+					valid = valid && checkMandatory(instIdEl, true, true, null, null);
+				}
+				
+				var cardNumberEl = document.getElementById(form + "numberFilter");
+				cardNumberEl.style.backgroundColor = colorOk;
+				if (cardNumberEl != null) {
+					if (!checkCardNumber(cardNumberEl.value)){
+						valid = false;
+						var errorMsg = ''; 
+						errorMsg = appendMsg(errorMsg, '#{lblMsg.card_number_group}');
+						alert(errorMsg);
+						cardNumberEl.style.backgroundColor = colorMandatory;
+					}
+				}
+				
+				return valid;
+			}
+			
+			function checkCardNumber(cardNumber){
+				var indexOfStar = cardNumber.lastIndexOf('*');
+				var indexOfPerc = cardNumber.lastIndexOf('%');
+				var length = cardNumber.length;
+				if ((indexOfPerc != -1) && ((length - indexOfPerc) > 4) || 
+						(indexOfStar != -1) && (length - indexOfStar > 4) ||
+						(length >= 10 )){
+					return true;
+				}
+				return false;
+			}
+	
+			function checkFieldsAccount() {
+				var valid = true;
+				var form = "accountForm:";
+				
+				var instIdEl = document.getElementById(form + "instId");
+				if (instIdEl != null) {
+					valid = valid && checkMandatory(instIdEl, true, true, null, null);
+				}
+				
+				var accounNumberEl = document.getElementById(form + "numberFilter");
+				if (accounNumberEl != null) {
+					var pass = checkMandatory(accounNumberEl, true, true, 4, 1);
+					if (!pass) {
+						alert("Account number is mandatory, not less than 4 chars, cannot ends with wildcard.");
+						valid = false;
+					}
+				}
+				
+				return valid;
+			}
+	
+			function checkFieldsTerminal() {
+			   var valid = true;
+			   var form = "terminalForm:";
+			   var instIdEl = document.getElementById(form + "instId");
+			   if (instIdEl != null) {
+			   		valid = checkMandatory(instIdEl, true, true, null, null);
+			   }
+			   
+			   var terminalNumberEl = document.getElementById(form + "numberFilter");
+			   var checkNumber = checkMandatory(terminalNumberEl, true, true, 4, 1);
+			   if (!checkNumber) {
+			    	alert("Terminal number must be not less than 4 chars and cannot end with wildcard.");
+			    	valid = false;
+			   }
+			   
+			   return valid;
+		  	}
+			
+			function selectTab(tabName) {
+				submittingTab = tabName;
+				if (checkTabLoaded(tabName)) {
+					//set only tab name to managed bean (in order to use it in the future)
+					setTabName(tabName);
+					return false;
+				}
+				refreshTab(tabName);
+				return true;
+			}
+	
+			function selectTab1(tabName) {
+				if (!submitTab(tabName)) {
+					//set only tab name to managed bean (in order to use it in the future)
+					setTabName(tabName);
+					return false;
+				}
+				//set tab name and refresh tab
+				refreshTab(tabName);
+			}
+	
+			var rightButton;
+			
+			function handleMouseClick(e) {
+				if (!e) var e = window.event;
+				if (e.which) rightButton = (e.which == 3);
+				else if (e.button) rightButton = (e.button == 2);
+			}
+	
+			function isSelectedRow(elem) {
+				elem = elem.parentNode.parentNode.parentNode;
+				if (elem.className.indexOf("extdt-row-selected") >= 0) {
+					return true;
+				}
+				return false;
+			}
+	
+			function showMenu(elem) {
+				return rightButton && isSelectedRow(elem);
+			}
+			//]]>
+			</script>
+			
+			<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd"/>
+			<f:loadBundle var="lblAcq" basename="ru.bpc.sv2.ui.bundles.Acq"/>
+			<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+			<f:loadBundle var="lblFrp" basename="ru.bpc.sv2.ui.bundles.Frp"/>
+			<f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr"/>
+			
+			<a4j:loadScript src="/js/calendarUtils.js"></a4j:loadScript>
+
+			<rich:calendar buttonIcon="/images/calendar.gif" id="calendar" datePattern="#{usession.fullDatePattern}"
+					buttonClass="hidden" inputClass="hidden" defaultTime="00:00"
+					onchanged="#{rich:component('calendar')}.customInput.value=event.rich.component.getSelectedDateString();" 
+					zindex="1000"/>
+					
+			<script>
+				#{rich:component('calendar')}.customExpand=customExpand;
+			</script>   	
+	    	
+	    	<!-- navigation bar -->
+			<bpct:navBar pageName="#{lblFrp.fraud_alerts}"/>
+			<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+			
+			<script type="text/javascript">
+			//<![CDATA[
+			function handleEnter(event, tabName) {
+				 if (event.keyCode == 13) {
+					 document.getElementById(tabName + ':searchBtn').click(); 
+					 return false; 
+				} 
+				return true;
+			 }	
+			//]]>
+			</script>
+			
+			<h:form id="alertsSearchForm">
+				<h:inputHidden value="#{MbFraudAlertMonitoring.tabName}" id="tabNameInput"/>
+				<script type="text/javascript">
+				 	load("alertsSearchForm:tabNameInput");
+				</script>				
+				
+				<a4j:region>
+					<a4j:jsFunction name="refreshTab" eventsQueue="queue" limitToList="true" ajaxSingle="true"
+						reRender="#{MbFraudAlertMonitoring.tabName}, err_ajax" action="#{MbFraudAlertMonitoring.loadCurrentTab}"
+						oncomplete="setTabLoaded(submittingTab); updateHeight();">
+						<a4j:actionparam name="tabName" assignTo="#{MbFraudAlertMonitoring.tabName}"/>
+					</a4j:jsFunction>
+				
+					<a4j:jsFunction name="setTabName" reRender="err_ajax" limitToList="true" ajaxSingle="true"
+						oncomplete="setTabLoaded(submittingTab)">
+						<a4j:actionparam name="tabName" assignTo="#{MbFraudAlertMonitoring.tabName}"/>
+					</a4j:jsFunction>
+				</a4j:region>
+				
+				<a4j:region>
+					<a4j:status id="ajaxStatus1"/>			
+					<a4j:jsFunction name="setSearchTabName" reRender="err_ajax" limitToList="true" ajaxSingle="true" status="ajaxStatus1">
+						<a4j:actionparam name="tabName" assignTo="#{MbFraudAlertMonitoring.searchTabName}"/>
+					</a4j:jsFunction>
+				</a4j:region>
+				
+			</h:form>
+				
+			<!-- search panel -->
+			<h:panelGroup layout="block" styleClass="search_block_tabs" id="alertsSearchPanel">
+				<bpct:filterBarModalPanels id="filterPanels"
+						rerenderList="filterTabs, show_more_panel, alertsForm, save_filter_panel_div, #{MbFraudAlertMonitoring.tabName}"
+						selectedFilter="#{MbFraudAlertMonitoring.selectedSectionFilter}"
+						sectionFilter="#{MbFraudAlertMonitoring.sectionFilter}"
+						sectionFilterModeEdit="#{MbFraudAlertMonitoring.sectionFilterModeEdit}"
+						searchAutomatically="#{MbFraudAlertMonitoring.searchAutomatically}"
+						sectionId="2277"
+						beanName="MbFraudAlertMonitoring"/>
+				<rich:tabPanel switchType="client" id="filterTabs"  tabClass="tab-cell"
+		    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    			contentClass="search_block" style="margin-bottom:10px;"
+		    			selectedTab="#{MbFraudAlertMonitoring.searchTabName}">
+		    			
+		    		<rich:tab label="Authorization" name="authTab" onlabelclick="setSearchTabName('authTab')"
+		    			onkeypress="handleEnter(event, 'authForm')">						
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblOpr.auth}" title="#{lblOpr.auth}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+       					<a4j:form id="authForm">
+		   					<h:panelGroup layout="block" styleClass="search_block_tab">
+		       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden">
+									<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		
+					                		<h:outputLabel for="currency" value="#{lblCommon.currency}: " title="#{lblCommon.currency}"/>
+							      			<h:selectOneMenu id="currency"
+							      						value="#{MbFraudAlertMonitoring.filterAuth.operationCurrency}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{CurrencyUtils.allCurrencies}"/>
+							      				<a4j:support event="onchange" ajaxSingle="true" limitToList="true" reRender="amountFromGroup, amountToGroup" />
+							      			</h:selectOneMenu>
+
+					            			<h:outputLabel value=""/>
+					            			<h:outputText value=""/>
+
+											<h:outputLabel for="amountFrom"
+												value="#{lblOpr.amount_from}: "
+												title="#{lblOpr.amount_from}" 
+												/>
+											<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+												id="amountFromGroup" style="width:250px">
+												<h:inputText id="amountFrom"
+													value="#{MbFraudAlertMonitoring.authAmountFrom}">
+													<bpc:numericMaskConverter numericType="bigdecimal">
+													</bpc:numericMaskConverter>
+													<f:attribute name="decDigits"
+														value="#{CurrencyUtils.currencyObjectsMap[MbFraudAlertMonitoring.filterAuth.operationCurrency].exponent}" />
+												</h:inputText>
+												<bpc:jsMask for="amountFrom"
+													decDigits="#{CurrencyUtils.currencyObjectsMap[MbFraudAlertMonitoring.filterAuth.operationCurrency].exponent}" />
+											</h:panelGrid>
+
+											<h:outputLabel for="amountTo" value="#{lblOpr.amount_to}: " title="#{lblOpr.amount_to}"/>
+											<h:panelGrid columns="1" cellspacing="0" cellpadding="0"
+												id="amountToGroup">
+												<h:inputText id="amountTo"
+													style="width:250px"
+													value="#{MbFraudAlertMonitoring.authAmountTo}">
+													<bpc:numericMaskConverter numericType="bigdecimal">
+													</bpc:numericMaskConverter>
+													<f:attribute name="decDigits"
+														value="#{CurrencyUtils.currencyObjectsMap[MbFraudAlertMonitoring.filterAuth.operationCurrency].exponent}" />
+												</h:inputText>
+												<bpc:jsMask for="amountTo"
+													decDigits="#{CurrencyUtils.currencyObjectsMap[MbFraudAlertMonitoring.filterAuth.operationCurrency].exponent}" />
+											</h:panelGrid>					            			
+
+					            			<h:outputLabel for="operDateFrom" value="#{lblCommon.date_from}: " title="#{lblCommon.date_from}" />
+					            			<h:panelGroup>
+				                				<h:inputText id="operDateFrom" styleClass="inputDate"
+				                						value="#{MbFraudAlertMonitoring.authDateFrom}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operDateFrom')}, #{rich:element('operDateFromBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operDateFrom')}, #{rich:element('operDateFromBtn')});"
+														id="operDateFromBtn"/>	
+				                			</h:panelGroup>
+			
+					            			<h:outputLabel for="operDateTo" value="#{lblCommon.date_to}: " title="#{lblCommon.date_to}"/>
+					            			<h:panelGroup>
+				                				<h:inputText id="operDateTo" styleClass="inputDate"
+				                						value="#{MbFraudAlertMonitoring.authDateTo}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operDateTo')}, #{rich:element('operDateToBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('operDateTo')}, #{rich:element('operDateToBtn')});"
+														id="operDateToBtn"/>	
+				                			</h:panelGroup>
+
+					                		<h:outputLabel for="operType" value="#{lblOpr.oper_type}: " title="#{lblFrp.oper_type}"/>
+							      			<h:selectOneMenu id="operType" 
+							      						value="#{MbFraudAlertMonitoring.filterAuth.operType}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbFraudAlertMonitoring.operTypes}"/>
+							      			</h:selectOneMenu>
+							      			
+							      			<h:outputLabel for="mcc" value="#{lblCommon.mcc}: " title="#{lblCommon.mcc}"/>
+							      			<h:selectOneMenu id="mcc"
+							      						value="#{MbFraudAlertMonitoring.filterAuth.mccCode}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbFraudAlertMonitoring.mccs}"/>
+							      			</h:selectOneMenu>
+							      			
+			                			</h:panelGrid>
+				                		<h:panelGrid columns="1">
+					                		<bre:taggedCommandButton eventsQueue="queue"
+						                			action="#{MbFraudAlertMonitoring.searchByAuthorization}" 
+						                			onclick="if (!checkFieldsAuth()) {return false;} disableModalPanelBtns(this); flushTabs();"
+						                			oncomplete="enableModalPanelBtns(this);"
+						                			id="searchBtn"
+				        							reRender="btnPanel, alertsTable, dsAlerts, pagesNum, #{MbFraudAlertMonitoring.tabName}, alertsBtnForm"
+				                					image="/_img/icon_search.png" type="submit"
+				                					value="#{lblForm.search}" style="width:85px;"
+				                					>
+				                				<a4j:actionparam assignTo="#{MbFraudAlertMonitoring.searchTabName}" value="authTab"/>
+				                			</bre:taggedCommandButton>
+				                			<h:panelGrid columns="1">
+					                			<h:panelGroup styleClass="link-clear" layout="block">
+						                			<h:graphicImage url="/_img/icon_clear.png"/>
+						                			<a4j:commandLink value="#{lblForm.clear_all}"
+											        		action="#{MbFraudAlertMonitoring.clearFilter}"
+											        		onclick="flushTabs();"
+											        		reRender="btnPanel,alertsSearchForm, authForm, alertsForm, details, alertsBtnForm">
+											        </a4j:commandLink>
+					            	    		</h:panelGroup>
+					            	    		
+					            	    		<h:panelGroup>
+													<bpct:filterBar sectionId="2277"/>
+												</h:panelGroup>
+											</h:panelGrid>
+				                		</h:panelGrid>
+				               		</h:panelGrid>	
+								</h:panelGroup>													
+							</h:panelGroup>
+		               	</a4j:form>			               	
+				    </rich:tab>
+	
+				    <rich:tab label="Card" name="cardTab" onlabelclick="setSearchTabName('cardTab')"
+				    		rendered="#{usession.inRole['SEARCH_CARD']}">				    	
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblIss.card}" title="#{lblIss.card}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+	       					<h:form id="cardForm">
+								<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+				                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+				                		<h:outputLabel for="numberFilter" value="#{lblIss.card_number}: " title="#{lblIss.card_number}"/>
+				            			<h:inputText id="numberFilter" value="#{MbFraudAlertMonitoring.filterCard.cardNumber}"/>
+				            			
+						      			<h:outputLabel value="#{lblCommon.date_from}:"/>
+			                			<h:panelGroup>
+			                				<h:inputText id="cardDateFrom" styleClass="inputDate"
+			                						value="#{MbFraudAlertMonitoring.cardDateFrom}"
+													onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('cardDateFrom')}, #{rich:element('cardDateFromBtn')});">
+												<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+											</h:inputText>
+											<h:graphicImage
+													value="/images/calendar.gif"
+													onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('cardDateFrom')}, #{rich:element('cardDateFromBtn')});"
+													id="cardDateFromBtn"/>	
+			                			</h:panelGroup>
+			                			
+			                			<h:outputLabel/>
+			                			<h:outputText/>
+			                			
+						      			<h:outputLabel value="#{lblCommon.date_to}:"/>
+			                			<h:panelGroup>
+			                				<h:inputText id="cardDateTo" styleClass="inputDate"
+			                						value="#{MbFraudAlertMonitoring.cardDateTo}"
+													onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('cardDateTo')}, #{rich:element('cardDateToBtn')});">
+												<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+											</h:inputText>
+											<h:graphicImage
+													value="/images/calendar.gif"
+													onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('cardDateTo')}, #{rich:element('cardDateToBtn')});"
+													id="cardDateToBtn"/>	
+			                			</h:panelGroup>
+		                			</h:panelGrid>
+			                		<h:panelGrid columns="1">
+				                		<bre:taggedCommandButton
+					                			action="#{MbFraudAlertMonitoring.searchByCard}" eventsQueue="queue"
+					                			onclick="if (!checkFieldsCard()) {return false;} disableModalPanelBtns(this); flushTabs();"
+					                			oncomplete="enableModalPanelBtns(this);"
+			        							reRender="btnPanel, alertsTable, dsAlerts, pagesNum, #{MbFraudAlertMonitoring.tabName}, alertsBtnForm"
+			                					image="/_img/icon_search.png" type="submit"
+			                					value="#{lblForm.search}" style="width:85px;">
+			                				<a4j:actionparam assignTo="#{MbFraudAlertMonitoring.searchTabName}" value="cardTab"/>
+			                			</bre:taggedCommandButton>
+			                			<h:panelGrid columns="1">
+				                			<h:panelGroup styleClass="link-clear" layout="block">
+					                			<h:graphicImage url="/_img/icon_clear.png"/>
+					                			<a4j:commandLink value="#{lblForm.clear_all}"
+										        		action="#{MbFraudAlertMonitoring.clearFilter}"
+										        		onclick="flushTabs();"
+										        		reRender="btnPanel,cardForm, cardsForm, alertsForm, details, alertsBtnForm"
+										        		oncomplete="toggleTabs(currentTab);">
+										        </a4j:commandLink>
+				            	    		</h:panelGroup>
+				            	    		<h:panelGroup>
+					            	    		<bpct:filterBar sectionId="2277"/>
+											</h:panelGroup>
+										</h:panelGrid>
+			                		</h:panelGrid>
+			               		</h:panelGrid>
+			               	</h:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>					               	
+				    </rich:tab>
+				    
+				    <rich:tab label="Account" name="accountTab" onlabelclick="setSearchTabName('accountTab')"
+				    		onkeypress="handleEnter(event, 'accountForm')"
+				    		rendered="#{usession.inRole['SEARCH_ACCOUNT']}">				   	 	
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblAcc.account}" title="#{lblAcc.account}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+		       					<h:form id="accountForm">
+									<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+							      			<h:selectOneMenu id="instId"
+							      						value="#{MbFraudAlertMonitoring.filterAccount.instId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbFraudAlertMonitoring.institutions}"/>
+							      			</h:selectOneMenu>
+							      			
+					                		<h:outputLabel for="numberFilter" value="#{lblAcc.account_number}: " title="#{lblAcc.account_number}"/>
+					            			<h:inputText id="numberFilter" value="#{MbFraudAlertMonitoring.filterAccount.accountNumber}"/>
+					            			
+					            			<h:outputLabel for="accDateFrom" value="#{lblCommon.date_from}: " title="#{lblCommon.date_from}" />
+					            			<h:panelGroup>
+				                				<h:inputText id="accDateFrom" styleClass="inputDate"
+				                						value="#{MbFraudAlertMonitoring.accDateFrom}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('accDateFrom')}, #{rich:element('accDateFromBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('accDateFrom')}, #{rich:element('accDateFromBtn')});"
+														id="accDateFromBtn"/>	
+				                			</h:panelGroup>
+			
+					            			<h:outputLabel for="accDateTo" value="#{lblCommon.date_to}: " title="#{lblCommon.date_to}"/>
+					            			<h:panelGroup>
+				                				<h:inputText id="accDateTo" styleClass="inputDate"
+				                						value="#{MbFraudAlertMonitoring.accDateTo}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('accDateTo')}, #{rich:element('accDateToBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('accDateTo')}, #{rich:element('accDateToBtn')});"
+														id="accDateToBtn"/>	
+				                			</h:panelGroup>
+			                			</h:panelGrid>
+				                		<h:panelGrid columns="1">
+					                		<bre:taggedCommandButton
+						                			action="#{MbFraudAlertMonitoring.searchByAccount}" eventsQueue="queue"
+						                			id="searchBtn"
+						                			onclick="if (!checkFieldsAccount()) {return false;} disableModalPanelBtns(this); flushTabs();"
+						                			oncomplete="enableModalPanelBtns(this);"
+				        							reRender="btnPanel,alertsTable, dsAlerts, pagesNum, #{MbFraudAlertMonitoring.tabName}, alertsBtnForm"
+				                					image="/_img/icon_search.png" type="submit"
+				                					value="#{lblForm.search}" style="width:85px;">
+				                				<a4j:actionparam assignTo="#{MbFraudAlertMonitoring.searchTabName}" value="accountTab"/>
+				                			</bre:taggedCommandButton>
+				                			<h:panelGrid columns="1">
+					                			<h:panelGroup styleClass="link-clear" layout="block">
+						                			<h:graphicImage url="/_img/icon_clear.png"/>
+						                			<a4j:commandLink value="#{lblForm.clear_all}"
+											        		action="#{MbFraudAlertMonitoring.clearFilter}"
+											        		onclick="flushTabs();"
+											        		reRender="btnPanel,alertsSearchForm, accountForm, alertsForm, details, alertsBtnForm">
+											        </a4j:commandLink>
+					            	    		</h:panelGroup>
+					            	    		<h:panelGroup>
+						            	    		<bpct:filterBar sectionId="2277"/>
+												</h:panelGroup>
+											</h:panelGrid>
+				                		</h:panelGrid>
+				               		</h:panelGrid>
+				               	</h:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>					               	
+				    </rich:tab>
+				    
+				    <rich:tab label="Terminal" name="terminalTab" onlabelclick="setSearchTabName('terminalTab')"
+				    		onkeypress="handleEnter(event, 'terminalForm')"
+				    		rendered="#{usession.inRole['SEARCH_TERMINAL']}">
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblAcq.terminal}" title="#{lblAcq.terminal}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	       				<h:panelGroup layout="block" styleClass="search_block_tab">
+	       					<h:panelGroup layout="block" styleClass="search_block_inner search_block_inner-hidden" >
+		       					<h:form id="terminalForm">
+									<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+					                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+					                		
+					                		<h:outputLabel for="instId" value="#{lblCommon.institution}: " title="#{lblCommon.institution}"/>
+							      			<h:selectOneMenu id="instId"
+							      						value="#{MbFraudAlertMonitoring.filterTerminal.instId}">
+							      				<f:selectItem itemValue=""/>
+							      				<f:selectItems value="#{MbFraudAlertMonitoring.institutions}"/>
+							      			</h:selectOneMenu>
+							      			
+					                		<h:outputLabel for="numberFilter" value="#{lblAcq.terminal_number}: " title="#{lblAcq.terminal_number}"/>
+					            			<h:inputText id="numberFilter" value="#{MbFraudAlertMonitoring.filterTerminal.terminalNumber}"/>
+	
+					            			<h:outputLabel for="termDateFrom" value="#{lblCommon.date_from}: " title="#{lblCommon.date_from}" />
+					            			<h:panelGroup>
+				                				<h:inputText id="termDateFrom" styleClass="inputDate"
+				                						value="#{MbFraudAlertMonitoring.termDateFrom}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('termDateFrom')}, #{rich:element('termDateFromBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('termDateFrom')}, #{rich:element('termDateFromBtn')});"
+														id="termDateFromBtn"/>	
+				                			</h:panelGroup>
+			
+					            			<h:outputLabel for="termDateTo" value="#{lblCommon.date_to}: " title="#{lblCommon.date_to}"/>
+					            			<h:panelGroup>
+				                				<h:inputText id="termDateTo" styleClass="inputDate"
+				                						value="#{MbFraudAlertMonitoring.termDateTo}"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('termDateTo')}, #{rich:element('termDateToBtn')});">
+													<f:convertDateTime pattern="#{usession.datePattern}" timeZone="#{CommonUtils.timeZone}"/>
+												</h:inputText>
+												<h:graphicImage
+														value="/images/calendar.gif"
+														onclick="#{rich:component('calendar')}.customExpand(event, #{rich:element('termDateTo')}, #{rich:element('termDateToBtn')});"
+														id="termDateToBtn"/>	
+				                			</h:panelGroup>
+			                			</h:panelGrid>
+				                		<h:panelGrid columns="1">
+					                		<bre:taggedCommandButton
+						                			action="#{MbFraudAlertMonitoring.searchByTerminal}" eventsQueue="queue"
+						                			id="searchBtn"
+						                			onclick="if (!checkFieldsTerminal()) {return false;} disableModalPanelBtns(this); flushTabs();"
+						                			oncomplete="enableModalPanelBtns(this);"
+				        							reRender="btnPanel, alertsTable, dsAlerts, pagesNum, #{MbFraudAlertMonitoring.tabName}, alertsBtnForm"
+				                					image="/_img/icon_search.png" type="submit"
+				                					value="#{lblForm.search}" style="width:85px;">
+				                				<a4j:actionparam assignTo="#{MbFraudAlertMonitoring.searchTabName}" value="terminalTab"/>
+				                			</bre:taggedCommandButton>
+				                			<h:panelGrid columns="1">
+					                			<h:panelGroup styleClass="link-clear" layout="block">
+						                			<h:graphicImage url="/_img/icon_clear.png"/>
+						                			<a4j:commandLink value="#{lblForm.clear_all}"
+											        		action="#{MbFraudAlertMonitoring.clearFilter}"
+											        		reRender="btnPanel, customersSearchForm, terminalForm, alertsForm, #{MbFraudAlertMonitoring.tabName}, alertsBtnForm">
+											        </a4j:commandLink>
+					            	    		</h:panelGroup>
+					            	    		<h:panelGroup>
+						            	    		<bpct:filterBar sectionId="2277"/>
+												</h:panelGroup>
+											</h:panelGrid>
+				                		</h:panelGrid>
+				               		</h:panelGrid>
+				               	</h:form>
+			               	</h:panelGroup>													
+						</h:panelGroup>					               	
+				    </rich:tab>
+			    </rich:tabPanel>
+			    <a4j:outputPanel ajaxRendered="true">
+					<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-vert-tab" layout="block"/>
+				</a4j:outputPanel>			   
+			</h:panelGroup>
+				
+			<h:form id="alertsForm">	
+			
+				<a4j:jsFunction name="changeSelection" eventsQueue="queue"
+						reRender="btnPanel, cardsCount, accountsCount, #{MbFraudAlertMonitoring.tabName}"
+						oncomplete="setTabLoaded(currentTab)">
+					<a4j:actionparam name="tabName" assignTo="#{MbFraudAlertMonitoring.tabName}"/>
+				</a4j:jsFunction>
+				
+				<h:panelGroup styleClass="search_result_block" layout="block">
+			    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+			    		<h:panelGroup id="mainTableWrapper" layout="block"
+							styleClass="search_result_block_inner">
+					    <rich:extendedDataTable
+								id="alertsTable"
+								tableState="#{MbFraudAlertMonitoring.tableState}"
+								styleClass="res-table"
+								headerClass="res-table-header"
+								rowClasses=",odd"
+								selectedClass="res-table-selected"
+								var="item"
+								value="#{MbFraudAlertMonitoring.fraudAlerts}"
+								selection="#{MbFraudAlertMonitoring.itemSelection}"
+								rows="#{MbFraudAlertMonitoring.rowsNum}"
+								height="255px"
+								selectionMode="single"
+								width="100%"
+								enableContextMenu="true" onselectionchange="flushTabs(); changeSelection(currentTab);"
+								noDataLabel="#{MbFraudAlertMonitoring.searching ? lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+								reRender="cardsCount, accountsCount, #{MbFraudAlertMonitoring.tabName}">
+								
+					        <rich:column id="alertId" label="#{lblCommon.id}" title="ID" sortBy="#{'id'}" width="10%">
+								<f:facet name="header">
+				                    <a4j:outputPanel layout="none">
+										<script>updateHeight();</script>
+										<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+									</a4j:outputPanel>
+				                </f:facet>
+			                	<h:outputText value="#{item.id}" title="#{item.id}"/>
+					        </rich:column>
+	
+					        <rich:column id="caseId" label="#{lblFrp.case_id}" title="#{lblFrp.case_id}" width="10%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblFrp.case_id}" title="#{lblFrp.case_id}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.caseId}" title="#{item.caseId}"/>
+					        </rich:column>
+					        
+					        <rich:column id="authId" label="#{lblFrp.auth_id}" title="Authorization ID" width="10%">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblFrp.auth_id}" title="#{lblFrp.auth_id}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.authId}" title="#{item.authId}"/>
+					        </rich:column>
+
+					        <rich:column id="entityType" label="#{lblCommon.entity_type}" title="Entity type" width="10%">
+					        	<f:facet name="header">
+					        		<h:outputText value="#{lblCommon.entity_type}" title="#{lblCommon.entity_type}"/>
+					        	</f:facet>
+					        	<h:outputText value="#{DictUtils.articles[item.entityType]}"
+					        			title="#{DictUtils.articles[item.entityType]}"/>
+					        </rich:column>
+					        
+					        <rich:column id="objectId" label="#{lblCommon.object_id}" title="Object ID" width="10%">
+					           <f:facet name="header">
+				                    <h:outputText value="#{lblCommon.object_id}" title="#{lblCommon.object_id}"/>
+				                </f:facet>
+				               <h:outputText value="#{item.objectId}" title="#{item.objectId}"/>							
+					        </rich:column>
+					        
+					        <rich:column id="objectName" label="#{lblCommon.object_name}" width="10%"
+					        		sortBy="#{'objectName'}">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblCommon.object_name}" title="#{lblCommon.object_name}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.objectDesc}" title="#{item.objectDesc}"/>
+					        </rich:column>
+					        
+					        <rich:column id="caseName" label="#{lblFrp.case}" width="10%"
+					        		sortBy="#{'case_name'}">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblFrp.case}" title="#{lblFrp.case}"/>
+				                </f:facet>
+				                <h:outputText value="#{item.caseName}" title="#{item.caseName}"/>
+					        </rich:column>
+
+					        <rich:column id="operDate" label="#{lblFrp.oper_date}" title="Operation date" width="10%">
+								<f:facet name="header">
+				                    <h:outputText 
+				                    		value="#{lblFrp.oper_date}" title="#{lblFrp.oper_date}"/>
+				                </f:facet>
+			                    <h:outputText 
+			                    		value="#{fmt:formatDate(item.operDate, usession.fullDatePattern, CommonUtils.timeZoneId)}"
+			                    		title="#{fmt:formatDate(item.operDate, usession.fullDatePattern, CommonUtils.timeZoneId)}"
+			                    		/>
+					        </rich:column>
+
+					        <rich:column id="operAmount" label="#{lblOpr.operation_amount}" width="10%" 
+					        		style="text-align: right" sortBy="#{'amount'}">
+								<f:facet name="header">
+					           		<h:panelGroup style="overflow-x:hidden">
+				                    <h:outputText value="#{lblOpr.operation_amount}" title="#{lblOpr.operation_amount}"/>
+				                    </h:panelGroup>
+				                </f:facet>
+				                <h:outputText 
+				                		value="#{fmt:formatMoney(item.operAmount, CurrencyUtils.currencyObjectsMap[item.operCurrency].exponent)} #{CurrencyUtils.currencyShortNamesMap[item.operCurrency]}" 
+				                		title="#{fmt:formatMoney(item.operAmount, CurrencyUtils.currencyObjectsMap[item.operCurrency].exponent)} #{CurrencyUtils.currencyMap[item.operCurrency]}"
+				                		/>
+					        </rich:column>
+	
+					        <rich:column id="operType" label="#{lblOpr.operation_type}" width="10%"
+					        		sortBy="#{'operType'}">
+								<f:facet name="header">
+				                    <h:outputText value="#{lblOpr.operation_type}" title="#{lblOpr.operation_type}"/>
+				                </f:facet>
+				                <h:outputText value="#{DictUtils.articles[item.operType]}"  
+				                		title="#{DictUtils.articles[item.operType]}"/>
+					        </rich:column>
+
+					    </rich:extendedDataTable>
+					    </h:panelGroup>
+					    <a4j:outputPanel ajaxRendered="true">
+					    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+						    <h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+						    <h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+					    </a4j:outputPanel>
+				    </h:panelGroup>
+				</h:panelGroup>
+				</h:form>
+				<h:form id="alertsBtnForm">
+			    <h:panelGroup layout="block" styleClass="bottom_search_result_block">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+			        	<h:panelGroup layout="block" styleClass="table_tools">
+				        	<h:panelGrid styleClass="fw field-cont" columns="5"
+				        			columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+					        	<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}"/>
+								<h:selectOneMenu id="rows_num" value="#{MbFraudAlertMonitoring.rowsNum}" styleClass="row_per_page">
+									<a4j:support event="onchange" reRender="alertsTable, dsAlerts, pagesNum, cardsCount, accountsCount, #{MbFraudAlertMonitoring.tabName}"/>
+			                        <f:selectItems value="#{CommonUtils.rowNumsList}"/>
+			                    </h:selectOneMenu>
+	
+			                    <rich:datascroller maxPages="10" fastControls="hide"
+			                    		pagesVar="pages" styleClass="res-datascroller"
+			                    		page="#{MbFraudAlertMonitoring.pageNumber}"
+					                    id="dsAlerts" for="alertsTable"
+					                    reRender="cardsCount, accountsCount, #{MbFraudAlertMonitoring.tabName}"
+					                    oncomplete="flushTabs();changeSelection(currentTab);">	        							
+					            	<f:facet name="first">
+					                	<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+									</f:facet>
+					                <f:facet name="first_disabled">
+					                    <h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="last">
+					                    <h:outputText  value="&gt;&gt;" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="last_disabled">
+					                    <h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="previous">
+										<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="previous_disabled">
+					                	<h:outputText value="#{lblCommon.prev}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="next">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+					                </f:facet>
+					                <f:facet name="next_disabled">
+					                	<h:outputText value="#{lblCommon.next}" styleClass="prev-next-dis" />
+					                </f:facet>
+					                <f:facet name="pages">
+					                </f:facet>
+								</rich:datascroller>
+	
+			                    <h:panelGroup id="pagesNum">
+			                       	<h:outputText styleClass="strongClass" value="#{pages}"/>
+			                       	<h:outputText value=" #{lblCommon.pages}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                    <h:outputText styleClass="strongClass" value="#{MbFraudAlertMonitoring.fraudAlerts.rowCount}"/>
+                                    <h:outputText value=" #{lblCommon.records}"/>
+                                    <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+			                    </h:panelGroup>
+			                    
+			                    <h:panelGroup>
+									<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+										onclick="saveTableState();"/>
+									<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+										onclick="deleteTableState();"/>
+									<a4j:queue name="tablestatequeue"/>
+									<a4j:jsFunction name="saveTableState" action="#{MbFraudAlertMonitoring.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+									<a4j:jsFunction name="deleteTableState" action="#{MbFraudAlertMonitoring.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+								</h:panelGroup>
+							</h:panelGrid>
+						</h:panelGroup>
+			            <h:panelGrid id="btnPanel" columns="3" styleClass="buttons_block">
+							<bre:taggedCommandButton id="takeToJob"
+		                      		value="#{lblFrp.take_job}" disabled="#{MbFraudAlertMonitoring.disabled}"
+		                      		action="#{MbFraudAlertMonitoring.edit}" reRender="btnPanel"
+		                      		rendered="#{MbFraudAlertMonitoring.activeFraudAlert.resolution==null or MbFraudAlertMonitoring.activeFraudAlert.resolution=='RSLTNVRF'}"/>
+		                     <bre:taggedCommandButton id="setResolution"
+		                      		value="#{lblFrp.set_resolution}" disabled="#{MbFraudAlertMonitoring.disabled}"
+		                      		action="#{MbFraudAlertMonitoring.edit}" oncomplete="#{rich:component('fraudResolutionPanel')}.show()"
+		                      		rendered="#{MbFraudAlertMonitoring.activeFraudAlert.resolution!=null and MbFraudAlertMonitoring.activeFraudAlert.resolution!='RSLTNVRF'}"/>
+						</h:panelGrid>
+					</h:panelGroup>
+			    </h:panelGroup>
+			    
+		    </h:form>
+			
+			<h:panelGroup styleClass="workplace" id="workplacePanel" layout="block">
+		    	<rich:tabPanel switchType="client" id="details"  tabClass="tab-cell"
+		    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    			contentClass="tab-content" selectedTab="#{MbFraudAlertMonitoring.tabName}">
+	
+					<rich:tab id="_detailsTab" label="Details" name="detailsTab" 
+							onlabelclick="selectTab('detailsTab')">
+				    	<f:facet name="label">
+	       					<h:panelGroup styleClass="first tab-label" layout="block">
+	       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+						<h:panelGroup id="detailsTab" layout="block">
+	      					<ui:include src="/pages/fraud/monitoredFraudAlertDetails.jspx"/>
+	      					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+	       				</h:panelGroup>
+				    </rich:tab>
+				    
+					<rich:tab label="Authorization details" name="authDetailsTab"
+							onlabelclick="selectTab('authDetailsTab')">
+	       				<f:facet name="label">
+	       					<h:panelGroup styleClass="tab-label" layout="block">
+	       						<h:outputText value="#{lblOpr.operation}" title="#{lblOpr.operation}"/>
+	       					</h:panelGroup>
+	       				</f:facet>
+	
+	        			<h:panelGroup id="authDetailsTab" layout="block">
+							<ui:include src="/pages/operations/operDetails.jspx"/>
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+		                </h:panelGroup>
+				    </rich:tab>
+	
+				    <rich:tab id="_cardsTab" name="cardsTab" rendered="#{usession.inRole['VIEW_CARDS_TAB']}" 
+				    		onlabelclick="selectTab('cardsTab')" style="height:100%">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblIss.card}" title="#{lblIss.card}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="cardsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       					<ui:include src="/pages/issuing/cards/card_details.jspx">
+	       						<ui:param name="detailsBean" value="#{MbCardsBottomSearch}" />
+	       						<ui:param name="showToCard" value="true" />
+	       					</ui:include>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_terminalsTab" name="terminalsTab" rendered="#{usession.inRole['VIEW_TERMINAL']}" 
+				    		onlabelclick="selectTab('terminalsTab')" style="height:100%">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblAcq.terminal}" title="#{lblAcq.terminal}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="terminalsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       					<ui:include src="/pages/acquiring/terminals/terminalDetails.jspx">
+	       					<ui:param name="detailsBean" value="#{MbTerminalsBottom}" />
+	       					</ui:include>
+	       					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+	        			</h:panelGroup>
+	        		</rich:tab>
+	        		
+	        		<rich:tab id="_accountsTab" name="accountsTab" rendered="#{usession.inRole['VIEW_ACCOUNT']}"
+	        				onlabelclick="selectTab('accountsTab')" style="height:100%">
+	        			<f:facet name="label">
+	        				<h:panelGroup styleClass="tab-label" layout="block">
+	        					<h:outputText value="#{lblAcc.account}" title="#{lblAcc.account}"/>
+	        				</h:panelGroup>
+	        			</f:facet>
+	        			<h:panelGroup id="accountsTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+	       					<ui:include src="/pages/accounts/account_details.jspx">
+	       						<ui:param name="detailsBean" value="#{MbAccountsSearch}"/>
+	       					</ui:include>
+	       					<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>
+	        			</h:panelGroup>
+	        		</rich:tab>
+			    </rich:tabPanel>
+	        </h:panelGroup>
+
+		</h:panelGroup>
+		
+		<rich:modalPanel id="fraudResolutionPanel" autosized="true" minWidth="300" minHeight="100"
+			rendered="#{usession.inRole['ADD_ACTION'] or usession.inRole['MODIFY_ACTION']}">
+      	<f:facet name="header">
+			<h:panelGroup id="fraudResolutionModalHeader">
+           	    <h:outputText value="#{lblAcm.edit_action}"/>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+	    </f:facet>
+   	    <h:panelGroup id="fraudResolutionModalDiv">
+			<h:form id="fraudResolutionEditForm">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+			        <h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+						<h:outputLabel value="#{lblFrp.set_resolution}: " title="#{lblFrp.set_resolution}"/>
+						<h:panelGrid cellpadding="0" cellspacing="0">
+							<h:selectOneMenu id="newResolution"
+									value="#{MbFraudAlertMonitoring.newFraud.resolution}"
+									label="#{lblFrp.set_resolution}">
+							    <f:selectItems value="#{MbFraudAlertMonitoring.resolutions}"/>
+							</h:selectOneMenu>
+						</h:panelGrid>
+					</h:panelGrid>
+				</h:panelGroup>
+	      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+		       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+		       	    		<h:outputText/>
+                        	<bre:taggedCommandButton
+                        			value="#{lblForm.save}" type="submit" action="#{MbFraudAlertMonitoring.save}"
+                        			onclick="disableModalPanelBtns(this)"
+				                   	oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('fraudResolutionPanel')}.hide()"
+                        			reRender="alertsForm:btnPanel"
+	                        		/>
+                        	<bre:taggedCommandButton
+	                        		value="#{lblForm.cancel}" 
+	                        		action="#{MbFraudAlertMonitoring.cancel}" 
+	                        		immediate="true"
+	                        		oncomplete="#{rich:component('fraudResolutionPanel')}.hide()">
+	                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+	                		</bre:taggedCommandButton>
+			    		</h:panelGrid>
+			    	</h:panelGroup>
+			    </h:panelGroup>
+			</h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+		
+		<h:panelGroup rendered="#{!usession.inRole['VIEW_MONITORED_FRAUD']}" style="text-align: center">
+			<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+		</h:panelGroup>
+
+		<script>
+		//<![CDATA[
+		function updateHeight(){
+        updateGridHeight();
+	    }
+	
+	    layout =
+	            {
+	                SEARCH_FORM_ID:                 'alertsSearchPanel',
+	                SEARCH_RESULT_FORM_ID:          'alertsForm',
+	                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+	                SEARCH_RESULT_FOOTER_FORM_ID:   'alertsBtnForm',
+	                TAB_PANEL_ID:                   'workplacePanel',
+	
+	                TAB_DATA:      [{
+	                                TAB_FORM_ID:            'alertDetailsForm',
+	                                TAB_FORM_WRAPPER_ID:    'alertDetailsWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+	                                },
+	                                {
+	                                TAB_FORM_ID:            'operDetailsForm',
+	                                TAB_FORM_WRAPPER_ID:    'operDetailsWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                },
+	                                {
+	                                TAB_FORM_ID:            'cardDetailsForm',
+	                                TAB_FORM_WRAPPER_ID:    'cardDetailsWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                },
+	                                {
+	                                TAB_FORM_ID:            'terminalDetailsForm',
+	                                TAB_FORM_WRAPPER_ID:    'terminalDetailsWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                },
+	                                {
+	                                TAB_FORM_ID:            'accountDetailsForm',
+	                                TAB_FORM_WRAPPER_ID:    'accountDetailsWrapper',
+	                                CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+	                                }]
+	
+	            };
+	    jQuery(window).resize(updateHeight);
+		
+		updateHeight();
+		//]]>
+		</script>
+    </ui:define>
+</ui:composition>
+</html>

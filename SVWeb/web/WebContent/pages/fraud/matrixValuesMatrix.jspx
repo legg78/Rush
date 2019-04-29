@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<f:loadBundle var="lblFrp" basename="ru.bpc.sv2.ui.bundles.Frp"/>
+	
+	<style type="text/css">
+	.selectedCell {
+		background-color: red !important;
+	}
+	</style>
+	
+	<script type="text/javascript">
+//<!--
+		var fixedCell = false;
+		var selectedCellId;
+		
+		function setEvents() {
+			var rows = "#{MbMatrixValues.rowsNumber}";
+			if (rows.length == 0) return;
+			
+			for (var i = 0; i < parseInt("#{MbMatrixValues.rowsNumber}", 10); i++) {
+				for (var j = 0; j < parseInt("#{MbMatrixValues.columnsNumber}", 10); j++) {
+					var colId = "matrixValuesBtmForm:matrixValuesTable:" + i + ":cells" + j;
+					document.getElementById(colId).onmouseover = function() {
+						if (this.id != selectedCellId) {
+							this.style.backgroundColor = "yellow";
+						}
+					};
+					document.getElementById(colId).onmouseout = function() {
+						if (this.id != selectedCellId) {
+							this.style.backgroundColor = this.parentNode.style.backgroundColor;
+						}
+					};
+				}
+			}
+		}
+
+		function disableButtons() {
+			document.getElementById("matrixValuesBtmForm:editBtn").disabled = true;
+			document.getElementById("matrixValuesBtmForm:deleteBtn").disabled = true;
+		}
+		
+		function checkMatrixValueFields() {
+			var checked = true;
+			
+			if (document.getElementById('matrixValueModalDiv:newXValue').value == "") {
+				document.getElementById('matrixValueModalDiv:newXValueError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('matrixValueModalDiv:newYValue').value == "") {
+				document.getElementById('matrixValueModalDiv:newYValueError').style.display = "inline";
+				checked = false;
+			}								
+			if (document.getElementById('matrixValueModalDiv:newMatrixValue').value == "") {
+				document.getElementById('matrixValueModalDiv:newMatrixValueError').style.display = "inline";
+				checked = false;
+			}
+			return checked;
+		}
+	//-->
+	</script>
+
+	<h:form id="matrixValuesBtmForm">
+		<h:panelGroup layout="block" style="padding:0px;margin:0px;"
+			id="matrixValuesTableWrapper">
+			<rich:extendedDataTable id="matrixValuesTable" styleClass="res-table"
+				headerClass="res-table-header" rowClasses=",odd" var="row"
+				value="#{MbMatrixValues.matrixCells}" rows="0" selectionMode="none"
+				enableContextMenu="false"
+				noDataLabel="#{lblCommon['no_records_found']}" rowKeyVar="rowkey">
+
+				<rich:column sortBy="#{row[0].matrixValue}"
+					style="background: url('#{facesContext.externalContext.requestContextPath}/_img/bg_th.png') repeat-x scroll right top #EFF0E6;">
+					<f:facet name="header">
+						<a4j:outputPanel layout="none">
+							<script>updateHeight();</script>
+							<h:outputText value="#{MbMatrices.shortScale}" 
+							title="#{MbMatrices.activeMatrix.yScale}/#{MbMatrices.activeMatrix.xScale}"></h:outputText>
+						</a4j:outputPanel>
+					</f:facet>
+					<h:outputText style="font-weight: bold"
+						value="#{row[0].matrixValue}"></h:outputText>
+				</rich:column>
+
+				<rich:columns value="#{MbMatrixValues.columnNames}" var="columnName"
+					index="index" begin="1" id="cells#{index}" style="cursor:pointer">
+					<f:facet name="header">
+						<h:outputText value="#{columnName}" title="#{columnName}"></h:outputText>
+					</f:facet>
+					<h:outputText style="cursor:pointer; width:100%"
+						value="#{row[index + 1].matrixValue}" />
+					<script type="text/javascript">
+//<!--
+					document.getElementById('matrixValuesBtmForm:matrixValuesTable:#{rowkey}:cells#{index}').onclick = 
+						function() {
+							// Richfaces.showModalPanel("matrixValueModalPanel");
+
+							var thisSelected = false;
+							if (fixedCell) {
+								var cells = jQuery('.selectedCell');
+								for (var i = 0; i < cells.length; i++) {
+									cells[i].style.backgroundColor = cells[i].parentNode.style.backgroundColor;
+								}
+								jQuery('.selectedCell').removeClass('selectedCell');
+								fixedCell = false;
+							}
+
+							if (this.id != selectedCellId) {
+								jQuery(this).addClass("selectedCell");
+								// this.className += this.className ? " selectedCell" : "selectedCell";
+								selectedCellId = this.id;
+								fixedCell = true;
+								document.getElementById("matrixValuesBtmForm:hiddenId").value = "#{row[index + 1].id}";
+								document.getElementById("matrixValuesBtmForm:hiddenSeqNum").value = "#{row[index + 1].seqNum}";
+								document.getElementById("matrixValuesBtmForm:hiddenMatrixId").value = "#{row[index + 1].matrixId}";
+								document.getElementById("matrixValuesBtmForm:hiddenXValue").value = "#{columnName}";	// these value is always available unlike xValue
+								document.getElementById("matrixValuesBtmForm:hiddenYValue").value = "#{row[0].matrixValue}";	// these value is always available unlike yValue
+								document.getElementById("matrixValuesBtmForm:hiddenMatrixValue").value = "#{row[index + 1].matrixValue}";
+								if ("#{row[index + 1].matrixValue}".length > 0) {
+									document.getElementById("matrixValuesBtmForm:editBtn").disabled = false;
+									document.getElementById("matrixValuesBtmForm:deleteBtn").disabled = false;
+								} else {
+									document.getElementById("matrixValuesBtmForm:editBtn").disabled = false;
+									document.getElementById("matrixValuesBtmForm:deleteBtn").disabled = true;
+								}
+							} else {
+								selectedCellId = "";
+								document.getElementById("matrixValuesBtmForm:hiddenId").value = "";
+								document.getElementById("matrixValuesBtmForm:hiddenSeqNum").value = "";
+								document.getElementById("matrixValuesBtmForm:hiddenMatrixId").value = "";
+								document.getElementById("matrixValuesBtmForm:hiddenXValue").value = "";
+								document.getElementById("matrixValuesBtmForm:hiddenYValue").value = "";
+								document.getElementById("matrixValuesBtmForm:hiddenMatrixValue").value = "";
+								disableButtons();
+							}
+						};
+				// -->
+				</script>
+				</rich:columns>
+
+				<f:facet name="footer">
+					<script type="text/javascript">
+//<!--
+					document.getElementById('matrixValuesBtmForm:matrixValuesTable:od').style.overflowX="scroll";
+					document.getElementById('matrixValuesBtmForm:matrixValuesTable').style.height = "220px";
+					document.getElementById('matrixValuesBtmForm:matrixValuesTable:sd').style.height = "175px";
+					setEvents();
+					// -->
+				</script>
+				</f:facet>
+			</rich:extendedDataTable>
+		</h:panelGroup>
+		<h:inputHidden value="#{MbMatrixValues.newMatrixValue.id}"
+			id="hiddenId" />
+		<h:inputHidden value="#{MbMatrixValues.newMatrixValue.seqNum}"
+			id="hiddenSeqNum" />
+		<h:inputHidden value="#{MbMatrixValues.newMatrixValue.matrixId}"
+			id="hiddenMatrixId" />
+		<h:inputHidden value="#{MbMatrixValues.newMatrixValue.xValue}"
+			id="hiddenXValue" />
+		<h:inputHidden value="#{MbMatrixValues.newMatrixValue.yValue}"
+			id="hiddenYValue" />
+		<h:inputHidden value="#{MbMatrixValues.newMatrixValue.matrixValue}"
+			id="hiddenMatrixValue" />
+
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons">
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_left_buttons">
+
+				<h:panelGrid id="btnPanel" columns="4" style="vertical-align: top;"
+					cellpadding="0" cellspacing="0">
+					<bre:taggedCommandButton id="addBtn"
+						reRender="matrixValueModalHeader, matrixValueModalDiv"
+						value="#{lblForm.add}"
+						oncomplete="#{rich:component('matrixValueModalPanel')}.show()"
+						action="#{MbMatrixValues.add}"
+						disabled="#{MbMatrixValues.filter.matrixId == null}"
+						image="/images/create_doc.gif" />
+					<bre:taggedCommandButton id="editBtn"
+						reRender="matrixValueModalHeader, matrixValueModalDiv"
+						value="#{lblForm.edit}"
+						oncomplete="#{rich:component('matrixValueModalPanel')}.show()"
+						action="#{MbMatrixValues.editCell}"
+						disabled="#{MbMatrixValues.filter.matrixId == null}"
+						image="/images/edit.gif" />
+					<bre:taggedCommandButton id="editMatrixBtn"
+						reRender="matrixValueEditModalForm" value="#{lblForm.edit_matrix}"
+						oncomplete="#{rich:component('matrixValueEditModalPanel')}.show()"
+						action="#{MbMatrixValues.editMatrix}"
+						disabled="#{MbMatrixValues.filter.matrixId == null || empty MbMatrixValues.matrixCells}"
+						image="/images/edit.gif" />
+					<bre:taggedCommandButton id="deleteBtn"
+						value="#{lblForm.delete}"
+						oncomplete="#{rich:component('deleteValueViewId:confirmPanel')}.show()"
+						disabled="#{MbMatrixValues.filter.matrixId == null}"
+						image="/images/delete.gif" />
+				</h:panelGrid>
+				<script type="text/javascript">
+					disableButtons();
+				</script>
+			</h:panelGroup>
+		</h:panelGroup>
+	</h:form>
+
+	<rich:modalPanel id="matrixValueModalPanel" autosized="true" minWidth="300" minHeight="50">
+ 	    <f:facet name="header">
+ 	    	<h:panelGroup id="matrixValueModalHeader">
+ 	    		<h:outputText value="#{lblFrp.edit_matrix_value}" rendered="#{MbMatrixValues.editMode}"/>
+ 	    		<h:outputText value="#{lblFrp.add_matrix_value}" rendered="#{MbMatrixValues.newMode}"/>
+ 	    	</h:panelGroup>
+        </f:facet>
+  	    <f:facet name="controls">
+      	</f:facet>
+      	<h:form id="matrixValueModalDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					
+					<h:outputLabel value="* #{lblFrp.x_value}" title="#{lblFrp.x_value}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:inputText id="newXValue"
+								value="#{MbMatrixValues.newMatrixValue.xValue}"
+								label="#{lblFrp.x_value}"
+								disabled="#{MbMatrixValues.editMode}"
+								maxlength="200"
+								onblur="hideErrorField(this)"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newXValueError" style="display:none;">
+							<f:param name="fieldName" value="#{lblFrp.x_value}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+					
+					<h:outputLabel value="* #{lblFrp.y_value}" title="#{lblFrp.y_value}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:inputText id="newYValue"
+								value="#{MbMatrixValues.newMatrixValue.yValue}"
+								label="#{lblFrp.y_value}" 
+								disabled="#{MbMatrixValues.editMode}"
+								maxlength="200"
+								onblur="hideErrorField(this)"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newYValueError" style="display:none;">
+							<f:param name="fieldName" value="#{lblFrp.y_value}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+
+					<h:outputLabel value="* #{lblFrp.matrix_value}" title="#{lblFrp.matrix_value}"/>
+					<h:panelGrid cellpadding="0" cellspacing="0">
+						<h:inputText id="newMatrixValue"
+								value="#{MbMatrixValues.newMatrixValue.matrixValue}"
+								label="#{lblFrp.matrix_value}"
+								maxlength="200"
+								onblur="hideErrorField(this)"/>
+						<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+							id="newMatrixValueError" style="display:none;">
+							<f:param name="fieldName" value="#{lblFrp.matrix_value}"/>
+						</h:outputFormat>
+					</h:panelGrid>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>
+                       	<bre:taggedCommandButton
+                       			value="#{lblForm.save}" type="submit" action="#{MbMatrixValues.saveCell}"
+                       			onclick="if (!checkMatrixValueFields()) return false; disableModalPanelBtns(this)"
+                       			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('matrixValueModalPanel')}.hide()"
+                       			reRender="matrixValuesBtmForm"
+                        		/>
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.cancel}" 
+                        		action="#{MbMatrixValues.cancel}" immediate="true"
+                        		oncomplete="#{rich:component('matrixValueModalPanel')}.hide()"
+                        		>
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                        </bre:taggedCommandButton>
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+	<ui:include src="/pages/fraud/matrixValueEdit.jspx">
+		<ui:param name="rerenderList" value="matrixValuesBtmForm"></ui:param>
+	</ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbMatrixValues}"/>
+		<ui:param name="yesAction" value="clearCell"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="matrixValuesBtmForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteValueViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+</ui:composition>
+</html>

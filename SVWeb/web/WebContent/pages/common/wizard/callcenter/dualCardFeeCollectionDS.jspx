@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:h="http://java.sun.com/jsf/html" xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:bpct="http://www.bpc.ru/jsf/tiles" xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+      xmlns:rich="http://richfaces.org/rich" xmlns:a4j="http://richfaces.org/a4j"
+      xmlns:bpc="http://www.bpc.ru/jsf/misc">
+<ui:composition template="./operation/operDetailsTemplate.jspx">
+    <ui:define name="stepContent">
+        <f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common" />
+        <f:loadBundle var="lblOpr" basename="ru.bpc.sv2.ui.bundles.Opr" />
+        <f:loadBundle var="lblPrs" basename="ru.bpc.sv2.ui.bundles.Prs" />
+        <f:loadBundle var="lblParam" basename="ru.bpc.sv2.ui.bundles.Param"/>
+
+        <h:form id="cardFeeCollectionDataForm">
+            <ui:include src="/pages/common/wizard/commonWizardActions.jspx">
+                <ui:param name="bean" value="#{bean}" />
+                <ui:param name="action" value="#{action}" />
+            </ui:include>
+
+            <h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+                <h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="width-150, width250">
+                    <h:outputLabel for="network"
+                                   title="#{lblIss.network}" value="* #{lblIss.network}:"
+                                   style="width: 100%;"/>
+
+                    <h:selectOneMenu id="network"
+                                     onblur="hideErrorField(this)"
+                                     required="true"
+                                     label="#{lblParam.network}"
+                                     value="#{MbDualFeeCollectionDS.network}">
+                        <f:selectItem itemValue="" />
+                        <f:selectItems value="#{MbDualFeeCollectionDS.networks}" />
+                        <a4j:support event="onchange"
+                                     reRender="parameters, paramsTable, params"
+                                     limitToList="true" ajaxSingle="true"
+                                     action="#{MbDualFeeCollectionDS.initParameters()}"/>
+                    </h:selectOneMenu>
+                    <h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+                                    id="networkError" style="display:none;">
+                        <f:param name="fieldName" value="#{lblParam.network}"/>
+                    </h:outputFormat>
+                </h:panelGrid>
+
+                <h:panelGroup id="parameters">
+                    <fieldset style="border: 1px solid #D7DAC2;">
+                        <legend>#{lblCommon.parameters}</legend>
+                        <h:panelGroup layout="block"
+                                      style="max-height: 500px; overflow-y:auto;">
+                        <h:outputText value="#{lblCommon.not_required_parameters}"
+                                      title="#{lblCommon.not_required_parameters}"
+                                      style="font-weight: bold; white-space: nowrap;"
+                                      rendered="#{MbDualFeeCollectionDS.parameters.size() == 0}"/>
+                        <table id="paramsTable">
+                            <a4j:repeat id="params" value="#{MbDualFeeCollectionDS.parameters}" var="dparam">
+                                <tr>
+                                    <td style="text-align: right;">
+                                        <h:outputLabel value="#{dparam.mandatory ? '*' : ''} #{dparam.name}:"
+                                                       title="#{dparam.name}"
+                                                       style="font-weight: bold; white-space: nowrap;"/>
+                                    </td>
+                                    <td>
+                                        <h:panelGrid columns="1"
+                                                     cellspacing="0"
+                                                     cellpadding="0"
+                                                     style="white-space: nowrap"
+                                                     rendered="#{dparam.lovId == null}">
+                                            <h:inputText style="width: 200px;padding-left:0;padding-right:0"
+                                                         value="#{dparam.valueV}"
+                                                         disabled="#{!dparam.editable}"
+                                                         rendered="#{dparam.char or dparam.raw}"
+                                                         maxlength="#{dparam.dataLength}"/>
+
+                                            <h:inputText style="width: 200px;padding-left:0;padding-right:0"
+                                                         value="#{dparam.valueN}"
+                                                         disabled="#{!dparam.editable}"
+                                                         rendered="#{dparam.number}"
+                                                         maxlength="#{dparam.dataLength}"
+                                                         onkeypress="if (!numbersOnly(this, event, true)) return false;"/>
+
+                                            <rich:calendar buttonIcon="/images/calendar.gif"
+                                                           datePattern="#{usession.fullDatePattern}"
+                                                           inputStyle="width:200px"
+                                                           value="#{dparam.valueD}"
+                                                           label="#{dparam.name}"
+                                                           rendered="#{dparam.date}"
+                                                           disabled="#{!dparam.editable}"
+                                                           zindex="1000"
+                                                           timeZone="#{CommonUtils.timeZone}"/>
+                                        </h:panelGrid>
+
+                                        <h:panelGrid columns="1"
+                                                     cellspacing="0"
+                                                     cellpadding="0"
+                                                     style="white-space: nowrap"
+                                                     rendered="#{dparam.lovId != null}">
+                                            <h:selectOneMenu label="#{dparam.name}"
+                                                             style="width: 204px;"
+                                                             value="#{dparam.valueV}"
+                                                             disabled="#{!dparam.editable}"
+                                                             rendered="#{dparam.char or dparam.raw}">
+                                                <f:selectItem itemValue=""/>
+                                                <f:selectItems value="#{MbDualFeeCollectionDS.getLov(dparam.lovId)}"/>
+                                            </h:selectOneMenu>
+
+                                            <h:selectOneMenu label="#{dparam.name}"
+                                                             style="width: 204px;"
+                                                             value="#{dparam.valueN}"
+                                                             disabled="#{!dparam.editable}"
+                                                             rendered="#{dparam.number}">
+                                                <f:selectItem itemValue=""/>
+                                                <f:selectItems value="#{MbDualFeeCollectionDS.getLov(dparam.lovId)}"/>
+                                            </h:selectOneMenu>
+
+                                            <h:selectOneMenu label="#{dparam.name}"
+                                                             style="width: 204px;"
+                                                             value="#{dparam.value}"
+                                                             disabled="#{!dparam.editable}"
+                                                             rendered="#{!dparam.char and !dparam.raw and !dparam.number}">
+                                                <f:selectItem itemValue=""/>
+                                                <f:selectItems value="#{MbDualFeeCollectionDS.getLov(dparam.lovId)}"/>
+                                            </h:selectOneMenu>
+                                        </h:panelGrid>
+                                    </td>
+                                </tr>
+                            </a4j:repeat>
+                        </table>
+                        </h:panelGroup>
+                    </fieldset>
+                </h:panelGroup>
+            </h:panelGroup>
+        </h:form>
+    </ui:define>
+</ui:composition>
+</html>

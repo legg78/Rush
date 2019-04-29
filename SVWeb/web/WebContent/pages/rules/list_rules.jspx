@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">//<![CDATA[			
+		function checkRuleFields() {
+			var checked = true;
+			
+			if (document.getElementById('ruleEditForm:execOrder').value == "") {
+				document.getElementById('ruleEditForm:execOrderError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//]]>
+	</script>
+
+	<f:loadBundle var="lblRul" basename="ru.bpc.sv2.ui.bundles.Rul" />
+
+	<h:panelGrid columns="2" style="width:100%" cellpadding="0"
+		cellspacing="0" columnClasses="top width50, top width50">
+		<h:form id="rulesForm">
+			<h:outputText value="#{lblRul.rules}:" />
+			<h:panelGroup id="rulesTableWrapper" layout="block"
+				style="padding:0px;margin:0px;height: 400px;">
+				<rich:extendedDataTable id="rulesTable" styleClass="res-table"
+					headerClass="res-table-header table-header-ext" rowClasses=",odd"
+					selectedClass="res-table-selected" var="item"
+					value="#{(rulesBean==null ? MbRules : rulesBean).rules}" selection="#{(rulesBean==null ? MbRules : rulesBean).itemSelection}"
+					selectionMode="single" enableContextMenu="true" rows="0"
+					tableState="#{(rulesBean==null ? MbRules : rulesBean).tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+
+					<a4j:support event="onselectionchange"
+						reRender="ruleParamsForm:ruleParamsTable, rulesBtnPanel, ruleParamsForm:ruleParamsBtnPanel"
+						limitToList="true" />
+					
+					<rich:column id="name" label="#{lblCommon.name}" title="Name" width="65%" sortBy="#{'name'}">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblCommon.name}" title="#{lblCommon.name}" />
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{item.procedureId} - #{item.name}"
+							title="#{item.procedureId} - #{item.name}. #{item.description}"
+							rendered="#{item.procedureId != null}">
+						</h:outputText>
+						<h:outputText value="#{item.name}" title="#{item.name}. #{item.description}"
+							rendered="#{item.procedureId == null}" />
+					</rich:column>
+
+					<rich:column id="exec_order" label="#{lblRul.exec_order}" title="Execution order" width="30%"
+						sortOrder="ASCENDING" sortBy="#{'execOrder'}" >
+						<f:facet name="header">
+							<h:outputText value="#{lblRul.exec_order}"
+								title="#{lblRul.exec_order}" />
+						</f:facet>
+						<h:outputText value="#{item.execOrder}" />
+					</rich:column>
+					
+
+				</rich:extendedDataTable>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" rendered="#{rulesBean==null}"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid id="rulesBtnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+						<h:panelGroup>
+						<bre:taggedCommandButton id="addRuleBtn" reRender="ruleEditPanel"
+							value="#{lblForm.add}"
+							oncomplete="#{rich:component('ruleEditPanel')}.show()"
+							action="#{(rulesBean==null ? MbRules : rulesBean).add}"
+							disabled="#{(rulesBean==null ? MbRules : rulesBean).filter.ruleSetId == null}"
+							rendered="#{usession.inRole['ADD_RULE']}"
+							image="/images/create_doc.gif" />
+						<bre:taggedCommandButton id="editRuleBtn" reRender="ruleEditPanel"
+							value="#{lblForm.edit}" action="#{(rulesBean==null ? MbRules : rulesBean).edit}"
+							oncomplete="#{rich:component('ruleEditPanel')}.show()"
+							disabled="#{(rulesBean==null ? MbRules : rulesBean).filter.ruleSetId == null || (rulesBean==null ? MbRules : rulesBean).activeRule == null}"
+							rendered="#{usession.inRole['MODIFY_RULE']}"
+							image="/images/edit.gif" />
+						<bre:taggedCommandButton id="deleteRuleBtn"
+							value="#{lblForm.delete}"
+							oncomplete="#{rich:component('deleteRuleViewId:confirmPanel')}.show()"
+							disabled="#{(rulesBean==null ? MbRules : rulesBean).filter.ruleSetId == null || (rulesBean==null ? MbRules : rulesBean).activeRule == null}"
+							rendered="#{usession.inRole['REMOVE_RULE']}"
+							image="/images/delete.gif" />
+						</h:panelGroup>
+						
+						<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveRuleTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteRuleTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveRuleTableState" action="#{(rulesBean==null ? MbRules : rulesBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteRuleTableState" action="#{(rulesBean==null ? MbRules : rulesBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+		<h:form id="ruleParamsForm">
+			<h:outputText value="#{lblCommon.parameters}:" />
+			<h:panelGroup id="ruleParamsTableWrapper" layout="block"
+				style="padding:0px;margin:0px;height: 400px;">
+				<rich:extendedDataTable id="ruleParamsTable" styleClass="res-table"
+					headerClass="res-table-header" rowClasses=",odd"
+					selectedClass="res-table-selected" var="item2"
+					value="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).ruleParams}"
+					selection="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).itemSelection}" selectionMode="single"
+					enableContextMenu="true" rows="0"
+					tableState="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+
+					<a4j:support event="onselectionchange"
+						reRender="ruleParamsBtnPanel" />
+
+					
+					<rich:column id="name" label="#{lblCommon.name}" title="Name" width="35%">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblCommon.name}"
+									title="#{lblCommon.name}" />
+							</a4j:outputPanel>
+						</f:facet>
+						
+						<h:outputText value="*" style="font-weight:bold;color:maroon; padding-right:2px" title="#{lblRul.mandatory}" 
+							rendered="#{item2.mandatory}"/>
+						<h:outputText value="#{item2.name}" title="#{item2.name}. #{item2.description}" rendered="#{item2.name != null}"/>
+						<h:outputText value="#{item2.systemName}"
+							title="#{item2.systemName}. #{item2.description}" rendered="#{item2.name == null}" />
+					</rich:column>
+
+					<rich:column id="value" label="#{lblCommon.value}" title="Value" width="60%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.value}"
+								title="#{lblCommon.value}" />
+						</f:facet>
+						<h:outputText value="#{item2.lovValue}" title="#{item2.lovValue}"
+							rendered="#{item2.lovId != null}" />
+						<h:panelGroup rendered="#{item2.lovId == null}">
+							<h:outputText value="#{item2.valueV}" title="#{item2.valueV}"
+								rendered="#{item2.valueV != null}" />
+							<h:outputText value="#{item2.valueN}"
+								rendered="#{item2.valueN != null}">
+								<bm:convertNumberNew minFractionDigits="0" maxIntegerDigits="18"
+									groupingUsed="fasle" />
+							</h:outputText>
+							<h:outputText value="#{item2.valueD}"
+								rendered="#{item2.valueD != null}">
+								<f:convertDateTime pattern="#{usession.datePattern}"
+									timeZone="#{CommonUtils.timeZone}" />
+							</h:outputText>
+						</h:panelGroup>
+					</rich:column>					
+
+				</rich:extendedDataTable>
+			</h:panelGroup>
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" rendered="#{rulesParamsBean==null}"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid id="ruleParamsBtnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+						<h:panelGroup>
+						<bre:taggedCommandButton id="editRuleParamBtn"
+							reRender="ruleParamEditDiv" value="#{lblForm.set}"
+							action="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).edit}"
+							oncomplete="#{rich:component('ruleParamEditPanel')}.show()"
+							disabled="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).filter.ruleId == null || (rulesParamsBean==null ? MbRuleParams : rulesParamsBean).activeRuleParam == null}"
+							rendered="#{usession.inRole['SET_RULE_PARAM_VALUE']}" />
+						<bre:taggedCommandButton id="removeRuleParamBtn"
+							reRender="ruleParamsTable,ruleParamsBtnPanel"
+							value="#{lblForm.remove}" action="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).remove}"
+							disabled="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).filter.ruleId == null || (rulesParamsBean==null ? MbRuleParams : rulesParamsBean).activeRuleParam == null}"
+							rendered="#{usession.inRole['REMOVE_RULE_PARAM_VALUE']}" />
+						</h:panelGroup>
+						
+						<h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveParamTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteParamTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveParamTableState" action="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteParamTableState" action="#{(rulesParamsBean==null ? MbRuleParams : rulesParamsBean).deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</h:panelGrid>
+
+	<rich:modalPanel id="ruleEditPanel" autosized="true" minWidth="300"
+		minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup id="ruleEditHeader">
+				<h:outputText value="#{lblRul.edit_rule}"
+					rendered="#{MbRules.editMode}" />
+				<h:outputText value="#{lblRul.new_rule}"
+					rendered="#{MbRules.newMode}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:panelGroup id="ruleEditDiv">
+			<h:form id="ruleEditForm">
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+						columnClasses="firstColModal, width250">
+						<h:outputLabel value="#{lblRul.rule_set}: "
+							title="#{lblRul.rule_set}" />
+						<h:inputText id="ruleSetName" value="#{MbRules.ruleSetName}"
+							readonly="true" styleClass="grayInput" />
+
+						<h:outputLabel value="#{lblRul.procedure}: "
+							title="#{lblRul.procedure}" />
+						<h:selectOneMenu id="procedureId"
+							value="#{MbRules.newRule.procedureId}">
+							<f:selectItems value="#{MbRules.procedures}" />
+						</h:selectOneMenu>
+
+						<h:outputLabel value="* #{lblRul.exec_order}: "
+							title="#{lblRul.exec_order}" />
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:inputText id="execOrder" value="#{MbRules.newRule.execOrder}"
+								maxlength="4"
+								onkeypress="if (!numbersOnly(this, event)) return false;"
+								label="#{lblRul.exec_order}"
+								onblur="hideErrorField(this)">
+								<a4j:support event="onchange" reRender="execOrderErr"
+									limitToList="true" ajaxSingle="true" eventsQueue="globalQueue" />
+								<f:validateLength maximum="4" />
+								<f:convertNumber integerOnly="true" />
+							</h:inputText>
+							<rich:message for="execOrder" id="execOrderErr"
+								styleClass="errorMarker" />
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="execOrderError" style="display:none;">
+								<f:param name="fieldName" value="#{lblRul.exec_order}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+					</h:panelGrid>
+				</h:panelGroup>
+
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+							<h:outputText />
+							<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+								action="#{MbRules.save}" onclick="if (!checkRuleFields()) return false; disableModalPanelBtns(this)"
+								eventsQueue="globalQueue"
+								oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('ruleEditPanel')}.hide()"
+								reRender="rulesForm:rulesTable, rulesForm:rulesBtnPanel, 
+                        					ruleParamsForm:ruleParamsTable, ruleParamsForm:ruleParamsBtnPanel" />
+							<bre:taggedCommandButton eventsQueue="globalQueue"
+								value="#{lblForm.cancel}" action="#{MbRules.close}"
+								immediate="true"
+								oncomplete="#{rich:component('ruleEditPanel')}.hide()" />
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+
+	<rich:modalPanel id="ruleParamEditPanel" autosized="true" minWidth="400" minHeight="50">
+		<f:facet name="header">
+			<h:outputText value="#{lblCommon.edit_param}" />
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+		<h:panelGroup id="ruleParamEditDiv">
+			<h:form>
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+						columnClasses="firstColModal, width250">
+						<h:outputLabel
+							value="#{MbRuleParams.activeRuleParam.name}: "
+							title="#{MbRuleParams.activeRuleParam.name}" />
+						<h:inputText id="inplace1"
+							rendered="#{MbRuleParams.newRuleParam.char 
+										and MbRuleParams.newRuleParam.lovId == null}"
+							value="#{MbRuleParams.newRuleParam.valueV}"
+							label="#{lblCommon.default}" maxlength="200" />
+
+						<h:inputText id="inplace2"
+							rendered="#{MbRuleParams.newRuleParam.number 
+										and MbRuleParams.newRuleParam.lovId == null}"
+							value="#{MbRuleParams.newRuleParam.valueN}"
+							label="#{lblCommon.default}" maxlength="23"
+							onkeypress="if (!numbersOnly(this, event, true)">
+							<bm:convertNumberNew groupingUsed="false" type="number"
+								maxIntegerDigits="18" minFractionDigits="0"/>
+						</h:inputText>
+
+						<rich:calendar zindex="1000" buttonIcon="/images/calendar.gif" id="valueD" datePattern="#{usession.datePattern}"
+							inputStyle="width:225px"
+							value="#{MbRuleParams.newRuleParam.valueD}"
+							timeZone="#{CommonUtils.timeZone}"
+							rendered="#{MbRuleParams.newRuleParam.date}" />
+
+						<h:selectOneMenu id="defaultLovValueChar"
+							value="#{MbRuleParams.newRuleParam.valueV}"
+							rendered="#{MbRuleParams.newRuleParam.char and MbRuleParams.newRuleParam.lovId != null}"
+							label="#{lblCommon.default}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbRuleParams.listValues}" />
+						</h:selectOneMenu>
+
+						<h:selectOneMenu id="defaultLovValueNum"
+							value="#{MbRuleParams.newRuleParam.valueN}"
+							rendered="#{MbRuleParams.newRuleParam.number and MbRuleParams.newRuleParam.lovId != null}"
+							label="#{lblCommon.default}">
+							<f:selectItem itemValue="" />
+							<f:selectItems value="#{MbRuleParams.listValues}" />
+						</h:selectOneMenu>
+					</h:panelGrid>
+				</h:panelGroup>
+
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_block_buttons">
+					<h:panelGroup layout="block"
+						styleClass="bottom_search_result_left_buttons">
+						<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+							<h:outputText />
+							<bre:taggedCommandButton eventsQueue="globalQueue"
+								value="#{lblForm.save}" type="submit"
+								action="#{MbRuleParams.save}"
+								reRender="ruleParamsForm:ruleParamsTable, ruleParamsForm:ruleParamsBtnPanel"
+								onclick=" disableModalPanelBtns(this)"
+								oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('ruleParamEditPanel')}.hide()" />
+							<bre:taggedCommandButton value="#{lblForm.cancel}"
+								action="#{MbRuleParams.close}" immediate="true"
+								oncomplete="#{rich:component('ruleParamEditPanel')}.hide()" />
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</h:form>
+		</h:panelGroup>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbRules}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="rulesForm, ruleParamsForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteRuleViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+</ui:composition>
+</html>

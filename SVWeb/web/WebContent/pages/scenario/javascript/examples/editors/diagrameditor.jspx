@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+		
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+    <ui:define name="navigatableContent" >
+	<script type="text/javascript">
+		mxBasePath = '/js/mxgraph';
+	</script>	
+	<a4j:loadScript src="/js/mxgraph/lib.js"/>
+	<a4j:loadScript src="js/mxApplication.js"/>
+	<a4j:loadScript src="init.js"/>
+	
+	<body onbeforeunload="javascript: event.returnValue = mxResources.get('changesLost');">
+	<script type="text/javascript">
+	//<!--
+	var myEditor;
+	
+	function loadEditor(editor) {
+		myEditor = editor;
+	}
+	
+	function copyXml(elem) {
+		var enc = new mxCodec();
+		var node = enc.encode(myEditor.graph.getModel());
+		elem.value = mxUtils.getPrettyXml(node);
+	}
+	
+	function myShape() { /* empty */ }
+	myShape.prototype = new mxShape();
+	myShape.prototype.constructor = myShape;
+	myShape.dlina = 555;
+	myShape.getDlina = function() {
+		return 555;
+	};
+	graph.cellRenderer.registerShape('myShape', myShape);
+	var style = graph.getStylesheet().getDefaultVertexStyle();
+	style[mxConstants.STYLE_SHAPE] = 'myShape';
+
+	function strangeOne() {
+		//alert("strangeOne");
+		if (mxUtils != null && myEditor != null) {
+			// xmlFromBean must be passed from backing bean
+			var xmlFromBean = document.getElementById("diagramForm:hiddenXml").value;
+			//alert(xmlFromBean);
+			var doc = mxUtils.parseXml(xmlFromBean);
+			var decoder = new mxCodec(doc);
+			decoder.decode(doc.documentElement, myEditor.graph.getModel());
+		} else {
+			setTimeout("strangeOne()", 500);
+		}
+	} 
+	//-->
+	</script>
+	
+	<h:form id="diagramForm">
+		<f:loadBundle var="lblAsc" basename="ru.bpc.sv2.ui.bundles.Asc"/>
+		
+		<!-- navigation bar -->
+		<bpct:navBar pageName="#{lblAsc.auth_states}"/>
+	
+		<!-- search panel -->
+		<h:panelGroup styleClass="search_block" layout="block">
+			<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+					<h:panelGroup styleClass="search_block_left" layout="block">
+		               	<h:panelGrid styleClass="fw" columns="2" columnClasses=",link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+		            			<h:outputLabel for="scnCode" value="#{lblAsc.scenario}: " title="#{lblAsc.scenario}"/>
+		            			<h:selectOneMenu id="scnCode" value="#{MbDiagram.scenarioId}" >
+									<f:selectItems value="#{MbDiagram.scenarios}"/>
+								</h:selectOneMenu>
+		              		</h:panelGrid>
+		               		<h:panelGrid columns="1">
+		               			<h:panelGroup styleClass="stdButton">
+			                		<bre:taggedCommandButton
+				                			action="#{MbDiagram.search}"
+		        							reRender="statesTable, btnPanel, details, statesDS"
+		                					image="/_img/icon_search.png" type="submit"
+		                					value="#{lblForm.search}" style="width:85px;"/>
+		
+		               			</h:panelGroup>
+		               			<h:panelGroup styleClass="link-clear" layout="block">
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<h:commandLink value="#{lblForm.clear_all}"
+						        			action="#{MbDiagram.clearFilter}">
+						        	</h:commandLink>
+		           	    		</h:panelGroup>
+		               		</h:panelGrid>
+	              		</h:panelGrid>
+	              		<a4j:outputPanel ajaxRendered="true">
+		        			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+		        			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+	        			</a4j:outputPanel>
+	              	</h:panelGroup>
+	    		</h:panelGroup>
+			</h:panelGroup>
+		</h:panelGroup>
+	
+		<div id="page">
+			<div id="mainActions"
+				style="width:100%;padding-top:8px;padding-left:24px;padding-bottom:8px;">
+			</div>
+			<div id="selectActions" style="width:100%;padding-left:54px;padding-bottom:4px;">
+			</div>
+			<table border="0" width="730px">
+				<tr>
+					<td id="toolbar" style="width:16px;padding-left:20px;" valign="top">
+						<!-- Toolbar Here -->				
+					</td>
+					<td valign="top" style="border-width:1px;border-style:solid;border-color:black;">
+						<div id="graph" style="position:relative;height:480px;width:100%;overflow:hidden;cursor:default;">
+							<!-- Graph Here -->
+							<center id="splash" style="padding-top:230px;">
+								<img src="images/loading.gif"/>
+							</center>
+						</div>
+						<textarea id="xml" style="height:480;width:100%;display:none;border-style:none;"></textarea>
+					</td>
+				</tr>
+			</table>
+			<span style="float:right;padding-right:36px;">
+				<input id="source" type="checkbox"/>Source
+			</span>
+			<div id="zoomActions" style="width:100%;padding-left:54px;padding-top:4px;">
+			</div>
+			<div id="footer">
+				<p id="status">
+					<!-- Status Here -->Loading...
+				</p>
+				<br/>
+			</div>
+		</div>
+		
+		<h:inputHidden id="hiddenXml" value="#{MbDiagram.xml}"/>
+		<h:panelGroup styleClass="stdButton">
+		<bre:taggedCommandButton 
+				action="#{MbDiagram.checkXml}" 
+				onclick="copyXml(#{rich:element('hiddenXml')})"/>
+		</h:panelGroup>
+
+		<script type="text/javascript">
+			new mxApplication('config/diagrameditor.xml');
+			strangeOne();
+		</script>
+	</h:form>
+</body>
+</ui:define>
+</ui:composition>
+</html>

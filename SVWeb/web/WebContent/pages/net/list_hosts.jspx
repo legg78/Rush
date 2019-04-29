@@ -1,0 +1,671 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+		xmlns:bpct="http://www.bpc.ru/jsf/tiles">
+<ui:composition	template="/WEB-INF/templates/navigatable.jspx">
+	<ui:define name="navigatableContent">
+		<f:loadBundle var="lblNet" basename="ru.bpc.sv2.ui.bundles.Net"/>
+		<a4j:loadScript src="/js/stretch.js" />
+		
+		<ui:remove>
+			<!-- removed because conception didn't prove to be working. May be later it will be fixed -->
+			<!-- menu, bread crumbs, and pageName (see below) initializing -->        
+			<h:inputHidden value="#{MbHosts.menuNode}"/>
+		</ui:remove>
+		
+		<!-- navigation bar -->
+		<ui:remove>
+			<!-- if page is not accessible from menu then local name will be used -->
+			<bpct:navBar pageName="#{MbHosts.pageName == null ? lblNet.hosts : MbHosts.pageName}"/>
+		</ui:remove>
+
+		<bpct:navBar pageName="#{lblNet.hosts}" overridePageName="#{MbHosts.backLink != null}"/>
+		<a4j:queue name="queue" requestDelay="500" ignoreDupResponses="true" size="1" sizeExceededBehavior="dropNew"/>
+		
+		<script type="text/javascript">
+		//<![CDATA[
+		function handleEnter(event) {
+			 if (event.keyCode == 13) {
+				 document.getElementById('hostsSearchForm:searchBtn').click(); 
+				 return false; 
+			} 
+			return true;
+		 }	
+		//]]>
+		</script>
+		
+    	<h:form id="hostsSearchForm" onkeypress="handleEnter(event)">			
+			
+			<!-- search panel -->
+			<h:panelGroup styleClass="search_block" layout="block">
+				<h:panelGroup layout="block" styleClass="search_block_inner1">
+				<h:panelGroup layout="block" styleClass="search_block_inner2">
+	                <h:panelGroup styleClass="search_block_left" layout="block">
+	                	<h:panelGrid styleClass="fw" columns="2" columnClasses="top ,link-cont">
+		                	<h:panelGrid styleClass="filter-table field-cont twoColumnTable" columns="4" columnClasses="firstCol,secondCol,firstCol,secondCol">
+
+		            			<h:outputLabel for="filterNet" value="#{lblNet.network}: " title="#{lblNet.network}" />
+		            			<h:selectOneMenu id="filterNet"  
+		            					value="#{MbHosts.filter.networkId}"
+		            					disabled="#{MbHosts.blockNetwork}"
+		            					>
+		            				<a4j:support event="onchange" reRender="filterOwner" ajaxSingle="true"
+		            					oncomplete="document.getElementById('hostsSearchForm:filterNet').focus();" 
+		            					limitToList="true"/>
+		            				<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbHosts.networks}"/>
+								</h:selectOneMenu>
+		            			
+		            			<h:outputLabel for="name" value="#{lblCommon.description}: " title="#{lblCommon.description}" />
+		            			<h:inputText id="name" value="#{MbHosts.filter.hostName}"/>
+
+		            			<h:outputLabel for="filterOwner" value="#{lblNet.host_owner}: " title="#{lblNet.host_owner}" />
+		            			<h:selectOneMenu id="filterOwner" value="#{MbHosts.filter.instId}"
+		            					disabled="#{MbHosts.filter.networkId == null}">
+		            				<f:selectItem itemValue=""/>
+									<f:selectItems value="#{MbHosts.hostOwners}"/>
+								</h:selectOneMenu>
+                			</h:panelGrid>
+	                		<h:panelGrid columns="1">
+		                		<bre:taggedCommandButton
+			                			action="#{MbHosts.search}"
+			                			id="searchBtn"
+	        							reRender="hostsTable, hostsDs, pagesNum, btnPanel, #{MbHosts.tabName}"
+	                					image="/_img/icon_search.png" type="submit"
+	                					value="#{lblForm.search}" style="width:85px;"
+	                					onclick="disableModalPanelBtns(this);"
+	                					oncomplete="enableModalPanelBtns(this);"
+	                					eventsQueue="queue"/>
+	                			<h:panelGroup styleClass="link-clear" layout="block">
+		                			<h:graphicImage url="/_img/icon_clear.png"/>
+		                			<a4j:commandLink value="#{lblForm.clear_all}"
+						        			action="#{MbHosts.clearFilter}"
+						        			reRender="hostsSearchForm, hostsForm, #{MbHosts.tabName}"
+						        			>
+						        	</a4j:commandLink>
+	            	    		</h:panelGroup>
+	                		</h:panelGrid>
+	               		</h:panelGrid>
+	               		<a4j:outputPanel ajaxRendered="true">
+	               			<h:graphicImage url="/_img/hd_searchblock.gif"  styleClass="hd-searchblock"/>
+	               			<h:panelGroup styleClass="collapse-vert" layout="block"/>
+               			</a4j:outputPanel>
+	               	</h:panelGroup>
+               	</h:panelGroup>
+               	</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+		
+		<h:form id="hostsForm">
+			<h:panelGroup styleClass="search_result_block" layout="block">
+		    	<h:panelGroup styleClass="search_result_block_left fix-ff" layout="block">
+		    		<h:panelGroup id="mainTableWrapper" layout="block"
+						styleClass="search_result_block_inner">
+				    <rich:extendedDataTable
+							id="hostsTable"
+							var="item"
+							tableState="#{MbHosts.tableState}"
+							value="#{MbHosts.hosts}"
+							selection="#{MbHosts.itemSelection}"
+							rows="#{MbHosts.rowsNum}"
+							height="255px"
+							selectionMode="single"
+							rowClasses=",odd"
+							headerClass="res-table-header"
+							selectedClass="res-table-selected"
+							styleClass="res-table"
+							enableContextMenu="true"
+							noDataLabel="#{MbHosts.searching?lblCommon['no_records_found'] : lblCommon['enter_search_criteria_above']}"
+							reRender="hostsBtnForm:btnPanel, #{MbHosts.tabName}">
+			
+						<a4j:support event="onselectionchange" eventsQueue="queue"
+								reRender="hostsBtnForm:btnPanel, #{MbHosts.tabName}"/>
+			
+						<rich:column id="id" label="#{lblCommon.id}" sortBy="#{'id'}" width="10%">
+							<f:facet name="header">
+								<a4j:outputPanel layout="none">
+									<script>updateHeight();</script>
+									<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}"/>
+								</a4j:outputPanel>	
+							</f:facet>
+			               	<h:outputText value="#{item.id}"/>
+						</rich:column>
+						
+						<rich:column id="network" label="#{lblNet.network}" sortBy="#{'networkName'}" width="15%">
+							<f:facet name="header">
+								<h:outputText value="#{lblNet.network}" title="#{lblNet.network}"/>
+							</f:facet>
+							<div class="#{EntityIcons.objectsMap['ENTTNETW'][item.networkId]}"/>
+			                <h:outputText value="#{item.networkName}" title="#{item.networkName}" />
+				        </rich:column>
+				        
+						<rich:column id="host_owner" label="#{lblNet.host_owner}" sortBy="#{'instName'}" width="20%">
+							<f:facet name="header">
+								<h:outputText value="#{lblNet.host_owner}" title="#{lblNet.host_owner}"/>
+							</f:facet>
+			                <h:outputText value="#{item.instName}" title="#{item.instName}" />
+				        </rich:column>
+			
+						<rich:column id="description" label="#{lblNet.host_desc}" sortBy="#{'hostName'}" width="25%">
+							<f:facet name="header">
+								<h:outputText value="#{lblNet.host_desc}" title="#{lblNet.host_desc}" />
+							</f:facet>
+			               	<h:outputText value="#{item.hostName}" title="#{item.hostName}" />
+						</rich:column>
+
+						<rich:column id="participantType" label="#{lblNet.participant_type}" sortBy="#{'participantType'}" width="20%">
+							<f:facet name="header">
+								<h:outputText value="#{lblNet.participant_type}" title="#{lblNet.participant_type}" />
+							</f:facet>
+			               	<h:outputText value="#{DictUtils.articles[item.participantType]}" 
+			               			title="#{DictUtils.articles[item.participantType]}"
+			               			rendered="#{item.participantType != null}"/>
+			               	<h:outputText value=""
+			               			rendered="#{item.participantType == null}"/>
+						</rich:column>
+
+						<rich:column id="status" label="#{lblCommon.status}" sortBy="#{'status'}" width="10%">
+							<f:facet name="header">
+								<h:outputText value="#{lblCommon.status}" title="#{lblCommon.status}"/>
+							</f:facet>
+			               	<h:outputText value="#{DictUtils.articles[item.status]}" title="#{DictUtils.articles[item.status]}"/>
+						</rich:column>
+
+				    </rich:extendedDataTable>
+				    </h:panelGroup>
+				    <a4j:outputPanel ajaxRendered="true">
+				    	<h:panelGroup id="show_more_panel" styleClass="show-more-vert show-more-result-tab" layout="block"/>
+				    	<h:graphicImage url="/_img/hd_searchblock.gif" styleClass="hd-searchblock"/>
+				    	<h:panelGroup styleClass="collapse-vert table-collapse-vert" layout="block"/>
+				    </a4j:outputPanel>
+			    </h:panelGroup>
+			</h:panelGroup>
+            </h:form>
+
+            <h:form id="hostsBtnForm">
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left">
+					<h:panelGroup layout="block" styleClass="table_tools">
+						<h:panelGrid styleClass="fw field-cont" columns="5"
+							columnClasses="per-page-lbl,per-page-sel,nav-cont,pagecount, table_tools_state">
+							<h:outputLabel for="rows_num" value="#{lblCommon.rows_per_page}" title="#{lblCommon.rows_per_page}" />
+							<h:selectOneMenu id="rows_num" value="#{MbHosts.rowsNum}"
+								styleClass="row_per_page">
+								<a4j:support event="onchange"
+									reRender="hostsTable, hostsDs, pagesNum, btnPanel, #{MbHosts.tabName}" />
+								<f:selectItems value="#{CommonUtils.rowNumsList}"/>
+							</h:selectOneMenu>
+
+							<rich:datascroller maxPages="10" fastControls="hide"
+								pagesVar="pages" styleClass="res-datascroller"
+								page="#{MbHosts.pageNumber}"
+								reRender="hostsTable, hostsDs, pagesNum, btnPanel, #{MbHosts.tabName}"
+								id="hostsDs" for="hostsTable">
+								<f:facet name="first">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="first_disabled">
+									<h:outputText value="&lt;&lt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="last">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="last_disabled">
+									<h:outputText value="&gt;&gt;" styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="previous">
+									<h:outputText value="#{lblCommon.prev}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="previous_disabled">
+									<h:outputText value="#{lblCommon.prev}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="next">
+									<h:outputText value="#{lblCommon.next}" styleClass="prev-next" />
+								</f:facet>
+								<f:facet name="next_disabled">
+									<h:outputText value="#{lblCommon.next}"
+										styleClass="prev-next-dis" />
+								</f:facet>
+								<f:facet name="pages">
+								</f:facet>
+							</rich:datascroller>
+
+							<h:panelGroup id="pagesNum">
+								<h:outputText styleClass="strongClass" value="#{pages} " />
+								<h:outputText value=" #{lblCommon.pages}" />
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+                                <h:outputText styleClass="strongClass" value="#{MbHosts.hosts.rowCount}"/>
+                                <h:outputText value=" #{lblCommon.records}"/>
+                                <h:outputText value="" style="padding-left: 20px; padding-right: 20px;" />
+							</h:panelGroup>
+							
+							<h:panelGroup>
+								<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+									onclick="saveTableState();"/>
+								<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+									onclick="deleteTableState();"/>
+								<a4j:queue name="tablestatequeue"/>
+								<a4j:jsFunction name="saveTableState" action="#{MbHosts.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+								<a4j:jsFunction name="deleteTableState" action="#{MbHosts.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+
+					<h:panelGrid id="btnPanel" columns="7" styleClass="itempanel">
+						<bre:taggedCommandButton id="backBtn" value="#{lblForm.back}"
+							action="#{MbHosts.goBack}" rendered="#{MbHosts.backLink != null}" />
+
+						<rich:spacer width="20px" rendered="#{MbHosts.backLink != null}" />
+
+						<bre:taggedCommandButton id="addBtn" value="#{lblForm.add}"
+							rendered="#{usession.inRole['ADD_NETWORK_INTERFACE']}"
+							action="#{MbHosts.add}"
+							reRender="net_host_modal_header, hostEditForm"
+							oncomplete="#{rich:component('net_host_modal_panel')}.show()"
+							image="/images/create_doc.gif" />
+						<bre:taggedCommandButton id="editBtn"
+							rendered="#{usession.inRole['MODIFY_NETWORK_INTERFACE']}"
+							reRender="net_host_modal_header, hostEditForm"
+							value="#{lblForm.edit}"
+							oncomplete="#{rich:component('net_host_modal_panel')}.show()"
+							action="#{MbHosts.edit}" disabled="#{MbHosts.activeHost == null}"
+							image="/images/edit.gif" />
+						<bre:taggedCommandButton id="deleteBtn" value="#{lblForm.delete}"
+							rendered="#{usession.inRole['REMOVE_NETWORK_INTERFACE']}"
+							disabled="#{MbHosts.activeHost == null}"
+							image="/images/delete.gif" 
+							oncomplete="#{rich:component('deleteHostView:confirmPanel')}.show()"/>
+						<bre:taggedCommandButton id="reloadBtn" rendered="false"
+							disabled="#{MbHosts.activeHost == null}"
+							value="#{lblForm.reload}" action="#{MbHosts.reload}"
+							reRender="hostsSynchronizationResultModalPanel"
+							oncomplete="if (#{usession.noErrorResponse}) {#{rich:component('hostsSynchronizationResultModalPanel')}.show();}" />
+			            <rich:dropDownMenu style="padding: 0"
+			            		itemClass="odd"  
+			            		selectedLabelClass="selectedDropDownLabel"
+								rendered="#{(MbHosts.masterCard or MbHosts.visaBase1 or MbHosts.way4 or MbHosts.visaSms) and false}">
+			            	<f:facet name="label">
+					        	<bre:taggedCommandButton id="wsBtn"
+					                	value="Web services"
+					                	disabled="#{MbHosts.activeHost == null}"
+					                	/>
+			            	</f:facet>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.activate}" 
+			            			action="#{MbPCtlPeerMasterCardWS.activateHost}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.masterCard}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerMasterCardWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.deactivate}" 
+			            			action="#{MbPCtlPeerMasterCardWS.deactivateHost}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.masterCard}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerMasterCardWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.sign_on}" 
+			            			action="#{MbPCtlPeerMasterCardWS.signOn}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.masterCard}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerMasterCardWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.sign_off}" 
+			            			action="#{MbPCtlPeerMasterCardWS.signOff}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.masterCard}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerMasterCardWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.connection_status}" 
+			            			action="#{MbPCtlPeerMasterCardWS.connectionStatus}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.masterCard}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerMasterCardWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.echo_test}" 
+			            			action="#{MbPCtlPeerVisaBase1WS.echoTest}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaBase1}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVisaBase1WS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.sign_on}" 
+			            			action="#{MbPCtlPeerVisaBase1WS.signOn}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaBase1}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVisaBase1WS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.sign_off}" 
+			            			action="#{MbPCtlPeerVisaBase1WS.signOff}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaBase1}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVisaBase1WS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.start_advices_trms}" 
+			            			action="#{MbPCtlPeerVisaBase1WS.startAdvicesTrms}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaBase1}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVisaBase1WS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.stop_advices_trms}" 
+			            			action="#{MbPCtlPeerVisaBase1WS.stopAdvicesTrms}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaBase1}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVisaBase1WS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.echo_test}" 
+			            			action="#{MbPCtlPeerWay4WS.echoTest}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.way4}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerWay4WS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.sign_on}" 
+			            			action="#{MbPCtlPeerWay4WS.signIn}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.way4}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerWay4WS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.sign_off}" 
+			            			action="#{MbPCtlPeerWay4WS.signOff}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.way4}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerWay4WS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.echo_test}" 
+			            			action="#{MbPCtlPeerVISASMSWS.echoTest}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.sign_on}" 
+			            			action="#{MbPCtlPeerVISASMSWS.signOn}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblForm.sign_off}" 
+			            			action="#{MbPCtlPeerVISASMSWS.signOff}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.start_advices_trms}" 
+			            			action="#{MbPCtlPeerVISASMSWS.startAdvicesTrms}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.authId}" value="#{MbHosts.activeHost.onlineStdId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.send_credit_adjustment}" 
+			            			action="#{MbPCtlPeerVISASMSWS.sendCreditAdjustment}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.authId}" value="#{MbHosts.activeHost.onlineStdId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.send_debit_adjustment}" 
+			            			action="#{MbPCtlPeerVISASMSWS.sendDebitAdjustment}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.authId}" value="#{MbHosts.activeHost.onlineStdId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.send_fee_collection}" 
+			            			action="#{MbPCtlPeerVISASMSWS.sendFeeCollection}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.authId}" value="#{MbHosts.activeHost.onlineStdId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.send_funds_disbursement}" 
+			            			action="#{MbPCtlPeerVISASMSWS.sendFundsDisbursement}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.authId}" value="#{MbHosts.activeHost.onlineStdId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            	<rich:menuItem submitMode="ajax" 
+			            			value="#{lblCmn.send_representment}" 
+			            			action="#{MbPCtlPeerVISASMSWS.sendRepresentment}"
+			            			reRender="hostsTable"
+			            			rendered="#{MbHosts.visaSms}"
+									oncomplete="if (#{usession.noErrorResponse}) { alert('OK'); }"
+			            			>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.authId}" value="#{MbHosts.activeHost.onlineStdId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.networkId}" value="#{MbHosts.activeHost.networkId}"/>
+			            		<f:setPropertyActionListener target="#{MbPCtlPeerVISASMSWS.hostId}" value="#{MbHosts.activeHost.id}"/>
+			            	</rich:menuItem>
+			            </rich:dropDownMenu>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+
+        <h:form>
+            <a4j:jsFunction name="storeTab" ajaxSingle="true" limitToList="true" reRender="#{MbHosts.tabName}">
+                <a4j:actionparam name="tabName" assignTo="#{MbHosts.tabName}" />
+            </a4j:jsFunction>
+        </h:form>
+
+		<h:panelGroup styleClass="workplace" layout="block" id="workplacePanel">
+	    	<rich:tabPanel switchType="client" id="details" tabClass="tab-cell"
+	    			activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+	    			contentClass="tab-content" selectedTab="#{MbHostsSess.tabName}">
+
+				<rich:tab ontabenter="storeTab('detailsTab')" label="#{lblCommon.details}" name="detailsTab">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.details}" title="#{lblCommon.details}"/>
+       					</h:panelGroup>
+       				</f:facet>
+					<h:panelGroup id="detailsTab" >
+						<h:panelGroup layout="block">
+	      					<ui:include src="/pages/net/host_details.jspx"></ui:include>
+							<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons"/>	      					      				
+	       				</h:panelGroup>
+					</h:panelGroup>
+			    </rich:tab>
+
+				<rich:tab ontabenter="storeTab('instsTab')" label="#{lblCommon.institutions}" name="instsTab" style="height:100%;">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCommon.institutions}" title="#{lblCommon.institutions}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup layout="block" id="instsTab" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/net/list_consumers.jspx">
+      						<ui:param name="parentPageName" 
+      								value="#{MbHosts.pageName == null ? lblNet.hosts : MbHosts.pageName}"/>
+      					</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+			    <rich:tab ontabenter="storeTab('keysTab')" label="Keys" name="keysTab" style="height:100%;" rendered="#{usession.inRole['VIEW_TAB_DES_KEY']}" >
+        			<f:facet name="label">
+        				<h:panelGroup styleClass="tab-label" layout="block">
+        					<h:outputText value="#{lblNet.keys}" title="#{lblNet.keys}"/>
+        				</h:panelGroup>
+        			</f:facet>
+
+					<h:panelGroup id="keysTab" layout="block" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+   						<ui:include src="/pages/security/list_des_keys_bottom.jspx">
+   							<ui:param name="useHsm" value="#{MbHosts.useHsm}"/>
+   						</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('connectivityTab')" label="#{lblNet.connectivity}" name="connectivityTab" style="height:100%;">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblNet.connectivity}" title="#{lblNet.connectivity}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup layout="block" id="connectivityTab" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/net/list_net_devices_bottom.jspx">
+      						<ui:param name="parentPageName" 
+      								value="#{MbHosts.pageName == null ? lblNet.hosts : MbHosts.pageName}"/>
+      					</ui:include>
+       				</h:panelGroup>
+			    </rich:tab>
+			    
+			    <rich:tab ontabenter="storeTab('stdVerTab')" label="Standards' versions" name="stdVerTab" style="height:100%;">
+      				<f:facet name="label">
+       					<h:panelGroup styleClass="first tab-label" layout="block">
+       						<h:outputText value="#{lblCmn.standard_versions}" title="#{lblCmn.standard_versions}"/>
+       					</h:panelGroup>
+       				</f:facet>
+
+					<h:panelGroup layout="block" id="stdVerTab" styleClass="carddata-wrapper" style="height: 100%;overflow:hidden;position:relative;">
+      					<ui:include src="/pages/net/hostStandardVersionsList.jspx" />
+       				</h:panelGroup>
+			    </rich:tab>
+		    </rich:tabPanel>
+        </h:panelGroup>
+
+		<ui:include src="/pages/net/host_edit.jspx">
+			<ui:param name="rerenderList" value="hostsTable, hostsDs, pagesNum, btnPanel, #{MbHosts.tabName}, hostsSearchForm:filterOwner"/>
+		</ui:include>
+	
+		<ui:include src="/pages/net/hostsSynchronizationResultModalPanel.jspx" />
+		
+		<ui:include src="/pages/utils/confirmPanel.jspx">
+			<ui:param name="backingBean" value="#{MbHosts}"/>
+			<ui:param name="yesAction" value="delete"/>
+			<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+			<ui:param name="rerenderList" value="hostsTable, hostsDs, pagesNum, btnPanel, #{MbHosts.tabName}, hostsSearchForm:filterOwner"/>
+			<ui:param name="confirmQuestion" value=" "/> 
+			<ui:param name="subviewId" value="deleteHostView"/>
+			<ui:param name="yes" value="#{lblForm.ok}"/>
+			<ui:param name="no" value="#{lblForm.cancel}"/>
+		</ui:include>
+		
+		<script>
+			//<![CDATA[
+
+            function updateHeight(){
+                updateGridHeight();
+            }
+
+            layout =
+            {
+                SEARCH_FORM_ID:                 'hostsSearchForm',
+                SEARCH_RESULT_FORM_ID:          'hostsForm',
+                SEARCH_RESULT_FORM_WRAPPER_ID:  'mainTableWrapper',
+                SEARCH_RESULT_FOOTER_FORM_ID:   'hostsBtnForm',
+                TAB_PANEL_ID:                   'workplacePanel',
+
+                TAB_DATA:      [{
+                    TAB_FORM_ID:            'hostDetailsForm',
+                    TAB_FORM_WRAPPER_ID:    'hostDetailsWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS + Stretch.LANG_SELECTOR
+                }
+
+                ,{
+                    TAB_FORM_ID:            'consumersForm',
+                    TAB_FORM_WRAPPER_ID:    'consumersTableWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+                ,{
+                    TAB_FORM_ID:            'desKeysBtmForm',
+                    TAB_FORM_WRAPPER_ID:    'desKeysTableWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+                , {
+                    TAB_FORM_ID:            'netDevicesBtmForm',
+                    TAB_FORM_WRAPPER_ID:    'devicesTableWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+                , {
+                    TAB_FORM_ID:            'hostStdVerForm',
+                    TAB_FORM_WRAPPER_ID:    'stdTreeTableWrapper',
+                    CORRECTING_HEIGHT:      Stretch.TABS + Stretch.BUTTONS
+                }
+                ]
+
+            };
+            updateHeight();
+			jQuery(window).resize(updateHeight);
+
+			//]]>
+		</script>
+	</ui:define>
+</ui:composition>
+</html>

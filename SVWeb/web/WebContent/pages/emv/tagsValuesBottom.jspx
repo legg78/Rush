@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:fmt="http://www.bpc.ru/el/formatter">
+<ui:composition>
+	<f:loadBundle var="lblEmv" basename="ru.bpc.sv2.ui.bundles.Emv" />
+
+	<h:panelGrid columns="2" cellpadding="0" cellspacing="0"
+		columnClasses="top width50, top width50" width="100%">
+
+		<h:form id="tagsForm" style="overflow:hidden;" onkeypress="return event.keyCode != 13;">
+			<h:panelGroup layout="block" styleClass="langSelector">
+				<h:panelGrid columns="2" styleClass="cardholderdata oneColumnTable"
+					id="detailsData" columnClasses=",secondCol">
+					<h:outputLabel for="lang" value="#{lblCommon.lang_selector}: "
+						title="#{lblCommon.lang_selector}" />
+					<h:selectOneMenu id="lang"
+						disabled="#{MbEmvApplicationScheme.activeItem.id == null}"
+						value="#{MbApplicationSchemeTags.curLang}"
+						valueChangeListener="#{MbApplicationSchemeTags.changeLanguage}">
+						<a4j:support event="onchange" reRender="tagsWrapper"
+							limitToList="true" oncomplete="updateHeight();" />
+						<f:selectItems value="#{MbApplicationSchemeTags.languages}" />
+					</h:selectOneMenu>
+				</h:panelGrid>
+			</h:panelGroup>
+
+			<h:panelGroup id="tagsWrapper" layout="block"
+				style="padding:0px;margin:0px;">
+				<rich:extendedDataTable id="EmvTagTable"
+					tableState="#{MbApplicationSchemeTags.tableState}" styleClass="res-table"
+					headerClass="res-table-header table-header-ext" rowClasses=",odd"
+					selectedClass="res-table-selected" var="item"
+					value="#{MbApplicationSchemeTags.dataModel}" selection="#{MbApplicationSchemeTags.itemSelection}"
+					height="200px" selectionMode="single"
+					width="100%" enableContextMenu="true"
+					noDataLabel="#{lblCommon.no_records_found}">
+
+					<a4j:support event="onselectionchange" requestDelay="500"
+						reRender="tagValueForm" />
+
+					<rich:column id="id" label="#{lblCommon.id}" title="Id"
+						sortBy="#{'id'}" width="11%">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>if (window['updateHeight'])updateHeight()</script>
+								<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{item.id}" title="#{item.id}" />
+					</rich:column>
+
+					<rich:column id="tag" label="#{lblEmv.tag}" title="Tag"
+						sortBy="#{'tag'}" width="11%">
+						<f:facet name="filter">
+							<h:inputText value="#{MbApplicationSchemeTags.filter.tag}" style="width:100%" >
+								<a4j:support event="onkeyup" reRender="EmvTagTable" limitToList="true" ajaxSingle="true" requestDelay="500"
+									action="#{MbApplicationSchemeTags.search}"/>
+							</h:inputText>
+						</f:facet>
+						<f:facet name="header">
+							<h:outputText value="#{lblEmv.tag}" title="#{lblEmv.tag}" />
+						</f:facet>
+						<h:outputText value="#{item.tag}" title="#{item.tag}" />
+					</rich:column>
+
+					<rich:column id="description" label="#{lblEmv.description}"
+						title="Description" sortBy="#{'description'}" width="30%">
+						<f:facet name="header">
+							<h:outputText value="#{lblEmv.description}"
+								title="#{lblEmv.description}" />
+						</f:facet>
+						<h:outputText value="#{item.description}"
+							title="#{item.description}" />
+					</rich:column>
+
+				</rich:extendedDataTable>
+			</h:panelGroup>
+		<h:panelGroup layout="block"
+			styleClass="bottom_search_result_block_buttons" >
+			<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons" >
+				<h:panelGrid styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+					<h:panelGroup></h:panelGroup>
+					<h:panelGroup>
+						<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+							onclick="saveTagTableState();"/>
+						<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+							onclick="deleteTagTableState();"/>
+						<a4j:queue name="tablestatequeue"/>
+						<a4j:jsFunction name="saveTagTableState" action="#{MbApplicationSchemeTags.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+						<a4j:jsFunction name="deleteTagTableState" action="#{MbApplicationSchemeTags.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+					</h:panelGroup>
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:panelGroup>
+		</h:form>
+			
+		<h:form id="tagValueForm" style="overflow:hidden;">
+
+			<h:panelGroup id="tagValueTableWrapper" layout="block"
+				style="padding:0px;margin:0px;">
+				<rich:extendedDataTable id="tagValueTable" styleClass="res-table"
+					headerClass="res-table-header table-header-ext" rowClasses=",odd"
+					selectedClass="res-table-selected" var="item"
+					value="#{MbEmvTagValues.dataModel}" selectionMode="single"
+					selection="#{MbEmvTagValues.itemSelection}" width="100%"
+					enableContextMenu="true" border="0"
+					tableState="#{MbEmvTagValues.tableState}"
+					noDataLabel="#{lblCommon.no_records_found}">
+
+					<rich:column id="id" label="#{lblCommon.id}" title="Tag Id" sortBy="#{'tagId'}" width="33%">
+						<f:facet name="header">
+							<h:panelGroup>
+								<script>
+									if (window['updateHeight'])
+										updateHeight();
+								</script>
+								<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+							</h:panelGroup>
+						</f:facet>
+						<h:outputText value="#{item.tagId}" title="#{item.tagId}" />
+					</rich:column>
+
+					<rich:column id="value" label="#{lblCommon.value}" title="Tag Value" sortBy="#{'tagValue'}" width="33%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.value}"
+								title="#{lblCommon.value}" />
+						</f:facet>
+						<h:outputText value="#{item.tagValue}" title="#{item.tagValue}" />
+					</rich:column>
+
+					<rich:column id="profile" label="#{lblEmv.profile}" title="Profile" sortBy="#{'profile'}" width="33%">
+						<f:facet name="header">
+							<h:outputText value="#{lblEmv.profile}" title="#{lblEmv.profile}" />
+						</f:facet>
+						<h:outputText
+						     value="#{item.profile } - #{DictUtils.allArticlesDesc[item.profile]}"
+						     title="#{item.profile } - #{DictUtils.allArticlesDesc[item.profile]}"
+						     readonly="true" rendered="#{item.profile != null }"/>
+						<h:outputText
+						     value=""
+						     readonly="true" rendered="#{item.profile == null }"/>						
+					</rich:column>
+				</rich:extendedDataTable>
+			</h:panelGroup>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGrid id="btnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+				<h:panelGroup>
+				<bre:taggedCommandButton id="addBtn"
+					reRender="tagValueEditModalPanel" value="#{lblForm.set}"
+					oncomplete="#{rich:component('tagValueEditModalPanel')}.show()"
+					action="#{MbEmvTagValues.createNewTagValue}"
+					image="/images/create_doc.gif" disabled="#{MbApplicationSchemeTags.activeItem == nul}"/>
+				<bre:taggedCommandButton id="editBtn"
+					reRender="tagValueEditModalPanel"
+					value="#{lblForm.edit}"
+					action="#{MbEmvTagValues.prepareForEditing}"
+					oncomplete="#{rich:component('tagValueEditModalPanel')}.show()"
+					disabled="#{MbEmvTagValues.activeItem == null}"
+					image="/images/edit.gif"/>
+				<bre:taggedCommandButton id="deleteBtn"
+					value="#{lblForm.delete}"
+					disabled="#{MbEmvTagValues.activeItem == null}"
+					image="/images/delete.gif"
+					oncomplete="#{rich:component('deleteTagValueView:confirmPanel')}.show()"/>
+				</h:panelGroup>
+				<h:panelGroup>
+					<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+						onclick="saveValueTableState();"/>
+					<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+						onclick="deleteValueTableState();"/>
+					<a4j:queue name="tablestatequeue"/>
+					<a4j:jsFunction name="saveValueTableState" action="#{MbEmvTagValues.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+					<a4j:jsFunction name="deleteValueTableState" action="#{MbEmvTagValues.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+				</h:panelGroup>				
+				</h:panelGrid>
+			</h:panelGroup>
+		</h:form>
+
+	</h:panelGrid>
+
+	<ui:include src="/pages/emv/tagValueEditModalPanel.jspx"></ui:include>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbEmvTagValues}"/>
+		<ui:param name="yesAction" value="deleteSelectedItem"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="tagValueForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteTagValueView"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>

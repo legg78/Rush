@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html   xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bpc="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+		//<![CDATA[
+		function checkFeeTierFields() {
+			var checked = true;
+			checked = checkField('editFeeTierDiv:countThreshold') && checked;
+			checked = checkField('editFeeTierDiv:sumThreshold') && checked;
+			checked = checkField('editFeeTierDiv:fixedRate') && checked;
+			checked = checkField('editFeeTierDiv:percentRate') && checked;
+			checked = checkField('editFeeTierDiv:lengthTypeAlgorithm') && checked;
+			if (document.getElementById('editFeeTierDiv:lengthTypeMandatory')) {
+				checked = checkField('editFeeTierDiv:lengthType') && checked;
+			}
+			return checked;
+		}
+		//]]>
+	</script>
+
+	<f:loadBundle var="lblForm" basename="ru.bpc.sv2.ui.bundles.Form"/>
+   	<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+			
+			<h:outputLabel for="countThreshold" value="* #{lblFcl.count_threshold}: " title="#{lblFcl.count_threshold}"/>
+			<h:panelGrid cellpadding="0" cellspacing="0">
+				<h:inputText id="countThreshold" value="#{MbFeeTiers.newFeeTier.countThreshold}" 
+						label="#{lblFcl.count_threshold}"
+						maxlength="16" style="text-align: right"
+						onkeypress="if (!numbersOnly(this, event)) return false;"
+						onblur="hideErrorField(this)">
+				</h:inputText>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="countThresholdError" style="display:none;">
+					<f:param name="fieldName" value="#{lblFcl.count_threshold}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+			
+			<h:outputLabel for="sumThreshold" value="* #{lblFcl.sum_threshold}: " title="#{lblFcl.sum_threshold}"/>
+			<h:panelGrid cellpadding="0" cellspacing="0">
+				
+				<h:inputText id="sumThreshold" validator="#{MbFeeTiers.validateBigDecimal}"
+					value="#{MbFeeTiers.newFeeTier.sumThreshold}"
+					label="#{lblFcl.sum_threshold}"
+					onblur="hideErrorField(this)">
+					<bpc:numericMaskConverter numericType="bigdecimal" />
+					<f:attribute name="decDigits"
+						value="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+					<a4j:support event="onblur" reRender="sumThresholdErr" ajaxSingle="true"
+						limitToList="true" />
+				</h:inputText>
+				<bpc:jsMask for="sumThreshold"
+					decDigits="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+				<rich:message id="sumThresholdErr" for="sumThreshold" styleClass="errorMarker"/>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="sumThresholdError" style="display:none;">
+					<f:param name="fieldName" value="#{lblFcl.sum_threshold}"/>
+				</h:outputFormat>	
+			</h:panelGrid>
+			
+			<h:outputLabel for="fixedRate" value="* #{lblFcl.fixed_rate}: " title="#{lblFcl.fixed_rate}"
+					rendered="#{!MbFeeTiers.percentValue}"/>
+			<h:panelGrid cellpadding="0" cellspacing="0" rendered="#{!MbFeeTiers.percentValue}">
+				
+				<h:inputText id="fixedRate" validator="#{MbFeeTiers.validateBigDecimal}"
+					value="#{MbFeeTiers.newFeeTier.fixedRate}"
+					label="#{lblFcl.fixed_rate}"
+					onblur="hideErrorField(this)">
+					<bpc:numericMaskConverter numericType="bigdecimal" />
+					<f:attribute name="decDigits"
+						value="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+					<a4j:support event="onblur" reRender="fixedRateErr" ajaxSingle="true"
+						limitToList="true" />
+				</h:inputText>
+				<bpc:jsMask for="fixedRate"
+					decDigits="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+				<rich:message for="fixedRate" id="fixedRateErr" styleClass="errorMarker"/>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="fixedRateError" style="display:none;">
+					<f:param name="fieldName" value="#{lblFcl.fixed_rate}"/>
+				</h:outputFormat>	
+			
+			</h:panelGrid>
+	
+			<h:outputLabel for="percentRate" value="* #{lblFcl.percent_rate}: " title="#{lblFcl.percent_rate}"
+					rendered="#{!MbFeeTiers.fixedValue}"/>
+			<h:panelGrid cellpadding="0" cellspacing="0" rendered="#{!MbFeeTiers.fixedValue}">
+				<h:inputText id="percentRate" value="#{MbFeeTiers.newFeeTier.percentRate}"
+						label="#{lblFcl.percent_rate}" style="text-align: right"
+						maxlength="23" validator="#{MbFeeTiers.validateBigDecimal}"
+						onkeypress="if (!numbersOnly(this, event, true)) return false;"
+						onblur="hideErrorField(this)">
+					<a4j:support event="onchange" limitToList="true" ajaxSingle="true" reRender="percentRateErr"/>
+					<f:attribute name="exponent" value="${0}"/>
+				</h:inputText>
+				<rich:message id="percentRateErr" for="percentRate" styleClass="errorMarker"/>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+					id="percentRateError" style="display:none;">
+					<f:param name="fieldName" value="#{lblFcl.percent_rate}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+			
+			<h:outputLabel for="minValue" value="#{lblFcl.min_value}: " title="#{lblFcl.min_value}"/>
+			<h:panelGrid cellpadding="0" cellspacing="0">
+				
+				<h:inputText id="minValue" value="#{MbFeeTiers.newFeeTier.minValue}"
+						validator="#{MbFeeTiers.validateBigDecimal}">
+					<bpc:numericMaskConverter numericType="bigdecimal" />
+					<f:attribute name="decDigits"
+						value="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+				</h:inputText>
+				<bpc:jsMask for="minValue"
+					decDigits="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+				<rich:message for="minValue" styleClass="errorMarker"/>
+								
+			</h:panelGrid>
+			
+			<h:outputLabel for="maxValue" value="#{lblFcl.max_value}: " title="#{lblFcl.max_value}"/>
+			<h:panelGrid cellpadding="0" cellspacing="0">
+				<h:inputText id="maxValue" value="#{MbFeeTiers.newFeeTier.maxValue}"
+						validator="#{MbFeeTiers.validateBigDecimal}">
+					<bpc:numericMaskConverter numericType="bigdecimal" />
+					<f:attribute name="decDigits"
+						value="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+				</h:inputText>
+				<bpc:jsMask for="maxValue"
+					decDigits="#{CurrencyUtils.currencyObjectsMap[MbFeeTiers.feeCurrency].exponent}" />
+				<rich:message for="maxValue" styleClass="errorMarker"/>	
+			
+			</h:panelGrid>
+
+			<h:panelGroup id="lengthTypeLabel">
+				<h:outputLabel for="lengthType" value="#{lblFcl.length_type}: " title="#{lblFcl.length_type}"
+							   rendered="#{!MbFeeTiers.newFeeTier.needLengthType}" id="lengthTypeOptional"/>
+				<h:outputLabel for="lengthType" value="* #{lblFcl.length_type}: " title="#{lblFcl.length_type}"
+							   rendered="#{MbFeeTiers.newFeeTier.needLengthType}" id="lengthTypeMandatory"/>
+			</h:panelGroup>
+			<h:panelGrid cellpadding="0" cellspacing="0">
+				<h:selectOneMenu id="lengthType"
+								 value="#{MbFeeTiers.newFeeTier.lengthType}"
+								 onblur="hideErrorField(this)">
+					<f:selectItems value="#{MbFeeTiers.lengthTypes}"/>
+					<a4j:support event="onchange" reRender="lengthTypeAlgLabel, lengthTypeAlgInput" ajaxSingle="true"
+								 limitToList="true" />
+				</h:selectOneMenu>
+				<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="lengthTypeError" style="display:none;">
+					<f:param name="fieldName" value="#{lblFcl.length_type}"/>
+				</h:outputFormat>
+			</h:panelGrid>
+
+			<h:panelGroup id="lengthTypeAlgLabel">
+				<h:outputLabel for="lengthTypeAlg" value="* #{lblFcl.length_type_algorithm}: " title="#{lblFcl.length_type_algorithm}"
+							   rendered="#{MbFeeTiers.lengthYear}"/>
+			</h:panelGroup>
+			<h:panelGroup id="lengthTypeAlgInput">
+				<h:panelGrid cellpadding="0" cellspacing="0" rendered="#{MbFeeTiers.lengthYear}">
+					<h:selectOneMenu id="lengthTypeAlg"
+									 value="#{MbFeeTiers.newFeeTier.lengthTypeAlgorithm}">
+						<f:selectItems value="#{MbFeeTiers.lengthTypeAlgorithms}"/>
+					</h:selectOneMenu>
+					<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="lengthTypeAlgError" style="display:none;">
+						<f:param name="fieldName" value="#{lblFcl.length_type_algorithm}"/>
+					</h:outputFormat>
+				</h:panelGrid>
+			</h:panelGroup>
+
+		</h:panelGrid>
+	</h:panelGroup>
+</ui:composition>
+</html>

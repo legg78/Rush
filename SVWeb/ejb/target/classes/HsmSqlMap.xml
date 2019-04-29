@@ -1,0 +1,578 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap
+    PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN"
+    "http://ibatis.apache.org/dtd/sql-map-2.dtd">
+<sqlMap namespace="hsm">
+
+    <!--
+        Common sql configuration not included in SqlMapConfig
+     -->
+    <sql id="limitationOpen">
+            SELECT *
+            FROM (                
+    </sql>
+    
+    <sql id="limitationOpenCount">
+            SELECT count(*)
+            FROM (                
+    </sql>
+    
+    <sql id="limitationClose">               
+            	) q
+            <isNotNull property="limitation" prepend=" WHERE ">$limitation$</isNotNull>
+    </sql>
+    
+    <sql id="paginatedOpen">
+            SELECT *
+            FROM(
+                SELECT a.*, rownum r
+                FROM(
+		<include refid="limitationOpen"/>
+    </sql>
+
+    <sql id="paginatedClose">
+    	<include refid="limitationClose"/>
+                    ) a
+                WHERE rownum <![CDATA[<]]>= (#range.end# + 1)
+            )
+            WHERE r >= (#range.start# + 1)    	
+    </sql>
+
+	<resultMap  id="mapping-device" class="ru.bpc.sv2.hsm.HsmDevice">
+        <result property="id" column="id"/>
+        <result property="enabled" column="is_enabled" javaType="boolean" jdbcType="NUMBER"/>
+        <result property="type" column="comm_protocol"/>
+        <result property="plugin" column="plugin"/>
+        <result property="statusOk" column="status_ok"/>
+        <result property="statusConfError" column="status_conf_error"/>
+        <result property="statusCommError" column="status_comm_error"/>
+        <result property="statusUnknown" column="status_unknown"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="manufacturer" column="manufacturer"/>
+        <result property="serialNumber" column="serial_number"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="lmkId" column="lmk_id"/>
+        <result property="lmkDescription" column="lmk_description"/>
+        <result property="hsmTcp" resultMap="hsm.mapping-tcp-connection"/>
+        <result property="modelNumber" column="model_number"/>
+	</resultMap>
+
+	<resultMap  id="mapping-tcp-connection"
+                class="ru.bpc.sv2.hsm.HsmConnection">
+        <result property="deviceId" column="hsm_device_id"/>
+        <result property="address" column="address"/>
+        <result property="port" column="port"/>
+        <result property="maxConnections" column="max_connection"/>
+	</resultMap>
+
+	<select id="get-devices"
+		    parameterClass="qparams"
+		    resultMap="mapping-device">
+		<include refid="paginatedOpen"/>
+			SELECT 	h.id
+					, h.is_enabled
+					, h.comm_protocol
+					, h.plugin
+					, h.status_ok
+					, h.status_conf_error
+					, h.status_comm_error
+					, h.status_unknown
+					, h.seqnum
+					, h.manufacturer
+					, h.serial_number
+		            , h.description
+		            , h.lang
+		            , h.lmk_id
+		            , h.max_connection
+		            , lmk.description lmk_description
+		            , t.id hsm_device_id
+		            , t.address
+		            , t.port
+		            , h.model_number
+		    FROM
+		    	hsm_ui_device_vw h
+		    	, hsm_ui_lmk_vw lmk
+		    	, hsm_ui_tcp_ip_vw t
+		    WHERE
+		    	h.lmk_id = lmk.id
+		    	AND h.id = t.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="id">h.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="type">h.comm_protocol = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="plugin">h.plugin = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lang">h.lang = #filters[].value# AND lmk.lang = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="lmkId">h.lmk_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="manufacturer">h.manufacturer = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="serialNumber">upper(h.serial_number) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(h.description) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="isEnabled">h.is_enabled = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="desKeyPrefix">
+		    		h.manufacturer IN (
+		    			SELECT hsm_manufacturer FROM sec_ui_key_prefix_map_vw
+		    			WHERE key_prefix = #filters[].value#
+		    		)
+	    		</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">h.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="enabled">h.is_enabled $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="type">h.comm_protocol $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="plugin">h.plugin $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">h.description $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="manufacturer">h.manufacturer $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="serialNumber">h.serial_number $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-devices-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT
+			*
+		FROM
+	    	hsm_ui_device_vw h
+	    	, hsm_ui_lmk_vw lmk
+	    WHERE
+	    	h.lmk_id = lmk.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="id">h.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="type">h.comm_protocol = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="plugin">h.plugin = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lang">h.lang = #filters[].value# AND lmk.lang(+) = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="lmkId">h.lmk_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="manufacturer">h.manufacturer = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="serialNumber">upper(h.serial_number) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(h.description) like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="isEnabled">h.is_enabled = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="desKeyPrefix">
+	    		h.manufacturer IN (
+	    			SELECT hsm_manufacturer FROM sec_ui_key_prefix_map_vw
+	    			WHERE key_prefix = #filters[].value#
+	    		)
+    		</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-device"
+			parameterClass="ru.bpc.sv2.hsm.HsmDevice">
+    	{call HSM_UI_DEVICE_PKG.add_hsm_device(
+				  o_id 				=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_is_enabled		=> #enabled#
+				, i_comm_protocol	=> #type#
+				, i_plugin			=> #plugin#
+				, i_manufacturer	=> #manufacturer#
+				, i_serial_number	=> #serialNumber#
+				, i_lang			=> #lang#
+				, i_description		=> #description#
+				, i_lmk_id 			=> #lmkId#
+				, i_model_number    => #modelNumber#
+				)}
+	</procedure>
+
+	<procedure id="edit-device"
+			parameterClass="ru.bpc.sv2.hsm.HsmDevice">
+    	{call HSM_UI_DEVICE_PKG.modify_hsm_device(
+   				  i_id				=> #id#
+				, i_is_enabled		=> #enabled#
+				, i_comm_protocol	=> #type#
+				, i_plugin			=> #plugin#
+				, i_manufacturer	=> #manufacturer#
+				, i_serial_number	=> #serialNumber#
+				, i_lang			=> #lang#
+				, i_description		=> #description#
+				, io_seqnum			=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_lmk_id 			=> #lmkId#
+				, i_model_number    => #modelNumber#
+				)}
+	</procedure>
+
+	<procedure id="delete-device"
+			parameterClass="ru.bpc.sv2.hsm.HsmDevice">
+    	{call HSM_UI_DEVICE_PKG.remove_hsm_device(
+				  i_id		=> #id#
+				, i_seqnum	=> #seqNum#)}
+	</procedure>
+
+	<resultMap  id="mapping-dynamic-connection"
+                class="ru.bpc.sv2.hsm.HsmDynamicConnection">
+        <result property="deviceId" column="hsm_device_id"/>
+        <result property="status" column="status"/>
+        <result property="connectNumber" column="connect_number"/>
+        <result property="action" column="action"/>
+	</resultMap>
+
+	<select id="get-hsm-dynamic-connections"
+		    parameterClass="qparams"
+		    resultMap="mapping-dynamic-connection">
+		<include refid="paginatedOpen"/>
+			SELECT 	hsm_device_id
+					, connect_number
+					, status
+					, action
+		    FROM hsm_ui_connection_vw
+		    <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="deviceId">hsm_device_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="action">action = #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="deviceId">hsm_device_id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="connectNumber">connect_number $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="status">status $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="action">action $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-hsm-dynamic-connections-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT *
+	    FROM hsm_ui_connection_vw
+	    <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="deviceId">hsm_device_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="status">status = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="action">action = #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+<!-- DELETE THIS
+	<resultMap  id="mapping-connection"
+                class="ru.bpc.sv2.hsm.HsmConnection">
+        <result property="deviceId" column="id"/>
+        <result property="address" column="address"/>
+        <result property="port" column="port"/>
+        <result property="maxConnections" column="max_connection"/>
+	</resultMap>
+
+	<select id="get-tcps"
+		    parameterClass="qparams"
+		    resultMap="mapping-connection">
+		<include refid="paginatedOpen"/>
+			SELECT 	hsm_device_id
+					, address
+					, port
+					, max_connection
+		    FROM hsm_ui_tcp_ip_vw
+		    <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="deviceId">id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="address">address like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="port">port like #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="deviceId">id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="address">address $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="port">port $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-tcps-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		SELECT count(*)
+	    FROM hsm_ui_tcp_ip_vw
+	    <iterate prepend="WHERE" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="deviceId">id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="address">address like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="port">port like #filters[].value#</isEqual>
+		</iterate>
+	</select>
+-->
+	<procedure id="add-tcpip"
+			parameterClass="ru.bpc.sv2.hsm.HsmConnection">
+    	{call HSM_UI_DEVICE_PKG.add_hsm_tcp_ip(
+    			  i_hsm_device_id 	=> #deviceId#
+				, i_address			=> #address#
+				, i_port			=> #port#
+				, i_max_connection	=> #maxConnections#
+				)}
+	</procedure>
+
+	<procedure id="edit-tcpip"
+			parameterClass="ru.bpc.sv2.hsm.HsmConnection">
+    	{call HSM_UI_DEVICE_PKG.modify_hsm_tcp_ip(
+    			  i_hsm_device_id 	=> #deviceId#
+				, i_address			=> #address#
+				, i_port			=> #port#
+				, i_max_connection	=> #maxConnections#
+				)}
+	</procedure>
+
+	<procedure id="delete-tcpip"
+			parameterClass="ru.bpc.sv2.hsm.HsmConnection">
+    	{call HSM_UI_DEVICE_PKG.remove_hsm_tcp_ip(
+    			  i_hsm_device_id 	=> #deviceId#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-hsm-selection" class="ru.bpc.sv2.hsm.HsmSelection">
+        <result property="id" column="id"/>
+        <result property="instId" column="inst_id"/>
+        <result property="modId" column="mod_id"/>
+        <result property="hsmId" column="hsm_device_id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="instName" column="inst_name"/>
+        <result property="modName" column="mod_name"/>
+        <result property="hsmDescription" column="hsm_description"/>
+        <result property="action" column="action"/>
+        <result property="maxConnections" column="max_connection"/>
+        <result property="isDeviceEnabled" column="is_device_enabled"/>
+        <result property="hsmFirmware" column="firmware"/>
+	</resultMap>
+
+	<select id="get-hsm-selections"
+		    parameterClass="qparams"
+		    resultMap="mapping-hsm-selection">
+		<include refid="paginatedOpen"/>
+			SELECT 	hs.id
+					, hs.seqnum
+					, hs.description
+		            , hs.lang
+		            , hs.inst_id
+		            , hs.mod_id
+		            , hs.hsm_device_id
+		            , hs.action
+		            , hs.max_connection
+		            , hs.firmware
+		            , i.name AS inst_name
+		            , m.name AS mod_name
+		            , h.description AS hsm_description
+		            , h.is_enabled AS is_device_enabled
+		    FROM
+		    	hsm_ui_selection_vw hs
+		    	, rul_ui_mod_vw m
+		    	, ost_ui_institution_sys_vw i
+		    	, hsm_ui_device_vw h
+		    WHERE
+		    	hs.inst_id = i.id
+		    	AND hs.mod_id = m.id(+)
+		    	AND hs.hsm_device_id = h.id(+)
+			<iterate prepend="AND" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">
+						i.lang(+) = #filters[].value#
+						AND m.lang(+) = #filters[].value#
+						AND h.lang(+) = #filters[].value#
+						AND hs.lang = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="id">hs.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="instId">hs.inst_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="modId">hs.mod_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="hsmId">hs.hsm_device_id = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="action">hs.action = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="hsmFirmware">hs.firmware = #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(hs.description) like #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">hs.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="instName">i.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="modName">m.name $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="hsmDescription">h.description $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="action">hs.action $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="hsmFirmware">hs.firmware $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">hs.description $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend="ORDER BY ">hs.description ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-hsm-selections-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	hs.*
+	    FROM
+	    	hsm_ui_selection_vw hs
+	    	, ost_ui_institution_sys_vw i
+	    WHERE
+	    	hs.inst_id = i.id
+		<iterate prepend="AND" conjunction="AND" property="filters">
+			<isEqual property="filters[].element" compareValue="lang">
+				i.lang(+) = #filters[].value#
+				AND hs.lang(+) = #filters[].value#
+			</isEqual>
+			<isEqual property="filters[].element" compareValue="id">hs.id like #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="instId">hs.inst_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="modId">hs.mod_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hsmId">hs.hsm_device_id = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="action">hs.action = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="hsmFirmware">hs.firmware = #filters[].value#</isEqual>
+			<isEqual property="filters[].element" compareValue="description">upper(hs.description) like #filters[].value#</isEqual>
+		</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-hsm-selection"
+			parameterClass="ru.bpc.sv2.hsm.HsmSelection">
+    	{call HSM_UI_SELECTION_PKG.add_hsm_selection(
+				  o_id             => #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum         => #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_action         => #action#
+				, i_inst_id        => #instId#
+				, i_mod_id         => #modId#
+				, i_hsm_id         => #hsmId#
+				, i_max_connection => #maxConnections#
+				, i_firmware       => #hsmFirmware#
+				, i_lang           => #lang#
+				, i_description    => #description#
+				)}
+	</procedure>
+
+	<procedure id="modify-hsm-selection"
+			parameterClass="ru.bpc.sv2.hsm.HsmSelection">
+    	{call HSM_UI_SELECTION_PKG.modify_hsm_selection(
+				  i_id             => #id#
+				, io_seqnum        => #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_action         => #action#
+				, i_inst_id        => #instId#
+				, i_mod_id         => #modId#
+				, i_hsm_id         => #hsmId#
+				, i_max_connection => #maxConnections#
+				, i_firmware       => #hsmFirmware#
+				, i_lang           => #lang#
+				, i_description    => #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-hsm-selection"
+			parameterClass="ru.bpc.sv2.hsm.HsmSelection">
+    	{call HSM_UI_SELECTION_PKG.remove_hsm_selection(
+				  i_id             => #id#
+				, i_seqnum         => #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-hsm-lmk" class="ru.bpc.sv2.hsm.HsmLMK">
+        <result property="id" column="id"/>
+        <result property="seqNum" column="seqnum"/>
+        <result property="description" column="description"/>
+        <result property="lang" column="lang"/>
+        <result property="checkValue" column="check_value"/>
+	</resultMap>
+
+	<select id="get-hsm-lmks"
+		    parameterClass="qparams"
+		    resultMap="mapping-hsm-lmk">
+		<include refid="paginatedOpen"/>
+			SELECT 	lmk.id
+					, lmk.seqnum
+					, lmk.description
+		            , lmk.lang
+		            , lmk.check_value
+		    FROM
+		    	hsm_ui_lmk_vw lmk
+		    <iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">
+						lmk.lang = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="id">lmk.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="checkValue">upper(lmk.check_value) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(lmk.description) like #filters[].value#</isEqual>
+			</iterate>
+	        <iterate prepend="ORDER BY" conjunction=", " property="sorting">
+				<isNotEqual property="sorting[].direction" compareValue="AUTO">
+					<isEqual property="sorting[].property" compareValue="id">lmk.id $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="description">lmk.description $sorting[].direction$</isEqual>
+					<isEqual property="sorting[].property" compareValue="check_value">lmk.check_value $sorting[].direction$</isEqual>
+				</isNotEqual>
+	        </iterate>
+	        <isEmpty property="sorting" prepend="ORDER BY ">lmk.description ASC</isEmpty>
+        <include refid="paginatedClose"/>
+	</select>
+
+	<select id="get-hsm-lmks-count"
+		    parameterClass="qparams"
+		    resultClass="int">
+		<include refid="limitationOpenCount"/>
+		SELECT 	lmk.*
+		    FROM
+		    	hsm_ui_lmk_vw lmk
+			<iterate prepend="WHERE" conjunction="AND" property="filters">
+				<isEqual property="filters[].element" compareValue="lang">
+						lmk.lang = #filters[].value#
+				</isEqual>
+				<isEqual property="filters[].element" compareValue="id">lmk.id like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="checkValue">upper(lmk.check_value) like #filters[].value#</isEqual>
+				<isEqual property="filters[].element" compareValue="description">upper(lmk.description) like #filters[].value#</isEqual>
+			</iterate>
+		<include refid="limitationClose"/>
+	</select>
+
+	<procedure id="add-hsm-lmk"
+			parameterClass="ru.bpc.sv2.hsm.HsmLMK">
+    	{call HSM_UI_LMK_PKG.add_hsm_lmk(
+    			  o_id         	=> #id,jdbcType=NUMERIC,mode=OUT#
+				, o_seqnum     	=> #seqNum,jdbcType=NUMERIC,mode=OUT#
+				, i_check_value	=> #checkValue#
+				, i_lang    	=> #lang#
+				, i_name		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="modify-hsm-lmk"
+			parameterClass="ru.bpc.sv2.hsm.HsmLMK">
+    	{call HSM_UI_LMK_PKG.modify_hsm_lmk(
+    			  i_id         	=> #id#
+				, io_seqnum    	=> #seqNum,jdbcType=NUMERIC,mode=INOUT#
+				, i_check_value	=> #checkValue#
+				, i_lang    	=> #lang#
+				, i_name		=> #description#
+				)}
+	</procedure>
+
+	<procedure id="remove-hsm-lmk"
+			parameterClass="ru.bpc.sv2.hsm.HsmLMK">
+    	{call HSM_UI_LMK_PKG.remove_hsm_lmk(
+    			  i_id			=> #id#
+				, i_seqnum		=> #seqNum#
+				)}
+	</procedure>
+
+	<resultMap  id="mapping-device-lov" class="ru.bpc.sv2.hsm.HsmDevice">
+        <result property="id" column="id"/>
+        <result property="description" column="description"/>
+        <result property="manufacturer" column="manufacturer"/>
+        <result property="lang" column="lang"/>
+	</resultMap>
+
+	<parameterMap id="get-hsm-lov-map" class="java.util.Map" >
+		<parameter property="lov" jdbcType="ORACLECURSOR" javaType="java.sql.ResultSet" mode="OUT" resultMap="mapping-device-lov"/>
+		<parameter property="instId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="agentId" javaType="java.lang.Integer" jdbcType="NUMERIC" mode="IN"/>
+		<parameter property="action" jdbcType="VARCHAR" javaType="java.lang.String" mode="IN"/>
+	</parameterMap>
+
+	<procedure id="get-hsm-lov" parameterMap="get-hsm-lov-map">
+		{ call hsm_ui_selection_pkg.get_hsm_lov(
+				  o_ref_cur   	=> ?
+				, i_inst_id 	=> ?
+				, i_agent_id	=> ?
+				, i_action  	=> ?
+				)}
+	</procedure>
+
+	<procedure id="deinit-hsm-devices" parameterClass="int" resultClass="int">
+		{#value,jdbcType=NUMERIC,mode=OUT# = call hsm_api_hsm_pkg.deinit_hsm_devices}
+	</procedure>
+
+	<procedure id="init-hsm-devices" parameterClass="int" resultClass="int">
+		{#value,jdbcType=NUMERIC,mode=OUT# = call hsm_api_hsm_pkg.init_hsm_devices}
+	</procedure>
+</sqlMap>

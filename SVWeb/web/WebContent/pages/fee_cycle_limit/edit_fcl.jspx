@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	  xmlns:f="http://java.sun.com/jsf/core"
+	  xmlns:h="http://java.sun.com/jsf/html"
+	  xmlns:ui="http://java.sun.com/jsf/facelets"
+	  xmlns:a4j="http://richfaces.org/a4j"
+	  xmlns:rich="http://richfaces.org/rich"
+	  xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	  xmlns:bm="http://www.bpc.ru/jsf/misc"
+	  xmlns:o="http://openfaces.org/">
+<ui:composition>
+	<style type="text/css">
+		.width100px {
+			width: 100px;
+		}
+		.alignLeft {
+			text-align: left !important;
+		}
+	</style>
+	
+   	<f:loadBundle var="lblFcl" basename="ru.bpc.sv2.ui.bundles.Fcl"/>
+   	<f:loadBundle var="lblCommon" basename="ru.bpc.sv2.ui.bundles.Common"/>
+	
+	<script type="text/javascript">
+	//<!--
+	function checkFclForm() {
+		var checked = true;
+		var formChecked;
+		var tabs = 0;
+		var msg = "";
+		if (document.getElementById("feesTab") != null) {
+			formChecked = checkFeesForm();
+			var feeModes = jQuery("input[name='feeModesForm:feeModeSelector']");
+				if (feeModes.length > 1 && !feeModes[0].checked) {
+				if (document.getElementById("feeModesForm:feeSelector").value == 0){
+					document.getElementById("feeModesForm:feeSelectorError").style.display = "inline";
+					checked = false;
+				}
+			}
+			tabs++;
+			if (!formChecked) msg += "#{lblFcl.check_fee_form}<br/>";
+			checked = checked && formChecked;
+		}
+		if (document.getElementById("limitsTab") != null) {
+			
+			formChecked = checkLimitsForm();
+			var limitModes = jQuery("input[name='limitModesForm:limitModeSelector']");
+			if (limitModes.length > 1 && !limitModes[0].checked) {
+				if (document.getElementById("limitModesForm:limitSelector").value == 0){
+					document.getElementById("limitModesForm:limitSelectorError").style.display = "inline";
+					checked = false;
+				}
+			}
+			tabs++;
+			if (!formChecked) msg += "#{lblFcl.check_limit_form}<br/>";
+			checked = checked && formChecked;
+		}
+		if (document.getElementById("cyclesTab") != null) {
+			formChecked = checkCyclesForm();
+			var cycleModes = jQuery("input[name='cycleModesForm:cycleModeSelector']");
+			if (cycleModes.length > 1 && !cycleModes[0].checked) {
+				if (document.getElementById("cycleModesForm:cycleSelector").value == 0){
+					document.getElementById("cycleModesForm:cycleSelectorError").style.display = "inline";
+					checked = false;
+				}
+			}
+			tabs++;
+			if (!formChecked) msg += "#{lblFcl.check_cycle_form}<br/>";
+			checked = checked && formChecked;
+		}
+
+		if (tabs > 1 && !checked) {
+			document.getElementById("errModalDiv:mess").innerHTML = msg;
+			Richfaces.showModalPanel('errModalPanel');
+		}
+		return checked;
+	}
+
+	function isNumeric(value, isDotAllowed, canBeNegative) {
+		var dot = false;
+		for (var i = 0; i < value.length; i++) {
+			if (value[i] == "-") {
+				if (i == 0 && canBeNegative) continue;
+				else return false;
+			}
+			if (value[i] == "." || value[i] == ",") {
+				if (!isDotAllowed || (isDotAllowed && dot)) return false;
+				else {
+					dot = true;
+					continue;
+				}
+			}
+			if (value[i] < "0" || value[i] > "9") {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	function hideErrorField(elem) {
+		document.getElementById(elem.id + "Error").style.display = "none";
+
+		// this one is for minimal values where appropriate
+		// needs to be changed in a more universal way, i think
+		if (document.getElementById(elem.id + "MinError") != null) {
+			document.getElementById(elem.id + "MinError").style.display = "none";
+		}
+	}
+
+	/** 
+	 * IE doesn't correctly process "onchange" event for radio buttons, that's why
+	 * the "onclick" event should be used. This code provides proper processing for
+	 * such clicks to not to make server calls when same radio button is clicked.
+	 */  
+	var prevFeeMode;
+	var prevLimitMode;
+	var prevCycleMode;
+	
+	function checkFeeMode() {
+		var feeModes = jQuery("input[name='feeModesForm:feeModeSelector']");
+		for (var i = 0; i < feeModes.length; i++) {
+			if (feeModes[i].checked) {
+				if (prevFeeMode == feeModes[i].value) return false;
+				prevFeeMode = feeModes[i].value;
+				return true;
+			}
+		}
+		return true;
+	}
+
+	function checkLimitMode() {
+		var limitModes = jQuery("input[name='limitModesForm:limitModeSelector']");
+		for (var i = 0; i < limitModes.length; i++) {
+			if (limitModes[i].checked) {
+				if (prevLimitMode == limitModes[i].value) return false;
+				prevLimitMode = limitModes[i].value;
+				return true;
+			}
+		}
+		return true;
+	}
+
+	function checkCycleMode() {
+		var cycleModes = jQuery("input[name='cycleModesForm:cycleModeSelector']");
+		for (var i = 0; i < cycleModes.length; i++) {
+			if (cycleModes[i].checked) {
+				if (prevCycleMode == cycleModes[i].value) return false;
+				prevCycleMode = cycleModes[i].value;
+				return true;
+			}
+		}
+		return true;
+	}
+	//-->
+	</script>
+	
+	<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+		<rich:tabPanel switchType="client" id="fclTabPanel" tabClass="tab-cell"
+		    	activeTabClass="active-tab-cell" headerClass="tabs" headerSpacing="0px"
+		    	contentClass="tab-content">
+			<rich:tab label="#{lblFcl.fee}" name="feesTab" rendered="#{MbFclObjects.feeType != null}">
+				<f:facet name="label">
+					<h:panelGroup styleClass="first tab-label" layout="block">
+						<h:outputText value="#{lblFcl.fee}" title="#{lblFcl.fee}"/>
+					</h:panelGroup>
+				</f:facet>
+				<h:panelGroup id="feesTab" >
+					<h:panelGroup layout="block" styleClass="carddata-wrapper" style="height: 410px;overflow-y: hidden;">
+						<h:form id="feeModesForm">
+							<script type="text/javascript">
+//<!--
+								prevFeeMode = "#{MbFclObjects.feeMode}";
+							//-->
+							</script>
+							<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+								<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal alignLeft width100px, width250">
+									<h:outputLabel value="#{lblFcl.fee}:" title="#{lblFcl.fee}" style="text-align: left;"/>
+									<h:panelGrid columns="1">
+										<h:selectOneMenu value="#{MbFclObjects.feeId}"
+												id="feeSelector" disabled="#{!MbFclObjects.newMode or MbFclObjects.feeMode == MbFclObjects.createValue}"
+												onblur="hideErrorField(this);"
+												valueChangeListener="#{MbFclObjects.changeFee}">
+											<a4j:support event="onchange" reRender="feesPanel, limitsTab, cyclesTab"/>
+											<f:selectItem itemValue=""/>
+											<f:selectItems value="#{MbFclObjects.fees}"/>
+										</h:selectOneMenu>
+										<h:outputFormat value="#{lblMsg.value_request}"
+												styleClass="errorMarker" id="feeSelectorError"
+												style="display:none;">
+											<f:param name="fieldName" value="#{lblFcl.fee}" />
+										</h:outputFormat>
+									</h:panelGrid>
+								</h:panelGrid>
+								<h:selectOneRadio id="feeModeSelector" 
+										valueChangeListener="#{MbFclObjects.changeFeeMode}"
+										value="#{MbFclObjects.feeMode}" disabled="#{!MbFclObjects.newMode}">
+									<a4j:support event="onclick" limitToList="true" ajaxSingle="true"
+											onsubmit="if (!checkFeeMode()) return false;"
+											reRender="feeSelector, feeSelectorError, feesPanel, limitsTab, cyclesTab"/>
+									<f:selectItem itemValue="#{MbFclObjects.createValue}" itemLabel="#{lblCommon.create_new_value}"/>
+									<f:selectItem itemValue="#{MbFclObjects.cloneValue}" itemLabel="#{lblCommon.clone_value}"/>
+									<f:selectItem itemValue="#{MbFclObjects.applyValue}" itemLabel="#{lblCommon.apply_value}"/>
+								</h:selectOneRadio>
+							</h:panelGroup>
+						</h:form>
+						
+						<h:panelGroup layout="block" id="feesPanel" style="margin: 10px; height: 320px; overflow-y: auto;border: 1px solid #B0B588;padding: 1px;">
+							<ui:include src="/pages/fee_cycle_limit/fees/edit_fee_tab.jspx"/>
+						</h:panelGroup>
+					</h:panelGroup>
+				</h:panelGroup>
+				
+			</rich:tab>
+			
+			<rich:tab label="#{lblFcl.limit}" name="limitsTab" rendered="#{MbFclObjects.limitType != null}">
+				<f:facet name="label">
+					<h:panelGroup styleClass="first tab-label" layout="block">
+						<h:outputText value="#{lblFcl.limit}" title="#{lblFcl.limit}"/>
+					</h:panelGroup>
+				</f:facet>
+				<h:panelGroup id="limitsTab" >
+					<h:panelGroup layout="block" styleClass="carddata-wrapper" style="height: 380px; overflow-y: hidden;">
+						<h:form id="limitModesForm">
+							<script type="text/javascript">
+//<!--
+								prevLimitMode = "#{MbFclObjects.limitMode}";
+							//-->
+							</script>
+							<h:panelGroup layout="block" styleClass="cardholderdata-wrapper" rendered="#{MbFclObjects.feeType == null}">
+								<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal alignLeft width100px, width250">
+									<h:outputLabel value="#{lblFcl.limit}:" title="#{lblFcl.limit}" style="text-align: left;"/>
+									<h:panelGrid columns="1">
+										<h:selectOneMenu value="#{MbFclObjects.limitId}"
+												id="limitSelector"
+												onblur="hideErrorField(this);"
+												valueChangeListener="#{MbFclObjects.changeLimit}"
+												disabled="#{!MbFclObjects.newMode or MbFclObjects.blockLimit 
+														or MbFclObjects.limitMode == MbFclObjects.createValue}">
+											<a4j:support event="onchange" reRender="limitsPanel, boundsPanel, cyclesTab"/>
+											<f:selectItem itemValue=""/>
+											<f:selectItems value="#{MbFclObjects.limits}"/>
+										</h:selectOneMenu>
+										<h:outputFormat value="#{lblMsg.value_request}"
+													styleClass="errorMarker" id="limitSelectorError"
+													style="display:none;">
+												<f:param name="fieldName" value="#{lblFcl.limit}" />
+										</h:outputFormat>
+									</h:panelGrid>
+								</h:panelGrid>
+
+								<h:selectOneRadio id="limitModeSelector" 
+										valueChangeListener="#{MbFclObjects.changeLimitMode}"
+										value="#{MbFclObjects.limitMode}" 
+										disabled="#{!MbFclObjects.newMode or MbFclObjects.blockLimit}">
+									<a4j:support event="onclick" limitToList="true" ajaxSingle="true"
+											onsubmit="if (!checkLimitMode()) return false;"
+											reRender="limitSelector, limitSelectorError, limitsPanel, boundsPanel, cyclesTab"/>
+									<f:selectItem itemValue="#{MbFclObjects.createValue}" itemLabel="#{lblCommon.create_new_value}"/>
+									<f:selectItem itemValue="#{MbFclObjects.cloneValue}" itemLabel="#{lblCommon.clone_value}"/>
+									<f:selectItem itemValue="#{MbFclObjects.applyValue}" itemLabel="#{lblCommon.apply_value}"/>
+								</h:selectOneRadio>
+							</h:panelGroup>
+						</h:form>
+
+						<h:panelGrid columns="2">
+							<h:panelGroup>
+								<fieldset id="limitsDiv"
+										  style="margin: 10px; margin-right: 0px; overflow-y: auto;border: 1px solid #B0B588;padding: 1px; height: 198px;">
+									<legend style="margin-bottom: 10px; margin-left: 10px;">
+										<h:outputText value="#{lblFcl.limit}"/>
+									</legend>
+									<h:panelGroup id="limitsPanel" layout="block">
+										<ui:include src="/pages/fee_cycle_limit/limits/edit_limit_tab.jspx">
+											<ui:param name="enableBoundsEdit" value="#{enableBoundsEdit}"/>
+											<ui:param name="parentLimitId" value="#{parentLimitId}"/>
+										</ui:include>
+									</h:panelGroup>
+								</fieldset>
+							</h:panelGroup>
+
+							<h:panelGroup rendered="#{enableBoundsEdit}">
+								<fieldset id="boundsDiv"
+										  style="margin: 10px; margin-left: 0px; overflow-y: auto;border: 1px solid #B0B588;padding: 1px; height: 198px; width: 394px;">
+									<legend style="margin-bottom: 10px; margin-left: 10px;">
+										<h:outputText value="#{lblFcl.bounds}"/>
+									</legend>
+									<h:panelGroup id="boundsPanel" layout="block">
+										<ui:include src="/pages/fee_cycle_limit/limits/edit_bounds_tab.jspx">
+											<ui:param name="enableBoundsEdit" value="#{enableBoundsEdit}"/>
+											<ui:param name="parentLimitId" value="#{parentLimitId}"/>
+										</ui:include>
+									</h:panelGroup>
+								</fieldset>
+							</h:panelGroup>
+						</h:panelGrid>
+					</h:panelGroup>
+				</h:panelGroup>
+			</rich:tab>
+	
+			<rich:tab label="#{lblFcl.cycle}" name="cyclesTab" rendered="#{MbFclObjects.cycleType != null}">
+				<f:facet name="label">
+					<h:panelGroup styleClass="first tab-label" layout="block">
+						<h:outputText value="#{lblFcl.cycle}" title="#{lblFcl.cycle}"/>
+					</h:panelGroup>
+				</f:facet>
+				<h:panelGroup id="cyclesTab">
+					<h:panelGroup layout="block" styleClass="carddata-wrapper" style="height: 380px; overflow-y: hidden;">
+						<h:form id="cycleModesForm">
+							<script type="text/javascript">
+//<!--
+								prevCycleMode = "#{MbFclObjects.cycleMode}";
+							//-->
+							</script>
+							<h:panelGroup layout="block" styleClass="cardholderdata-wrapper" rendered="#{MbFclObjects.feeType == null and MbFclObjects.limitType == null}">
+								<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal alignLeft width100px, width250">
+									<h:outputLabel value="#{lblFcl.cycle}:" title="#{lblFcl.cycle}" style="text-align: left;"/>
+									<h:panelGrid columns="1">
+										<h:selectOneMenu value="#{MbFclObjects.cycleId}"
+												id="cycleSelector"
+												onblur="hideErrorField(this);"
+												valueChangeListener="#{MbFclObjects.changeCycle}"
+												disabled="#{!MbFclObjects.newMode or MbFclObjects.blockCycle 
+														or MbFclObjects.cycleMode == MbFclObjects.createValue}">
+											<a4j:support event="onchange" reRender="cyclesPanel"/>
+											<f:selectItem itemValue=""/>
+											<f:selectItems value="#{MbFclObjects.cycles}"/>
+										</h:selectOneMenu>
+										<h:outputFormat value="#{lblMsg.value_request}"
+														styleClass="errorMarker" id="cycleSelectorError"
+														style="display:none;">
+													<f:param name="fieldName" value="#{lblFcl.cycle}" />
+										</h:outputFormat>
+									</h:panelGrid>
+								</h:panelGrid>
+
+								<h:selectOneRadio id="cycleModeSelector" 
+										valueChangeListener="#{MbFclObjects.changeCycleMode}"
+										value="#{MbFclObjects.cycleMode}" 
+										disabled="#{!MbFclObjects.newMode or MbFclObjects.blockCycle}">
+									<a4j:support event="onclick" limitToList="true" ajaxSingle="true"
+											onsubmit="if (!checkCycleMode()) return false;"
+											reRender="cycleSelector, cycleSelectorError, cyclesPanel"/>
+									<f:selectItem itemValue="#{MbFclObjects.createValue}" itemLabel="#{lblCommon.create_new_value}"/>
+									<f:selectItem itemValue="#{MbFclObjects.cloneValue}" itemLabel="#{lblCommon.clone_value}"/>
+									<f:selectItem itemValue="#{MbFclObjects.applyValue}" itemLabel="#{lblCommon.apply_value}"/>
+								</h:selectOneRadio>
+							</h:panelGroup>
+						</h:form>
+						
+						<h:panelGroup layout="block" id="cyclesPanel" style="margin: 10px; overflow-y: auto;border: 1px solid #B0B588;padding: 1px;">
+							<ui:include src="/pages/fee_cycle_limit/cycles/edit_cycle_tab.jspx"/>
+						</h:panelGroup>
+					
+					</h:panelGroup>
+				</h:panelGroup>
+				
+			</rich:tab>
+		</rich:tabPanel>
+	
+		<h:form>
+			<h:panelGrid columns="2" styleClass="cardholderdata" width="100%" columnClasses="firstColModal, width250">
+				<h:outputLabel value="#{lblCommon.start_date}:" title="#{lblCommon.start_date}"/>
+		    	<rich:calendar buttonIcon="/images/calendar.gif" datePattern="#{usession.fullDatePattern}" inputStyle="width:225px"
+						value="#{MbFclObjects.attrValue.startDate}" id="startDateSelector" 
+						direction="top-right" showApplyButton="true" zindex="1000"
+						disabled="#{MbFclObjects.viewMode or MbFclObjects.periodStarted}"
+						timeZone="#{CommonUtils.timeZone}"
+						defaultTime="00:00:00">
+					<a4j:support event="onchanged" reRender="startDateSelectorInputDate" limitToList="true" ajaxSingle="true"/>
+				</rich:calendar>
+		
+				<h:outputLabel value="#{lblCommon.end_date}:" title="#{lblCommon.end_date}"/>
+				<rich:calendar buttonIcon="/images/calendar.gif" datePattern="#{usession.fullDatePattern}" inputStyle="width:225px"
+						value="#{MbFclObjects.attrValue.endDate}" id="endDateSelector" 
+						direction="top-right" showApplyButton="true" zindex="1000"
+						disabled="#{MbFclObjects.viewMode}"
+						timeZone="#{CommonUtils.timeZone}"
+						defaultTime="23:59:59">
+					<a4j:support event="onchanged" reRender="endDateSelectorInputDate" limitToList="true" ajaxSingle="true"/>
+				</rich:calendar>
+	
+				<h:outputLabel value="#{lblCommon.mods}: " 
+						rendered="#{MbFclObjects.scaleId != null}"
+						/>
+				<h:selectOneMenu
+						value="#{MbFclObjects.attrValue.modId}"
+						rendered="#{MbFclObjects.scaleId != null}"
+						disabled="#{!MbFclObjects.newMode}"
+						id="modSelector"
+						>
+					<a4j:support event="onchange" reRender="modSelector" limitToList="true" ajaxSingle="true"/>
+					<f:selectItem itemValue=""/>
+				    <f:selectItems value="#{MbFclObjects.modifiers}"/>
+				</h:selectOneMenu>
+			</h:panelGrid>
+		</h:form>
+	</h:panelGroup>
+	
+	<rich:modalPanel id="errModalPanel" autosized="true" minWidth="300" minHeight="100">
+      	<f:facet name="header">
+			<h:panelGroup id="errModalHeader">
+           	    <h:outputText value="#{lblForm.error}"/>
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+	    </f:facet>
+		<h:form id="errModalDiv">
+			<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+				<h:panelGrid columns="1" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+					<h:panelGroup id="mess" layout="block"/>
+				</h:panelGrid>
+			</h:panelGroup>
+
+      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+	       	    		<h:outputText/>                       	
+                       	<bre:taggedCommandButton
+                        		value="#{lblForm.ok}" 
+                        		immediate="true" limitToList="true"
+                        		oncomplete="#{rich:component('errModalPanel')}.hide()">
+                        	<f:actionListener type="ru.bpc.jsf.A4JFormReset"/>
+                        </bre:taggedCommandButton>	
+		    		</h:panelGrid>
+		    	</h:panelGroup>
+		    </h:panelGroup>
+		</h:form>			
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

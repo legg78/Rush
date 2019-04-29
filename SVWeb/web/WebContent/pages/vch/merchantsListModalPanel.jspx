@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext"
+	xmlns:o="http://openfaces.org/">
+<ui:composition>
+
+	<f:loadBundle var="lblPrd" basename="ru.bpc.sv2.ui.bundles.Prd" />
+	<f:loadBundle var="lblCommonQ" basename="ru.bpc.sv2.ui.bundles.Acq" />
+	
+	<!-- PARAMETERS -->
+
+	<rich:modalPanel id="merchantsListModalPanel" autosized="true"
+		minWidth="300" minHeight="100">
+		<f:facet name="header">
+			<h:panelGroup id="merchantsListModalPanelHeader">
+				<h:outputText value="#{lblAcq.merchants}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls" />
+		<h:form id="merchantsListModalPanelForm">
+			<h:panelGrid styleClass="fw" columns="2" columnClasses=",link-cont" id="filtersGroup">
+				<h:panelGrid styleClass="filter-table field-cont" columns="4"
+					columnClasses="firstColModal, ,firstColModal,">
+
+					<h:outputLabel value="#{lblCommon.institution}:"
+						title="#{lblOst.institution}" />
+					<h:selectOneMenu id="instId" label="#{lblOst.institution}"
+						value="#{MbMerchant.filter.instId}" required="true">
+						<f:selectItem itemValue="" />
+						<f:selectItems value="#{MbMerchant.institutions}" />
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblCommon.status}:"
+						title="#{lblCommon.status}" />
+					<h:selectOneMenu id="statusSelector"
+						value="#{MbMerchant.filter.status}">
+						<f:selectItem itemValue="" />
+						<f:selectItems value="#{MbMerchant.merchantStatuses}" />
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblAcq.merchant_number}"
+						title="#{lblAcq.merchant_number}" />
+					<h:inputText value="#{MbMerchant.filter.merchantNumber}" />
+
+					<h:outputLabel value="#{lblCommon.type}:" title="#{lblCommon.type}" />
+					<h:selectOneMenu value="#{MbMerchant.filter.merchantType}">
+						<f:selectItem itemValue="" />
+						<f:selectItems value="#{MbMerchant.merchantTypes}" />
+					</h:selectOneMenu>
+
+					<h:outputLabel value="#{lblPrd.customer_number}"
+						title="#{lblPrd.customer_number}" />
+					<h:inputText value="#{MbMerchant.filter.customerNumber}" />
+
+				</h:panelGrid>
+				<h:panelGrid columns="1">
+					<bre:taggedCommandButton image="/_img/icon_search.png"
+						type="submit" value="#{lblForm.search}" style="width:85px;"
+						action="#{MbMerchant.searchMerchants}" process="filtersGroup"
+						reRender="merchantsListModalPanelForm:merchantsTreeTable"
+						limitToList="true" ajaxSingle="true" eventsQueue="queue"
+						onclick="disableModalPanelBtns(this);"
+						oncomplete="enableModalPanelBtns(this);"/>
+				</h:panelGrid>
+			</h:panelGrid>
+
+			<o:treeTable id="merchantsTreeTable" var="merchant"
+				expansionState="allExpanded" sortColumnId="shortDesc"
+				headerHorizSeparator="1px solid #D7DAC2"
+				headerVertSeparator="1px solid #D7DAC2"
+				headerSectionClass="res-tree-table-header"
+				commonHeaderRowClass="res-tree-table-header"
+				sortableHeaderClass="res-tree-table-header"
+				sortedColumnHeaderClass="res-tree-table-header"
+				sortableHeaderRolloverClass="res-tree-table-header"
+				styleClass="res-tree-table"
+				bodyOddRowClass="res-tree-table-row odd-tree-table"
+				bodyRowClass="res-tree-table-row"
+				verticalGridLines="1px solid #D7DAC2" cellpadding="0"
+				cellspacing="0" preloadedNodes="all" style="height: 255px">
+				<o:scrolling />
+				<f:facet name="noDataMessage">
+					<h:panelGroup>
+						<h:outputText value="#{lblCommon['no_records_found']}"
+							rendered="#{MbMerchant.searching}" />
+						<h:outputText value="#{lblCommon['enter_search_criteria_above']}"
+							rendered="#{!MbMerchant.searching}" />
+					</h:panelGroup>
+				</f:facet>
+
+				<o:dynamicTreeStructure nodeChildren="#{MbMerchant.nodeChildren}"
+					nodeHasChildren="#{MbMerchant.nodeHasChildren}"
+					nodeKey="#{merchant.id}" />
+
+				<o:singleNodeSelection nodePath="#{MbMerchant.nodePath}"
+					nodeData="#{MbMerchant.node}" keyboardSupport="false"
+					styleClass="treetable_selection">
+					<a4j:support event="onchange"
+						reRender="btnPanel, #{MbMerchant.tabName}" />
+				</o:singleNodeSelection>
+
+				<o:treeColumn id="merchantNumber"
+					sortingExpression="#{merchant.merchantNumber}" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblAcq.merchant_number}" />
+					</f:facet>
+					<h:outputText value="#{merchant.merchantNumber}"
+						styleClass="treeTableText" />
+				</o:treeColumn>
+
+				<o:column id="label" styleClass="res-tree-table-cell"
+					sortingExpression="#{merchant.merchantName}" width="30%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.name}" />
+					</f:facet>
+					<h:outputText value="#{merchant.merchantName}"
+						styleClass="treeTableText" />
+				</o:column>
+
+				<o:column id="type" styleClass="res-tree-table-cell"
+					sortingExpression="#{merchant.merchantType}" width="12%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.type}" />
+					</f:facet>
+					<h:outputText
+						value="#{DictUtils.articles[merchant.merchantType]}"
+						styleClass="treeTableText" />
+				</o:column>
+
+				<o:column id="status" styleClass="res-tree-table-cell"
+					sortingExpression="#{merchant.status}" width="8%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.status}" />
+					</f:facet>
+					<h:outputText value="#{DictUtils.articles[merchant.status]}"
+						styleClass="treeTableText" />
+				</o:column>
+
+				<o:column id="companyName" styleClass="res-tree-table-cell"
+					sortingExpression="#{merchant.companyName}" width="20%">
+					<f:facet name="header">
+						<h:outputText value="#{lblCommon.company_name}" />
+					</f:facet>
+					<h:outputText value="#{merchant.companyName}"
+						styleClass="treeTableText" />
+				</o:column>
+
+				<o:column id="customerNumber" styleClass="res-tree-table-cell"
+					sortingExpression="#{merchant.customerNumber}" width="15%">
+					<f:facet name="header">
+						<h:outputText value="#{lblPrd.customer_number}" />
+					</f:facet>
+					<h:outputText value="#{merchant.customerNumber}"
+						styleClass="treeTableText" />
+				</o:column>
+			</o:treeTable>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton id="selectBtn" value="#{lblForm.select}"
+							action="#{MbVouchersBatches.loadMerchant}" 
+							reRender="vouchersBatchSearchForm:merchantFilterGroup, vouchersBatchSearchForm:terminalFilterGroup"
+							oncomplete="if (#{usession.noErrorResponse}) Richfaces.hideModalPanel('merchantsListModalPanel'); updateHeight();" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							immediate="true" limitToList="true"
+							oncomplete="Richfaces.hideModalPanel('merchantsListModalPanel')" />
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+
+</ui:composition>
+</html>

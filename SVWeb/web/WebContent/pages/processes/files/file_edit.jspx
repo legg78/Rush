@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:a4j="http://richfaces.org/a4j"
+	xmlns:rich="http://richfaces.org/rich"
+	xmlns:bm="http://www.bpc.ru/jsf/misc"
+	xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+		
+	<rich:modalPanel id="prc_file_modal_panel" autosized="true"
+		minWidth="300" minHeight="50" left="300">
+		<f:facet name="header">
+			<h:panelGroup id="prc_file_modal_header">
+				<h:outputText value="#{lblPrc.new_file}"
+					rendered="#{MbProcessFilesSearch.newMode}" />
+				<h:outputText value="#{lblPrc.edit_file}"
+					rendered="#{MbProcessFilesSearch.editMode}" />
+			</h:panelGroup>
+		</f:facet>
+		<f:facet name="controls">
+		</f:facet>
+
+		<h:form id="processFileEditForm">
+			<script type="text/javascript">				
+				oldValue["processFileEditForm"] = "#{MbProcessFilesSearch.newProcessFile.lang}";
+				
+				var fileEdit = {
+					showXsdSource : function(){
+						document.getElementById("processFileEditForm:xsdSourcePanel").style.display='inline';
+						document.getElementById("processFileEditForm:xsdSourcePanelLabel").style.display='';
+					},
+					
+					hideXsdSource : function(){
+						var element = document.getElementById("processFileEditForm:xsdSourcePanel");						
+						element.style.display='none';
+						element = document.getElementById("processFileEditForm:xsdSourcePanelLabel");						
+						element.style.display='none';
+						element = document.getElementById("processFileEditForm:xsdSourceText");
+						element.value = "";
+					}
+				};
+				
+				if (#{MbProcessFilesSearch.newProcessFile != null and MbProcessFilesSearch.newProcessFile.xml}){
+					fileEdit.showXsdSource();
+				}
+				
+				function checkFileFields() {
+					var checked = true;
+
+					if (!jQuery('#processFileEditForm\\:name').val()) {
+						jQuery('#processFileEditForm\\:nameError').show();
+						checked = false;
+					}
+					if (!jQuery('#processFileEditForm\\:purpose').val()) {
+						jQuery('#processFileEditForm\\:purposeError').show();
+						checked = false;
+					}
+					return checked;
+				}
+			</script>
+				<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+					<h:panelGrid columns="2" styleClass="cardholderdata" width="100%"
+						columnClasses="firstColModal, width250">
+
+						<h:outputLabel for="lang" value="#{lblCommon.language}: " title="#{lblCommon.language}" />
+						<h:selectOneMenu id="lang"
+							value="#{MbProcessFilesSearch.newProcessFile.lang}"
+							rendered="#{MbProcessFilesSearch.newMode}">
+							<f:selectItems value="#{MbProcessFilesSearch.languages}" />
+						</h:selectOneMenu>
+						<h:selectOneMenu id="editLang"
+							value="#{MbProcessFilesSearch.newProcessFile.lang}"
+							rendered="#{MbProcessFilesSearch.editMode}"
+							onchange="document.getElementById('processFile:confirmPanelForm:newValue').value = this.value;
+							#{rich:component('processFile:confirmPanel')}.show()">
+							<f:selectItems value="#{MbProcessFilesSearch.languages}" />
+						</h:selectOneMenu>
+
+						<h:outputLabel value="* #{lblCommon.short_desc}: " title="#{lblCommon.short_desc}" />
+						<h:panelGrid columns="1" cellspacing="0" cellpadding="0">
+							<h:inputText id="name"
+								value="#{MbProcessFilesSearch.newProcessFile.shortDesc}"
+								label="#{lblCommon.short_desc}" maxlength="2000"
+								onblur="hideErrorField(this)">
+								<f:validateLength minimum="3" />
+								<a4j:support event="onchange" reRender="nameErr"
+									limitToList="true" ajaxSingle="true" />
+							</h:inputText>
+							<rich:message for="name" id="nameErr" styleClass="errorMarker" />
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+								id="nameError" style="display:none;">
+								<f:param name="fieldName" value="#{lblCommon.short_desc}"/>
+							</h:outputFormat>
+						</h:panelGrid>
+
+						<h:outputLabel value="#{lblCommon.full_desc}: " title="#{lblCommon.full_desc}" />
+						<h:inputText id="fullDesc"
+							value="#{MbProcessFilesSearch.newProcessFile.fullDesc}"
+							maxlength="2000" />
+
+						<h:outputLabel value="* #{lblPrc.purpose}: " title="#{lblPrc.purpose}"/>
+						<ui:fragment>
+							<h:selectOneMenu id="purpose"
+											 value="#{MbProcessFilesSearch.newProcessFile.purpose}"
+											 disabled="#{!MbProcessFilesSearch.newMode}"
+											 label="#{lblPrc.purpose}"
+											 onchange="hideErrorField(this)">
+								<f:selectItems value="#{MbProcessFilesSearch.processPurposes}"/>
+							</h:selectOneMenu>
+							<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+											id="purposeError" style="display:none;">
+								<f:param name="fieldName" value="#{lblPrc.purpose}"/>
+							</h:outputFormat>
+						</ui:fragment>
+
+						<h:outputLabel value="#{lblPrc.file_type}: " title="#{lblPrc.file_type}" />
+						<h:selectOneMenu
+							value="#{MbProcessFilesSearch.newProcessFile.type}"
+							label="#{lblPrc.file_type}">
+							<f:selectItem itemValue="" itemLabel="" />
+							<f:selectItems value="#{MbProcessFilesSearch.processFilesTypes}" />
+						</h:selectOneMenu>
+
+						<h:outputLabel value="#{lblPrc.saver_class}: " title="#{lblPrc.saver_class}" />
+						<h:selectOneMenu
+							value="#{MbProcessFilesSearch.newProcessFile.saverId}"
+							label="#{lblPrc.saver_class}">
+							<f:selectItem itemValue="" itemLabel="" />
+							<f:selectItems value="#{MbProcessFilesSearch.processFileSavers}" />
+						</h:selectOneMenu>
+
+						<h:outputLabel value="#{lblPrc.file_format}: " title="#{lblPrc.file_format}" />
+						<h:selectOneMenu onchange="if (this.selectedIndex == 1){fileEdit.showXsdSource()}else{fileEdit.hideXsdSource()}"
+							value="#{MbProcessFilesSearch.newProcessFile.fileNature}"
+							label="#{lblPrc.file_format}">
+							<f:selectItem itemValue="" itemLabel="" />
+							<f:selectItems value="#{MbProcessFilesSearch.fileNatures}" />
+						</h:selectOneMenu>
+						
+						<h:outputLabel value="#{lblPrc.xsd_source}: " title="#{lblPrc.xsd_source}" 
+							style="display:none" id="xsdSourcePanelLabel"/>
+						<h:panelGroup id="xsdSourcePanel" style="display:none">
+							<bre:taggedCommandButton value="#{lblForm.view}/#{lblForm.edit}"
+								limitToList="true"
+								immediate="true"
+								oncomplete="#{rich:component('file:code_mirror_modal_panel')}.show(); setCodeValue_file();"
+								reRender="file:code_mirror_modal_panel">
+							</bre:taggedCommandButton>
+							
+							<h:inputTextarea
+								value="#{MbProcessFilesSearch.newProcessFile.xsdSource}"
+								id="xsdSourceText" rows="20" style="width:450px;display: none">
+							</h:inputTextarea>
+						</h:panelGroup>
+						
+					</h:panelGrid>
+				</h:panelGroup>
+
+			<h:panelGroup layout="block"
+				styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block"
+					styleClass="bottom_search_result_left_buttons">
+					<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+						<h:outputText />
+						<bre:taggedCommandButton value="#{lblForm.save}" type="submit"
+							disabled="#{MbProcessFilesSearch.viewMode}"
+							reRender="processFileTable,processFilesButtons,det_prc_file_attr,filesAttrButtons, btnPanelFiles"
+							action="#{MbProcessFilesSearch.save}"
+							onclick="if (!checkFileFields()) return false; disableModalPanelBtns(this)"
+							oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('prc_file_modal_panel')}.hide()" />
+						<bre:taggedCommandButton value="#{lblForm.cancel}"
+							action="#{MbProcessFilesSearch.close}" limitToList="true"
+							immediate="true"
+							oncomplete="#{rich:component('prc_file_modal_panel')}.hide()"
+							reRender="processFileEditForm">
+							<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+						</bre:taggedCommandButton>
+					</h:panelGrid>
+				</h:panelGroup>
+			</h:panelGroup>
+		</h:form>
+	</rich:modalPanel>
+	
+	<ui:include src="/pages/utils/langConfirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbProcessFilesSearch}" />
+		<ui:param name="rerenderList"
+			value="processFileEditForm:name, processFileEditForm:fullDesc" />
+		<ui:param name="editElem" value="processFileEditForm:editLang" />
+		<ui:param name="newValue"
+			value="#{MbProcessFilesSearch.newProcessFile.lang}" />
+		<ui:param name="subviewId" value="processFile" />
+		<ui:param name="formName" value="processFileEditForm" />
+	</ui:include>
+	
+	<ui:include src="/pages/utils/codeMirrorPanel.jspx">
+		<ui:param name="codeElement" value="processFileEditForm:xsdSourceText"/>
+		<ui:param name="subviewId" value="file"/>
+		<ui:param name="readOnly" value="false"/>
+		<ui:param name="nosubmit" value="#{true}" />
+		<ui:param name="title" value="#{lblPrc.xsd_source}"/>
+	</ui:include>
+</ui:composition>
+</html>

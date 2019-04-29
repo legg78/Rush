@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html	xmlns="http://www.w3.org/1999/xhtml"
+		xmlns:f="http://java.sun.com/jsf/core"
+		xmlns:h="http://java.sun.com/jsf/html"
+		xmlns:ui="http://java.sun.com/jsf/facelets"
+		xmlns:a4j="http://richfaces.org/a4j"
+		xmlns:rich="http://richfaces.org/rich"
+		xmlns:bm="http://www.bpc.ru/jsf/misc"
+		xmlns:bre="http://www.bpc.ru/jsf/richfaces-ext">
+<ui:composition>
+	<script type="text/javascript">
+//<!--
+		function checkAlgoStepFields() {
+			var checked = true;
+			
+			if (document.getElementById('algoStepsModalDiv:newAlgoStep').value == "") {
+				document.getElementById('algoStepsModalDiv:newAlgoStepError').style.display = "inline";
+				checked = false;
+			}
+			
+			if (document.getElementById('algoStepsModalDiv:newExecOrder').value == "") {
+				document.getElementById('algoStepsModalDiv:newExecOrderError').style.display = "inline";
+				checked = false;
+			}
+			
+			return checked;
+		}
+		//-->
+	</script>
+
+	<f:loadBundle var="lblIss" basename="ru.bpc.sv2.ui.bundles.Iss"/>
+	
+	<h:panelGroup rendered="#{usession.inRole['VIEW_ACCOUNT_SELECTION_STEPS']}">
+	   	<h:form id="algorithmStepsForm">
+			<h:panelGroup id="algoStepsTableWrapper" layout="block"
+				style="padding:0px;margin:0px;">
+				<rich:extendedDataTable id="algoStepsTable" styleClass="res-table"
+					headerClass="res-table-header table-header-ext" rowClasses=",odd"
+					selectedClass="res-table-selected" var="item"
+					value="#{MbAccountAlgorithmSteps.algorithmSteps}"
+					selection="#{MbAccountAlgorithmSteps.itemSelection}"
+					rows="0" enableContextMenu="true"
+					tableState="#{MbAccountAlgorithmSteps.tableState}"
+					noDataLabel="#{lblCommon['no_records_found']}">
+
+					<a4j:support event="onselectionchange" reRender="algoStepsBtnPanel" />
+
+					<rich:column id="id" label="#{lblCommon.id}" title="ID" sortBy="#{'id'}" width="10%">
+						<f:facet name="header">
+							<a4j:outputPanel layout="none">
+								<script>updateHeight();</script>
+								<h:outputText value="#{lblCommon.id}" title="#{lblCommon.id}" />
+							</a4j:outputPanel>
+						</f:facet>
+						<h:outputText value="#{item.id}" title="#{item.id}" />
+					</rich:column>
+
+					<rich:column id="exec_order" label="#{lblCommon.exec_order}" title="Execution order" sortBy="#{'execOrder'}"
+						sortExpression="ASCENDING" width="20%">
+						<f:facet name="header">
+							<h:outputText value="#{lblCommon.exec_order}"
+								title="#{lblCommon.exec_order}" />
+						</f:facet>
+						<h:outputText value="#{item.execOrder}" title="#{item.execOrder}" />
+					</rich:column>
+
+					<rich:column id="step" label="#{lblIss.step}" title="Step" sortBy="#{'step'}" width="70%">
+						<f:facet name="header">
+							<h:outputText value="#{lblIss.step}" title="#{lblIss.step}" />
+						</f:facet>
+						<h:outputText value="#{DictUtils.articles[item.step]}"
+							title="#{DictUtils.articles[item.step]}"
+							rendered="#{item.step != null}" />
+						<h:outputText value="" title="" rendered="#{item.step == null}" />
+					</rich:column>
+				</rich:extendedDataTable>
+			</h:panelGroup>
+			<h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+				<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+	
+		            <h:panelGrid id="algoStepsBtnPanel" styleClass="fw buttons_block" columns="2" columnClasses=", table_tools_state">
+		            	<h:panelGroup>
+		            	<bre:taggedCommandButton id="addBtn"
+	                      		reRender="algoStepsModalDiv, algoStepsModalHeader"
+	                      		value="#{lblForm.add}"
+                    			oncomplete="#{rich:component('algoStepsModalPanel')}.show()"
+	                      		action="#{MbAccountAlgorithmSteps.add}"
+	                      		disabled="#{MbAccountAlgorithmSteps.algorithmId == null}"
+	                      		rendered="#{usession.inRole['ADD_ACCOUNT_SELECTION_STEP']}"
+	                      		image="/images/create_doc.gif"
+	                      		/>
+		            	<bre:taggedCommandButton id="editBtn"
+	                      		reRender="algoStepsModalDiv, algoStepsModalHeader"
+	                      		value="#{lblForm.edit}"
+                    			oncomplete="#{rich:component('algoStepsModalPanel')}.show()"
+	                      		action="#{MbAccountAlgorithmSteps.edit}"
+	                      		disabled="#{MbAccountAlgorithmSteps.algorithmId == null || MbAccountAlgorithmSteps.activeAlgoStep == null}"
+	                      		rendered="#{usession.inRole['MODIFY_ACCOUNT_SELECTION_STEP']}"
+	                      		image="/images/edit.gif"
+	                      		/>
+						<bre:taggedCommandButton id="deleteBtn"
+	                      		value="#{lblForm.delete}"
+	                      		oncomplete="#{rich:component('deleteStepViewId:confirmPanel')}.show()"
+	                      		disabled="#{MbAccountAlgorithmSteps.algorithmId == null || MbAccountAlgorithmSteps.activeAlgoStep == null}"
+	                      		rendered="#{usession.inRole['REMOVE_ACCOUNT_SELECTION_STEP']}"
+	                      		image="/images/delete.gif"
+	                      		/>
+	                     </h:panelGroup>
+	                     
+	                     <h:panelGroup>
+							<h:graphicImage url="/images/green-tick.png" title="#{lblCommon.save_table_state}" styleClass="action_icon"
+								onclick="saveStepTableState();"/>
+							<h:graphicImage url="/images/red-cross.png" title="#{lblCommon.delete_table_state}" styleClass="action_icon"
+								onclick="deleteStepTableState();"/>
+							<a4j:queue name="tablestatequeue"/>
+							<a4j:jsFunction name="saveStepTableState" action="#{MbAccountAlgorithmSteps.saveTableStateDB}" eventsQueue="tablestatequeue"/>
+							<a4j:jsFunction name="deleteStepTableState" action="#{MbAccountAlgorithmSteps.deleteTableStateDB}" eventsQueue="tablestatequeue"/>
+						</h:panelGroup>
+					</h:panelGrid>
+				</h:panelGroup>
+		    </h:panelGroup>
+	    </h:form>
+	
+		<rich:modalPanel id="algoStepsModalPanel" autosized="true" minWidth="300" minHeight="50"
+				rendered="#{usession.inRole['ADD_ACCOUNT_SELECTION_STEP'] || usession.inRole['MODIFY_ACCOUNT_SELECTION_STEP']}">
+	 	    <f:facet name="header">
+	 	    	<h:panelGroup id="algoStepsModalHeader">
+				    <h:outputText value="#{lblAcc.new_selection_step}" rendered="#{MbAccountAlgorithmSteps.newMode}"/>
+				    <h:outputText value="#{lblAcc.edit_selection_step}" rendered="#{MbAccountAlgorithmSteps.editMode}"/>
+			    </h:panelGroup>
+	        </f:facet>
+	  	    <f:facet name="controls">
+	      	</f:facet>
+	      		<h:form id="algoStepsModalDiv">
+					<h:panelGroup layout="block" styleClass="cardholderdata-wrapper">
+						<h:panelGrid columns="2" styleClass="cardholderdata" columnClasses="firstColModal, width250">
+							<h:outputLabel value="#{lblCommon.id}" 
+									rendered="#{MbAccountAlgorithmSteps.editMode}"/>
+							<h:inputText value="#{MbAccountAlgorithmSteps.newAlgoStep.id}" 
+									rendered="#{MbAccountAlgorithmSteps.editMode}" readonly="true"/>
+							
+							<h:outputLabel value="* #{lblIss.step}" title="#{lblIss.step}"/>
+							<h:panelGrid cellpadding="0" cellspacing="0">
+								<h:selectOneMenu id="newAlgoStep"
+										value="#{MbAccountAlgorithmSteps.newAlgoStep.step}"
+										label="#{lblIss.step}"
+										onblur="hideErrorField(this)">
+									<f:selectItem itemValue=""/>
+								    <f:selectItems value="#{MbAccountAlgorithmSteps.algorithmStepsArticles}"/>
+								</h:selectOneMenu>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newAlgoStepError" style="display:none;">
+									<f:param name="fieldName" value="#{lblIss.step}"/>
+								</h:outputFormat>
+							</h:panelGrid>
+							
+							<h:outputLabel value="* #{lblCommon.exec_order}" title="#{lblCommon.exec_order}"/>
+							<h:panelGrid cellpadding="0" cellspacing="0">
+								<h:inputText id="newExecOrder"
+										value="#{MbAccountAlgorithmSteps.newAlgoStep.execOrder}"
+										label="#{lblCommon.exec_order}"
+										maxlength="4"
+										onkeypress="if (!numbersOnly(this, event)) return false;"
+										onblur="hideErrorField(this)">
+								</h:inputText>
+								<h:outputFormat value="#{lblMsg.value_request}" styleClass="errorMarker"
+									id="newExecOrderError" style="display:none;">
+									<f:param name="fieldName" value="#{lblCommon.exec_order}"/>
+								</h:outputFormat>
+							</h:panelGrid>						
+						</h:panelGrid>
+					</h:panelGroup>
+	
+		      	    <h:panelGroup layout="block" styleClass="bottom_search_result_block_buttons">
+						<h:panelGroup layout="block" styleClass="bottom_search_result_left_buttons">
+			       	    	<h:panelGrid columns="3" columnClasses="width99P,,paddingR12">
+			       	    		<h:outputText/>
+	                        	<bre:taggedCommandButton
+	                        			value="#{lblForm.save}" type="submit" action="#{MbAccountAlgorithmSteps.save}"
+	                        			onclick="if (!checkAlgoStepFields()) return false; disableModalPanelBtns(this)"
+	                        			oncomplete="enableModalPanelBtns(this); if (#{usession.noErrorResponse}) #{rich:component('algoStepsModalPanel')}.hide()"
+	                        			reRender="algorithmStepsForm"
+		                        		/>
+	                        	<bre:taggedCommandButton
+		                        		value="#{lblForm.cancel}" 
+		                        		action="#{MbAccountAlgorithmSteps.close}" immediate="true"
+		                        		oncomplete="#{rich:component('algoStepsModalPanel')}.hide()"
+		                        		reRender="algoStepsModalDiv">
+			                       	<f:actionListener type="ru.bpc.jsf.A4JFormReset" />
+								</bre:taggedCommandButton>
+				    		</h:panelGrid>
+				    	</h:panelGroup>
+				    </h:panelGroup>
+				</h:form>		
+		</rich:modalPanel>
+	</h:panelGroup>
+	
+	<h:panelGroup rendered="#{!usession.inRole['VIEW_ACCOUNT_SELECTION_STEPS']}" style="text-align: center">
+		<h:outputText value="#{lblMsg.insufficient_rights}" style="font-size: 5em" />
+	</h:panelGroup>
+	
+	<ui:include src="/pages/utils/confirmPanel.jspx">
+		<ui:param name="backingBean" value="#{MbAccountAlgorithmSteps}"/>
+		<ui:param name="yesAction" value="delete"/>
+		<ui:param name="warningMsg" value="#{lblMsg.confirm_delete}"/> 
+		<ui:param name="rerenderList" value="algorithmStepsForm"/>
+		<ui:param name="confirmQuestion" value=" "/> 
+		<ui:param name="subviewId" value="deleteStepViewId"/>
+		<ui:param name="yes" value="#{lblForm.ok}"/>
+		<ui:param name="no" value="#{lblForm.cancel}"/>
+	</ui:include>
+
+</ui:composition>
+</html>
